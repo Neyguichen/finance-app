@@ -1,19 +1,28 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus } from '@/lib/hooks/useRevenus'
 import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { formatEuro, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
+import { Plus } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
 } from 'recharts'
 
 export default function DashboardPage() {
-  const { moisId, month, setMonth } = useApp()
+  const { moisId, month, setMonth, comptes, addCompte, loading } = useApp()
 
+  // --- États pour le formulaire de création de compte ---
+  const [newNom, setNewNom] = useState('')
+  const [newType, setNewType] = useState<'courant' | 'epargne'>('courant')
+
+  // --- Données ---
   const { data: revenus = [] } = useRevenus(moisId)
   const { data: charges = [] } = useChargesFixes(moisId)
   const { data: transactions = [] } = useTransactions(moisId)
@@ -35,6 +44,48 @@ export default function DashboardPage() {
 
   const tooltipStyle = { backgroundColor: '#1e293b', border: 'none' }
 
+  // --- Écran de chargement ---
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen text-slate-400">Chargement...</div>
+  }
+
+  // --- Écran de bienvenue si aucun compte ---
+  if (comptes.length === 0) {
+    return (
+      <div className="p-6 space-y-4">
+        <h1 className="text-2xl font-bold">Bienvenue !</h1>
+        <p className="text-slate-400">Créez votre premier compte pour commencer.</p>
+
+        <div className="space-y-3">
+          <Input
+            placeholder="Nom du compte (ex: Compte Courant)"
+            value={newNom}
+            onChange={(e) => setNewNom(e.target.value)}
+          />
+          <select
+            className="select select-bordered w-full bg-slate-800 border-slate-700"
+            value={newType}
+            onChange={(e) => setNewType(e.target.value as 'courant' | 'epargne')}
+          >
+            <option value="courant">Compte courant</option>
+            <option value="epargne">Compte épargne</option>
+          </select>
+          <Button
+            className="w-full"
+            onClick={async () => {
+              if (!newNom.trim()) return
+              await addCompte(newNom.trim(), newType)
+              setNewNom('')
+            }}
+          >
+            <Plus className="w-4 h-4 mr-1" /> Créer le compte
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // --- Dashboard normal ---
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
