@@ -82,7 +82,7 @@ export default function EpargnePage() {
             </DialogTrigger>
             <DialogContent className="bg-slate-900 border-slate-700">
               <DialogHeader>
-                <DialogTitle>Mouvement d'épargne</DialogTitle>
+                <DialogTitle>Mouvement d&apos;épargne</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit(onSubmitMvt)} className="space-y-4">
                 <Controller
