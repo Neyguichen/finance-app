@@ -18,18 +18,16 @@ import {
 export default function DashboardPage() {
   const { moisId, month, setMonth, comptes, addCompte, loading } = useApp()
 
-  // --- États pour le formulaire de création de compte ---
   const [newNom, setNewNom] = useState('')
   const [newType, setNewType] = useState<'courant' | 'epargne'>('courant')
+  const [showAddCompte, setShowAddCompte] = useState(false)
 
-  // --- Données ---
   const { data: revenus = [] } = useRevenus(moisId)
   const { data: charges = [] } = useChargesFixes(moisId)
   const { data: transactions = [] } = useTransactions(moisId)
 
   const totalRevenus = revenus.reduce((s, r) => s + Number(r.montant), 0)
   const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
-  const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
   const totalChargesFixes = charges.reduce((s, c) => s + Number(c.montant), 0)
   const totalChargesPayees = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
   const totalDepenses = transactions.reduce((s, t) => s + Number(t.montant), 0)
@@ -44,18 +42,16 @@ export default function DashboardPage() {
 
   const tooltipStyle = { backgroundColor: '#1e293b', border: 'none' }
 
-  // --- Écran de chargement ---
   if (loading) {
     return <div className="flex items-center justify-center h-screen text-slate-400">Chargement...</div>
   }
 
-  // --- Écran de bienvenue si aucun compte ---
+  // Écran de bienvenue si aucun compte
   if (comptes.length === 0) {
     return (
       <div className="p-6 space-y-4">
         <h1 className="text-2xl font-bold">Bienvenue !</h1>
         <p className="text-slate-400">Créez votre premier compte pour commencer.</p>
-
         <div className="space-y-3">
           <Input
             placeholder="Nom du compte (ex: Compte Courant)"
@@ -85,12 +81,66 @@ export default function DashboardPage() {
     )
   }
 
-  // --- Dashboard normal ---
+  // Dashboard normal
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
       <div className="p-4 space-y-4">
+        {/* Gestion des comptes */}
+        <Card className="bg-slate-900 border-slate-800">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-sm text-slate-400">Comptes</p>
+              <Button size="sm" variant="ghost" onClick={() => setShowAddCompte(!showAddCompte)}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {comptes.map(c => (
+                <span key={c.id} className="text-xs bg-slate-800 px-3 py-1 rounded-full">
+                  {c.nom} ({c.type})
+                </span>
+              ))}
+            </div>
+            {showAddCompte && (
+              <div className="mt-3 space-y-2">
+                <Input
+                  placeholder="Nom du compte"
+                  value={newNom}
+                  onChange={(e) => setNewNom(e.target.value)}
+                />
+                <select
+                  className="select select-bordered w-full bg-slate-800 border-slate-700 select-sm"
+                  value={newType}
+                  onChange={(e) => setNewType(e.target.value as 'courant' | 'epargne')}
+                >
+                  <option value="courant">Compte courant</option>
+                  <option value="epargne">Compte épargne</option>
+                </select>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    if (!newNom.trim()) return
+                    await addCompte(newNom.trim(), newType)
+                    setNewNom('')
+                    setShowAddCompte(false)
+                  }}
+                >
+                  Ajouter
+                </Button>
+              </div>
+            )}
+            {!moisId && comptes.length > 0 && (
+              <p className="text-xs text-yellow-400 mt-2">
+                ⚠️ Un compte courant est nécessaire pour activer le suivi mensuel.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Cartes résumé */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="bg-emerald-950 border-emerald-800">
             <CardHeader className="pb-2">
@@ -140,6 +190,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
+        {/* Graphique */}
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader>
             <CardTitle className="text-sm">Répartition</CardTitle>
