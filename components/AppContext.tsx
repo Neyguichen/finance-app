@@ -16,11 +16,13 @@ interface AppContextType {
   month: string
   setMonth: (m: string) => void
   loading: boolean
+  addCompte: (nom: string, type: 'courant' | 'epargne') => Promise<void>
 }
 
 const AppContext = createContext<AppContextType>({
   userId: null, compte: null, compteEpargne: null, comptes: [],
   moisId: undefined, month: currentMonth(), setMonth: () => {}, loading: true,
+  addCompte: async () => {},
 })
 
 export function useApp() { return useContext(AppContext) }
@@ -45,7 +47,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  // 2. Charger ou créer les comptes
+  // 2. Charger les comptes (sans création automatique)
   useEffect(() => {
     if (!userId) return
     async function loadComptes() {
@@ -57,16 +59,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (data && data.length > 0) {
         setComptes(data)
       } else {
-        // Premier lancement : créer compte courant + épargne
-        const { data: courant } = await supabase
-          .from('comptes')
-          .insert({ user_id: userId, nom: 'Compte Courant', type: 'courant' })
-          .select().single()
-        const { data: epargne } = await supabase
-          .from('comptes')
-          .insert({ user_id: userId, nom: 'LDDS', type: 'epargne' })
-          .select().single()
-        setComptes([courant, epargne].filter(Boolean) as Compte[])
+        setComptes([])
       }
       setLoading(false)
     }
@@ -83,11 +76,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }).then(m => setMoisId(m.id))
   }, [compte, month, userId])
 
+  // 4. Fonction pour ajouter un compte manuellement
+  const addCompte = async (nom: string, type: 'courant' | 'epargne') => {
+    if (!userId) return
+    const { data } = await supabase
+      .from('comptes')
+      .insert({ user_id: userId, nom, type })
+      .select()
+      .single()
+    if (data) {
+      setComptes(prev => [...prev, data])
+    }
+  }
+
   return (
-    <AppContext.Provider value={{
-      userId, compte, compteEpargne, comptes,
-      moisId, month, setMonth, loading,}}
-    >
+    <AppContext.Provider value= {{userId, compte, compteEpargne, comptes, moisId, month, setMonth, loading, addCompte }}>
       {children}
     </AppContext.Provider>
   )
