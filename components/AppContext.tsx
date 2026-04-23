@@ -44,6 +44,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUserId(data.user?.id || null)
+      if (!data.user) {
+        setLoading(false)
+      }
     })
   }, [])
 
