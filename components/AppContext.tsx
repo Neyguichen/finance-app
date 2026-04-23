@@ -40,14 +40,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { getOrCreate } = useMois(compte?.id)
   const [moisId, setMoisId] = useState<string | undefined>(undefined)
 
-  // 1. Récupérer l'utilisateur connecté
+  // 1. Écouter l'état d'authentification
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id || null)
-      if (!data.user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event, session?.user?.id)
+      setUserId(session?.user?.id || null)
+      if (!session?.user) {
         setLoading(false)
       }
     })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   // 2. Charger les comptes (sans création automatique)
