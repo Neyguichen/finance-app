@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,15 +21,16 @@ import {
 import { Plus, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
 import MonthSelector from '@/components/layout/MonthSelector';
 import { useEnveloppes, useMouvements } from '@/lib/hooks/useEpargne';
-import { formatEuro, currentMonth, pct } from '@/lib/utils';
+import { formatEuro, pct } from '@/lib/utils';
 import { useForm, Controller } from 'react-hook-form';
 import type { Enveloppe } from '@/lib/types';
+import { useState } from 'react';
+import { useApp } from '@/components/AppContext';
 
 export default function EpargnePage() {
-  const [month, setMonth] = useState(currentMonth());
+  const { moisId, month, setMonth, compteEpargne } = useApp()
   const [mvtOpen, setMvtOpen] = useState(false);
-  const compteEpargneId = undefined; // TODO: connecter
-  const moisId = undefined; // TODO: connecter
+  const compteEpargneId = compteEpargne?.id; // TODO: connecter
 
   const { data: enveloppes = [] } = useEnveloppes(compteEpargneId);
   const { create: createMvt } = useMouvements(moisId);

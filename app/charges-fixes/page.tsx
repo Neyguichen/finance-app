@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,13 +14,14 @@ import {
 import { Plus, Trash2 } from 'lucide-react';
 import MonthSelector from '@/components/layout/MonthSelector';
 import { useChargesFixes } from '@/lib/hooks/useChargesFixes';
-import { formatEuro, currentMonth, pct } from '@/lib/utils';
+import { formatEuro, pct } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
+import { useApp } from '@/components/AppContext';
+import { useState } from 'react';
 
 export default function ChargesFixesPage() {
-  const [month, setMonth] = useState(currentMonth());
+  const { moisId, month, setMonth } = useApp()
   const [open, setOpen] = useState(false);
-  const moisId = undefined; // TODO: connecter
 
   const {
     data: charges = [],

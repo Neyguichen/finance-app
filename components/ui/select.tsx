@@ -11,7 +11,7 @@ export function Select({ value, defaultValue, onValueChange, children }: {
   const [internal, setInternal] = useState(defaultValue || '')
   const current = value ?? internal
   const handleChange = (v: string) => { setInternal(v); onValueChange?.(v) }
-  return <SelectContext.Provider value= value: current, onChange: handleChange >{children}</SelectContext.Provider>
+  return <SelectContext.Provider value= {{value: current, onChange: handleChange}} >{children}</SelectContext.Provider>
 }
 
 export function SelectTrigger({ children, className }: { children: React.ReactNode; className?: string }) {

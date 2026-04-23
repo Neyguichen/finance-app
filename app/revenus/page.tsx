@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,14 +21,14 @@ import {
 import { Plus, Trash2 } from 'lucide-react';
 import MonthSelector from '@/components/layout/MonthSelector';
 import { useRevenus } from '@/lib/hooks/useRevenus';
-import { formatEuro, currentMonth, pct } from '@/lib/utils';
+import { formatEuro, pct } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
+import { useApp } from '@/components/AppContext';
+import { useState } from 'react';
 
 export default function RevenusPage() {
-  const [month, setMonth] = useState(currentMonth());
   const [open, setOpen] = useState(false);
-  const moisId = undefined; // TODO: connecter avec useMois
-
+  const { moisId, month, setMonth } = useApp()
   const { data: revenus = [], toggleRecu, create, remove } = useRevenus(moisId);
 
   const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0);
