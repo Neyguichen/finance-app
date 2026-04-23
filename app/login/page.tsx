@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +21,13 @@ export default function LoginPage() {
     setMessage('')
 
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password })
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: 'https://finance-app-seven-blush.vercel.app/auth/callback',
+        },
+      })
       if (error) setMessage(error.message)
       else setMessage('Vérifie tes emails pour confirmer ton compte !')
     } else {
@@ -28,6 +35,7 @@ export default function LoginPage() {
       if (error) setMessage(error.message)
       else window.location.href = '/dashboard'
     }
+
     setLoading(false)
   }
 
