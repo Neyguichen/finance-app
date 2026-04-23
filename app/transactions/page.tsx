@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +20,10 @@ import {
 import { Plus, Trash2 } from 'lucide-react';
 import MonthSelector from '@/components/layout/MonthSelector';
 import { useTransactions } from '@/lib/hooks/useTransactions';
-import { formatEuro, formatDate, currentMonth } from '@/lib/utils';
+import { formatEuro, formatDate } from '@/lib/utils';
 import { useForm, Controller } from 'react-hook-form';
+import { useApp } from '@/components/AppContext';
+import { useState } from 'react';
 
 // TODO: Importer les catégories depuis un hook useCategories
 const CATEGORIES_TEMP = [
@@ -43,9 +44,8 @@ const CATEGORIES_TEMP = [
 ];
 
 export default function TransactionsPage() {
-  const [month, setMonth] = useState(currentMonth());
   const [open, setOpen] = useState(false);
-  const moisId = undefined; // TODO: connecter
+  const { moisId, month, setMonth } = useApp()
 
   const { data: transactions = [], create, remove } = useTransactions(moisId);
   const total = transactions.reduce((s, t) => s + Number(t.montant), 0);

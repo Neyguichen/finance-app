@@ -1,22 +1,18 @@
 'use client'
 
-import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus } from '@/lib/hooks/useRevenus'
 import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useTransactions } from '@/lib/hooks/useTransactions'
-import { formatEuro, currentMonth, pct } from '@/lib/utils'
+import { formatEuro, pct } from '@/lib/utils'
+import { useApp } from '@/components/AppContext'
 import {
-  PieChart, Pie, Cell, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, Tooltip,
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
 } from 'recharts'
 
-// Tu remplaceras par ton propre contexte de compte/mois
 export default function DashboardPage() {
-  const [month, setMonth] = useState(currentMonth())
-  // TODO: Remplacer par le vrai moisId depuis le hook useMois
-  const moisId = undefined // à connecter
+  const { moisId, month, setMonth } = useApp()
 
   const { data: revenus = [] } = useRevenus(moisId)
   const { data: charges = [] } = useChargesFixes(moisId)
@@ -37,12 +33,13 @@ export default function DashboardPage() {
     { name: 'Reste', value: Math.max(resteReel, 0), color: '#22C55E' },
   ]
 
+  const tooltipStyle = { backgroundColor: '#1e293b', border: 'none' }
+
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
       <div className="p-4 space-y-4">
-        {/* Cartes résumé */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="bg-emerald-950 border-emerald-800">
             <CardHeader className="pb-2">
@@ -92,7 +89,6 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Graphique camembert */}
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader>
             <CardTitle className="text-sm">Répartition</CardTitle>
@@ -113,7 +109,7 @@ export default function DashboardPage() {
                 </Pie>
                 <Tooltip
                   formatter={(value: number) => formatEuro(value)}
-                  contentStyle= backgroundColor: '#1e293b', border: 'none' 
+                  contentStyle={tooltipStyle}
                 />
               </PieChart>
             </ResponsiveContainer>
