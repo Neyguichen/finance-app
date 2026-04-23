@@ -12,7 +12,7 @@ export function Dialog({ open, onOpenChange, children }: {
   open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode
 }) {
   return (
-    <DialogContext.Provider value= open, onOpenChange >
+    <DialogContext.Provider value= {{open, onOpenChange}} >
       {children}
     </DialogContext.Provider>
   )
@@ -20,7 +20,7 @@ export function Dialog({ open, onOpenChange, children }: {
 
 export function DialogTrigger({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) {
   const { onOpenChange } = useContext(DialogContext)
-  return <div onClick={() => onOpenChange(true)} style= display: 'inline-block' >{children}</div>
+  return <div onClick={() => onOpenChange(true)} style= {{display: 'inline-block'}} >{children}</div>
 }
 
 export function DialogContent({ className, children }: { className?: string; children: React.ReactNode }) {
