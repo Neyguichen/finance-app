@@ -4,69 +4,47 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Trash2 } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useTransactions } from '@/lib/hooks/useTransactions'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { formatEuro, formatDate, pct } from '@/lib/utils'
-import { useForm } from 'react-hook-form'
 import { useApp } from '@/components/AppContext'
-import { Progress } from '@/components/ui/progress'
 
 export default function VariablesPage() {
   const { moisId, month, setMonth, espace } = useApp()
   const espaceId = espace?.id
+
   const [catOpen, setCatOpen] = useState(false)
   const [txOpen, setTxOpen] = useState(false)
+  const [newCatNom, setNewCatNom] = useState('')
+  const [newCatIcone, setNewCatIcone] = useState('🛒')
 
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], create: createTx, remove: removeTx } = useTransactions(moisId)
 
-  // Totaux par catégorie
-  const catStats = categories.map(cat => {
-    const budget = budgets.find(b => b.categorie_id === cat.id)
-    const depenses = transactions
-      .filter(t => t.categorie_id === cat.id)
-      .reduce((s, t) => s + Number(t.montant), 0)
-    return { ...cat, prevu: budget?.prevu || 0, reel: depenses }
-  })
+  const [txCat, setTxCat] = useState('')
+  const [txMontant, setTxMontant] = useState(0)
+  const [txInfos, setTxInfos] = useState('')
+  const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0])
 
-  const totalPrevu = catStats.reduce((s, c) => s + Number(c.prevu), 0)
-  const totalReel = catStats.reduce((s, c) => s + c.reel, 0)
+  const getBudget = (catId: string) => budgets.find(b => b.categorie_id === catId)
+  const getDepenses = (catId: string) => transactions
+    .filter(t => t.categorie_id === catId)
+    .reduce((s, t) => s + Number(t.montant), 0)
 
-  // Form catégorie
-  const catForm = useForm({ defaultValues: { nom: '', icone: '', couleur: '#8B5CF6' } })
-  const onAddCat = async (values: any) => {
-    if (!espaceId) return
-    await createCat.mutateAsync({
-      espace_id: espaceId, nom: values.nom,
-      icone: values.icone || null, couleur: values.couleur, ordre: categories.length,
-    })
-    catForm.reset()
-    setCatOpen(false)
-  }
-
-  // Form transaction
-  const txForm = useForm({ defaultValues: { date: '', categorie_id: '', montant: 0, infos: '' } })
-  const onAddTx = async (values: any) => {
-    if (!moisId) return
-    await createTx.mutateAsync({
-      mois_id: moisId, categorie_id: values.categorie_id,
-      date: values.date, montant: values.montant, infos: values.infos || null,
-    })
-    txForm.reset()
-    setTxOpen(false)
-  }
+  const totalPrevu = budgets.reduce((s, b) => s + Number(b.prevu), 0)
+  const totalReel = transactions.reduce((s, t) => s + Number(t.montant), 0)
 
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
       <div className="p-4 space-y-4">
-        {/* En-tête + boutons */}
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold">Variables</h1>
           <div className="flex gap-2">
@@ -76,12 +54,16 @@ export default function VariablesPage() {
               </DialogTrigger>
               <DialogContent className="bg-slate-900 border-slate-700">
                 <DialogHeader><DialogTitle>Nouvelle catégorie</DialogTitle></DialogHeader>
-                <form onSubmit={catForm.handleSubmit(onAddCat)} className="space-y-4">
-                  <Input placeholder="Nom (ex: Courses)" {...catForm.register('nom', { required: true })} />
-                  <Input placeholder="Icône (emoji)" {...catForm.register('icone')} />
-                  <Input type="color" {...catForm.register('couleur')} />
-                  <Button type="submit" className="w-full">Créer</Button>
-                </form>
+                <div className="space-y-4">
+                  <Input placeholder="Nom (ex: Courses)" value={newCatNom} onChange={e => setNewCatNom(e.target.value)} />
+                  <EmojiPicker value={newCatIcone} onChange={setNewCatIcone} />
+                  <Button className="w-full" onClick={async () => {
+                    if (!newCatNom.trim() || !espaceId) return
+                    await createCat.mutateAsync({ espace_id: espaceId, nom: newCatNom.trim(), icone: newCatIcone, couleur: '#8B5CF6', ordre: categories.length })
+                    setNewCatNom('')
+                    setCatOpen(false)
+                  }}>Créer</Button>
+                </div>
               </DialogContent>
             </Dialog>
             <Dialog open={txOpen} onOpenChange={setTxOpen}>
@@ -90,54 +72,58 @@ export default function VariablesPage() {
               </DialogTrigger>
               <DialogContent className="bg-slate-900 border-slate-700">
                 <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
-                <form onSubmit={txForm.handleSubmit(onAddTx)} className="space-y-4">
-                  <Input type="date" {...txForm.register('date', { required: true })} />
-                  <select
-                    className="select select-bordered w-full bg-slate-800 border-slate-700"
-                    {...txForm.register('categorie_id', { required: true })}
-                  >
+                <div className="space-y-4">
+                  <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                    value={txCat} onChange={e => setTxCat(e.target.value)}>
                     <option value="">Catégorie...</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
-                    ))}
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
                   </select>
-                  <Input type="number" step="0.01" placeholder="Montant" {...txForm.register('montant', { valueAsNumber: true })} />
-                  <Input placeholder="Infos (ex: Carrefour)" {...txForm.register('infos')} />
-                  <Button type="submit" className="w-full">Ajouter</Button>
-                </form>
+                  <Input type="number" step="0.01" placeholder="Montant" value={txMontant || ''} onChange={e => setTxMontant(parseFloat(e.target.value) || 0)} />
+                  <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
+                  <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
+                  <Button className="w-full" onClick={async () => {
+                    if (!txCat || !moisId) return
+                    await createTx.mutateAsync({ mois_id: moisId, categorie_id: txCat, montant: txMontant, date: txDate, infos: txInfos || null, created_at: new Date().toISOString() })
+                    setTxMontant(0)
+                    setTxInfos('')
+                    setTxOpen(false)
+                  }}>Ajouter</Button>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
         </div>
 
-        {/* Totaux */}
-        <Card className="bg-rose-950 border-rose-800">
+        {/* 1. TOTAL EN HAUT */}
+        <Card className="bg-pink-950 border-pink-800">
           <CardContent className="p-4 space-y-2">
             <div className="flex justify-between">
               <span className="font-semibold">Budget prévu</span>
               <span className="font-bold">{formatEuro(totalPrevu)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="font-semibold">Dépensé réel</span>
-              <span className="font-bold text-rose-300">{formatEuro(totalReel)}</span>
+            <div className="flex justify-between text-sm">
+              <span>Dépensé réel</span>
+              <span>{formatEuro(totalReel)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="font-semibold">Reste</span>
-              <span className={`font-bold ${totalPrevu - totalReel >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <div className="flex justify-between text-sm">
+              <span>Reste</span>
+              <span className={totalPrevu - totalReel >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                 {formatEuro(totalPrevu - totalReel)}
               </span>
             </div>
+            <Progress value={totalPrevu > 0 ? pct(totalReel, totalPrevu) : 0} className="h-2" />
           </CardContent>
         </Card>
 
-        {/* BUDGETS EN GRILLE COMPACTE (3 par ligne) */}
+        {/* 2. BUDGETS EN GRILLE COMPACTE (3 par ligne) */}
         {categories.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
             <div className="grid grid-cols-3 gap-2">
-              {catStats.map(cat => {
-                const depense = cat.reel
-                const prevu = cat.prevu
+              {categories.map(cat => {
+                const budget = getBudget(cat.id)
+                const depense = getDepenses(cat.id)
+                const prevu = budget ? Number(budget.prevu) : 0
                 const ratio = prevu > 0 ? pct(depense, prevu) : 0
                 const isOver = depense > prevu && prevu > 0
                 return (
@@ -175,27 +161,37 @@ export default function VariablesPage() {
           </div>
         )}
 
-        {/* Liste des transactions récentes */}
-        <h2 className="font-semibold text-sm text-slate-400 mt-4">Dernières dépenses</h2>
-        <div className="space-y-2">
-          {transactions.slice(0, 20).map((tx) => (
-            <Card key={tx.id} className="bg-slate-900 border-slate-800">
-              <CardContent className="flex items-center justify-between p-3">
-                <div>
-                  <p className="font-medium">{tx.categorie?.nom || 'Sans catégorie'}</p>
-                  <p className="text-xs text-slate-400">
-                    {formatDate(tx.date)}{tx.infos ? ` — ${tx.infos}` : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-rose-400">{formatEuro(Number(tx.montant))}</span>
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8" onClick={() => removeTx.mutate(tx.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {/* 3. LISTE DES DÉPENSES */}
+        <div>
+          <h2 className="text-sm font-semibold text-slate-400 mb-2">Dépenses du mois</h2>
+          {transactions.length === 0 && (
+            <p className="text-sm text-slate-600 text-center py-4">Aucune dépense ce mois-ci</p>
+          )}
+          <div className="space-y-2">
+            {transactions.map(tx => (
+              <Card key={tx.id} className="bg-slate-900 border-slate-800">
+                <CardContent className="flex items-center justify-between p-3">
+                  <div className="flex items-center gap-3">
+                    <span>{tx.categorie?.icone || '📦'}</span>
+                    <div>
+                      <p className="text-sm font-medium">{tx.categorie?.nom || 'Sans catégorie'}</p>
+                      {tx.infos && <p className="text-xs text-slate-500">{tx.infos}</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <p className="font-bold text-pink-400">{formatEuro(Number(tx.montant))}</p>
+                      <p className="text-xs text-slate-500">{formatDate(tx.date)}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                      onClick={() => removeTx.mutate(tx.id)}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     </div>
