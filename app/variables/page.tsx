@@ -130,14 +130,14 @@ export default function VariablesPage() {
           </CardContent>
         </Card>
 
-        {/* BUDGETS EN GRILLE COMPACTE (2 par ligne) */}
+        {/* BUDGETS EN GRILLE COMPACTE (3 par ligne) */}
         {categories.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
             <div className="grid grid-cols-3 gap-2">
               {categories.map(cat => {
-                const budget = getBudget(cat.id)
-                const depense = getDepenses(cat.id)
+                const budget = Budget(cat.id)
+                const depense = Depenses(cat.id)
                 const prevu = budget ? Number(budget.prevu) : 0
                 const ratio = prevu > 0 ? pct(depense, prevu) : 0
                 const isOver = depense > prevu && prevu > 0
