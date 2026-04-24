@@ -65,6 +65,7 @@ export interface Categorie {
   icone: string | null
   couleur: string
   ordre: number
+  actif?: boolean
 }
 
 export interface Budget {
