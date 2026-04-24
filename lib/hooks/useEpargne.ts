@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { Enveloppe, MouvementEpargne } from '@/lib/types'
+import type { Enveloppe, MouvementEpargne, EpargneRecurrente } from '@/lib/types'
 
 export function useEnveloppes(espaceId: string | undefined) {
   const supabase = createClient()
