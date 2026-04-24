@@ -28,10 +28,13 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${inter.className} bg-slate-950 text-white`}>
-        <Providers>
-          <main className="pb-20 min-h-screen">{children}</main>
-          <MobileNav />
-        </Providers>
+      <Providers>
+        <EspaceSelector />
+        <main className="pb-20 min-h-screen">
+          {children}
+        </main>
+        <MobileNav />
+      </Providers>
       </body>
     </html>
   );
