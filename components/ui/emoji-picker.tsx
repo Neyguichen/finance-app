@@ -28,7 +28,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
       <button
         type="button"
         onClick={() => setShowGrid(!showGrid)}
-        className="btn btn-outline w-full text-2xl h-14"
+        className="btn btn-outline btn-ghost w-full text-2xl h-14 hover:bg-slate-700"
       >
         {value || '🏠'} <span className="text-sm text-slate-400 ml-2">Choisir une icône</span>
       </button>
