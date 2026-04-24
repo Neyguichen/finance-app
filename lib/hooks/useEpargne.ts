@@ -85,5 +85,81 @@ export function useMouvements(moisId: string | undefined) {
     },
   })
 
+  const update = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<MouvementEpargne> & { id: string }) => {
+      const { error } = await supabase
+        .from('mouvements_epargne')
+        .update(updates)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+    },
+  })
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('mouvements_epargne').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+    },
+  })
+
+  const removeDefinitif = useMutation({
+    mutationFn: async ({ mouvementId, recurrentId }: { mouvementId: string; recurrentId: string }) => {
+      await supabase
+        .from('epargne_recurrentes')
+        .update({ actif: false })
+        .eq('id', recurrentId)
+      await supabase.from('mouvements_epargne').delete().eq('id', mouvementId)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+      queryClient.invalidateQueries({ queryKey: ['epargne_recurrentes'] })
+    },
+  })
+
+  return { ...query, create, update, remove, removeDefinitif }
+}
+
+// Hook pour gérer les versements épargne récurrents (modèles par espace)
+export function useEpargneRecurrentes(espaceId: string | undefined) {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+  const key = ['epargne_recurrentes', espaceId]
+
+  const query = useQuery({
+    queryKey: key,
+    enabled: !!espaceId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('epargne_recurrentes')
+        .select('*')
+        .eq('espace_id', espaceId!)
+        .order('ordre')
+      if (error) throw error
+      return data as EpargneRecurrente[]
+    },
+  })
+
+  const create = useMutation({
+    mutationFn: async (rec: Omit<EpargneRecurrente, 'id' | 'created_at'>) => {
+      const { data, error } = await supabase
+        .from('epargne_recurrentes')
+        .insert(rec)
+        .select()
+        .single()
+      if (error) throw error
+      return data as EpargneRecurrente
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
   return { ...query, create }
 }
