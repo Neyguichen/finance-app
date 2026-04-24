@@ -45,7 +45,6 @@ export default function EpargnePage() {
       montant: values.montant,
       date: new Date().toISOString().split('T')[0],
       note: null,
-      recurrent_id: null,
     })
     reset()
     setMvtOpen(false)
