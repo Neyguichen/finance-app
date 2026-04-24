@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus } from '@/lib/hooks/useRevenus'
 import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
@@ -16,11 +18,10 @@ import {
 } from 'recharts'
 
 export default function DashboardPage() {
-  const { moisId, month, setMonth, comptes, addCompte, loading } = useApp()
-
+  const { moisId, month, setMonth, espaces, espace, loading, addEspace } = useApp()
+  const [openEspace, setOpenEspace] = useState(false)
   const [newNom, setNewNom] = useState('')
-  const [newType, setNewType] = useState<'courant' | 'epargne'>('courant')
-  const [showAddCompte, setShowAddCompte] = useState(false)
+  const [newIcone, setNewIcone] = useState('🏠')
 
   const { data: revenus = [] } = useRevenus(moisId)
   const { data: charges = [] } = useChargesFixes(moisId)
@@ -42,103 +43,39 @@ export default function DashboardPage() {
 
   const tooltipStyle = { backgroundColor: '#1e293b', border: 'none' }
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen text-slate-400">Chargement...</div>
-  }
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><span className="loading loading-spinner loading-lg"></span></div>
 
-  // Écran de bienvenue si aucun compte
-  if (comptes.length === 0) {
+  // Écran de bienvenue si aucun espace
+  if (espaces.length === 0) {
     return (
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-4 text-center">
         <h1 className="text-2xl font-bold">Bienvenue !</h1>
-        <p className="text-slate-400">Créez votre premier compte pour commencer.</p>
-        <div className="space-y-3">
-          <Input
-            placeholder="Nom du compte (ex: Compte Courant)"
-            value={newNom}
-            onChange={(e) => setNewNom(e.target.value)}
-          />
-          <select
-            className="select select-bordered w-full bg-slate-800 border-slate-700"
-            value={newType}
-            onChange={(e) => setNewType(e.target.value as 'courant' | 'epargne')}
-          >
-            <option value="courant">Compte courant</option>
-            <option value="epargne">Compte épargne</option>
-          </select>
-          <Button
-            className="w-full"
-            onClick={async () => {
-              if (!newNom.trim()) return
-              await addCompte(newNom.trim(), newType)
-              setNewNom('')
-            }}
-          >
-            <Plus className="w-4 h-4 mr-1" /> Créer le compte
-          </Button>
+        <p className="text-slate-400">Crée ton premier espace pour commencer.</p>
+        <div className="max-w-xs mx-auto space-y-3">
+          <Input placeholder="Nom (ex: Perso)" value={newNom} onChange={e => setNewNom(e.target.value)} />
+          <Input placeholder="Icône (emoji)" value={newIcone} onChange={e => setNewIcone(e.target.value)} />
+          <Button className="w-full" onClick={async () => {
+            if (!newNom.trim()) return
+            await addEspace(newNom.trim(), newIcone || undefined)
+            setNewNom('')
+          }}>Créer l&apos;espace</Button>
         </div>
       </div>
     )
   }
 
-  // Dashboard normal
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
       <div className="p-4 space-y-4">
-        {/* Gestion des comptes */}
-        <Card className="bg-slate-900 border-slate-800">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-slate-400">Comptes</p>
-              <Button size="sm" variant="ghost" onClick={() => setShowAddCompte(!showAddCompte)}>
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {comptes.map(c => (
-                <span key={c.id} className="text-xs bg-slate-800 px-3 py-1 rounded-full">
-                  {c.nom} ({c.type})
-                </span>
-              ))}
-            </div>
-            {showAddCompte && (
-              <div className="mt-3 space-y-2">
-                <Input
-                  placeholder="Nom du compte"
-                  value={newNom}
-                  onChange={(e) => setNewNom(e.target.value)}
-                />
-                <select
-                  className="select select-bordered w-full bg-slate-800 border-slate-700 select-sm"
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value as 'courant' | 'epargne')}
-                >
-                  <option value="courant">Compte courant</option>
-                  <option value="epargne">Compte épargne</option>
-                </select>
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={async () => {
-                    if (!newNom.trim()) return
-                    await addCompte(newNom.trim(), newType)
-                    setNewNom('')
-                    setShowAddCompte(false)
-                  }}
-                >
-                  Ajouter
-                </Button>
-              </div>
-            )}
-            {!moisId && comptes.length > 0 && (
-              <p className="text-xs text-yellow-400 mt-2">
-                ⚠️ Un compte courant est nécessaire pour activer le suivi mensuel.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        {/* Espace actif */}
+        {espace && (
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{espace.icone}</span>
+            <span className="font-semibold">{espace.nom}</span>
+          </div>
+        )}
 
         {/* Cartes résumé */}
         <div className="grid grid-cols-2 gap-3">
@@ -160,9 +97,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xl font-bold text-rose-300">{formatEuro(totalSortants)}</p>
-              <p className="text-xs text-rose-600">
-                Fixes {formatEuro(totalChargesPayees)}
-              </p>
+              <p className="text-xs text-rose-600">Fixes {formatEuro(totalChargesPayees)}</p>
             </CardContent>
           </Card>
 
@@ -183,9 +118,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xl font-bold text-purple-300">{formatEuro(totalChargesFixes)}</p>
-              <p className="text-xs text-purple-600">
-                Payé {pct(totalChargesPayees, totalChargesFixes)}%
-              </p>
+              <p className="text-xs text-purple-600">Payé {pct(totalChargesPayees, totalChargesFixes)}%</p>
             </CardContent>
           </Card>
         </div>

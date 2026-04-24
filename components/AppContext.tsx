@@ -5,98 +5,102 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useMois } from '@/lib/hooks/useMois'
 import { currentMonth } from '@/lib/utils'
-import type { Compte } from '@/lib/types'
+import type { Espace } from '@/lib/types'
 
 interface AppContextType {
   userId: string | null
-  compte: Compte | null
-  compteEpargne: Compte | null
-  comptes: Compte[]
+  espaces: Espace[]
+  espace: Espace | null
+  setEspaceId: (id: string) => void
   moisId: string | undefined
   month: string
   setMonth: (m: string) => void
   loading: boolean
-  addCompte: (nom: string, type: 'courant' | 'epargne') => Promise<void>
+  addEspace: (nom: string, icone?: string) => Promise<void>
 }
 
-const AppContext = createContext<AppContextType>({
-  userId: null, compte: null, compteEpargne: null, comptes: [],
-  moisId: undefined, month: currentMonth(), setMonth: () => {}, loading: true,
-  addCompte: async () => {},
-})
+const defaultCtx: AppContextType = {
+  userId: null, espaces: [], espace: null, setEspaceId: () => {},
+  moisId: undefined, month: currentMonth(), setMonth: () => {},
+  loading: true, addEspace: async () => {},
+}
+
+const AppContext = createContext<AppContextType>(defaultCtx)
 
 export function useApp() { return useContext(AppContext) }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
   const [userId, setUserId] = useState<string | null>(null)
-  const [comptes, setComptes] = useState<Compte[]>([])
+  const [espaces, setEspaces] = useState<Espace[]>([])
+  const [espaceId, setEspaceId] = useState<string | null>(null)
   const [month, setMonth] = useState(currentMonth())
   const [loading, setLoading] = useState(true)
 
-  const compte = comptes.find(c => c.type === 'courant') || null
-  const compteEpargne = comptes.find(c => c.type === 'epargne') || null
+  const espace = espaces.find(e => e.id === espaceId) || espaces[0] || null
 
-  const { getOrCreate } = useMois(compte?.id)
+  const { getOrCreate } = useMois(espace?.id)
   const [moisId, setMoisId] = useState<string | undefined>(undefined)
 
-  // 1. Écouter l'état d'authentification
+  // 1. Écouter les changements d'auth
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth event:', event, session?.user?.id)
-      setUserId(session?.user?.id || null)
-      if (!session?.user) {
-        setLoading(false)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUserId(session?.user?.id || null)
+        if (!session?.user) setLoading(false)
       }
-    })
-
+    )
     return () => subscription.unsubscribe()
   }, [])
 
-  // 2. Charger les comptes (sans création automatique)
+  // 2. Charger les espaces
   useEffect(() => {
     if (!userId) return
-    async function loadComptes() {
-      const { data } = await supabase
-        .from('comptes')
-        .select('*')
-        .eq('user_id', userId)
-
-      if (data && data.length > 0) {
-        setComptes(data)
-      } else {
-        setComptes([])
+    async function loadEspaces() {
+      try {
+        const { data } = await supabase
+          .from('espaces')
+          .select('*')
+          .eq('user_id', userId)
+          .order('ordre')
+        setEspaces(data || [])
+      } catch (err) {
+        console.error('Erreur chargement espaces:', err)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
-    loadComptes()
+    loadEspaces()
   }, [userId])
 
-  // 3. Récupérer ou créer le mois actif
+  // 3. Récupérer ou créer le mois actif pour l'espace sélectionné
   useEffect(() => {
-    if (!compte || !userId) return
+    if (!espace || !userId) return
     getOrCreate.mutateAsync({
-      compte_id: compte.id,
+      espace_id: espace.id,
       mois: month,
       user_id: userId,
     }).then(m => setMoisId(m.id))
-  }, [compte, month, userId])
+  }, [espace, month, userId])
 
-  // 4. Fonction pour ajouter un compte manuellement
-  const addCompte = async (nom: string, type: 'courant' | 'epargne') => {
+  // Ajouter un espace
+  const addEspace = async (nom: string, icone = '\ud83c\udfe0') => {
     if (!userId) return
     const { data } = await supabase
-      .from('comptes')
-      .insert({ user_id: userId, nom, type })
+      .from('espaces')
+      .insert({ user_id: userId, nom, icone, ordre: espaces.length })
       .select()
       .single()
-    if (data) {
-      setComptes(prev => [...prev, data])
-    }
+    if (data) setEspaces(prev => [...prev, data])
+  }
+
+  const ctxValue: AppContextType = {
+    userId, espaces, espace, setEspaceId: (id) => setEspaceId(id),
+    moisId, month, setMonth, loading, addEspace,
   }
 
   return (
-    <AppContext.Provider value= {{userId, compte, compteEpargne, comptes, moisId, month, setMonth, loading, addCompte }}>
+    <AppContext.Provider value={ctxValue}>
       {children}
     </AppContext.Provider>
   )
