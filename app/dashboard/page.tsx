@@ -13,13 +13,13 @@ import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { formatEuro, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
 } from 'recharts'
 
 export default function DashboardPage() {
-  const { moisId, month, setMonth, espaces, espace, loading, addEspace } = useApp()
+  const { moisId, month, setMonth, espaces, espace, loading, addEspace, removeEspace } = useApp()
   const [openEspace, setOpenEspace] = useState(false)
   const [newNom, setNewNom] = useState('')
   const [newIcone, setNewIcone] = useState('🏠')
@@ -72,12 +72,24 @@ export default function DashboardPage() {
       <div className="p-4 space-y-4">
         {/* Espace actif + bouton ajouter */}
         <div className="flex items-center justify-between">
-          {espace && (
-            <div className="flex items-center gap-2">
-              <span className="text-xl">{espace.icone}</span>
-              <span className="font-semibold">{espace.nom}</span>
-            </div>
-          )}
+        {espace && (
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{espace.icone}</span>
+            <span className="font-semibold">{espace.nom}</span>
+            {espaces.length > 1 && (
+              <button
+                onClick={() => {
+                  if (confirm(`Supprimer l'espace "${espace.nom}" et toutes ses données ?`)) {
+                    removeEspace(espace.id)
+                  }
+                }}
+                className="text-slate-500 hover:text-red-400 ml-1"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
           <Dialog open={openEspace} onOpenChange={setOpenEspace}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Espace</Button>
