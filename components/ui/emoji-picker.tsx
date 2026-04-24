@@ -24,7 +24,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
   const [showGrid, setShowGrid] = useState(false)
 
   return (
-    <div className="relative">
+    <div>
       <button
         type="button"
         onClick={() => setShowGrid(!showGrid)}
@@ -33,7 +33,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
         {value || '🏠'} <span className="text-sm text-slate-400 ml-2">Choisir une icône</span>
       </button>
       {showGrid && (
-        <div className="absolute z-50 mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl grid grid-cols-6 gap-2 w-full">
+        <div className="mt-2 p-3 bg-slate-800 border border-slate-700 rounded-xl grid grid-cols-6 gap-2">
           {EMOJI_OPTIONS.map(emoji => (
             <button
               key={emoji}

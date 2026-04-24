@@ -82,7 +82,7 @@ export default function DashboardPage() {
             <DialogTrigger asChild>
               <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Espace</Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-700">
+            <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
               <DialogHeader><DialogTitle>Nouvel espace</DialogTitle></DialogHeader>
               <div className="space-y-4">
                 <Input placeholder="Nom (ex: Joint)" value={newNom} onChange={e => setNewNom(e.target.value)} />
