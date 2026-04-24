@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form'
 import { useApp } from '@/components/AppContext'
 
 const FREQUENCES = [
+  { value: 0, label: 'Ponctuel' },
   { value: 1, label: 'Mensuel' },
   { value: 3, label: 'Trimestriel' },
   { value: 6, label: 'Semestriel' },
@@ -38,24 +39,36 @@ export default function ChargesFixesPage() {
 
   const onSubmit = async (values: { nom: string; montant: number }) => {
     if (!moisId || !espace) return
-    // 1. Créer le modèle récurrent
-    const rec = await createRecurrent.mutateAsync({
-      espace_id: espace.id,
-      nom: values.nom,
-      montant: values.montant,
-      actif: true,
-      frequence_mois: formFreq,
-      ordre: charges.length,
-    })
-    // 2. Créer l'instance pour ce mois
-    await create.mutateAsync({
-      mois_id: moisId,
-      recurrent_id: rec.id,
-      nom: values.nom,
-      montant: values.montant,
-      payee: false,
-      ordre: charges.length,
-    })
+
+    if (formFreq === 0) {
+      // Ponctuel : pas de modèle récurrent, juste l'instance
+      await create.mutateAsync({
+        mois_id: moisId,
+        recurrent_id: null,
+        nom: values.nom,
+        montant: values.montant,
+        payee: false,
+        ordre: charges.length,
+      })
+    } else {
+      // Récurrent : créer le modèle puis l'instance
+      const rec = await createRecurrent.mutateAsync({
+        espace_id: espace.id,
+        nom: values.nom,
+        montant: values.montant,
+        actif: true,
+        frequence_mois: formFreq,
+        ordre: charges.length,
+      })
+      await create.mutateAsync({
+        mois_id: moisId,
+        recurrent_id: rec.id,
+        nom: values.nom,
+        montant: values.montant,
+        payee: false,
+        ordre: charges.length,
+      })
+    }
     reset()
     setFormFreq(1)
     setOpen(false)
@@ -90,7 +103,7 @@ export default function ChargesFixesPage() {
                 {/* Sélecteur de fréquence */}
                 <div>
                   <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-                  <div className="grid grid-cols-5 gap-1">
+                  <div className="grid grid-cols-4 gap-1">
                     {FREQUENCES.map(f => (
                       <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
                         className={`py-2 rounded-lg text-xs font-medium transition-colors ${
