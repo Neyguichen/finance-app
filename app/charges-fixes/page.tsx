@@ -8,35 +8,67 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Plus, Trash2 } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
-import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
+import { useChargesFixes, useChargesFixesRecurrentes } from '@/lib/hooks/useChargesFixes'
 import { formatEuro, pct } from '@/lib/utils'
 import { useForm } from 'react-hook-form'
 import { useApp } from '@/components/AppContext'
 
+const FREQUENCES = [
+  { value: 1, label: 'Mensuel' },
+  { value: 3, label: 'Trimestriel' },
+  { value: 6, label: 'Semestriel' },
+  { value: 12, label: 'Annuel' },
+]
+
 export default function ChargesFixesPage() {
-  const { moisId, month, setMonth } = useApp()
   const [open, setOpen] = useState(false)
-  const { data: charges = [], togglePayee, create, remove } = useChargesFixes(moisId)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; nom: string } | null>(null)
+  const { moisId, month, setMonth, espace } = useApp()
+  const { data: charges = [], togglePayee, create, remove, removeDefinitif } = useChargesFixes(moisId)
+  const { create: createRecurrent } = useChargesFixesRecurrentes(espace?.id)
 
   const total = charges.reduce((s, c) => s + Number(c.montant), 0)
   const totalPayee = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
   const aVenir = charges.filter(c => !c.payee).reduce((s, c) => s + Number(c.montant), 0)
 
+  const [formFreq, setFormFreq] = useState(1)
   const { register, handleSubmit, reset } = useForm({
     defaultValues: { nom: '', montant: 0 },
   })
 
   const onSubmit = async (values: { nom: string; montant: number }) => {
-    if (!moisId) return
+    if (!moisId || !espace) return
+    // 1. Créer le modèle récurrent
+    const rec = await createRecurrent.mutateAsync({
+      espace_id: espace.id,
+      nom: values.nom,
+      montant: values.montant,
+      actif: true,
+      frequence_mois: formFreq,
+      ordre: charges.length,
+    })
+    // 2. Créer l'instance pour ce mois
     await create.mutateAsync({
       mois_id: moisId,
+      recurrent_id: rec.id,
       nom: values.nom,
       montant: values.montant,
       payee: false,
       ordre: charges.length,
     })
     reset()
+    setFormFreq(1)
     setOpen(false)
+  }
+
+  const handleDelete = (mode: 'mois' | 'definitif') => {
+    if (!deleteTarget) return
+    if (mode === 'definitif' && deleteTarget.recurrentId) {
+      removeDefinitif.mutate({ chargeId: deleteTarget.id, recurrentId: deleteTarget.recurrentId })
+    } else {
+      remove.mutate(deleteTarget.id)
+    }
+    setDeleteTarget(null)
   }
 
   return (
@@ -54,43 +86,34 @@ export default function ChargesFixesPage() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input placeholder="Nom (ex: Loyer)" {...register('nom', { required: true })} />
                 <Input type="number" step="0.01" placeholder="Montant" {...register('montant', { valueAsNumber: true })} />
+
+                {/* Sélecteur de fréquence */}
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
+                  <div className="grid grid-cols-4 gap-1">
+                    {FREQUENCES.map(f => (
+                      <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
+                        className={`py-2 rounded-lg text-xs font-medium transition-colors ${
+                          formFreq === f.value
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        }`}>{f.label}</button>
+                    ))}
+                  </div>
+                </div>
+
                 <Button type="submit" className="w-full">Ajouter</Button>
               </form>
             </DialogContent>
           </Dialog>
         </div>
 
-        <div className="space-y-2">
-          {charges.map((charge) => (
-            <Card key={charge.id} className="bg-slate-900 border-slate-800">
-              <CardContent className="flex items-center justify-between p-3">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    checked={charge.payee}
-                    onCheckedChange={(checked) =>
-                      togglePayee.mutate({ id: charge.id, payee: !!checked })
-                    }
-                  />
-                  <p className={charge.payee ? 'line-through text-slate-500' : 'font-medium'}>
-                    {charge.nom}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-purple-400">{formatEuro(Number(charge.montant))}</span>
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8" onClick={() => remove.mutate(charge.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
+        {/* TOTAL EN HAUT */}
         <Card className="bg-purple-950 border-purple-800">
           <CardContent className="p-4 space-y-2">
             <div className="flex justify-between">
               <span className="font-semibold">Total</span>
-              <span className="font-bold">{formatEuro(total)}</span>
+              <span className="font-bold text-lg">{formatEuro(total)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span>Payé ({pct(totalPayee, total)}%)</span>
@@ -102,6 +125,61 @@ export default function ChargesFixesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* LISTE DES CHARGES */}
+        <div className="space-y-2">
+          {charges.map((charge) => (
+            <Card key={charge.id} className="bg-slate-900 border-slate-800">
+              <CardContent className="flex items-center justify-between p-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={charge.payee}
+                    onCheckedChange={(checked) =>
+                      togglePayee.mutate({ id: charge.id, payee: !!checked })
+                    }
+                  />
+                  <div>
+                    <p className={charge.payee ? 'line-through text-slate-500' : 'font-medium'}>
+                      {charge.nom}
+                    </p>
+                    {charge.recurrent_id && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900 text-purple-400">↻</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-purple-400">{formatEuro(Number(charge.montant))}</span>
+                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                    onClick={() => setDeleteTarget({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom })}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* DIALOG DE SUPPRESSION */}
+        <Dialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null) }}>
+          <DialogContent className="bg-slate-900 border-slate-700">
+            <DialogHeader>
+              <DialogTitle>Supprimer &laquo; {deleteTarget?.nom} &raquo; ?</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Button className="w-full" variant="outline" onClick={() => handleDelete('mois')}>
+                Ce mois seulement
+              </Button>
+              {deleteTarget?.recurrentId && (
+                <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => handleDelete('definitif')}>
+                  Définitivement (ne plus reporter)
+                </Button>
+              )}
+              <Button className="w-full" variant="ghost" onClick={() => setDeleteTarget(null)}>
+                Annuler
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

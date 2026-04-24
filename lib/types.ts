@@ -14,9 +14,22 @@ export interface Mois {
   mois: string
 }
 
+export interface RevenuRecurrent {
+  id: string
+  espace_id: string
+  type: 'actif' | 'passif'
+  nom: string
+  montant: number
+  actif: boolean
+  frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
+  ordre: number
+  created_at: string
+}
+
 export interface Revenu {
   id: string
   mois_id: string
+  recurrent_id: string | null
   type: 'actif' | 'passif'
   nom: string
   montant: number
@@ -24,9 +37,21 @@ export interface Revenu {
   ordre: number
 }
 
+export interface ChargeFixeRecurrente {
+  id: string
+  espace_id: string
+  nom: string
+  montant: number
+  actif: boolean
+  frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
+  ordre: number
+  created_at: string
+}
+
 export interface ChargeFixe {
   id: string
   mois_id: string
+  recurrent_id: string | null
   nom: string
   montant: number
   payee: boolean
@@ -69,9 +94,22 @@ export interface Enveloppe {
   ordre: number
 }
 
+export interface EpargneRecurrente {
+  id: string
+  espace_id: string
+  enveloppe_dest_id: string
+  montant: number
+  actif: boolean
+  frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
+  note: string | null
+  ordre: number
+  created_at: string
+}
+
 export interface MouvementEpargne {
   id: string
   mois_id: string
+  recurrent_id: string | null
   enveloppe_source_id: string | null
   enveloppe_dest_id: string | null
   montant: number
@@ -79,3 +117,5 @@ export interface MouvementEpargne {
   date: string
   note: string | null
 }
+
+// Evenement et ResumeMensuel supprimés en v2
