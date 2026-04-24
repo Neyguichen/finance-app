@@ -59,6 +59,4 @@ export function useCategories(espaceId: string | undefined) {
   })
   
   return { ...query, create, update, remove: archive }
-
-  return { ...query, create, update, remove }
 }
