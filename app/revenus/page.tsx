@@ -243,9 +243,9 @@ export default function RevenusPage() {
                 <label className="text-sm text-slate-400 mb-1 block">Type</label>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setEditType('actif')}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${<br>                      editType === 'actif'<br>                        ? 'bg-emerald-600 text-white'<br>                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'<br>                    }`}>Actif</button>
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${editType === 'actif' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Actif</button>
                   <button type="button" onClick={() => setEditType('passif')}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${<br>                      editType === 'passif'<br>                        ? 'bg-blue-600 text-white'<br>                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'<br>                    }`}>Passif</button>
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${editType === 'passif' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Passif</button>
                 </div>
               </div>
               <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
