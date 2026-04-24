@@ -83,8 +83,7 @@ export default function VariablesPage() {
                   <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
                   <Button className="w-full" onClick={async () => {
                     if (!txCat || !moisId) return
-                    await createTx.mutateAsync({ mois_id: moisId, categorie_id: txCat, montant: txMontant, date: txDate, infos: txInfos || null, created_at: new Date().toISOString() })
-                    setTxMontant(0)
+                    await createTx.mutateAsync({ mois_id: moisId, categorie_id: txCat, montant: txMontant, date: txDate, infos: txInfos || null })                    setTxMontant(0)
                     setTxInfos('')
                     setTxOpen(false)
                   }}>Ajouter</Button>
