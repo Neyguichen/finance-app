@@ -138,9 +138,9 @@ export default function VariablesPage() {
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
-                    <div className="flex justify-between text-xs">
+                    <div className="text-xs text-right">
                       <span className={isOver ? 'text-red-400 font-semibold' : 'text-pink-400 font-semibold'}>{formatEuro(depense)}</span>
-                      <span className="text-slate-500">/ {formatEuro(prevu)}</span>
+                      <span className="text-slate-500"> / {formatEuro(prevu)}</span>
                     </div>
                     <Progress value={Math.min(ratio, 100)} className="h-1" />
                     <div className="flex gap-1">
