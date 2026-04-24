@@ -70,13 +70,34 @@ export default function DashboardPage() {
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
       <div className="p-4 space-y-4">
-        {/* Espace actif */}
-        {espace && (
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{espace.icone}</span>
-            <span className="font-semibold">{espace.nom}</span>
-          </div>
-        )}
+        {/* Espace actif + bouton ajouter */}
+        <div className="flex items-center justify-between">
+          {espace && (
+            <div className="flex items-center gap-2">
+              <span className="text-xl">{espace.icone}</span>
+              <span className="font-semibold">{espace.nom}</span>
+            </div>
+          )}
+          <Dialog open={openEspace} onOpenChange={setOpenEspace}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Espace</Button>
+            </DialogTrigger>
+            <DialogContent className="bg-slate-900 border-slate-700">
+              <DialogHeader><DialogTitle>Nouvel espace</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <Input placeholder="Nom (ex: Joint)" value={newNom} onChange={e => setNewNom(e.target.value)} />
+                <EmojiPicker value={newIcone} onChange={setNewIcone} />
+                <Button className="w-full" onClick={async () => {
+                  if (!newNom.trim()) return
+                  await addEspace(newNom.trim(), newIcone || undefined)
+                  setNewNom('')
+                  setNewIcone('\ud83c\udfe0')
+                  setOpenEspace(false)
+                }}>Créer l&apos;espace</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {/* Cartes résumé */}
         <div className="grid grid-cols-2 gap-3">
