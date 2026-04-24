@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Pencil } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useChargesFixes, useChargesFixesRecurrentes } from '@/lib/hooks/useChargesFixes'
 import { formatEuro, pct } from '@/lib/utils'
@@ -24,8 +24,11 @@ const FREQUENCES = [
 export default function ChargesFixesPage() {
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; nom: string } | null>(null)
+  const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number } | null>(null)
+  const [editNom, setEditNom] = useState('')
+  const [editMontant, setEditMontant] = useState(0)
   const { moisId, month, setMonth, espace } = useApp()
-  const { data: charges = [], togglePayee, create, remove, removeDefinitif } = useChargesFixes(moisId)
+  const { data: charges = [], togglePayee, create, update, remove, removeDefinitif } = useChargesFixes(moisId)
   const { create: createRecurrent } = useChargesFixesRecurrentes(espace?.id)
 
   const total = charges.reduce((s, c) => s + Number(c.montant), 0)
@@ -82,6 +85,22 @@ export default function ChargesFixesPage() {
       remove.mutate(deleteTarget.id)
     }
     setDeleteTarget(null)
+  }
+
+  const handleEdit = (charge: { id: string; nom: string; montant: number }) => {
+    setEditTarget(charge)
+    setEditNom(charge.nom)
+    setEditMontant(Number(charge.montant))
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return
+    await update.mutateAsync({
+      id: editTarget.id,
+      nom: editNom,
+      montant: editMontant,
+    })
+    setEditTarget(null)
   }
 
   return (
@@ -163,6 +182,10 @@ export default function ChargesFixesPage() {
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-purple-400">{formatEuro(Number(charge.montant))}</span>
                   <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                    onClick={() => handleEdit({ id: charge.id, nom: charge.nom, montant: Number(charge.montant) })}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
                     onClick={() => setDeleteTarget({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom })}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -171,6 +194,21 @@ export default function ChargesFixesPage() {
             </Card>
           ))}
         </div>
+
+        {/* DIALOG D'ÉDITION */}
+        <Dialog open={!!editTarget} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
+          <DialogContent className="bg-slate-900 border-slate-700">
+            <DialogHeader>
+              <DialogTitle>Modifier la charge fixe</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
+              <Input type="number" step="0.01" placeholder="Montant" value={editMontant} onChange={e => setEditMontant(parseFloat(e.target.value) || 0)} />
+              <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
+              <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* DIALOG DE SUPPRESSION */}
         <Dialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null) }}>

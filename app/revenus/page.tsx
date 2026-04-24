@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Pencil } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
 import { formatEuro, pct } from '@/lib/utils'
@@ -24,8 +24,12 @@ const FREQUENCES = [
 export default function RevenusPage() {
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; nom: string } | null>(null)
+  const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number; type: 'actif' | 'passif' } | null>(null)
+  const [editNom, setEditNom] = useState('')
+  const [editMontant, setEditMontant] = useState(0)
+  const [editType, setEditType] = useState<'actif' | 'passif'>('actif')
   const { moisId, month, setMonth, espace } = useApp()
-  const { data: revenus = [], toggleRecu, create, remove, removeDefinitif } = useRevenus(moisId)
+  const { data: revenus = [], toggleRecu, create, update, remove, removeDefinitif } = useRevenus(moisId)
   const { create: createRecurrent } = useRevenusRecurrents(espace?.id)
 
   const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0)
@@ -88,6 +92,24 @@ export default function RevenusPage() {
       remove.mutate(deleteTarget.id)
     }
     setDeleteTarget(null)
+  }
+
+  const handleEdit = (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif' }) => {
+    setEditTarget(rev)
+    setEditNom(rev.nom)
+    setEditMontant(Number(rev.montant))
+    setEditType(rev.type)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return
+    await update.mutateAsync({
+      id: editTarget.id,
+      nom: editNom,
+      montant: editMontant,
+      type: editType,
+    })
+    setEditTarget(null)
   }
 
   return (
@@ -195,6 +217,10 @@ export default function RevenusPage() {
                     {formatEuro(Number(rev.montant))}
                   </span>
                   <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                    onClick={() => handleEdit({ id: rev.id, nom: rev.nom, montant: Number(rev.montant), type: rev.type })}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
                     onClick={() => setDeleteTarget({ id: rev.id, recurrentId: rev.recurrent_id, nom: rev.nom })}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -203,6 +229,30 @@ export default function RevenusPage() {
             </Card>
           ))}
         </div>
+
+        {/* DIALOG D'ÉDITION */}
+        <Dialog open={!!editTarget} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
+          <DialogContent className="bg-slate-900 border-slate-700">
+            <DialogHeader>
+              <DialogTitle>Modifier le revenu</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
+              <Input type="number" step="0.01" placeholder="Montant" value={editMontant} onChange={e => setEditMontant(parseFloat(e.target.value) || 0)} />
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Type</label>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setEditType('actif')}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${<br>                      editType === 'actif'<br>                        ? 'bg-emerald-600 text-white'<br>                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'<br>                    }`}>Actif</button>
+                  <button type="button" onClick={() => setEditType('passif')}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${<br>                      editType === 'passif'<br>                        ? 'bg-blue-600 text-white'<br>                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'<br>                    }`}>Passif</button>
+                </div>
+              </div>
+              <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
+              <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* DIALOG DE SUPPRESSION */}
         <Dialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null) }}>
