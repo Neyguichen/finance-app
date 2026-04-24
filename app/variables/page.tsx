@@ -110,39 +110,71 @@ export default function VariablesPage() {
           </div>
         </div>
 
-        {/* Budgets par catégorie */}
-        <div className="space-y-3">
-          {catStats.map((cat) => (
-            <Card key={cat.id} className="bg-slate-900 border-slate-800">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-medium">{cat.icone} {cat.nom}</span>
-                  <span className="text-sm">
-                    <span className="text-rose-400">{formatEuro(cat.reel)}</span>
-                    {' / '}
-                    <span className="text-slate-400">{formatEuro(Number(cat.prevu))}</span>
-                  </span>
-                </div>
-                <Progress value={Number(cat.prevu) > 0 ? pct(cat.reel, Number(cat.prevu)) : 0} className="h-2 mb-2" />
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number" step="0.01" placeholder="Budget prévu"
-                    defaultValue={Number(cat.prevu) || ''}
-                    className="input-sm"
-                    onBlur={(e) => {
-                      if (!moisId) return
-                      const val = parseFloat(e.target.value)
-                      if (!isNaN(val)) upsertBudget.mutate({ mois_id: moisId, categorie_id: cat.id, prevu: val })
-                    }}
-                  />
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8" onClick={() => removeCat.mutate(cat.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Totaux */}
+        <Card className="bg-rose-950 border-rose-800">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex justify-between">
+              <span className="font-semibold">Budget prévu</span>
+              <span className="font-bold">{formatEuro(totalPrevu)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold">Dépensé réel</span>
+              <span className="font-bold text-rose-300">{formatEuro(totalReel)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold">Reste</span>
+              <span className={`font-bold ${totalPrevu - totalReel >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {formatEuro(totalPrevu - totalReel)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* BUDGETS EN GRILLE COMPACTE (2 par ligne) */}
+        {categories.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {categories.map(cat => {
+                const budget = getBudget(cat.id)
+                const depense = getDepenses(cat.id)
+                const prevu = budget ? Number(budget.prevu) : 0
+                const ratio = prevu > 0 ? pct(depense, prevu) : 0
+                const isOver = depense > prevu && prevu > 0
+                return (
+                  <div key={cat.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-base">{cat.icone}</span>
+                        <span className="text-xs font-medium truncate">{cat.nom}</span>
+                      </div>
+                      <Button variant="ghost" size="icon" className="text-slate-600 h-5 w-5 flex-shrink-0"
+                        onClick={() => removeCat.mutate(cat.id)}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className={isOver ? 'text-red-400 font-semibold' : 'text-pink-400 font-semibold'}>{formatEuro(depense)}</span>
+                      <span className="text-slate-500">/ {formatEuro(prevu)}</span>
+                    </div>
+                    <Progress value={Math.min(ratio, 100)} className="h-1" />
+                    <Input
+                      type="number" step="0.01"
+                      className="h-6 text-xs bg-slate-800 border-slate-700 px-2"
+                      placeholder="Budget"
+                      defaultValue={prevu || ''}
+                      onBlur={e => {
+                        if (!moisId) return
+                        const val = parseFloat(e.target.value) || 0
+                        upsertBudget.mutate({ mois_id: moisId, categorie_id: cat.id, prevu: val })
+                      }}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Liste des transactions récentes */}
         <h2 className="font-semibold text-sm text-slate-400 mt-4">Dernières dépenses</h2>
@@ -166,26 +198,6 @@ export default function VariablesPage() {
             </Card>
           ))}
         </div>
-
-        {/* Totaux */}
-        <Card className="bg-rose-950 border-rose-800">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex justify-between">
-              <span className="font-semibold">Budget prévu</span>
-              <span className="font-bold">{formatEuro(totalPrevu)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-semibold">Dépensé réel</span>
-              <span className="font-bold text-rose-300">{formatEuro(totalReel)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-semibold">Reste</span>
-              <span className={`font-bold ${totalPrevu - totalReel >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {formatEuro(totalPrevu - totalReel)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )
