@@ -128,7 +128,7 @@ export default function RevenusPage() {
                 {/* Sélecteur de fréquence */}
                 <div>
                   <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className="grid grid-cols-5 gap-1">
                     {FREQUENCES.map(f => (
                       <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
                         className={`py-2 rounded-lg text-xs font-medium transition-colors ${
