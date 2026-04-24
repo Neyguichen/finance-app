@@ -40,6 +40,7 @@ export default function RevenusPage() {
 
   const onSubmit = async (values: { nom: string; montant: number }) => {
     if (!moisId || !espace) return
+
     if (formFreq === 0) {
       // Ponctuel : pas de modèle récurrent, juste l'instance
       await create.mutateAsync({
@@ -52,7 +53,7 @@ export default function RevenusPage() {
         ordre: revenus.length,
       })
     } else {
-      // 1. Créer le modèle récurrent
+      // Récurrent : créer le modèle puis l'instance
       const rec = await createRecurrent.mutateAsync({
         espace_id: espace.id,
         type: formType,
@@ -62,7 +63,6 @@ export default function RevenusPage() {
         frequence_mois: formFreq,
         ordre: revenus.length,
       })
-      // 2. Créer l'instance pour ce mois
       await create.mutateAsync({
         mois_id: moisId,
         recurrent_id: rec.id,
@@ -71,7 +71,8 @@ export default function RevenusPage() {
         montant: values.montant,
         recu: false,
         ordre: revenus.length,
-    })
+      })
+    }
     reset()
     setFormType('actif')
     setFormFreq(1)
@@ -127,7 +128,7 @@ export default function RevenusPage() {
                 {/* Sélecteur de fréquence */}
                 <div>
                   <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-                  <div className="grid grid-cols-5 gap-1">
+                  <div className="grid grid-cols-4 gap-1">
                     {FREQUENCES.map(f => (
                       <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
                         className={`py-2 rounded-lg text-xs font-medium transition-colors ${
