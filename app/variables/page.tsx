@@ -143,17 +143,26 @@ export default function VariablesPage() {
                       <span className="text-slate-500">/ {formatEuro(prevu)}</span>
                     </div>
                     <Progress value={Math.min(ratio, 100)} className="h-1" />
-                    <Input
-                      type="number" step="0.01"
-                      className="h-6 text-xs bg-slate-800 border-slate-700 px-2"
-                      placeholder="Budget"
-                      defaultValue={prevu || ''}
-                      onBlur={e => {
-                        if (!moisId) return
-                        const val = parseFloat(e.target.value) || 0
-                        upsertBudget.mutate({ mois_id: moisId, categorie_id: cat.id, prevu: val })
-                      }}
-                    />
+                    <div className="flex gap-1">
+                      <Input
+                        type="number" step="0.01"
+                        className="h-6 text-xs bg-slate-800 border-slate-700 px-2 flex-1"
+                        placeholder="Budget"
+                        defaultValue={prevu || ''}
+                        id={`budget-${cat.id}`}
+                      />
+                      <button
+                        className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                        onClick={() => {
+                          if (!moisId) return
+                          const input = document.getElementById(`budget-${cat.id}`) as HTMLInputElement
+                          const val = parseFloat(input?.value) || 0
+                          upsertBudget.mutate({ mois_id: moisId, categorie_id: cat.id, prevu: val })
+                        }}
+                      >
+                        ✓
+                      </button>
+                    </div>
                   </div>
                 )
               })}
