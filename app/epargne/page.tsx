@@ -38,6 +38,7 @@ export default function EpargnePage() {
     if (!moisId) return
     await createMvt.mutateAsync({
       mois_id: moisId,
+      recurrent_id: null,
       type: values.type,
       enveloppe_source_id: values.type !== 'alimentation' ? values.source : null,
       enveloppe_dest_id: values.type !== 'reprise' ? values.destination : null,
