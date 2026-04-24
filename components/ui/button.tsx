@@ -15,7 +15,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const variants = {
-    default: 'btn btn-primary',
+    default: 'btn btn-primary text-white',
     ghost: 'btn btn-ghost',
     outline: 'btn btn-outline',
   };
