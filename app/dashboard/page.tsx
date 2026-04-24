@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus } from '@/lib/hooks/useRevenus'
 import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
@@ -53,7 +54,7 @@ export default function DashboardPage() {
         <p className="text-slate-400">Crée ton premier espace pour commencer.</p>
         <div className="max-w-xs mx-auto space-y-3">
           <Input placeholder="Nom (ex: Perso)" value={newNom} onChange={e => setNewNom(e.target.value)} />
-          <Input placeholder="Icône (emoji)" value={newIcone} onChange={e => setNewIcone(e.target.value)} />
+          <EmojiPicker value={newIcone} onChange={setNewIcone} />
           <Button className="w-full" onClick={async () => {
             if (!newNom.trim()) return
             await addEspace(newNom.trim(), newIcone || undefined)
