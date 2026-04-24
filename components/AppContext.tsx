@@ -17,12 +17,13 @@ interface AppContextType {
   setMonth: (m: string) => void
   loading: boolean
   addEspace: (nom: string, icone?: string) => Promise<void>
+  removeEspace: (id: string) => Promise<void>
 }
 
 const defaultCtx: AppContextType = {
   userId: null, espaces: [], espace: null, setEspaceId: () => {},
   moisId: undefined, month: currentMonth(), setMonth: () => {},
-  loading: true, addEspace: async () => {},
+  loading: true, addEspace: async () => {},removeEspace: async () => {},
 }
 
 const AppContext = createContext<AppContextType>(defaultCtx)
@@ -94,9 +95,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (data) setEspaces(prev => [...prev, data])
   }
 
+  // Supprimer un espace
+  const removeEspace = async (id: string) => {
+    const { error } = await supabase.from('espaces').delete().eq('id', id)
+    if (error) { console.error('Erreur suppression espace:', error); return }
+    setEspaces(prev => prev.filter(e => e.id !== id))
+    // Si on supprime l'espace actif, basculer sur le premier restant
+    if (espaceId === id) setEspaceId(null)
+  }
+
   const ctxValue: AppContextType = {
     userId, espaces, espace, setEspaceId: (id) => setEspaceId(id),
-    moisId, month, setMonth, loading, addEspace,
+    moisId, month, setMonth, loading, addEspace, removeEspace,
   }
 
   return (
