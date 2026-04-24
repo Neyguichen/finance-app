@@ -14,7 +14,7 @@ import { useForm } from 'react-hook-form'
 import { useApp } from '@/components/AppContext'
 
 const FREQUENCES = [
-  { value: 0, label: 'Ponctuel' }
+  { value: 0, label: 'Ponctuel' },
   { value: 1, label: 'Mensuel' },
   { value: 3, label: 'Trimestriel' },
   { value: 6, label: 'Semestriel' },
