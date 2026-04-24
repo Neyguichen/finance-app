@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
 import MobileNav from '@/components/layout/MobileNav';
+import EspaceSelector from '@/components/layout/EspaceSelector';
 
 const inter = Inter({ subsets: ['latin'] });
 
