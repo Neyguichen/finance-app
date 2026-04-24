@@ -135,10 +135,9 @@ export default function VariablesPage() {
           <div>
             <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
             <div className="grid grid-cols-3 gap-2">
-              {categories.map(cat => {
-                const budget = Budget(cat.id)
-                const depense = Depenses(cat.id)
-                const prevu = budget ? Number(budget.prevu) : 0
+              {catStats.map(cat => {
+                const depense = cat.reel
+                const prevu = cat.prevu
                 const ratio = prevu > 0 ? pct(depense, prevu) : 0
                 const isOver = depense > prevu && prevu > 0
                 return (
