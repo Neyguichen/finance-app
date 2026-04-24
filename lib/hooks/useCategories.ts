@@ -47,13 +47,16 @@ export function useCategories(espaceId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  const remove = useMutation({
+  const archive = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('categories').delete().eq('id', id)
+      const { error } = await supabase
+        .from('categories')
+        .update({ actif: false })
+        .eq('id', id)
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
-
-  return { ...query, create, update, remove }
+  
+  return { ...query, create, update, remove: archive }
 }

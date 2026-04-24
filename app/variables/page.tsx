@@ -25,6 +25,7 @@ export default function VariablesPage() {
   const [newCatIcone, setNewCatIcone] = useState('🛒')
 
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
+  const activeCategories = categories.filter(c => (c as any).actif !== false)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], create: createTx, remove: removeTx } = useTransactions(moisId)
 
@@ -116,11 +117,11 @@ export default function VariablesPage() {
         </Card>
 
         {/* 2. BUDGETS EN GRILLE COMPACTE (3 par ligne) */}
-        {categories.length > 0 && (
+        {activeCategories.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
             <div className="grid grid-cols-3 gap-2">
-              {categories.map(cat => {
+              {activeCategories.map(cat => {
                 const budget = getBudget(cat.id)
                 const depense = getDepenses(cat.id)
                 const prevu = budget ? Number(budget.prevu) : 0
