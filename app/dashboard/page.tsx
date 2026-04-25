@@ -59,13 +59,13 @@ export default function DashboardPage() {
   const revenusChartData = [
     { name: 'Actif', value: totalActif, color: '#10B981' },
     { name: 'Passif', value: totalPassif, color: '#3B82F6' },
-    { name: 'Reprises épargne', value: totalReprises, color: '#14B8A6' },
+    { name: 'Reprises épargne', value: totalReprises, color: '#27c4bf' },
   ].filter(d => d.value > 0)
 
   const pieData = [
     { name: 'Charges fixes', value: totalChargesPayees, color: '#8B5CF6' },
     { name: 'Dépenses', value: totalDepenses, color: '#EC4899' },
-    { name: 'Épargne', value: totalEpargnes, color: '#14B8A6' },
+    { name: 'Épargne', value: totalEpargnes, color: '#27c4bf' },
     { name: 'Reste', value: Math.max(resteReel, 0), color: '#22C55E' },
   ]
 
@@ -145,7 +145,6 @@ export default function DashboardPage() {
               <CardTitle className="text-sm text-emerald-400">Entrants</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              <h2 className="text-sm font-semibold text-emerald-400 mb-3">Revenus</h2>
               <div className="flex items-center gap-4">
                 {/* Donut */}
                 <div className="relative w-28 h-28 flex-shrink-0">
