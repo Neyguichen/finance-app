@@ -146,7 +146,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xl font-bold text-emerald-400">{formatEuro(totalRevenus)}</p>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col items-center gap-3">
                 {/* Donut */}
                 <div className="relative w-28 h-28 flex-shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
@@ -176,7 +176,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Légende */}
-                <div className="space-y-2 flex-1">
+                <div className="space-y-1 w-full">
                   {revenusChartData.map(d => (
                     <div key={d.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
