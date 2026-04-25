@@ -59,17 +59,17 @@ export default function DashboardPage() {
   const revenusChartData = [
     { name: 'Actif', value: totalActif, color: '#10B981' },
     { name: 'Passif', value: totalPassif, color: '#3B82F6' },
-    { name: 'Reprises épargne', value: totalReprises, color: '#14B8A6' },
+    { name: 'Reprises épargne', value: totalReprises, color: '#27c4bf' },
   ].filter(d => d.value > 0)
 
   const pieData = [
     { name: 'Charges fixes', value: totalChargesPayees, color: '#8B5CF6' },
     { name: 'Dépenses', value: totalDepenses, color: '#EC4899' },
-    { name: 'Épargne', value: totalEpargnes, color: '#14B8A6' },
+    { name: 'Épargne', value: totalEpargnes, color: '#27c4bf' },
     { name: 'Reste', value: Math.max(resteReel, 0), color: '#22C55E' },
   ]
 
-  const tooltipStyle = { backgroundColor: '#1e293b', border: 'none' }
+  const tooltipStyle = { backgroundColor: '#344869', border: 'none' }
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><span className="loading loading-spinner loading-lg"></span></div>
 
@@ -145,7 +145,7 @@ export default function DashboardPage() {
               <CardTitle className="text-sm text-emerald-400">Entrants</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              <h2 className="text-sm font-semibold text-emerald-400 mb-3">Revenus</h2>
+              <p className="text-xl font-bold text-emerald-400">{formatEuro(totalRevenus)}</p>
               <div className="flex items-center gap-4">
                 {/* Donut */}
                 <div className="relative w-28 h-28 flex-shrink-0">
@@ -157,19 +157,22 @@ export default function DashboardPage() {
                         cy="50%"
                         innerRadius={30}
                         outerRadius={50}
+                        paddingAngle={3}
                         dataKey="value"
-                        strokeWidth={0}
                       >
                         {revenusChartData.map((entry, i) => (
                           <Cell key={i} fill={entry.color} />
                         ))}
                       </Pie>
+                      <Tooltip
+                        formatter={(value: number, name: string) => {
+                          const pourcent = totalRevenus > 0 ? Math.round((value / totalRevenus) * 100) : 0
+                          return [`${formatEuro(value)} (${pourcent}%)`, name]
+                        }}
+                        contentStyle={tooltipStyle}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
-                  {/* Total au centre */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs font-bold text-white">{formatEuro(totalRevenus)}</span>
-                  </div>
                 </div>
 
                 {/* Légende */}
