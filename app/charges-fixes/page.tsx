@@ -23,9 +23,6 @@ const FREQUENCES = [
 ]
 
 export default function ChargesFixesPage() {
-  const { register, handleSubmit, reset, setValue } = useForm({
-    defaultValues: { nom: '', montant: 0 },
-  })
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; nom: string } | null>(null)
   const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number } | null>(null)
@@ -40,7 +37,7 @@ export default function ChargesFixesPage() {
   const aVenir = charges.filter(c => !c.payee).reduce((s, c) => s + Number(c.montant), 0)
 
   const [formFreq, setFormFreq] = useState(1)
-  const { register, handleSubmit, reset } = useForm({
+  const { register, handleSubmit, reset, setValue } = useForm({
     defaultValues: { nom: '', montant: 0 },
   })
 

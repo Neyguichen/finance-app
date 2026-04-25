@@ -23,9 +23,6 @@ const FREQUENCES = [
 ]
 
 export default function RevenusPage() {
-  const { register, handleSubmit, reset, setValue } = useForm({
-    defaultValues: { nom: '', montant: 0 },
-  })
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; nom: string } | null>(null)
   const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number; type: 'actif' | 'passif' } | null>(null)
@@ -42,7 +39,7 @@ export default function RevenusPage() {
 
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
   const [formFreq, setFormFreq] = useState(1)
-  const { register, handleSubmit, reset } = useForm({
+  const { register, handleSubmit, reset, setValue } = useForm({
     defaultValues: { nom: '', montant: 0 },
   })
 
