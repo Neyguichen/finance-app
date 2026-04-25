@@ -53,14 +53,14 @@ export default function EpargnePage() {
 
   const totalSolde = enveloppes.reduce((s, e) => s + Number(e.solde), 0)
   const totalMvtMois = mouvements
-    .filter(m => m.type === 'epargne')
+    .filter(m => m.type === 'alimentation')
     .reduce((s, m) => s + Number(m.montant), 0)
 
   // Helpers
   const envName = (id: string | null) => enveloppes.find(e => e.id === id)?.nom || '—'
 
   const mvtLabel = (m: MouvementEpargne) => {
-    if (m.type === 'epargne') return `→ ${envName(m.enveloppe_dest_id)}`
+    if (m.type === 'alimentation') return `→ ${envName(m.enveloppe_dest_id)}`
     if (m.type === 'reprise') return `← ${envName(m.enveloppe_source_id)}`
     return `${envName(m.enveloppe_source_id)} → ${envName(m.enveloppe_dest_id)}`
   }
@@ -68,7 +68,7 @@ export default function EpargnePage() {
   // Submit new movement
   const onSubmitMvt = async () => {
     if (!moisId || !espace) return
-    const sourceId = formType !== 'epargne' ? formSource : null
+    const sourceId = formType !== 'alimentation' ? formSource : null
     const destId = formType !== 'reprise' ? formDest : null
     const today = new Date().toISOString().split('T')[0]
 
