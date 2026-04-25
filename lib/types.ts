@@ -86,6 +86,15 @@ export interface Transaction {
   categorie?: Categorie
 }
 
+export interface Remboursement {
+  id: string
+  transaction_id: string
+  montant: number
+  note: string | null
+  date: string
+  created_at?: string
+}
+
 export interface Enveloppe {
   id: string
   espace_id: string
