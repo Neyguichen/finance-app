@@ -56,8 +56,8 @@ export default function DashboardPage() {
   const totalChargesFixes = charges.reduce((s, c) => s + Number(c.montant), 0)
   const totalChargesPayees = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
   const totalDepenses = transactions.reduce((s, t) => s + getMontantNet(t), 0)
-  const totalSortants = totalChargesPayees + totalDepenses + totalEpargnes
-  
+  const totalSortantsAll = totalChargesFixes + totalDepenses + totalEpargnes
+
   // Reste à vivre — PRÉVU
   // Pour chaque catégorie : max(budget prévu, dépenses réelles)
   const totalVariablesPrevu = categories.reduce((sum, cat) => {
@@ -78,6 +78,12 @@ export default function DashboardPage() {
     { name: 'Actif', value: totalActif, color: '#10B981' },
     { name: 'Passif', value: totalPassif, color: '#3B82F6' },
     { name: 'Reprises épargne', value: totalReprises, color: '#27c4bf' },
+  ].filter(d => d.value > 0)
+
+  const sortantsChartData = [
+    { name: 'Charges fixes', value: totalChargesFixes, color: '#8B5CF6' },
+    { name: 'Variables', value: totalDepenses, color: '#EC4899' },
+    { name: 'Épargne', value: totalEpargnes, color: '#14B8A6' },
   ].filter(d => d.value > 0)
 
   const pieData = [
@@ -238,10 +244,108 @@ export default function DashboardPage() {
               <CardTitle className="text-sm text-rose-400">Sortants</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xl font-bold text-rose-300">{formatEuro(totalSortants)}</p>
-              {totalEpargnes > 0 && (
-                <p className="text-xs text-rose-600">Épargne {formatEuro(totalEpargnes)}</p>
-              )}
+            <p className="text-xl font-bold text-rose-300">
+              {formatEuro(totalSortantsAll)}
+              <span className="text-sm font-normal text-rose-500 ml-2">
+                ({totalRevenus > 0 ? Math.round((totalSortantsAll / totalRevenus) * 100) : 0}% des revenus)
+              </span>
+            </p>
+              <div className="flex flex-col items-center gap-3">
+                {/* Donut */}
+                <div className="relative w-28 h-28">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={sortantsChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={30}
+                        outerRadius={50}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {sortantsChartData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number, name: string) => {
+                          const pourcent = totalSortantsAll > 0 ? Math.round((value / totalSortantsAll) * 100) : 0
+                          return [`${formatEuro(value)} (${pourcent}%)`, name]
+                        }}
+                        contentStyle={tooltipStyle}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Légende */}
+                <div className="space-y-1 w-full">
+                  {/* Charges fixes */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                      <span className="text-xs text-slate-300">Fixes</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold text-white">{formatEuro(totalChargesFixes)}</span>
+                      <span className="text-xs text-slate-500 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalChargesFixes / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Variables */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                      <span className="text-xs text-slate-300">Variables</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold text-white">{formatEuro(totalDepenses)}</span>
+                      <span className="text-xs text-slate-500 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Variables — Prévu (hors diagramme) */}
+                  <div className="flex items-center justify-between pl-5">
+                    <span className="text-xs text-slate-500">Prévu</span>
+                    <div className="text-right">
+                      <span className="text-xs text-slate-400">{formatEuro(totalVariablesPrevu)}</span>
+                      <span className="text-xs text-slate-600 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalVariablesPrevu / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Variables — Réel (hors diagramme) */}
+                  <div className="flex items-center justify-between pl-5">
+                    <span className="text-xs text-slate-500">Réel</span>
+                    <div className="text-right">
+                      <span className="text-xs text-slate-400">{formatEuro(totalDepenses)}</span>
+                      <span className="text-xs text-slate-600 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Épargne */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+                      <span className="text-xs text-slate-300">Épargne</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold text-white">{formatEuro(totalEpargnes)}</span>
+                      <span className="text-xs text-slate-500 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalEpargnes / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
