@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Plus, Trash2, Pencil, ArrowUpDown } from 'lucide-react'
@@ -220,7 +221,7 @@ export default function EpargnePage() {
                     </div>
                   )}
 
-                  <Input type="number" step="0.01" placeholder="Montant" value={formMontant || ''} onChange={e => setFormMontant(parseFloat(e.target.value) || 0)} />
+                  <CalculatorInput value={formMontant} onChange={setFormMontant} placeholder="Montant" />
                   <Input placeholder="Note (optionnel)" value={formNote} onChange={e => setFormNote(e.target.value)} />
 
                   {/* Sélecteur de fréquence */}
@@ -329,7 +330,7 @@ export default function EpargnePage() {
               <DialogTitle>Modifier le mouvement</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <Input type="number" step="0.01" placeholder="Montant" value={editMontant} onChange={e => setEditMontant(parseFloat(e.target.value) || 0)} />
+              <CalculatorInput value={formMontant} onChange={setFormMontant} placeholder="Montant" />
               <Input placeholder="Note" value={editNote} onChange={e => setEditNote(e.target.value)} />
               <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>

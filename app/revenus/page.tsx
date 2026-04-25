@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Plus, Trash2, Pencil } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
@@ -38,7 +39,7 @@ export default function RevenusPage() {
 
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
   const [formFreq, setFormFreq] = useState(1)
-  const { register, handleSubmit, reset } = useForm({
+  const { register, handleSubmit, reset, setValue } = useForm({
     defaultValues: { nom: '', montant: 0 },
   })
 
@@ -126,7 +127,7 @@ export default function RevenusPage() {
               <DialogHeader><DialogTitle>Nouveau revenu</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input placeholder="Nom" {...register('nom', { required: true })} />
-                <Input type="number" step="0.01" placeholder="Montant" {...register('montant', { valueAsNumber: true })} />
+                <CalculatorInput value={0} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
 
                 {/* Toggle Actif / Passif */}
                 <div>
@@ -238,7 +239,7 @@ export default function RevenusPage() {
             </DialogHeader>
             <div className="space-y-4">
               <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
-              <Input type="number" step="0.01" placeholder="Montant" value={editMontant} onChange={e => setEditMontant(parseFloat(e.target.value) || 0)} />
+              <CalculatorInput value={0} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Type</label>
                 <div className="flex gap-2">

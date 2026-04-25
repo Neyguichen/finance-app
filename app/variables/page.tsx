@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Pencil, Plus, Trash2, ReceiptText } from 'lucide-react'
@@ -100,7 +101,7 @@ export default function VariablesPage() {
                     <option value="">Catégorie...</option>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
                   </select>
-                  <Input type="number" step="0.01" placeholder="Montant" value={txMontant || ''} onChange={e => setTxMontant(parseFloat(e.target.value) || 0)} />
+                  <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
                   <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
                   <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
                   <Button className="w-full" onClick={async () => {
@@ -264,7 +265,7 @@ export default function VariablesPage() {
               value={editTxCat} onChange={e => setEditTxCat(e.target.value)}>
               {categories.map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
             </select>
-            <Input type="number" step="0.01" placeholder="Montant" value={editTxMontant} onChange={e => setEditTxMontant(parseFloat(e.target.value) || 0)} />
+            <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
             <Input type="date" value={editTxDate} onChange={e => setEditTxDate(e.target.value)} />
             <Input placeholder="Infos" value={editTxInfos} onChange={e => setEditTxInfos(e.target.value)} />
             <Button className="w-full" onClick={async () => {
@@ -309,7 +310,7 @@ export default function VariablesPage() {
             {/* Ajouter un remboursement */}
             <div className="border-t border-slate-700 pt-3 space-y-3">
               <p className="text-sm font-semibold">Ajouter un remboursement</p>
-              <Input type="number" step="0.01" placeholder="Montant" value={newRembMontant || ''} onChange={e => setNewRembMontant(parseFloat(e.target.value) || 0)} />
+              <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
               <Input placeholder="Note (optionnel)" value={newRembNote} onChange={e => setNewRembNote(e.target.value)} />
               <Input type="date" value={newRembDate} onChange={e => setNewRembDate(e.target.value)} />
               <Button className="w-full" onClick={async () => {
