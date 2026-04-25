@@ -33,15 +33,21 @@ export function useRemboursements(transactionId: string | undefined) {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    },
   })
-
+  
   const remove = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('remboursements').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    },
   })
 
   return { ...query, create, remove }
