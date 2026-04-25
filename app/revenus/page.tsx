@@ -127,7 +127,7 @@ export default function RevenusPage() {
               <DialogHeader><DialogTitle>Nouveau revenu</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input placeholder="Nom" {...register('nom', { required: true })} />
-                <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
+                <CalculatorInput value={0} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
 
                 {/* Toggle Actif / Passif */}
                 <div>
@@ -239,7 +239,7 @@ export default function RevenusPage() {
             </DialogHeader>
             <div className="space-y-4">
               <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
-              <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
+              <CalculatorInput value={0} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Type</label>
                 <div className="flex gap-2">

@@ -118,7 +118,7 @@ export default function ChargesFixesPage() {
               <DialogHeader><DialogTitle>Nouvelle charge fixe</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input placeholder="Nom (ex: Loyer)" {...register('nom', { required: true })} />
-                <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
+                <CalculatorInput value={0} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
 
                 {/* Sélecteur de fréquence */}
                 <div>
@@ -204,7 +204,7 @@ export default function ChargesFixesPage() {
             </DialogHeader>
             <div className="space-y-4">
               <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
-              <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
+              <CalculatorInput value={0} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
               <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
             </div>
