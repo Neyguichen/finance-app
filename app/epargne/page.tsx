@@ -34,7 +34,7 @@ export default function EpargnePage() {
   const [editNote, setEditNote] = useState('')
 
   // Form state for new movement
-  const [formType, setFormType] = useState<'epargne' | 'reprise' | 'transfert'>('epargne')
+  const [formType, setFormType] = useState<'alimentation' | 'reprise' | 'transfert'>('alimentation')
   const [formSource, setFormSource] = useState('')
   const [formDest, setFormDest] = useState('')
   const [formMontant, setFormMontant] = useState(0)
@@ -68,7 +68,7 @@ export default function EpargnePage() {
   // Submit new movement
   const onSubmitMvt = async () => {
     if (!moisId || !espace) return
-    const sourceId = formType !== 'epargne' ? formSource : null
+    const sourceId = formType !== 'alimentation' ? formSource : null
     const destId = formType !== 'reprise' ? formDest : null
     const today = new Date().toISOString().split('T')[0]
 
@@ -107,7 +107,7 @@ export default function EpargnePage() {
       })
     }
     // Reset
-    setFormType('epargne')
+    setFormType('alimentation')
     setFormSource('')
     setFormDest('')
     setFormMontant(0)
@@ -188,17 +188,17 @@ export default function EpargnePage() {
                   <div>
                     <label className="text-sm text-slate-400 mb-1 block">Type</label>
                     <div className="flex gap-2">
-                      {(['epargne', 'reprise', 'transfert'] as const).map(t => (
+                      {(['alimentation', 'reprise', 'transfert'] as const).map(t => (
                         <button key={t} type="button" onClick={() => setFormType(t)}
                           className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${formType === t ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
-                          {t === 'epargne' ? 'Epargner' : t === 'reprise' ? 'Reprendre' : 'Transférer'}
+                          {t === 'alimentation' ? 'Alimenter' : t === 'reprise' ? 'Reprendre' : 'Transférer'}
                         </button>
                       ))}
                     </div>
                   </div>
 
                   {/* Source (reprise ou transfert) */}
-                  {formType !== 'epargne' && (
+                  {formType !== 'alimentation' && (
                     <div>
                       <label className="text-sm text-slate-400 mb-1 block">Source</label>
                       <select className="select select-bordered w-full bg-slate-800 border-slate-700"
@@ -209,7 +209,7 @@ export default function EpargnePage() {
                     </div>
                   )}
 
-                  {/* Destination (epargne ou transfert) */}
+                  {/* Destination (alimentation ou transfert) */}
                   {formType !== 'reprise' && (
                     <div>
                       <label className="text-sm text-slate-400 mb-1 block">Destination</label>
@@ -298,7 +298,7 @@ export default function EpargnePage() {
                     <div>
                       <p className="font-medium text-sm">{mvtLabel(mvt)}</p>
                       <div className="flex items-center gap-1">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${mvt.type === 'epargne' ? 'bg-teal-900 text-teal-400' : mvt.type === 'reprise' ? 'bg-orange-900 text-orange-400' : 'bg-blue-900 text-blue-400'}`}>{mvt.type}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${mvt.type === 'alimentation' ? 'bg-teal-900 text-teal-400' : mvt.type === 'reprise' ? 'bg-orange-900 text-orange-400' : 'bg-blue-900 text-blue-400'}`}>{mvt.type}</span>
                         {mvt.recurrent_id && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900 text-purple-400">↻</span>
                         )}
