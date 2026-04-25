@@ -23,6 +23,7 @@ export default function VariablesPage() {
   const [txOpen, setTxOpen] = useState(false)
   const [newCatNom, setNewCatNom] = useState('')
   const [newCatIcone, setNewCatIcone] = useState('🛒')
+  const [archiveTarget, setArchiveTarget] = useState<{ id: string; nom: string } | null>(null)
 
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
   const activeCategories = categories.filter(c => (c as any).actif !== false)
@@ -135,7 +136,7 @@ export default function VariablesPage() {
                         <span className="text-xs font-medium truncate">{cat.nom}</span>
                       </div>
                       <Button variant="ghost" size="icon" className="text-slate-600 h-5 w-5 flex-shrink-0"
-                        onClick={() => removeCat.mutate(cat.id)}>
+                        onClick={() => setArchiveTarget({ id: cat.id, nom: cat.nom })}>
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
@@ -204,6 +205,29 @@ export default function VariablesPage() {
           </div>
         </div>
       </div>
+      {/* DIALOG D'ARCHIVAGE */}
+      <Dialog open={!!archiveTarget} onOpenChange={(v) => { if (!v) setArchiveTarget(null) }}>
+        <DialogContent className="bg-slate-900 border-slate-700">
+          <DialogHeader>
+            <DialogTitle>Archiver la cat&eacute;gorie &laquo; {archiveTarget?.nom} &raquo; ?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-400">
+            Elle ne sera plus visible sur les prochains mois, mais les budgets et d&eacute;penses existants seront conserv&eacute;s.
+          </p>
+          <div className="space-y-3 mt-2">
+            <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => {
+              if (!archiveTarget) return
+              removeCat.mutate(archiveTarget.id)
+              setArchiveTarget(null)
+            }}>
+              Archiver
+            </Button>
+            <Button className="w-full" variant="ghost" onClick={() => setArchiveTarget(null)}>
+              Annuler
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
