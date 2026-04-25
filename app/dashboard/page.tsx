@@ -12,6 +12,8 @@ import { useRevenus } from '@/lib/hooks/useRevenus'
 import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useMouvements } from '@/lib/hooks/useEpargne'
+import { useCategories } from '@/lib/hooks/useCategories'
+import { useBudgets } from '@/lib/hooks/useBudgets'
 import { formatEuro, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 import { Plus, Trash2 } from 'lucide-react'
@@ -30,6 +32,8 @@ export default function DashboardPage() {
   const { data: charges = [] } = useChargesFixes(moisId)
   const { data: transactions = [] } = useTransactions(moisId)
   const { data: mouvements = [] } = useMouvements(moisId)
+  const { data: categories = [] } = useCategories(espace?.id)
+  const { data: budgets = [] } = useBudgets(moisId)
 
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
@@ -52,14 +56,34 @@ export default function DashboardPage() {
   const totalChargesFixes = charges.reduce((s, c) => s + Number(c.montant), 0)
   const totalChargesPayees = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
   const totalDepenses = transactions.reduce((s, t) => s + getMontantNet(t), 0)
-  const totalSortants = totalChargesPayees + totalDepenses + totalEpargnes
+  const totalSortantsAll = totalChargesFixes + totalDepenses + totalEpargnes
 
-  const resteReel = totalRevenus - totalSortants
+  // Reste à vivre — PRÉVU
+  // Pour chaque catégorie : max(budget prévu, dépenses réelles)
+  const totalVariablesPrevu = categories.reduce((sum, cat) => {
+    const budget = budgets.find(b => b.categorie_id === cat.id)
+    const prevu = budget ? Number(budget.prevu) : 0
+    const depense = transactions
+      .filter(t => t.categorie_id === cat.id)
+      .reduce((s, t) => s + getMontantNet(t), 0)
+    return sum + Math.max(prevu, depense)
+  }, 0)
+
+  const restePrevu = totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
+
+  // Reste à vivre — RÉEL
+  const resteReel = totalRevenus - totalChargesPayees - totalDepenses - totalEpargnes
 
   const revenusChartData = [
     { name: 'Actif', value: totalActif, color: '#10B981' },
     { name: 'Passif', value: totalPassif, color: '#3B82F6' },
     { name: 'Reprises épargne', value: totalReprises, color: '#27c4bf' },
+  ].filter(d => d.value > 0)
+
+  const sortantsChartData = [
+    { name: 'Charges fixes', value: totalChargesFixes, color: '#8B5CF6' },
+    { name: 'Variables', value: totalDepenses, color: '#EC4899' },
+    { name: 'Épargne', value: totalEpargnes, color: '#14B8A6' },
   ].filter(d => d.value > 0)
 
   const pieData = [
@@ -68,6 +92,31 @@ export default function DashboardPage() {
     { name: 'Épargne', value: totalEpargnes, color: '#27c4bf' },
     { name: 'Reste', value: Math.max(resteReel, 0), color: '#22C55E' },
   ]
+
+  // --- Répartition Catégories ---
+  const chargesFixesNonPayees = totalChargesFixes - totalChargesPayees
+
+  // Données par catégorie (ordre alphabétique)
+  const catStats = [...categories]
+    .sort((a, b) => a.nom.localeCompare(b.nom))
+    .map(cat => {
+      const budget = budgets.find(b => b.categorie_id === cat.id)
+      const prevu = budget ? Number(budget.prevu) : 0
+      const depense = transactions
+        .filter(t => t.categorie_id === cat.id)
+        .reduce((s, t) => s + getMontantNet(t), 0)
+      const reste = prevu - depense
+      return { id: cat.id, nom: cat.nom, icone: cat.icone, couleur: cat.couleur, prevu, depense, reste }
+    })
+
+  // Couleurs pour le donut
+  const repartitionChartData = [
+    { name: 'Charges fixes', value: totalChargesFixes, color: '#8B5CF6' },
+    ...catStats
+      .filter(c => c.depense > 0)
+      .map(c => ({ name: c.nom, value: c.depense, color: c.couleur })),
+    ...(totalEpargnes > 0 ? [{ name: 'Épargne', value: totalEpargnes, color: '#14B8A6' }] : []),
+  ].filter(d => d.value > 0)
 
   const tooltipStyle = { backgroundColor: '#344869', border: 'none' }
 
@@ -139,6 +188,25 @@ export default function DashboardPage() {
         </div>
 
         {/* Cartes résumé */}
+
+        <Card className="bg-blue-950 border-blue-800">
+          <CardContent className="p-4 space-y-2">
+            <h2 className="font-semibold text-blue-400">Reste à vivre</h2>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400">Prévu</span>
+              <span className={restePrevu >= 0 ? 'font-bold text-blue-300' : 'font-bold text-red-400'}>
+                {formatEuro(restePrevu)}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400">Réel</span>
+              <span className={resteReel >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-red-400'}>
+                {formatEuro(resteReel)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-2 gap-3">
           <Card className="bg-emerald-950 border-emerald-800">
             <CardHeader className="pb-2">
@@ -201,60 +269,196 @@ export default function DashboardPage() {
               <CardTitle className="text-sm text-rose-400">Sortants</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xl font-bold text-rose-300">{formatEuro(totalSortants)}</p>
-              {totalEpargnes > 0 && (
-                <p className="text-xs text-rose-600">Épargne {formatEuro(totalEpargnes)}</p>
-              )}
-            </CardContent>
-          </Card>
+            <p className="text-xl font-bold text-rose-300">
+              {formatEuro(totalSortantsAll)}
+              <span className="text-sm font-normal text-rose-500 ml-2">
+                ({totalRevenus > 0 ? Math.round((totalSortantsAll / totalRevenus) * 100) : 0}% des revenus)
+              </span>
+            </p>
+              <div className="flex flex-col items-center gap-3">
+                {/* Donut */}
+                <div className="relative w-28 h-28">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={sortantsChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={30}
+                        outerRadius={50}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {sortantsChartData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number, name: string) => {
+                          const pourcent = totalSortantsAll > 0 ? Math.round((value / totalSortantsAll) * 100) : 0
+                          return [`${formatEuro(value)} (${pourcent}%)`, name]
+                        }}
+                        contentStyle={tooltipStyle}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
 
-          <Card className="bg-blue-950 border-blue-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-blue-400">Reste Réel</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={`text-xl font-bold ${resteReel >= 0 ? 'text-blue-300' : 'text-red-400'}`}>
-                {formatEuro(resteReel)}
-              </p>
-            </CardContent>
-          </Card>
+                {/* Légende */}
+                <div className="space-y-1 w-full">
+                  {/* Charges fixes */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                      <span className="text-xs text-slate-300">Fixes</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold text-white">{formatEuro(totalChargesFixes)}</span>
+                      <span className="text-xs text-slate-500 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalChargesFixes / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
 
-          <Card className="bg-purple-950 border-purple-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-purple-400">Charges Fixes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl font-bold text-purple-300">{formatEuro(totalChargesFixes)}</p>
-              <p className="text-xs text-purple-600">Payé {pct(totalChargesPayees, totalChargesFixes)}%</p>
+                  {/* Variables */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                      <span className="text-xs text-slate-300">Variables</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold text-white">{formatEuro(totalDepenses)}</span>
+                      <span className="text-xs text-slate-500 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Variables — Prévu (hors diagramme) */}
+                  <div className="flex items-center justify-between pl-5">
+                    <span className="text-xs text-slate-500">Prévu</span>
+                    <div className="text-right">
+                      <span className="text-xs text-slate-400">{formatEuro(totalVariablesPrevu)}</span>
+                      <span className="text-xs text-slate-600 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalVariablesPrevu / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Variables — Réel (hors diagramme) */}
+                  <div className="flex items-center justify-between pl-5">
+                    <span className="text-xs text-slate-500">Réel</span>
+                    <div className="text-right">
+                      <span className="text-xs text-slate-400">{formatEuro(totalDepenses)}</span>
+                      <span className="text-xs text-slate-600 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Épargne */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+                      <span className="text-xs text-slate-300">Épargne</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold text-white">{formatEuro(totalEpargnes)}</span>
+                      <span className="text-xs text-slate-500 ml-1">
+                        ({totalSortantsAll > 0 ? Math.round((totalEpargnes / totalSortantsAll) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Graphique */}
-        <Card className="bg-slate-900 border-slate-800">
+        {/* Répartition Catégories */}
+        <Card className="bg-purple-950 border-purple-800">
           <CardHeader>
-            <CardTitle className="text-sm">Répartition</CardTitle>
+            <CardTitle className="text-sm text-purple-400">Répartition Catégories</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Donut */}
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
-                  data={pieData}
+                  data={repartitionChartData}
                   cx="50%" cy="50%"
                   innerRadius={50} outerRadius={80}
-                  paddingAngle={3}
+                  paddingAngle={2}
                   dataKey="value"
                 >
-                  {pieData.map((entry, i) => (
+                  {repartitionChartData.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value: number) => formatEuro(value)}
+                  formatter={(value: number, name: string) => [formatEuro(value), name]}
                   contentStyle={tooltipStyle}
                 />
               </PieChart>
             </ResponsiveContainer>
+
+            {/* Tableau catégories */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-purple-600 border-b border-purple-800">
+                    <th className="text-left py-2 font-medium">Catégorie</th>
+                    <th className="text-right py-2 font-medium">Prévu</th>
+                    <th className="text-right py-2 font-medium">À Venir</th>
+                    <th className="text-right py-2 font-medium">Réel</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Charges fixes */}
+                  <tr className="border-b border-purple-900">
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                        <span className="text-purple-200">Charges fixes</span>
+                      </div>
+                    </td>
+                    <td className="text-right text-purple-200">{formatEuro(totalChargesFixes)}</td>
+                    <td className="text-right text-purple-200">{formatEuro(chargesFixesNonPayees)}</td>
+                    <td className="text-right text-purple-200">{formatEuro(totalChargesPayees)}</td>
+                  </tr>
+
+                  {/* Épargne */}
+                  <tr className="border-b border-purple-900">
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+                        <span className="text-purple-200">Épargne</span>
+                      </div>
+                    </td>
+                    <td className="text-right text-purple-600">—</td>
+                    <td className="text-right text-purple-600">—</td>
+                    <td className="text-right text-purple-200">{formatEuro(totalEpargnes)}</td>
+                  </tr>
+
+                  {/* Catégories variables triées alphabétiquement */}
+                  {catStats.map(cat => (
+                    <tr key={cat.id} className="border-b border-purple-900">
+                      <td className="py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: cat.couleur }} />
+                          <span className="text-purple-200">{cat.icone} {cat.nom}</span>
+                        </div>
+                      </td>
+                      <td className="text-right text-purple-200">{formatEuro(cat.prevu)}</td>
+                      <td className={`text-right ${cat.reste >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {formatEuro(cat.reste)}
+                      </td>
+                      <td className="text-right text-purple-200">{formatEuro(cat.depense)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       </div>
