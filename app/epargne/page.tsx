@@ -262,27 +262,29 @@ export default function EpargnePage() {
         </Card>
 
         {/* ENVELOPPES */}
-        <div className="space-y-3">
-          {enveloppes.map((env) => (
-            <Card key={env.id} className="bg-slate-900 border-slate-800">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="font-medium">{env.nom}</p>
-                  <p className="font-bold text-teal-400">{formatEuro(Number(env.solde))}</p>
-                </div>
-                {env.objectif && (
-                  <div>
-                    <div className="flex justify-between text-xs text-slate-400 mb-1">
-                      <span>{pct(Number(env.solde), Number(env.objectif))}%</span>
-                      <span>Obj: {formatEuro(Number(env.objectif))}</span>
-                    </div>
-                    <Progress value={pct(Number(env.solde), Number(env.objectif))} className="h-2" />
+        {enveloppes.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            {enveloppes.map((env) => (
+              <Card key={env.id} className="bg-slate-900 border-slate-800">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="font-medium">{env.nom}</p>
+                    <p className="font-bold text-teal-400">{formatEuro(Number(env.solde))}</p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  {env.objectif && (
+                    <div>
+                      <div className="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>{pct(Number(env.solde), Number(env.objectif))}%</span>
+                        <span>Obj: {formatEuro(Number(env.objectif))}</span>
+                      </div>
+                      <Progress value={pct(Number(env.solde), Number(env.objectif))} className="h-2" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* MOUVEMENTS DU MOIS */}
         {mouvements.length > 0 && (
