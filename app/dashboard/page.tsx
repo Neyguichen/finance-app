@@ -75,23 +75,16 @@ export default function DashboardPage() {
   const resteReel = totalRevenus - totalChargesPayees - totalDepenses - totalEpargnes
 
   const revenusChartData = [
-    { name: 'Actif', value: totalActif, color: '#10B981' },
-    { name: 'Passif', value: totalPassif, color: '#3B82F6' },
-    { name: 'Reprises épargne', value: totalReprises, color: '#27c4bf' },
+    { name: 'Actif', value: totalActif, color: '#10B981' },       // emerald-500 — vert vif
+    { name: 'Passif', value: totalPassif, color: '#6EE7B7' },     // emerald-300 — vert clair
+    { name: 'Reprises épargne', value: totalReprises, color: '#064E3B' }, // emerald-900 — vert foncé
   ].filter(d => d.value > 0)
 
   const sortantsChartData = [
-    { name: 'Charges fixes', value: totalChargesFixes, color: '#8B5CF6' },
-    { name: 'Variables', value: totalDepenses, color: '#EC4899' },
-    { name: 'Épargne', value: totalEpargnes, color: '#14B8A6' },
+    { name: 'Fixes', value: totalChargesPayees, color: '#E11D48' },    // rose-600 — rose vif (principal)
+    { name: 'Variables', value: totalDepenses, color: '#FDA4AF' },      // rose-300 — rose clair
+    { name: 'Épargne', value: totalEpargnes, color: '#881337' },        // rose-900 — rose foncé
   ].filter(d => d.value > 0)
-
-  const pieData = [
-    { name: 'Charges fixes', value: totalChargesPayees, color: '#8B5CF6' },
-    { name: 'Dépenses', value: totalDepenses, color: '#EC4899' },
-    { name: 'Épargne', value: totalEpargnes, color: '#27c4bf' },
-    { name: 'Reste', value: Math.max(resteReel, 0), color: '#22C55E' },
-  ]
 
   // --- Répartition Catégories ---
   const chargesFixesNonPayees = totalChargesFixes - totalChargesPayees
@@ -110,13 +103,32 @@ export default function DashboardPage() {
     })
 
   // Couleurs pour le donut
+  const VIOLET_SHADES = [
+    '#8B5CF6', // violet-500
+    '#A78BFA', // violet-400
+    '#6D28D9', // violet-700
+    '#C4B5FD', // violet-300
+    '#4C1D95', // violet-900
+    '#DDD6FE', // violet-200
+  ]
+  
+  // Construire les données du donut Répartition Catégories
   const repartitionChartData = [
-    { name: 'Charges fixes', value: totalChargesFixes, color: '#8B5CF6' },
-    ...catStats
-      .filter(c => c.depense > 0)
-      .map(c => ({ name: c.nom, value: c.depense, color: c.couleur })),
-    ...(totalEpargnes > 0 ? [{ name: 'Épargne', value: totalEpargnes, color: '#14B8A6' }] : []),
-  ].filter(d => d.value > 0)
+    // 1. Charges fixes non payées
+    ...(chargesFixesNonPayees > 0
+      ? [{ name: 'Charges fixes', value: chargesFixesNonPayees, color: '#E11D48' }]
+      : []),
+    // 2. Épargne
+    ...(totalEpargnes > 0
+      ? [{ name: 'Épargne', value: totalEpargnes, color: '#881337' }]
+      : []),
+    // 3. Catégories variables — chacune prend un violet différent
+    ...catStats.map((cat, i) => ({
+      name: `${cat.icone || ''} ${cat.nom}`.trim(),
+      value: cat.depense,
+      color: VIOLET_SHADES[i % VIOLET_SHADES.length],
+    })).filter(d => d.value > 0),
+  ]
 
   const tooltipStyle = { backgroundColor: '#344869', border: 'none' }
 
