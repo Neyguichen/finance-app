@@ -145,6 +145,7 @@ export default function DashboardPage() {
               <CardTitle className="text-sm text-emerald-400">Entrants</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
+              <p className="text-xl font-bold text-emerald-400">{formatEuro(totalRevenus)}</p>
               <div className="flex items-center gap-4">
                 {/* Donut */}
                 <div className="relative w-28 h-28 flex-shrink-0">
@@ -165,10 +166,6 @@ export default function DashboardPage() {
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  {/* Total au centre */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs font-bold text-white">{formatEuro(totalRevenus)}</span>
-                  </div>
                 </div>
 
                 {/* Légende */}
