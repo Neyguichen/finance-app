@@ -177,13 +177,13 @@ export default function DashboardPage() {
                   {revenusChartData.map(d => (
                     <div key={d.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full" style= backgroundColor: d.color  />
+                        <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: d.color}}  />
                         <span className="text-xs text-slate-300">{d.name}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-xs font-semibold text-white">{formatEuro(d.value)}</span>
                         <span className="text-xs text-slate-500 ml-1">
-                          ({totalEntrees > 0 ? Math.round((d.value / totalEntrees) * 100) : 0}%)
+                          ({totalRevenus > 0 ? Math.round((d.value / totalRevenus) * 100) : 0}%)
                         </span>
                       </div>
                     </div>
