@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2, ReceiptText } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
@@ -14,6 +14,7 @@ import { useTransactions } from '@/lib/hooks/useTransactions'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { formatEuro, formatDate, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
+import { useRemboursements } from '@/lib/hooks/useRemboursements'
 
 export default function VariablesPage() {
   const { moisId, month, setMonth, espace } = useApp()
@@ -25,10 +26,24 @@ export default function VariablesPage() {
   const [newCatIcone, setNewCatIcone] = useState('🛒')
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; nom: string } | null>(null)
 
+  // Édition dépense
+  const [editTx, setEditTx] = useState<any>(null)
+  const [editTxMontant, setEditTxMontant] = useState(0)
+  const [editTxInfos, setEditTxInfos] = useState('')
+  const [editTxDate, setEditTxDate] = useState('')
+  const [editTxCat, setEditTxCat] = useState('')
+
+  // Remboursements
+  const [rembTx, setRembTx] = useState<any>(null)
+  const [newRembMontant, setNewRembMontant] = useState(0)
+  const [newRembNote, setNewRembNote] = useState('')
+  const [newRembDate, setNewRembDate] = useState(new Date().toISOString().split('T')[0])
+
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
   const activeCategories = categories.filter(c => (c as any).actif !== false)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
-  const { data: transactions = [], create: createTx, remove: removeTx } = useTransactions(moisId)
+  const { data: transactions = [], create: createTx, update: updateTx, remove: removeTx } = useTransactions(moisId)
+  const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
 
   const [txCat, setTxCat] = useState('')
   const [txMontant, setTxMontant] = useState(0)
@@ -38,10 +53,15 @@ export default function VariablesPage() {
   const getBudget = (catId: string) => budgets.find(b => b.categorie_id === catId)
   const getDepenses = (catId: string) => transactions
     .filter(t => t.categorie_id === catId)
-    .reduce((s, t) => s + Number(t.montant), 0)
+    .reduce((s, t) => s + getMontantNet(t), 0)
+  const getMontantNet = (tx: any) => {
+    const rembs = tx.remboursements || []
+    const totalRemb = rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
+    return Number(tx.montant) - totalRemb
+  }
 
   const totalPrevu = budgets.reduce((s, b) => s + Number(b.prevu), 0)
-  const totalReel = transactions.reduce((s, t) => s + Number(t.montant), 0)
+  const totalReel = transactions.reduce((s, t) => s + getMontantNet(t), 0)
 
   return (
     <div>
@@ -179,32 +199,131 @@ export default function VariablesPage() {
             <p className="text-sm text-slate-600 text-center py-4">Aucune dépense ce mois-ci</p>
           )}
           <div className="space-y-2">
-            {transactions.map(tx => (
+            {transactions.map(tx => {
+              const net = getMontantNet(tx)
+              const hasRemb = (tx as any).remboursements?.length > 0
+              return (
               <Card key={tx.id} className="bg-slate-900 border-slate-800">
-                <CardContent className="flex items-center justify-between p-3">
-                  <div className="flex items-center gap-3">
-                    <span>{tx.categorie?.icone || '📦'}</span>
-                    <div>
-                      <p className="text-sm font-medium">{tx.categorie?.nom || 'Sans catégorie'}</p>
-                      {tx.infos && <p className="text-xs text-slate-500">{tx.infos}</p>}
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span>{tx.categorie?.icone || '📦'}</span>
+                      <div>
+                        <p className="text-sm font-medium">{tx.categorie?.nom || 'Sans catégorie'}</p>
+                        {tx.infos && <p className="text-xs text-slate-500">{tx.infos}</p>}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-right">
-                      <p className="font-bold text-pink-400">{formatEuro(Number(tx.montant))}</p>
-                      <p className="text-xs text-slate-500">{formatDate(tx.date)}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <p className="font-bold text-pink-400">{formatEuro(net)}</p>
+                        {hasRemb && (
+                          <p className="text-xs text-emerald-400 line-through">{formatEuro(Number(tx.montant))}</p>
+                        )}
+                        <p className="text-xs text-slate-500">{formatDate(tx.date)}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                        onClick={() => {
+                          setEditTx(tx)
+                          setEditTxMontant(Number(tx.montant))
+                          setEditTxInfos(tx.infos || '')
+                          setEditTxDate(tx.date)
+                          setEditTxCat(tx.categorie_id)
+                        }}>
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                        onClick={() => setRembTx(tx)}>
+                        <ReceiptText className="w-3 h-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                        onClick={() => removeTx.mutate(tx.id)}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                      onClick={() => removeTx.mutate(tx.id)}>
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
+
+      {/* DIALOG ÉDITION DÉPENSE */}
+      <Dialog open={!!editTx} onOpenChange={(v) => { if (!v) setEditTx(null) }}>
+        <DialogContent className="bg-slate-900 border-slate-700">
+          <DialogHeader><DialogTitle>Modifier la d&eacute;pense</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+              value={editTxCat} onChange={e => setEditTxCat(e.target.value)}>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
+            </select>
+            <Input type="number" step="0.01" placeholder="Montant" value={editTxMontant} onChange={e => setEditTxMontant(parseFloat(e.target.value) || 0)} />
+            <Input type="date" value={editTxDate} onChange={e => setEditTxDate(e.target.value)} />
+            <Input placeholder="Infos" value={editTxInfos} onChange={e => setEditTxInfos(e.target.value)} />
+            <Button className="w-full" onClick={async () => {
+              if (!editTx) return
+              await updateTx.mutateAsync({ id: editTx.id, montant: editTxMontant, date: editTxDate, infos: editTxInfos || null, categorie_id: editTxCat })
+              setEditTx(null)
+            }}>Enregistrer</Button>
+            <Button className="w-full" variant="ghost" onClick={() => setEditTx(null)}>Annuler</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG REMBOURSEMENTS */}
+      <Dialog open={!!rembTx} onOpenChange={(v) => { if (!v) setRembTx(null) }}>
+        <DialogContent className="bg-slate-900 border-slate-700">
+          <DialogHeader>
+            <DialogTitle>Remboursements — {rembTx?.infos || rembTx?.categorie?.nom || 'Dépense'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-slate-400">
+              D&eacute;pense initiale : <span className="text-pink-400 font-bold">{formatEuro(Number(rembTx?.montant || 0))}</span>
+            </div>
+
+            {/* Liste des remboursements existants */}
+            {remboursements.length > 0 && (
+              <div className="space-y-2">
+                {remboursements.map(r => (
+                  <div key={r.id} className="flex items-center justify-between bg-slate-800 rounded-lg p-2">
+                    <div>
+                      <span className="text-sm text-emerald-400 font-semibold">+{formatEuro(Number(r.montant))}</span>
+                      {r.note && <span className="text-xs text-slate-500 ml-2">{r.note}</span>}
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-slate-500 h-6 w-6"
+                      onClick={() => removeRemb.mutate(r.id)}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Ajouter un remboursement */}
+            <div className="border-t border-slate-700 pt-3 space-y-3">
+              <p className="text-sm font-semibold">Ajouter un remboursement</p>
+              <Input type="number" step="0.01" placeholder="Montant" value={newRembMontant || ''} onChange={e => setNewRembMontant(parseFloat(e.target.value) || 0)} />
+              <Input placeholder="Note (optionnel)" value={newRembNote} onChange={e => setNewRembNote(e.target.value)} />
+              <Input type="date" value={newRembDate} onChange={e => setNewRembDate(e.target.value)} />
+              <Button className="w-full" onClick={async () => {
+                if (!rembTx || !newRembMontant) return
+                await createRemb.mutateAsync({
+                  transaction_id: rembTx.id,
+                  montant: newRembMontant,
+                  note: newRembNote || null,
+                  date: newRembDate,
+                })
+                setNewRembMontant(0)
+                setNewRembNote('')
+              }}>Ajouter</Button>
+            </div>
+
+            <Button className="w-full" variant="ghost" onClick={() => setRembTx(null)}>Fermer</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* DIALOG D'ARCHIVAGE */}
       <Dialog open={!!archiveTarget} onOpenChange={(v) => { if (!v) setArchiveTarget(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700">

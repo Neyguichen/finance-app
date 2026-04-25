@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
-import type { Transaction } from '@/lib/types';
+import type { Transaction, Remboursement } from '@/lib/types';
 
 export function useTransactions(moisId: string | undefined) {
   const supabase = createClient();
@@ -15,11 +15,11 @@ export function useTransactions(moisId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('*, categorie:categories(*)')
+        .select('*, categorie:categories(*), remboursements(*)')
         .eq('mois_id', moisId!)
-        .order('date', { ascending: false });
-      if (error) throw error;
-      return data as Transaction[];
+        .order('date', { ascending: false })
+      if (error) throw error
+      return data as (Transaction & { remboursements?: Remboursement[] })[]
     },
   });
 
