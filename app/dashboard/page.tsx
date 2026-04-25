@@ -115,8 +115,8 @@ export default function DashboardPage() {
   // Construire les données du donut Répartition Catégories
   const repartitionChartData = [
     // 1. Charges fixes non payées
-    ...(chargesFixesNonPayees > 0
-      ? [{ name: 'Charges fixes', value: chargesFixesNonPayees, color: '#E11D48' }]
+    ...(totalChargesFixes > 0
+      ? [{ name: 'Charges fixes', value: totalChargesFixes, color: '#E11D48' }]
       : []),
     // 2. Épargne
     ...(totalEpargnes > 0
