@@ -38,26 +38,34 @@ export default function DashboardPage() {
   }
 
   // Épargne : alimentations = sorties, reprises = entrées, transferts = neutres
-  const totalAlimentations = mouvements
+  const totalEpargnes = mouvements
   .filter(m => m.type === 'alimentation')
   .reduce((s, m) => s + Number(m.montant), 0)
   const totalReprises = mouvements
   .filter(m => m.type === 'reprise')
   .reduce((s, m) => s + Number(m.montant), 0)
 
-  const totalRevenus = revenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises
   const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
   const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
+  const totalRevenus = totalActif + totalPassif + totalReprises
+
   const totalChargesFixes = charges.reduce((s, c) => s + Number(c.montant), 0)
   const totalChargesPayees = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
   const totalDepenses = transactions.reduce((s, t) => s + getMontantNet(t), 0)
-  const totalSortants = totalChargesPayees + totalDepenses + totalAlimentations
+  const totalSortants = totalChargesPayees + totalDepenses + totalEpargnes
+
   const resteReel = totalRevenus - totalSortants
+
+  const revenusChartData = [
+    { name: 'Actif', value: totalActif, color: '#10B981' },
+    { name: 'Passif', value: totalPassif, color: '#3B82F6' },
+    { name: 'Reprises épargne', value: totalReprises, color: '#14B8A6' },
+  ].filter(d => d.value > 0)
 
   const pieData = [
     { name: 'Charges fixes', value: totalChargesPayees, color: '#8B5CF6' },
     { name: 'Dépenses', value: totalDepenses, color: '#EC4899' },
-    { name: 'Épargne', value: totalAlimentations, color: '#14B8A6' },
+    { name: 'Épargne', value: totalEpargnes, color: '#14B8A6' },
     { name: 'Reste', value: Math.max(resteReel, 0), color: '#22C55E' },
   ]
 
@@ -136,23 +144,52 @@ export default function DashboardPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-emerald-400">Entrants</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-xl font-bold text-emerald-300">{formatEuro(totalRevenus)}</p>
-              {totalActif > 0 && (
-                <p className="text-xs text-emerald-600">
-                  Actif {formatEuro(totalActif)} ({pct(totalActif, totalRevenus)}%)
-                </p>
-              )}
-              {totalPassif > 0 && (
-                <p className="text-xs text-emerald-600">
-                  Passif {formatEuro(totalPassif)} ({pct(totalPassif, totalRevenus)}%)
-                </p>
-              )}
-              {totalReprises > 0 && (
-                <p className="text-xs text-emerald-600">
-                  Reprises épargne {formatEuro(totalReprises)} ({pct(totalReprises, totalRevenus)}%)
-                </p>
-              )}
+            <CardContent className="p-4">
+              <h2 className="text-sm font-semibold text-emerald-400 mb-3">Revenus</h2>
+              <div className="flex items-center gap-4">
+                {/* Donut */}
+                <div className="relative w-28 h-28 flex-shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={revenusChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={30}
+                        outerRadius={50}
+                        dataKey="value"
+                        strokeWidth={0}
+                      >
+                        {revenusChartData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Total au centre */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs font-bold text-white">{formatEuro(totalEntrees)}</span>
+                  </div>
+                </div>
+
+                {/* Légende */}
+                <div className="space-y-2 flex-1">
+                  {revenusChartData.map(d => (
+                    <div key={d.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style= backgroundColor: d.color  />
+                        <span className="text-xs text-slate-300">{d.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-semibold text-white">{formatEuro(d.value)}</span>
+                        <span className="text-xs text-slate-500 ml-1">
+                          ({totalEntrees > 0 ? Math.round((d.value / totalEntrees) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -162,8 +199,8 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xl font-bold text-rose-300">{formatEuro(totalSortants)}</p>
-              {totalAlimentations > 0 && (
-                <p className="text-xs text-rose-600">Épargne {formatEuro(totalAlimentations)}</p>
+              {totalEpargnes > 0 && (
+                <p className="text-xs text-rose-600">Épargne {formatEuro(totalEpargnes)}</p>
               )}
             </CardContent>
           </Card>
