@@ -168,7 +168,7 @@ export default function DashboardPage() {
                   </ResponsiveContainer>
                   {/* Total au centre */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs font-bold text-white">{formatEuro(totalEntrees)}</span>
+                    <span className="text-xs font-bold text-white">{formatEuro(totalRevenus)}</span>
                   </div>
                 </div>
 
