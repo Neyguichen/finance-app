@@ -221,7 +221,7 @@ export default function EpargnePage() {
                     </div>
                   )}
 
-                  <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
+                  <CalculatorInput value={formMontant} onChange={setFormMontant} placeholder="Montant" />
                   <Input placeholder="Note (optionnel)" value={formNote} onChange={e => setFormNote(e.target.value)} />
 
                   {/* Sélecteur de fréquence */}
@@ -330,7 +330,7 @@ export default function EpargnePage() {
               <DialogTitle>Modifier le mouvement</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
+              <CalculatorInput value={formMontant} onChange={setFormMontant} placeholder="Montant" />
               <Input placeholder="Note" value={editNote} onChange={e => setEditNote(e.target.value)} />
               <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
