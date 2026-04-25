@@ -68,7 +68,7 @@ export default function EpargnePage() {
   // Submit new movement
   const onSubmitMvt = async () => {
     if (!moisId || !espace) return
-    const sourceId = formType !== 'alimentation' ? formSource : null
+    const sourceId = formType !== 'epargne' ? formSource : null
     const destId = formType !== 'reprise' ? formDest : null
     const today = new Date().toISOString().split('T')[0]
 
