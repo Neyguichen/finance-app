@@ -37,6 +37,14 @@ export default function DashboardPage() {
     return Number(tx.montant) - totalRemb
   }
 
+  // Épargne : alimentations = sorties, reprises = entrées, transferts = neutres
+  const totalAlimentations = mouvements
+  .filter(m => m.type === 'alimentation')
+  .reduce((s, m) => s + Number(m.montant), 0)
+  const totalReprises = mouvements
+  .filter(m => m.type === 'reprise')
+  .reduce((s, m) => s + Number(m.montant), 0)
+
   const totalRevenus = revenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises
   const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
   const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
@@ -45,14 +53,6 @@ export default function DashboardPage() {
   const totalDepenses = transactions.reduce((s, t) => s + getMontantNet(t), 0)
   const totalSortants = totalChargesPayees + totalDepenses + totalAlimentations
   const resteReel = totalRevenus - totalSortants
-
-  // Épargne : alimentations = sorties, reprises = entrées, transferts = neutres
-  const totalAlimentations = mouvements
-  .filter(m => m.type === 'alimentation')
-  .reduce((s, m) => s + Number(m.montant), 0)
-  const totalReprises = mouvements
-  .filter(m => m.type === 'reprise')
-  .reduce((s, m) => s + Number(m.montant), 0)
 
   const pieData = [
     { name: 'Charges fixes', value: totalChargesPayees, color: '#8B5CF6' },
