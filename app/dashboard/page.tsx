@@ -93,6 +93,31 @@ export default function DashboardPage() {
     { name: 'Reste', value: Math.max(resteReel, 0), color: '#22C55E' },
   ]
 
+  // --- Répartition Catégories ---
+  const chargesFixesNonPayees = totalChargesFixes - totalChargesPayees
+
+  // Données par catégorie (ordre alphabétique)
+  const catStats = [...categories]
+    .sort((a, b) => a.nom.localeCompare(b.nom))
+    .map(cat => {
+      const budget = budgets.find(b => b.categorie_id === cat.id)
+      const prevu = budget ? Number(budget.prevu) : 0
+      const depense = transactions
+        .filter(t => t.categorie_id === cat.id)
+        .reduce((s, t) => s + getMontantNet(t), 0)
+      const reste = prevu - depense
+      return { id: cat.id, nom: cat.nom, icone: cat.icone, couleur: cat.couleur, prevu, depense, reste }
+    })
+
+  // Couleurs pour le donut
+  const repartitionChartData = [
+    { name: 'Charges fixes', value: totalChargesFixes, color: '#8B5CF6' },
+    ...catStats
+      .filter(c => c.depense > 0)
+      .map(c => ({ name: c.nom, value: c.depense, color: c.couleur })),
+    ...(totalEpargnes > 0 ? [{ name: 'Épargne', value: totalEpargnes, color: '#14B8A6' }] : []),
+  ].filter(d => d.value > 0)
+
   const tooltipStyle = { backgroundColor: '#344869', border: 'none' }
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><span className="loading loading-spinner loading-lg"></span></div>
@@ -348,43 +373,92 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-
-          <Card className="bg-purple-950 border-purple-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-purple-400">Charges Fixes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl font-bold text-purple-300">{formatEuro(totalChargesFixes)}</p>
-              <p className="text-xs text-purple-600">Payé {pct(totalChargesPayees, totalChargesFixes)}%</p>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Graphique */}
-        <Card className="bg-slate-900 border-slate-800">
+        {/* Répartition Catégories */}
+        <Card className="bg-purple-950 border-purple-800">
           <CardHeader>
-            <CardTitle className="text-sm">Répartition</CardTitle>
+            <CardTitle className="text-sm text-purple-400">Répartition Catégories</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Donut */}
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
-                  data={pieData}
+                  data={repartitionChartData}
                   cx="50%" cy="50%"
                   innerRadius={50} outerRadius={80}
-                  paddingAngle={3}
+                  paddingAngle={2}
                   dataKey="value"
                 >
-                  {pieData.map((entry, i) => (
+                  {repartitionChartData.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value: number) => formatEuro(value)}
+                  formatter={(value: number, name: string) => [formatEuro(value), name]}
                   contentStyle={tooltipStyle}
                 />
               </PieChart>
             </ResponsiveContainer>
+
+            {/* Tableau catégories */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-purple-600 border-b border-purple-800">
+                    <th className="text-left py-2 font-medium">Catégorie</th>
+                    <th className="text-right py-2 font-medium">Prévu</th>
+                    <th className="text-right py-2 font-medium">À Venir</th>
+                    <th className="text-right py-2 font-medium">Réel</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Charges fixes */}
+                  <tr className="border-b border-purple-900">
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                        <span className="text-purple-200">Charges fixes</span>
+                      </div>
+                    </td>
+                    <td className="text-right text-purple-200">{formatEuro(totalChargesFixes)}</td>
+                    <td className="text-right text-purple-200">{formatEuro(chargesFixesNonPayees)}</td>
+                    <td className="text-right text-purple-200">{formatEuro(totalChargesPayees)}</td>
+                  </tr>
+
+                  {/* Épargne */}
+                  <tr className="border-b border-purple-900">
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+                        <span className="text-purple-200">Épargne</span>
+                      </div>
+                    </td>
+                    <td className="text-right text-purple-600">—</td>
+                    <td className="text-right text-purple-600">—</td>
+                    <td className="text-right text-purple-200">{formatEuro(totalEpargnes)}</td>
+                  </tr>
+
+                  {/* Catégories variables triées alphabétiquement */}
+                  {catStats.map(cat => (
+                    <tr key={cat.id} className="border-b border-purple-900">
+                      <td className="py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: cat.couleur }} />
+                          <span className="text-purple-200">{cat.icone} {cat.nom}</span>
+                        </div>
+                      </td>
+                      <td className="text-right text-purple-200">{formatEuro(cat.prevu)}</td>
+                      <td className={`text-right ${cat.reste >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {formatEuro(cat.reste)}
+                      </td>
+                      <td className="text-right text-purple-200">{formatEuro(cat.depense)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       </div>
