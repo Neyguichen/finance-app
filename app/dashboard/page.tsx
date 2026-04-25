@@ -14,6 +14,7 @@ import { useTransactions } from '@/lib/hooks/useTransactions'
 import { formatEuro, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 import { Plus, Trash2 } from 'lucide-react'
+import type { Remboursement } from '@/lib/types'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
 } from 'recharts'
@@ -28,11 +29,17 @@ export default function DashboardPage() {
   const { data: charges = [] } = useChargesFixes(moisId)
   const { data: transactions = [] } = useTransactions(moisId)
 
+  const getMontantNet = (tx: any) => {
+    const rembs = tx.remboursements || []
+    const totalRemb = rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
+    return Number(tx.montant) - totalRemb
+  }
+
   const totalRevenus = revenus.reduce((s, r) => s + Number(r.montant), 0)
   const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
   const totalChargesFixes = charges.reduce((s, c) => s + Number(c.montant), 0)
   const totalChargesPayees = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
-  const totalDepenses = transactions.reduce((s, t) => s + Number(t.montant), 0)
+  const totalDepenses = transactions.reduce((s, t) => s + getMontantNet(t), 0)
   const totalSortants = totalChargesPayees + totalDepenses
   const resteReel = totalRevenus - totalSortants
 
