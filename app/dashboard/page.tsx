@@ -325,7 +325,7 @@ export default function DashboardPage() {
                       <span className="text-xs text-slate-300">Fixes</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs font-semibold text-white">{formatEuro(chargesNonPayees)} / {formatEuro(totalChargesPayees)}</span>
+                      <span className="text-xs font-semibold text-white">{formatEuro(chargesFixesNonPayees)} / {formatEuro(totalChargesPayees)}</span>
                       <span className="text-xs text-slate-500 ml-1">
                         ({totalChargesFixes > 0 ? Math.round((totalChargesFixes / totalSortantsAll) * 100) : 0}%)
                       </span>
