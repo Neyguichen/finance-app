@@ -12,6 +12,8 @@ import { useRevenus } from '@/lib/hooks/useRevenus'
 import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useMouvements } from '@/lib/hooks/useEpargne'
+import { useCategories } from '@/lib/hooks/useCategories'
+import { useBudgets } from '@/lib/hooks/useBudgets'
 import { formatEuro, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 import { Plus, Trash2 } from 'lucide-react'
@@ -30,6 +32,8 @@ export default function DashboardPage() {
   const { data: charges = [] } = useChargesFixes(moisId)
   const { data: transactions = [] } = useTransactions(moisId)
   const { data: mouvements = [] } = useMouvements(moisId)
+  const { data: categories = [] } = useCategories(espace?.id)
+  const { data: budgets = [] } = useBudgets(moisId)
 
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
@@ -45,6 +49,22 @@ export default function DashboardPage() {
   .filter(m => m.type === 'reprise')
   .reduce((s, m) => s + Number(m.montant), 0)
 
+  // Reste à vivre — PRÉVU
+  // Pour chaque catégorie : max(budget prévu, dépenses réelles)
+  const totalVariablesPrevu = categories.reduce((sum, cat) => {
+    const budget = budgets.find(b => b.categorie_id === cat.id)
+    const prevu = budget ? Number(budget.prevu) : 0
+    const depense = transactions
+      .filter(t => t.categorie_id === cat.id)
+      .reduce((s, t) => s + getMontantNet(t), 0)
+    return sum + Math.max(prevu, depense)
+  }, 0)
+
+  const restePrevu = totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
+
+  // Reste à vivre — RÉEL
+  const resteReel = totalRevenus - totalChargesPayees - totalDepenses - totalEpargnes
+
   const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
   const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
   const totalRevenus = totalActif + totalPassif + totalReprises
@@ -53,8 +73,6 @@ export default function DashboardPage() {
   const totalChargesPayees = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
   const totalDepenses = transactions.reduce((s, t) => s + getMontantNet(t), 0)
   const totalSortants = totalChargesPayees + totalDepenses + totalEpargnes
-
-  const resteReel = totalRevenus - totalSortants
 
   const revenusChartData = [
     { name: 'Actif', value: totalActif, color: '#10B981' },
@@ -139,6 +157,25 @@ export default function DashboardPage() {
         </div>
 
         {/* Cartes résumé */}
+
+        <Card className="bg-blue-950 border-blue-800">
+          <CardContent className="p-4 space-y-2">
+            <h2 className="font-semibold text-blue-400">Reste à vivre</h2>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400">Prévu</span>
+              <span className={restePrevu >= 0 ? 'font-bold text-blue-300' : 'font-bold text-red-400'}>
+                {formatEuro(restePrevu)}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400">Réel</span>
+              <span className={resteReel >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-red-400'}>
+                {formatEuro(resteReel)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-2 gap-3">
           <Card className="bg-emerald-950 border-emerald-800">
             <CardHeader className="pb-2">
@@ -205,17 +242,6 @@ export default function DashboardPage() {
               {totalEpargnes > 0 && (
                 <p className="text-xs text-rose-600">Épargne {formatEuro(totalEpargnes)}</p>
               )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-blue-950 border-blue-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-blue-400">Reste Réel</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={`text-xl font-bold ${resteReel >= 0 ? 'text-blue-300' : 'text-red-400'}`}>
-                {formatEuro(resteReel)}
-              </p>
             </CardContent>
           </Card>
 
