@@ -41,9 +41,14 @@ export default function EpargnePage() {
   const [formFreq, setFormFreq] = useState(1)
 
   // Hooks
-  const { data: enveloppes = [] } = useEnveloppes(espaceId)
+  const { data: enveloppes = [], create: createEnv } = useEnveloppes(espaceId)
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
   const { create: createRecurrent } = useEpargneRecurrentes(espaceId)
+
+  // création d'enveloppes
+  const [envOpen, setEnvOpen] = useState(false)
+  const [newEnvNom, setNewEnvNom] = useState('')
+  const [newEnvObjectif, setNewEnvObjectif] = useState(0)
 
   const totalSolde = enveloppes.reduce((s, e) => s + Number(e.solde), 0)
   const totalMvtMois = mouvements
@@ -144,68 +149,96 @@ export default function EpargnePage() {
       <div className="p-4 space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold">Épargne</h1>
-          <Dialog open={mvtOpen} onOpenChange={setMvtOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4 mr-1" />Mouvement</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-700">
-              <DialogHeader><DialogTitle>Nouveau mouvement</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                {/* Type toggle */}
-                <div>
-                  <label className="text-sm text-slate-400 mb-1 block">Type</label>
-                  <div className="flex gap-2">
-                    {(['alimentation', 'reprise', 'transfert'] as const).map(t => (
-                      <button key={t} type="button" onClick={() => setFormType(t)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${formType === t ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
-                        {t === 'alimentation' ? 'Alimenter' : t === 'reprise' ? 'Reprendre' : 'Transférer'}
-                      </button>
-                    ))}
-                  </div>
+          <div className="flex gap-2">
+            <Dialog open={envOpen} onOpenChange={setEnvOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Enveloppe</Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-slate-700">
+                <DialogHeader><DialogTitle>Nouvelle enveloppe</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                  <Input placeholder="Nom (ex: Vacances)" value={newEnvNom} onChange={e => setNewEnvNom(e.target.value)} />
+                  <Input type="number" step="0.01" placeholder="Objectif (optionnel)" value={newEnvObjectif || ''} onChange={e => setNewEnvObjectif(parseFloat(e.target.value) || 0)} />
+                  <Button className="w-full" onClick={async () => {
+                    if (!newEnvNom.trim() || !espaceId) return
+                    await createEnv.mutateAsync({
+                      espace_id: espaceId,
+                      nom: newEnvNom.trim(),
+                      solde: 0,
+                      objectif: newEnvObjectif || null,
+                      ordre: enveloppes.length,
+                    })
+                    setNewEnvNom('')
+                    setNewEnvObjectif(0)
+                    setEnvOpen(false)
+                  }}>Cr&eacute;er</Button>
                 </div>
+              </DialogContent>
+            </Dialog>
 
-                {/* Source (reprise ou transfert) */}
-                {formType !== 'alimentation' && (
+            <Dialog open={mvtOpen} onOpenChange={setMvtOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm"><Plus className="w-4 h-4 mr-1" />Mouvement</Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-slate-700">
+                <DialogHeader><DialogTitle>Nouveau mouvement</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                  {/* Type toggle */}
                   <div>
-                    <label className="text-sm text-slate-400 mb-1 block">Source</label>
-                    <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                      value={formSource} onChange={e => setFormSource(e.target.value)}>
-                      <option value="">Choisir...</option>
-                      {enveloppes.map(e => <option key={e.id} value={e.id}>{e.nom}</option>)}
-                    </select>
+                    <label className="text-sm text-slate-400 mb-1 block">Type</label>
+                    <div className="flex gap-2">
+                      {(['alimentation', 'reprise', 'transfert'] as const).map(t => (
+                        <button key={t} type="button" onClick={() => setFormType(t)}
+                          className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${formType === t ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                          {t === 'alimentation' ? 'Alimenter' : t === 'reprise' ? 'Reprendre' : 'Transférer'}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                )}
 
-                {/* Destination (alimentation ou transfert) */}
-                {formType !== 'reprise' && (
+                  {/* Source (reprise ou transfert) */}
+                  {formType !== 'alimentation' && (
+                    <div>
+                      <label className="text-sm text-slate-400 mb-1 block">Source</label>
+                      <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                        value={formSource} onChange={e => setFormSource(e.target.value)}>
+                        <option value="">Choisir...</option>
+                        {enveloppes.map(e => <option key={e.id} value={e.id}>{e.nom}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Destination (alimentation ou transfert) */}
+                  {formType !== 'reprise' && (
+                    <div>
+                      <label className="text-sm text-slate-400 mb-1 block">Destination</label>
+                      <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                        value={formDest} onChange={e => setFormDest(e.target.value)}>
+                        <option value="">Choisir...</option>
+                        {enveloppes.map(e => <option key={e.id} value={e.id}>{e.nom}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  <Input type="number" step="0.01" placeholder="Montant" value={formMontant || ''} onChange={e => setFormMontant(parseFloat(e.target.value) || 0)} />
+                  <Input placeholder="Note (optionnel)" value={formNote} onChange={e => setFormNote(e.target.value)} />
+
+                  {/* Sélecteur de fréquence */}
                   <div>
-                    <label className="text-sm text-slate-400 mb-1 block">Destination</label>
-                    <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                      value={formDest} onChange={e => setFormDest(e.target.value)}>
-                      <option value="">Choisir...</option>
-                      {enveloppes.map(e => <option key={e.id} value={e.id}>{e.nom}</option>)}
-                    </select>
+                    <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
+                    <div className="grid grid-cols-5 gap-1">
+                      {FREQUENCES.map(f => (
+                        <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
+                          className={`py-2 rounded-lg text-xs font-medium transition-colors ${formFreq === f.value ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>{f.label}</button>
+                      ))}
+                    </div>
                   </div>
-                )}
 
-                <Input type="number" step="0.01" placeholder="Montant" value={formMontant || ''} onChange={e => setFormMontant(parseFloat(e.target.value) || 0)} />
-                <Input placeholder="Note (optionnel)" value={formNote} onChange={e => setFormNote(e.target.value)} />
-
-                {/* Sélecteur de fréquence */}
-                <div>
-                  <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-                  <div className="grid grid-cols-5 gap-1">
-                    {FREQUENCES.map(f => (
-                      <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
-                        className={`py-2 rounded-lg text-xs font-medium transition-colors ${formFreq === f.value ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>{f.label}</button>
-                    ))}
-                  </div>
+                  <Button className="w-full" onClick={onSubmitMvt}>Valider</Button>
                 </div>
-
-                <Button className="w-full" onClick={onSubmitMvt}>Valider</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {!espace && (
