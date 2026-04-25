@@ -164,6 +164,12 @@ export default function VariablesPage() {
                       <span className={isOver ? 'text-red-400 font-semibold' : 'text-pink-400 font-semibold'}>{formatEuro(depense)}</span>
                       <span className="text-slate-500"> / {formatEuro(prevu)}</span>
                     </div>
+                    <div className="text-xs text-right">
+                      <span className="text-slate-500">Reste </span>
+                      <span className={prevu - depense >= 0 ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>
+                        {formatEuro(prevu - depense)}
+                      </span>
+                    </div>
                     <Progress value={Math.min(ratio, 100)} className="h-1" />
                     <div className="flex gap-1">
                       <Input
