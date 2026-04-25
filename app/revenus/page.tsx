@@ -39,7 +39,7 @@ export default function RevenusPage() {
 
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
   const [formFreq, setFormFreq] = useState(1)
-  const { register, handleSubmit, reset, setValue } = useForm({
+  const { register, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: { nom: '', montant: 0 },
   })
 
@@ -127,7 +127,7 @@ export default function RevenusPage() {
               <DialogHeader><DialogTitle>Nouveau revenu</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input placeholder="Nom" {...register('nom', { required: true })} />
-                <CalculatorInput value={0} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
+                <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
 
                 {/* Toggle Actif / Passif */}
                 <div>
@@ -239,7 +239,7 @@ export default function RevenusPage() {
             </DialogHeader>
             <div className="space-y-4">
               <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
-              <CalculatorInput value={0} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
+              <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Type</label>
                 <div className="flex gap-2">
