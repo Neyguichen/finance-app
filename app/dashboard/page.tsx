@@ -69,7 +69,7 @@ export default function DashboardPage() {
     { name: 'Reste', value: Math.max(resteReel, 0), color: '#22C55E' },
   ]
 
-  const tooltipStyle = { backgroundColor: '#1e293b', border: 'none' }
+  const tooltipStyle = { backgroundColor: '#344869', border: 'none' }
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><span className="loading loading-spinner loading-lg"></span></div>
 
@@ -157,13 +157,20 @@ export default function DashboardPage() {
                         cy="50%"
                         innerRadius={30}
                         outerRadius={50}
+                        paddingAngle={3}
                         dataKey="value"
-                        strokeWidth={0}
                       >
                         {revenusChartData.map((entry, i) => (
                           <Cell key={i} fill={entry.color} />
                         ))}
                       </Pie>
+                      <Tooltip
+                        formatter={(value: number, name: string) => {
+                          const pourcent = totalRevenus > 0 ? Math.round((value / totalRevenus) * 100) : 0
+                          return [`${formatEuro(value)} (${pourcent}%)`, name]
+                        }}
+                        contentStyle={tooltipStyle}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
