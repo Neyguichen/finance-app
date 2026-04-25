@@ -144,7 +144,7 @@ export default function DashboardPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-emerald-400">Entrants</CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent>
               <p className="text-xl font-bold text-emerald-400">{formatEuro(totalRevenus)}</p>
               <div className="flex items-center gap-4">
                 {/* Donut */}
