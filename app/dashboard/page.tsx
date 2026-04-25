@@ -81,7 +81,7 @@ export default function DashboardPage() {
   ].filter(d => d.value > 0)
 
   const sortantsChartData = [
-    { name: 'Fixes', value: totalChargesPayees, color: '#E11D48' },    // rose-600 — rose vif (principal)
+    { name: 'Fixes', value: totalChargesFixes, color: '#E11D48' },    // rose-600 — rose vif (principal)
     { name: 'Variables', value: totalDepenses, color: '#FDA4AF' },      // rose-300 — rose clair
     { name: 'Épargne', value: totalEpargnes, color: '#881337' },        // rose-900 — rose foncé
   ].filter(d => d.value > 0)
@@ -325,9 +325,9 @@ export default function DashboardPage() {
                       <span className="text-xs text-slate-300">Fixes</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs font-semibold text-white">{formatEuro(totalChargesFixes)}</span>
+                      <span className="text-xs font-semibold text-white">{formatEuro(chargesFixesNonPayees)} / {formatEuro(totalChargesPayees)}</span>
                       <span className="text-xs text-slate-500 ml-1">
-                        ({totalSortantsAll > 0 ? Math.round((totalChargesFixes / totalSortantsAll) * 100) : 0}%)
+                        ({totalChargesFixes > 0 ? Math.round((totalChargesFixes / totalSortantsAll) * 100) : 0}%)
                       </span>
                     </div>
                   </div>
