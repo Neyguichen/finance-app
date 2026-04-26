@@ -17,6 +17,7 @@ interface AppContextType {
   setMonth: (m: string) => void
   loading: boolean
   addEspace: (nom: string, icone?: string) => Promise<void>
+  updateEspace: (id: string, updates: { nom?: string; icone?: string }) => Promise<void>
   removeEspace: (id: string) => Promise<void>
 }
 
@@ -24,6 +25,7 @@ const defaultCtx: AppContextType = {
   userId: null, espaces: [], espace: null, setEspaceId: () => {},
   moisId: undefined, month: currentMonth(), setMonth: () => {},
   loading: true, addEspace: async () => {},removeEspace: async () => {},
+  updateEspace: async () => {},
 }
 
 const AppContext = createContext<AppContextType>(defaultCtx)
@@ -104,9 +106,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (espaceId === id) setEspaceId(null)
   }
 
+  const updateEspace = async (id: string, updates: { nom?: string; icone?: string }) => {
+    const { error } = await supabase.from('espaces').update(updates).eq('id', id)
+    if (error) { console.error('Erreur update espace:', error); return }
+    setEspaces(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e))
+  }
+
   const ctxValue: AppContextType = {
     userId, espaces, espace, setEspaceId: (id) => setEspaceId(id),
-    moisId, month, setMonth, loading, addEspace, removeEspace,
+    moisId, month, setMonth, loading, addEspace, updateEspace, removeEspace,
   }
 
   return (
