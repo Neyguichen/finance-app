@@ -62,6 +62,7 @@ export default function ResetPage() {
                 <li>Toutes les catégories et transactions</li>
                 <li>Toutes les enveloppes et mouvements d&apos;épargne</li>
                 <li>Tous les modèles récurrents</li>
+                <li>Toutes les dettes et leurs remboursements</li>
               </ul>
               <p className="text-xs text-red-500 mt-2">
                 Ton compte utilisateur sera conservé. Tu repartiras de zéro.

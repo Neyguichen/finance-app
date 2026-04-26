@@ -64,6 +64,7 @@ export default function PurgePage() {
       <p className="text-sm text-slate-400">
         Supprime les mois budgétaires anciens et toutes leurs données associées
         (revenus, charges, transactions, mouvements d&apos;épargne).
+        Les dettes archivées dont la date d&apos;échéance est dépassée seront aussi supprimées.
         Les modèles récurrents et les enveloppes sont conservés.
       </p>
 
@@ -95,7 +96,8 @@ export default function PurgePage() {
                 <p className="text-sm text-yellow-300">
                   Tous les mois <strong>avant {cutoffLabel}</strong> seront
                   définitivement supprimés avec leurs revenus, charges, transactions
-                  et mouvements d&apos;épargne.
+                  et mouvements d&apos;épargne. Les dettes archivées dont la date d&apos;échéance
+                  est antérieure à cette date seront aussi supprimées.
                 </p>
                 <p className="text-xs text-yellow-600 mt-1">Cette action est irréversible.</p>
               </div>
