@@ -82,7 +82,7 @@ export default function AppMenu() {
 
           <MenuLink icon={Info} label="À propos" onClick={() => {
             setOpen(false)
-            router.push('/parametres/a-propos')
+            router.push('/a-propos')
           }} />
 
           <MenuLink icon={LogOut} label="Se déconnecter" danger onClick={handleLogout} />
