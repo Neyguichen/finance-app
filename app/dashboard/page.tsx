@@ -17,7 +17,7 @@ import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { formatEuro, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
-import { Plus, Trash2, Database } from 'lucide-react'
+import { Plus, Database } from 'lucide-react'
 import type { Remboursement } from '@/lib/types'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -167,18 +167,6 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <span className="text-xl">{espace.icone}</span>
             <span className="font-semibold">{espace.nom}</span>
-            {espaces.length > 1 && (
-              <button
-                onClick={() => {
-                  if (confirm(`Supprimer l'espace "${espace.nom}" et toutes ses données ?`)) {
-                    removeEspace(espace.id)
-                  }
-                }}
-                className="text-slate-500 hover:text-red-400 ml-1"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
           </div>
         )}
           <Dialog open={openEspace} onOpenChange={setOpenEspace}>
