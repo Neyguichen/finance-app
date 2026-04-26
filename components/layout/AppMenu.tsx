@@ -72,7 +72,7 @@ export default function AppMenu() {
           }} />
 
           {/* Autres fonctionnalités */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-4 text-center">Autres fonctionnalités</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Autres fonctionnalités</p>
           <MenuLink icon={Handshake} label="Dettes" onClick={() => {
             setOpen(false)
             router.push('/dette')
@@ -80,7 +80,7 @@ export default function AppMenu() {
           <div className="border-t border-slate-700 my-2" />
 
           {/* Section Paramètres */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-4 text-center">Paramètres</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Paramètres</p>
 
           <MenuLink icon={Settings} label="Gérer les espaces" onClick={() => {
             setOpen(false)
@@ -94,7 +94,7 @@ export default function AppMenu() {
           <div className="border-t border-slate-700 my-2" />
 
           {/* Section Données */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-4 text-center">Données</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Données</p>
 
           <MenuLink icon={Trash2} label="Purger les anciens mois" onClick={() => {
             setOpen(false)
@@ -139,7 +139,7 @@ export default function AppMenu() {
 
           {/* Section Compte */}
           <div className="border-t border-slate-700 my-2" />
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-4 text-center">Compte</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Compte</p>
 
           <MenuLink icon={LogOut} label="Se déconnecter" onClick={handleLogout} />
           <MenuLink icon={UserX} label="Supprimer mon compte" danger onClick={() => {
