@@ -453,19 +453,18 @@ export default function DashboardPage() {
                   </tr>
 
                   {/* Catégories variables triées alphabétiquement */}
-                  {catStats.map(cat => (
-                    <tr key={cat.id} className="border-b border-purple-900">
+                  {repartitionChartData.map((entry, i) => (
+                    <tr key={i} className="border-b border-purple-900">
                       <td className="py-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: cat.couleur }} />
-                          <span className="text-purple-200">{cat.icone} {cat.nom}</span>
+                          <div
+                            className="w-2.5 h-2.5 rounded-full"
+                            style= {{backgroundColor: entry.color }}
+                          />
+                          <span className="text-purple-200">{entry.icon} {entry.name}</span>
                         </div>
                       </td>
-                      <td className="text-right text-purple-200">{formatEuro(cat.prevu)}</td>
-                      <td className={`text-right ${cat.reste >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {formatEuro(cat.reste)}
-                      </td>
-                      <td className="text-right text-purple-200">{formatEuro(cat.depense)}</td>
+                      <td className="text-right text-purple-200">{formatEuro(entry.value)}</td>
                     </tr>
                   ))}
                 </tbody>
