@@ -141,5 +141,5 @@ export function useRemboursementsDette(detteId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: rembKey }),
   })
 
-  return { ...query, create, archive, unarchive, update, remboursements, addRemboursement, removeRemboursement, updateRemboursement }
+  return { ...query, create, archive, unarchive, update, remboursements, addRemboursement, removeRemboursement, updateRemboursement, }
 }
