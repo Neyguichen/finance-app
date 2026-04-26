@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake, Users, Database, } from 'lucide-react'
+import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake, Users, Database, Receipt, } from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
 
 export default function AppMenu() {
@@ -74,6 +74,7 @@ export default function AppMenu() {
               <MenuLink icon={Database} label="Stats globales" onClick={() => { setOpen(false); router.push('/admin/stats') }} />
               */
               
+              <MenuLink icon={Receipt} label="Remboursements ALSH" onClick={() => { setOpen(false); router.push('/admin/remboursements-alsh') }} />
               
               }
             </>

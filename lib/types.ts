@@ -150,3 +150,17 @@ export interface RemboursementDette {
   note: string | null
   created_at: string
 }
+
+export interface RemboursementAlsh {
+  id: string
+  user_id: string
+  lien_facture: string | null
+  periode_debut: string
+  periode_fin: string
+  date_paiement: string | null
+  date_partage_audrey: string | null
+  statut: 'a_transmettre' | 'transmis' | 'rembourse' | 'vire_cj'
+  montant: number | null
+  note: string | null
+  created_at: string
+}
