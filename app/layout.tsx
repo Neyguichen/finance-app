@@ -4,6 +4,7 @@ import './globals.css';
 import Providers from '@/components/Providers';
 import MobileNav from '@/components/layout/MobileNav';
 import EspaceSelector from '@/components/layout/EspaceSelector';
+import AppMenu from '@/components/layout/AppMenu';
 
 const inter = Inter({ subsets: ['latin'] });
 
