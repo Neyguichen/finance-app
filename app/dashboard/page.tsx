@@ -114,19 +114,20 @@ export default function DashboardPage() {
   
   // Construire les données du donut Répartition Catégories
   const repartitionChartData = [
-    // 1. Charges fixes non payées
+    // 1. Charges fixes
     ...(totalChargesFixes > 0
-      ? [{ name: 'Charges fixes', value: totalChargesFixes, color: '#E11D48' }]
+      ? [{ name: 'Charges fixes', value: totalChargesFixes, color: '#E11D48', icon: '📌' }]
       : []),
     // 2. Épargne
     ...(totalEpargnes > 0
-      ? [{ name: 'Épargne', value: totalEpargnes, color: '#881337' }]
+      ? [{ name: 'Épargne', value: totalEpargnes, color: '#881337', icon: '🐷' }]
       : []),
     // 3. Catégories variables — chacune prend un violet différent
     ...catStats.map((cat, i) => ({
-      name: `${cat.icone || ''} ${cat.nom}`.trim(),
+      name: cat.nom,
       value: cat.depense,
       color: VIOLET_SHADES[i % VIOLET_SHADES.length],
+      icon: cat.icone || '📂',
     })).filter(d => d.value > 0),
   ]
 
@@ -414,15 +415,15 @@ export default function DashboardPage() {
               </PieChart>
             </ResponsiveContainer>
 
-            {/* Tableau catégories */}
+            {/* Légende + Tableau catégories */}
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-purple-600 border-b border-purple-800">
                     <th className="text-left py-2 font-medium">Catégorie</th>
                     <th className="text-right py-2 font-medium">Prévu</th>
-                    <th className="text-right py-2 font-medium">À Venir</th>
-                    <th className="text-right py-2 font-medium">Réel</th>
+                    <th className="text-right py-2 font-medium">Reste</th>
+                    <th className="text-right py-2 font-medium">Dépense</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -430,8 +431,8 @@ export default function DashboardPage() {
                   <tr className="border-b border-purple-900">
                     <td className="py-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full bg-pink-600" />
-                        <span className="text-purple-200">Charges fixes</span>
+                        <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#E11D48'}}  />
+                        <span className="text-purple-200">📌 Charges fixes</span>
                       </div>
                     </td>
                     <td className="text-right text-purple-200">{formatEuro(totalChargesFixes)}</td>
@@ -443,8 +444,8 @@ export default function DashboardPage() {
                   <tr className="border-b border-purple-900">
                     <td className="py-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full bg-pink-900" />
-                        <span className="text-purple-200">Épargne</span>
+                        <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#881337'}}  />
+                        <span className="text-purple-200">🐷 Épargne</span>
                       </div>
                     </td>
                     <td className="text-right text-purple-600">—</td>
@@ -453,21 +454,23 @@ export default function DashboardPage() {
                   </tr>
 
                   {/* Catégories variables triées alphabétiquement */}
-                  {catStats.map(cat => (
-                    <tr key={cat.id} className="border-b border-purple-900">
-                      <td className="py-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: cat.couleur }} />
-                          <span className="text-purple-200">{cat.icone} {cat.nom}</span>
-                        </div>
-                      </td>
-                      <td className="text-right text-purple-200">{formatEuro(cat.prevu)}</td>
-                      <td className={`text-right ${cat.reste >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {formatEuro(cat.reste)}
-                      </td>
-                      <td className="text-right text-purple-200">{formatEuro(cat.depense)}</td>
-                    </tr>
-                  ))}
+                  {catStats.map((cat, i) => {
+                    const chartColor = VIOLET_SHADES[i % VIOLET_SHADES.length]
+                    const dotStyle = { backgroundColor: chartColor }
+                    return (
+                      <tr key={cat.id} className="border-b border-purple-900">
+                        <td className="py-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={dotStyle} />
+                            <span className="text-purple-200">{cat.icone || '📂'} {cat.nom}</span>
+                          </div>
+                        </td>
+                        <td className="text-right text-purple-200">{formatEuro(cat.prevu)}</td>
+                        <td className={`text-right ${cat.reste >= 0 ? 'text-purple-200' : 'text-red-400'}`}>{formatEuro(cat.reste)}</td>
+                        <td className="text-right text-white">{formatEuro(cat.depense)}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
