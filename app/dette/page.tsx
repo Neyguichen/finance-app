@@ -105,8 +105,8 @@ function DetteDetail({ dette }: { dette: Dette }) {
               <span className="text-slate-500">Dû initial</span>
               <span className="text-white">{formatEuro(Number(dette.montant))}</span>
             </div>
-            {dette.note && (
-              <p className="text-xs text-slate-500 italic">{dette.note}</p>
+            {dette.description && (
+              <p className="text-xs text-slate-500 italic">{dette.description}</p>
             )}
 
             {/* Liste des remboursements */}
