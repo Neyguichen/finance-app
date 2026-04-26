@@ -150,13 +150,13 @@ function DetteDetail({ dette }: { dette: Dette }) {
 
             {/* Ajouter un remboursement */}
             {!dette.archived && reste > 0 && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Input type="number" step="0.01" placeholder="Montant"
-                  className="flex-1 h-8 text-sm" value={newMontant}
+                  className="flex-1 h-8 min-w-[100px] text-sm" value={newMontant}
                   onChange={e => setNewMontant(e.target.value)} />
-                <Input type="date" className="w-32 h-8 text-sm"
+                <Input type="date" className="w-32 h-8 min-w-[140px] text-sm"
                   value={newDate} onChange={e => setNewDate(e.target.value)} />
-                <Button size="sm" className="h-8" onClick={() => {
+                <Button size="sm" className="h-8 flex-shrink-0" onClick={() => {
                   if (!newMontant) return
                   addRemboursement.mutate({
                     dette_id: dette.id, montant: parseFloat(newMontant), date: newDate

@@ -58,16 +58,8 @@ export default function AppMenu() {
         {/* Contenu du menu */}
         <div className="p-4 space-y-1">
 
-          {/* Autres fonctionnalités */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Autres fonctionnalités</p>
-          <MenuLink icon={Handshake} label="Dettes" onClick={() => {
-            setOpen(false)
-            router.push('/dette')
-          }} />
-
-          {isAdmin(userId) && (
+        {isAdmin(userId) && (
             <>
-              <div className="border-t border-slate-700 my-2" />
               <p className="text-xs text-slate-500 px-3 py-1">🔒 Admin</p>
               {/* Ajoute ici les liens admin que tu veux 
               <MenuLink icon={Users} label="Tous les utilisateurs" onClick={() => { setOpen(false); router.push('/admin/users') }} />
@@ -77,8 +69,17 @@ export default function AppMenu() {
               <MenuLink icon={Receipt} label="Remboursements ALSH" onClick={() => { setOpen(false); router.push('/admin/remboursements-alsh') }} />
               
               }
+              <div className="border-t border-slate-700 my-2" />
             </>
           )}
+
+          {/* Autres fonctionnalités */}
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Autres fonctionnalités</p>
+          <MenuLink icon={Handshake} label="Dettes" onClick={() => {
+            setOpen(false)
+            router.push('/dette')
+          }} />
+          <div className="border-t border-slate-700 my-2" />
 
           {/* Section Paramètres */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2">Paramètres</p>
@@ -92,6 +93,7 @@ export default function AppMenu() {
             setOpen(false)
             router.push('/parametres/categories')
           }} />
+          <div className="border-t border-slate-700 my-2" />
 
           {/* Section Compte */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Compte</p>
@@ -106,7 +108,7 @@ export default function AppMenu() {
 
         {/* Version en bas */}
         <div className="absolute bottom-6 left-0 right-0 text-center">
-
+        <div className="border-t border-slate-700 my-2" />
           {/* Section Données */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Données</p>
 

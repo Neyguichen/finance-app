@@ -188,7 +188,7 @@ export default function EpargnePage() {
         </Card>
 
         {/* ENVELOPPES ACTIVES */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
           {enveloppesActives.map(env => {
             const pourcent = env.objectif ? Math.min(100, Math.round((Number(env.solde) / Number(env.objectif)) * 100)) : null
             return (
@@ -318,10 +318,10 @@ export default function EpargnePage() {
                 {mvtType === 'epargne' && (
                   <div>
                     <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-                    <div className="grid grid-cols-5 gap-1">
+                    <div className="grid flex-wrap gap-1">
                       {FREQUENCES.map(f => (
                         <button key={f.value} type="button" onClick={() => setMvtFreq(f.value)}
-                          className={`py-2 rounded-lg text-xs font-medium transition-colors ${
+                          className={`py-2 rounded-lg text-xs font-medium transition-colors flex-1 min-w-[4.5rem] ${
                             mvtFreq === f.value
                               ? 'bg-purple-600 text-white'
                               : 'bg-slate-800 text-slate-400 hover:bg-slate-700'

@@ -200,7 +200,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Card className="bg-emerald-950 border-emerald-800">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-emerald-400">Entrants</CardTitle>
@@ -240,11 +240,11 @@ export default function DashboardPage() {
                 <div className="space-y-1 w-full">
                   {revenusChartData.map(d => (
                     <div key={d.name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: d.color}}  />
-                        <span className="text-xs text-slate-300">{d.name}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: d.color}}  />
+                        <span className="text-xs text-slate-300 truncate">{d.name}</span>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0">
                         <span className="text-xs font-semibold text-white">{formatEuro(d.value)}</span>
                         <span className="text-xs text-slate-500 ml-1">
                           ({totalRevenus > 0 ? Math.round((d.value / totalRevenus) * 100) : 0}%)
@@ -300,12 +300,12 @@ export default function DashboardPage() {
                 {/* Légende */}
                 <div className="space-y-1 w-full">
                   {/* Charges fixes */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-pink-600" />
-                      <span className="text-xs text-slate-300">Fixes</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-2.5 h-2.5 rounded-full bg-pink-600 flex-shrink-0" />
+                      <span className="text-xs text-slate-300 truncate">Fixes</span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <span className="text-xs font-semibold text-white">{formatEuro(chargesFixesNonPayees)} / {formatEuro(totalChargesPayees)}</span>
                       <span className="text-xs text-slate-500 ml-1">
                         ({totalChargesFixes > 0 ? Math.round((totalChargesFixes / totalSortantsAll) * 100) : 0}%)
@@ -314,12 +314,12 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Variables */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-pink-300" />
-                      <span className="text-xs text-slate-300">Variables</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-2.5 h-2.5 rounded-full bg-pink-300 flex-shrink-0" />
+                      <span className="text-xs text-slate-300 truncate">Variables</span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <span className="text-xs font-semibold text-white">{formatEuro(totalDepenses)}</span>
                       <span className="text-xs text-slate-500 ml-1">
                         ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
@@ -328,10 +328,10 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Variables — Prévu (hors diagramme) */}
-                  <div className="flex items-center justify-between pl-5">
+                  <div className="flex items-center justify-between gap-2 pl-5">
                     <span className="text-xs text-slate-500">Prévu</span>
                     <div className="text-right">
-                      <span className="text-xs text-slate-400">{formatEuro(totalVariablesPrevu)}</span>
+                      <span className="text-xs text-slate-400 flex-shrink-0">{formatEuro(totalVariablesPrevu)}</span>
                       <span className="text-xs text-slate-600 ml-1">
                         ({totalSortantsAll > 0 ? Math.round((totalVariablesPrevu / totalSortantsAll) * 100) : 0}%)
                       </span>
@@ -339,9 +339,9 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Variables — Réel (hors diagramme) */}
-                  <div className="flex items-center justify-between pl-5">
+                  <div className="flex items-center justify-between gap-2 pl-5">
                     <span className="text-xs text-slate-500">Réel</span>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <span className="text-xs text-slate-400">{formatEuro(totalDepenses)}</span>
                       <span className="text-xs text-slate-600 ml-1">
                         ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
@@ -350,12 +350,12 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Épargne */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-pink-900" />
-                      <span className="text-xs text-slate-300">Épargne</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-2.5 h-2.5 rounded-full bg-pink-900 flex-shrink-0" />
+                      <span className="text-xs text-slate-300 truncate">Épargne</span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <span className="text-xs font-semibold text-white">{formatEuro(totalEpargnes)}</span>
                       <span className="text-xs text-slate-500 ml-1">
                         ({totalSortantsAll > 0 ? Math.round((totalEpargnes / totalSortantsAll) * 100) : 0}%)
