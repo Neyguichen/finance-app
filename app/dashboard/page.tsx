@@ -15,11 +15,9 @@ import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
-import { formatEuro, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 import { Plus, Database } from 'lucide-react'
 import type { Remboursement } from '@/lib/types'
-// Couleurs pour le donut
 import { formatEuro, pct, getCategoryColor } from '@/lib/utils'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
