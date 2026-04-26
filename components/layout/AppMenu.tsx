@@ -73,6 +73,12 @@ export default function AppMenu() {
             </>
           )}
 
+
+          <MenuLink icon={Info} label="À propos" onClick={() => {
+            setOpen(false)
+            router.push('/a-propos')
+          }} />
+
           {/* Autres fonctionnalités */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Autres fonctionnalités</p>
           <MenuLink icon={Handshake} label="Dettes" onClick={() => {
@@ -95,19 +101,7 @@ export default function AppMenu() {
           }} />
           <div className="border-t border-slate-700 my-2" />
 
-          {/* Section Compte */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Compte</p>
-
-          <MenuLink icon={Info} label="À propos" onClick={() => {
-            setOpen(false)
-            router.push('/a-propos')
-          }} />
-
-          <MenuLink icon={LogOut} label="Se déconnecter" danger onClick={handleLogout} />
-        </div>
-
-        {/* Version en bas */}
-        <div className="border-t border-slate-700 my-2" />
+          <div className="border-t border-slate-700 my-2" />
           {/* Section Données */}
           <p></p>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Données</p>
@@ -153,12 +147,21 @@ export default function AppMenu() {
             </div>
           )}
 
+          {/* Section Compte */}
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Compte</p>
+
+          <MenuLink icon={LogOut} label="Se déconnecter" onClick={handleLogout} />
           <MenuLink icon={UserX} label="Supprimer mon compte" danger onClick={() => {
           setOpen(false)
           router.push('/parametres/delete-account')
           }} />
+        </div>
+
+        {/* Version en bas */}
+        <div className="absolute bottom-6 left-0 right-0 text-center">
 
           <span className="text-xs text-slate-600">Finance App v2.0</span>
+        </div>
       </div>
     </>
   )
