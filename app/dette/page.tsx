@@ -208,7 +208,7 @@ function DetteDetail({ dette }: { dette: Dette }) {
                   personne: editPersonne,
                   montant: editMontant,
                   date_echeance: editDateFin || null,
-                  note: editNote || null,
+                  description: editNote || null,
                 })
                 setEditDette(false)
               }}>Enregistrer</Button>
