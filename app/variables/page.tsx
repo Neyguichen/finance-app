@@ -143,7 +143,7 @@ export default function VariablesPage() {
           <div>
             <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
             <div className="grid grid-cols-3 gap-2">
-              {activeCategories.map(cat => {
+              {[...activeCategories].sort((a, b) => a.nom.localeCompare(b.nom)).map(cat => {
                 const budget = getBudget(cat.id)
                 const depense = getDepenses(cat.id)
                 const prevu = budget ? Number(budget.prevu) : 0
