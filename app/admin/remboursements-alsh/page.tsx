@@ -119,7 +119,7 @@ export default function RemboursementsAlshPage() {
                 <label className="text-xs text-slate-400">Lien facture (Google Drive)</label>
                 <Input placeholder="https://drive.google.com/..." value={lienFacture} onChange={e => setLienFacture(e.target.value)} />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs text-slate-400">Période début</label>
                   <Input type="date" value={periodeDebut} onChange={e => setPeriodeDebut(e.target.value)} />
@@ -129,7 +129,7 @@ export default function RemboursementsAlshPage() {
                   <Input type="date" value={periodeFin} onChange={e => setPeriodeFin(e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs text-slate-400">Date paiement</label>
                   <Input type="date" value={datePaiement} onChange={e => setDatePaiement(e.target.value)} />
@@ -141,7 +141,7 @@ export default function RemboursementsAlshPage() {
               </div>
               <div>
                 <label className="text-xs text-slate-400">Statut</label>
-                <div className="grid grid-cols-2 gap-1 mt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1">
                   {STATUTS.map(s => (
                     <button key={s.value} type="button" onClick={() => setStatut(s.value)}
                       className={`py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
