@@ -4,15 +4,13 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Trash2, Pencil, ArrowUpDown } from 'lucide-react'
+import { Plus, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
-import { formatEuro, pct } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
-import type { MouvementEpargne } from '@/lib/types'
 
 const FREQUENCES = [
   { value: 0, label: 'Ponctuel' },
@@ -24,100 +22,119 @@ const FREQUENCES = [
 
 export default function EpargnePage() {
   const { moisId, month, setMonth, espace } = useApp()
-  const espaceId = espace?.id
+  const { data: enveloppes = [], create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
+  const { data: mouvements = [], create: createMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
+  const { create: createRecurrent } = useEpargneRecurrentes(espace?.id)
 
-  // Dialogs
-  const [mvtOpen, setMvtOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; label: string } | null>(null)
-  const [editTarget, setEditTarget] = useState<MouvementEpargne | null>(null)
-  const [editMontant, setEditMontant] = useState(0)
-  const [editNote, setEditNote] = useState('')
+  // Séparer actives et archivées
+  const enveloppesActives = enveloppes.filter(e => !e.archived)
+  const enveloppesArchivees = enveloppes.filter(e => e.archived)
 
-  // Form state for new movement
-  const [formType, setFormType] = useState<'epargne' | 'reprise' | 'transfert'>('epargne')
-  const [formSource, setFormSource] = useState('')
-  const [formDest, setFormDest] = useState('')
-  const [formMontant, setFormMontant] = useState(0)
-  const [formNote, setFormNote] = useState('')
-  const [formFreq, setFormFreq] = useState(1)
-
-  // Hooks
-  const { data: enveloppes = [], create: createEnv } = useEnveloppes(espaceId)
-  const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
-  const { create: createRecurrent } = useEpargneRecurrentes(espaceId)
-
-  // création d'enveloppes
-  const [envOpen, setEnvOpen] = useState(false)
+  // États création enveloppe
+  const [openEnv, setOpenEnv] = useState(false)
   const [newEnvNom, setNewEnvNom] = useState('')
-  const [newEnvObjectif, setNewEnvObjectif] = useState(0)
+  const [newEnvObjectif, setNewEnvObjectif] = useState<number | null>(null)
 
-  const totalSolde = enveloppes.reduce((s, e) => s + Number(e.solde), 0)
-  const totalMvtMois = mouvements
-    .filter(m => m.type === 'epargne')
-    .reduce((s, m) => s + Number(m.montant), 0)
+  // États édition enveloppe
+  const [editEnv, setEditEnv] = useState<{ id: string; nom: string; objectif: number | null } | null>(null)
+  const [editEnvNom, setEditEnvNom] = useState('')
+  const [editEnvObjectif, setEditEnvObjectif] = useState<number | null>(null)
 
-  // Helpers
-  const envName = (id: string | null) => enveloppes.find(e => e.id === id)?.nom || '—'
+  // Afficher/masquer archivées
+  const [showArchived, setShowArchived] = useState(false)
 
-  const mvtLabel = (m: MouvementEpargne) => {
-    if (m.type === 'epargne') return `→ ${envName(m.enveloppe_dest_id)}`
-    if (m.type === 'reprise') return `← ${envName(m.enveloppe_source_id)}`
-    return `${envName(m.enveloppe_source_id)} → ${envName(m.enveloppe_dest_id)}`
+  // États mouvement
+  const [openMvt, setOpenMvt] = useState(false)
+  const [mvtType, setMvtType] = useState<'epargne' | 'reprise' | 'transfert'>('epargne')
+  const [mvtMontant, setMvtMontant] = useState(0)
+  const [mvtNote, setMvtNote] = useState('')
+  const [mvtSourceId, setMvtSourceId] = useState('')
+  const [mvtDestId, setMvtDestId] = useState('')
+  const [mvtFreq, setMvtFreq] = useState(1)
+
+  // État suppression mouvement
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; note: string | null } | null>(null)
+
+  // Totaux du mois
+  const totalEpargne = mouvements.filter(m => m.type === 'epargne').reduce((s, m) => s + Number(m.montant), 0)
+  const totalReprise = mouvements.filter(m => m.type === 'reprise').reduce((s, m) => s + Number(m.montant), 0)
+
+  const handleCreateEnv = async () => {
+    if (!espace || !newEnvNom.trim()) return
+    await createEnv.mutateAsync({
+      espace_id: espace.id,
+      nom: newEnvNom.trim(),
+      solde: 0,
+      objectif: newEnvObjectif,
+      ordre: enveloppes.length,
+    })
+    setNewEnvNom('')
+    setNewEnvObjectif(null)
+    setOpenEnv(false)
   }
 
-  // Submit new movement
-  const onSubmitMvt = async () => {
-    if (!moisId || !espace) return
-    const sourceId = formType !== 'epargne' ? formSource : null
-    const destId = formType !== 'reprise' ? formDest : null
-    const today = new Date().toISOString().split('T')[0]
+  const handleEditEnv = (env: { id: string; nom: string; objectif: number | null }) => {
+    setEditEnv(env)
+    setEditEnvNom(env.nom)
+    setEditEnvObjectif(env.objectif)
+  }
 
-    if (formFreq === 0) {
+  const handleSaveEditEnv = async () => {
+    if (!editEnv) return
+    await updateEnv.mutateAsync({
+      id: editEnv.id,
+      nom: editEnvNom,
+      objectif: editEnvObjectif,
+    })
+    setEditEnv(null)
+  }
+
+  const handleCreateMvt = async () => {
+    if (!moisId || !espace || mvtMontant <= 0) return
+
+    if (mvtFreq === 0) {
       // Ponctuel
       await createMvt.mutateAsync({
         mois_id: moisId,
         recurrent_id: null,
-        type: formType,
-        enveloppe_source_id: sourceId,
-        enveloppe_dest_id: destId,
-        montant: formMontant,
-        date: today,
-        note: formNote || null,
+        enveloppe_source_id: mvtType === 'reprise' || mvtType === 'transfert' ? mvtSourceId || null : null,
+        enveloppe_dest_id: mvtType === 'epargne' || mvtType === 'transfert' ? mvtDestId || null : null,
+        montant: mvtMontant,
+        type: mvtType,
+        date: month,
+        note: mvtNote || null,
       })
     } else {
       // Récurrent : créer le modèle puis l'instance
       const rec = await createRecurrent.mutateAsync({
         espace_id: espace.id,
-        enveloppe_dest_id: destId || '',
-        montant: formMontant,
+        enveloppe_dest_id: mvtDestId,
+        montant: mvtMontant,
         actif: true,
-        frequence_mois: formFreq,
-        note: formNote || null,
-        ordre: mouvements.length,
+        frequence_mois: mvtFreq,
+        note: mvtNote || null,
+        ordre: 0,
       })
       await createMvt.mutateAsync({
         mois_id: moisId,
         recurrent_id: rec.id,
-        type: formType,
-        enveloppe_source_id: sourceId,
-        enveloppe_dest_id: destId,
-        montant: formMontant,
-        date: today,
-        note: formNote || null,
+        enveloppe_source_id: null,
+        enveloppe_dest_id: mvtDestId || null,
+        montant: mvtMontant,
+        type: 'epargne',
+        date: month,
+        note: mvtNote || null,
       })
     }
-    // Reset
-    setFormType('epargne')
-    setFormSource('')
-    setFormDest('')
-    setFormMontant(0)
-    setFormNote('')
-    setFormFreq(1)
-    setMvtOpen(false)
+    setMvtMontant(0)
+    setMvtNote('')
+    setMvtSourceId('')
+    setMvtDestId('')
+    setMvtFreq(1)
+    setOpenMvt(false)
   }
 
-  // Delete handler
-  const handleDelete = (mode: 'mois' | 'definitif') => {
+  const handleDeleteMvt = (mode: 'mois' | 'definitif') => {
     if (!deleteTarget) return
     if (mode === 'definitif' && deleteTarget.recurrentId) {
       removeDefinitif.mutate({ mouvementId: deleteTarget.id, recurrentId: deleteTarget.recurrentId })
@@ -127,236 +144,279 @@ export default function EpargnePage() {
     setDeleteTarget(null)
   }
 
-  // Edit handler
-  const handleEdit = (m: MouvementEpargne) => {
-    setEditTarget(m)
-    setEditMontant(Number(m.montant))
-    setEditNote(m.note || '')
-  }
-
-  const handleSaveEdit = async () => {
-    if (!editTarget) return
-    await updateMvt.mutateAsync({
-      id: editTarget.id,
-      montant: editMontant,
-      note: editNote || null,
-    })
-    setEditTarget(null)
-  }
+  const getEnvNom = (id: string | null) => enveloppes.find(e => e.id === id)?.nom || '—'
 
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
       <div className="p-4 space-y-4">
+
+        {/* HEADER */}
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold">Épargne</h1>
-          <div className="flex gap-2">
-            <Dialog open={envOpen} onOpenChange={setEnvOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Enveloppe</Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-900 border-slate-700">
-                <DialogHeader><DialogTitle>Nouvelle enveloppe</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <Input placeholder="Nom (ex: Vacances)" value={newEnvNom} onChange={e => setNewEnvNom(e.target.value)} />
-                  <Input type="number" step="0.01" placeholder="Objectif (optionnel)" value={newEnvObjectif || ''} onChange={e => setNewEnvObjectif(parseFloat(e.target.value) || 0)} />
-                  <Button className="w-full" onClick={async () => {
-                    if (!newEnvNom.trim() || !espaceId) return
-                    await createEnv.mutateAsync({
-                      espace_id: espaceId,
-                      nom: newEnvNom.trim(),
-                      solde: 0,
-                      objectif: newEnvObjectif || null,
-                      ordre: enveloppes.length,
-                    })
-                    setNewEnvNom('')
-                    setNewEnvObjectif(0)
-                    setEnvOpen(false)
-                  }}>Cr&eacute;er</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={mvtOpen} onOpenChange={setMvtOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm"><Plus className="w-4 h-4 mr-1" />Mouvement</Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-900 border-slate-700">
-                <DialogHeader><DialogTitle>Nouveau mouvement</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  {/* Type toggle */}
-                  <div>
-                    <label className="text-sm text-slate-400 mb-1 block">Type</label>
-                    <div className="flex gap-2">
-                      {(['epargne', 'reprise', 'transfert'] as const).map(t => (
-                        <button key={t} type="button" onClick={() => setFormType(t)}
-                          className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${formType === t ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
-                          {t === 'epargne' ? 'Epargner' : t === 'reprise' ? 'Reprendre' : 'Transférer'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Source (reprise ou transfert) */}
-                  {formType !== 'epargne' && (
-                    <div>
-                      <label className="text-sm text-slate-400 mb-1 block">Source</label>
-                      <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                        value={formSource} onChange={e => setFormSource(e.target.value)}>
-                        <option value="">Choisir...</option>
-                        {enveloppes.map(e => <option key={e.id} value={e.id}>{e.nom}</option>)}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Destination (epargne ou transfert) */}
-                  {formType !== 'reprise' && (
-                    <div>
-                      <label className="text-sm text-slate-400 mb-1 block">Destination</label>
-                      <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                        value={formDest} onChange={e => setFormDest(e.target.value)}>
-                        <option value="">Choisir...</option>
-                        {enveloppes.map(e => <option key={e.id} value={e.id}>{e.nom}</option>)}
-                      </select>
-                    </div>
-                  )}
-
-                  <CalculatorInput value={formMontant} onChange={setFormMontant} placeholder="Montant" />
-                  <Input placeholder="Note (optionnel)" value={formNote} onChange={e => setFormNote(e.target.value)} />
-
-                  {/* Sélecteur de fréquence */}
-                  <div>
-                    <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-                    <div className="grid grid-cols-5 gap-1">
-                      {FREQUENCES.map(f => (
-                        <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
-                          className={`py-2 rounded-lg text-xs font-medium transition-colors ${formFreq === f.value ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>{f.label}</button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button className="w-full" onClick={onSubmitMvt}>Valider</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+          <Dialog open={openEnv} onOpenChange={setOpenEnv}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="w-4 h-4 mr-1" />Enveloppe</Button>
+            </DialogTrigger>
+            <DialogContent className="bg-slate-900 border-slate-700">
+              <DialogHeader><DialogTitle>Nouvelle enveloppe</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <Input placeholder="Nom (ex: Vacances)" value={newEnvNom} onChange={e => setNewEnvNom(e.target.value)} />
+                <Input type="number" step="0.01" placeholder="Objectif (optionnel)"
+                  value={newEnvObjectif ?? ''} onChange={e => {
+                    const val = e.target.value
+                    setNewEnvObjectif(val === '' ? null : parseFloat(val))
+                  }} />
+                <Button className="w-full" onClick={handleCreateEnv}>Créer</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        {!espace && (
-          <div className="bg-yellow-900/50 border border-yellow-700 rounded-lg p-3 text-yellow-300 text-sm">
-            Crée un espace depuis le Dashboard pour activer les enveloppes.
-          </div>
-        )}
-
-        {/* TOTAL ÉPARGNE */}
+        {/* TOTAUX DU MOIS */}
         <Card className="bg-teal-950 border-teal-800">
           <CardContent className="p-4 space-y-2">
-            <div className="flex justify-between">
-              <span className="font-semibold">Total Épargne</span>
-              <span className="font-bold text-lg text-teal-300">{formatEuro(totalSolde)}</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400">Épargné ce mois</span>
+              <span className="font-bold text-teal-400">{formatEuro(totalEpargne)}</span>
             </div>
-            <div className="flex justify-between text-sm text-slate-400">
-              <span>Versé ce mois</span>
-              <span>{formatEuro(totalMvtMois)}</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400">Repris ce mois</span>
+              <span className="font-bold text-orange-400">{formatEuro(totalReprise)}</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* ENVELOPPES */}
-        {enveloppes.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
-            {enveloppes.map((env) => (
+        {/* ENVELOPPES ACTIVES */}
+        <div className="grid grid-cols-2 gap-3">
+          {enveloppesActives.map(env => {
+            const pourcent = env.objectif ? Math.min(100, Math.round((Number(env.solde) / Number(env.objectif)) * 100)) : null
+            return (
               <Card key={env.id} className="bg-slate-900 border-slate-800">
-                <CardContent className="p-3 space-y-1">
-                  <p className="font-medium text-sm truncate">{env.nom}</p>
-                  <p className="text-lg font-bold text-emerald-400">{formatEuro(env.solde)}</p>
-                  {env.objectif && env.objectif > 0 && (
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm truncate">{env.nom}</p>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                        onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif })}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                        onClick={() => {
+                          if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
+                        }}>
+                        <Archive className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-lg font-bold text-emerald-400">{formatEuro(Number(env.solde))}</p>
+                  {env.objectif && pourcent !== null && (
                     <>
-                      <p className="text-xs text-slate-400">
-                        {env.solde > 0 && env.objectif > 0
-                          ? `${Math.round((env.solde / env.objectif) * 100)}%`
-                          : '0%'}
-                          <p>
-                            Obj: {formatEuro(env.objectif)}
-                          </p>
+                      <Progress value={pourcent} className="h-2" />
+                      <p className="text-xs text-slate-500">
+                        {pourcent}% — Objectif {formatEuro(Number(env.objectif))}
                       </p>
-                      <progress
-                        className="progress progress-primary w-full"
-                        value={Math.min((env.solde / env.objectif) * 100, 100)}
-                        max={100}
-                      />
                     </>
                   )}
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            )
+          })}
+        </div>
 
-        {/* MOUVEMENTS DU MOIS */}
-        {mouvements.length > 0 && (
+        {/* ENVELOPPES ARCHIVÉES */}
+        {enveloppesArchivees.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-slate-400 mb-2">Mouvements du mois</h2>
-            <div className="space-y-2">
-              {mouvements.map((mvt) => (
-                <Card key={mvt.id} className="bg-slate-900 border-slate-800">
-                  <CardContent className="flex items-center justify-between p-3">
-                    <div>
-                      <p className="font-medium text-sm">{mvtLabel(mvt)}</p>
-                      <div className="flex items-center gap-1">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${mvt.type === 'epargne' ? 'bg-teal-900 text-teal-400' : mvt.type === 'reprise' ? 'bg-orange-900 text-orange-400' : 'bg-blue-900 text-blue-400'}`}>{mvt.type}</span>
-                        {mvt.recurrent_id && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900 text-purple-400">↻</span>
-                        )}
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              {showArchived ? '▼' : '▶'} Archivées ({enveloppesArchivees.length})
+            </button>
+            {showArchived && (
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                {enveloppesArchivees.map(env => (
+                  <Card key={env.id} className="bg-slate-900/50 border-slate-800 opacity-60">
+                    <CardContent className="p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-sm truncate">{env.nom}</p>
+                        <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                          onClick={() => unarchive.mutate(env.id)}>
+                          <ArchiveRestore className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
-                      {mvt.note && <p className="text-xs text-slate-500 mt-0.5">{mvt.note}</p>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-teal-400">{formatEuro(Number(mvt.montant))}</span>
-                      <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                        onClick={() => handleEdit(mvt)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                        onClick={() => setDeleteTarget({ id: mvt.id, recurrentId: mvt.recurrent_id, label: mvtLabel(mvt) })}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <p className="text-lg font-bold text-slate-400">{formatEuro(Number(env.solde))}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* DIALOG D'ÉDITION */}
-        <Dialog open={!!editTarget} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
+        {/* BOUTON NOUVEAU MOUVEMENT */}
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold">Mouvements du mois</h2>
+          <Dialog open={openMvt} onOpenChange={setOpenMvt}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="w-4 h-4 mr-1" />Mouvement</Button>
+            </DialogTrigger>
+            <DialogContent className="bg-slate-900 border-slate-700">
+              <DialogHeader><DialogTitle>Nouveau mouvement</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                {/* Type */}
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Type</label>
+                  <div className="flex gap-2">
+                    {(['epargne', 'reprise', 'transfert'] as const).map(t => (
+                      <button key={t} type="button" onClick={() => setMvtType(t)}
+                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          mvtType === t
+                            ? 'bg-teal-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        }`}>
+                        {t === 'epargne' ? 'Épargner' : t === 'reprise' ? 'Reprendre' : 'Transférer'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Input type="number" step="0.01" placeholder="Montant" value={mvtMontant || ''}
+                  onChange={e => setMvtMontant(parseFloat(e.target.value) || 0)} />
+
+                {/* Enveloppe destination (épargne + transfert) */}
+                {(mvtType === 'epargne' || mvtType === 'transfert') && (
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1 block">Vers</label>
+                    <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                      value={mvtDestId} onChange={e => setMvtDestId(e.target.value)}>
+                      <option value="">Sélectionner...</option>
+                      {enveloppesActives.map(env => (
+                        <option key={env.id} value={env.id}>{env.nom}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Enveloppe source (reprise + transfert) */}
+                {(mvtType === 'reprise' || mvtType === 'transfert') && (
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1 block">Depuis</label>
+                    <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                      value={mvtSourceId} onChange={e => setMvtSourceId(e.target.value)}>
+                      <option value="">Sélectionner...</option>
+                      {enveloppesActives.map(env => (
+                        <option key={env.id} value={env.id}>{env.nom} ({formatEuro(Number(env.solde))})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <Input placeholder="Note (optionnel)" value={mvtNote} onChange={e => setMvtNote(e.target.value)} />
+
+                {/* Fréquence (seulement pour épargne) */}
+                {mvtType === 'epargne' && (
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
+                    <div className="grid grid-cols-5 gap-1">
+                      {FREQUENCES.map(f => (
+                        <button key={f.value} type="button" onClick={() => setMvtFreq(f.value)}
+                          className={`py-2 rounded-lg text-xs font-medium transition-colors ${
+                            mvtFreq === f.value
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                          }`}>{f.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Button className="w-full" onClick={handleCreateMvt}>Ajouter</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* LISTE DES MOUVEMENTS */}
+        <div className="space-y-2">
+          {mouvements.map(mvt => (
+            <Card key={mvt.id} className="bg-slate-900 border-slate-800">
+              <CardContent className="flex items-center justify-between p-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      mvt.type === 'epargne' ? 'bg-teal-900 text-teal-400' :
+                      mvt.type === 'reprise' ? 'bg-orange-900 text-orange-400' :
+                      'bg-blue-900 text-blue-400'
+                    }`}>
+                      {mvt.type === 'epargne' ? '↓ Épargner' : mvt.type === 'reprise' ? '↑ Reprendre' : '↔ Transfert'}
+                    </span>
+                    {mvt.recurrent_id && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900 text-purple-400">↻</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-400 mt-1">
+                    {mvt.type === 'epargne' && `→ ${getEnvNom(mvt.enveloppe_dest_id)}`}
+                    {mvt.type === 'reprise' && `← ${getEnvNom(mvt.enveloppe_source_id)}`}
+                    {mvt.type === 'transfert' && `${getEnvNom(mvt.enveloppe_source_id)} → ${getEnvNom(mvt.enveloppe_dest_id)}`}
+                  </p>
+                  {mvt.note && <p className="text-xs text-slate-500">{mvt.note}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`font-bold ${
+                    mvt.type === 'epargne' ? 'text-teal-400' :
+                    mvt.type === 'reprise' ? 'text-orange-400' : 'text-blue-400'
+                  }`}>{formatEuro(Number(mvt.montant))}</span>
+                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                    onClick={() => setDeleteTarget({ id: mvt.id, recurrentId: mvt.recurrent_id, note: mvt.note })}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {mouvements.length === 0 && (
+            <p className="text-center text-slate-500 text-sm py-4">Aucun mouvement ce mois</p>
+          )}
+        </div>
+
+        {/* DIALOG ÉDITION ENVELOPPE */}
+        <Dialog open={!!editEnv} onOpenChange={(v) => { if (!v) setEditEnv(null) }}>
           <DialogContent className="bg-slate-900 border-slate-700">
-            <DialogHeader>
-              <DialogTitle>Modifier le mouvement</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Modifier l&apos;enveloppe</DialogTitle></DialogHeader>
             <div className="space-y-4">
-              <CalculatorInput value={formMontant} onChange={setFormMontant} placeholder="Montant" />
-              <Input placeholder="Note" value={editNote} onChange={e => setEditNote(e.target.value)} />
-              <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
-              <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Nom</label>
+                <Input value={editEnvNom} onChange={e => setEditEnvNom(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Objectif (€)</label>
+                <Input type="number" step="0.01"
+                  value={editEnvObjectif ?? ''}
+                  onChange={e => {
+                    const val = e.target.value
+                    setEditEnvObjectif(val === '' ? null : parseFloat(val))
+                  }}
+                  placeholder="Laisser vide = pas d'objectif" />
+              </div>
+              <Button className="w-full" onClick={handleSaveEditEnv}>Enregistrer</Button>
+              <Button className="w-full" variant="ghost" onClick={() => setEditEnv(null)}>Annuler</Button>
             </div>
           </DialogContent>
         </Dialog>
 
-        {/* DIALOG DE SUPPRESSION */}
+        {/* DIALOG SUPPRESSION MOUVEMENT */}
         <Dialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null) }}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
               <DialogTitle>Supprimer ce mouvement ?</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-slate-400 mb-2">{deleteTarget?.label}</p>
             <div className="space-y-3">
-              <Button className="w-full" variant="outline" onClick={() => handleDelete('mois')}>
+              <Button className="w-full" variant="outline" onClick={() => handleDeleteMvt('mois')}>
                 Ce mois seulement
               </Button>
               {deleteTarget?.recurrentId && (
-                <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => handleDelete('definitif')}>
+                <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => handleDeleteMvt('definitif')}>
                   Définitivement (ne plus reporter)
                 </Button>
               )}
@@ -366,6 +426,7 @@ export default function EpargnePage() {
             </div>
           </DialogContent>
         </Dialog>
+
       </div>
     </div>
   )

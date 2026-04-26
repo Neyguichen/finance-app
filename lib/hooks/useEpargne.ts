@@ -24,7 +24,7 @@ export function useEnveloppes(espaceId: string | undefined) {
   })
 
   const create = useMutation({
-    mutationFn: async (env: Omit<Enveloppe, 'id'>) => {
+    mutationFn: async (env: Omit<Enveloppe, 'id' | 'archived'>) => {
       const { data, error } = await supabase
         .from('enveloppes')
         .insert(env)
@@ -47,7 +47,29 @@ export function useEnveloppes(espaceId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  return { ...query, create, update }
+  const archive = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('enveloppes')
+        .update({ archived: true })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
+  const unarchive = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('enveloppes')
+        .update({ archived: false })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
+  return { ...query, create, update, archive, unarchive }
 }
 
 export function useMouvements(moisId: string | undefined) {

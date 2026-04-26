@@ -102,6 +102,7 @@ export interface Enveloppe {
   solde: number
   objectif: number | null
   ordre: number
+  archived: boolean
 }
 
 export interface EpargneRecurrente {
