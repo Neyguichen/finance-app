@@ -243,9 +243,15 @@ export default function DettePage() {
   const dettesActives = dettes.filter(d => !d.archived && d.type === tab)
   const dettesArchivees = dettes.filter(d => d.archived && d.type === tab)
 
-  // Totaux (toutes, pas que actives)
-  const totalJeDois = dettes.filter(d => d.type === 'je_dois' && !d.archived).reduce((s, d) => s + Number(d.montant), 0)
-  const totalJaiPrete = dettes.filter(d => d.type === 'jai_prete' && !d.archived).reduce((s, d) => s + Number(d.montant), 0)
+  // Helper pour calculer le reste après remboursements
+  const getReste = (dette: Dette) => {
+    const rembs = (remboursements?.data || []).filter(r => r.dette_id === dette.id)
+    const totalRemb = rembs.reduce((s, r) => s + Number(r.montant), 0)
+    return Number(dette.montant) - totalRemb
+  }
+
+  const totalJeDois = dettes.filter(d => d.type === 'je_dois' && !d.archived).reduce((s, d) => s + getReste(d), 0)
+  const totalJaiPrete = dettes.filter(d => d.type === 'jai_prete' && !d.archived).reduce((s, d) => s + getReste(d), 0)
 
   const handleAdd = async () => {
     if (!espace || !titre || !personne || !montant) return
