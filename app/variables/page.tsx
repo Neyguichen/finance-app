@@ -99,7 +99,7 @@ export default function VariablesPage() {
                   <select className="select select-bordered w-full bg-slate-800 border-slate-700"
                     value={txCat} onChange={e => setTxCat(e.target.value)}>
                     <option value="">Catégorie...</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
+                    {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
                   </select>
                   <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
                   <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
