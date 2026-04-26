@@ -435,7 +435,7 @@ export default function DashboardPage() {
 
                   {/* Catégories variables triées alphabétiquement */}
                   {catStats.map((cat, i) => {
-                    const chartColor = VIOLET_SHADES[i % VIOLET_SHADES.length]
+                    const chartColor = getCategoryColor(i)
                     const dotStyle = { backgroundColor: chartColor }
                     return (
                       <tr key={cat.id} className="border-b border-purple-900">
