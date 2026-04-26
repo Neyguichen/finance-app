@@ -104,11 +104,11 @@ export default function RemboursementsAlshPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center gap-2">
         <h1 className="text-xl font-bold">🏕️ Remboursements ALSH</h1>
         <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); setOpen(v) }}>
           <DialogTrigger asChild>
-            <Button size="sm"><Plus className="w-4 h-4 mr-1" />Ajouter</Button>
+            <Button size="sm" className="flex-shrink-0"><Plus className="w-4 h-4 mr-1" />Ajouter</Button>
           </DialogTrigger>
           <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-md mx-auto max-h-[90vh] overflow-y-auto">
             <DialogHeader>
