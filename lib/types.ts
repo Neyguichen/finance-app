@@ -138,6 +138,7 @@ export interface Dette {
   personne: string
   montant: number
   date_echeance: string | null
+  archived: boolean
   created_at: string
 }
 

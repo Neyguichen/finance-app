@@ -93,16 +93,53 @@ export function useRemboursementsDette(detteId: string | undefined) {
     },
   })
 
-  const remove = useMutation({
+    // Archiver une dette (au lieu de supprimer)
+  const archive = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('remboursements_dette').delete().eq('id', id)
+      const { error } = await supabase
+        .from('dettes')
+        .update({ archived: true })
+        .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: key })
-      queryClient.invalidateQueries({ queryKey: ['dettes'] })
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  return { ...query, create, remove }
+  // Désarchiver une dette
+  const unarchive = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('dettes')
+        .update({ archived: false })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
+  // Modifier une dette
+  const update = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Dette> & { id: string }) => {
+      const { error } = await supabase
+        .from('dettes')
+        .update(updates)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
+  // Modifier un remboursement
+  const updateRemboursement = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<RemboursementDette> & { id: string }) => {
+      const { error } = await supabase
+        .from('remboursements_dette')
+        .update(updates)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: rembKey }),
+  })
+
+  return { ...query, create, archive, unarchive, update, remboursements, addRemboursement, removeRemboursement, updateRemboursement }
 }
