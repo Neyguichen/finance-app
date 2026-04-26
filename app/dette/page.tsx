@@ -25,6 +25,7 @@ function DetteDetail({ dette }: { dette: Dette }) {
 
   // --- Édition dette ---
   const [editDette, setEditDette] = useState(false)
+  const [editTitre, setEditTitre] = useState(dette.titre)
   const [editPersonne, setEditPersonne] = useState(dette.personne)
   const [editMontant, setEditMontant] = useState(Number(dette.montant))
   const [editDateFin, setEditDateFin] = useState(dette.date_echeance || '')
@@ -194,6 +195,8 @@ function DetteDetail({ dette }: { dette: Dette }) {
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader><DialogTitle>Modifier la dette</DialogTitle></DialogHeader>
             <div className="space-y-3">
+              <Input placeholder="Titre" value={editTitre}
+                onChange={e => setEditTitre(e.target.value)} />
               <Input placeholder="Personne" value={editPersonne}
                 onChange={e => setEditPersonne(e.target.value)} />
               <Input type="number" step="0.01" placeholder="Montant total"
@@ -205,6 +208,7 @@ function DetteDetail({ dette }: { dette: Dette }) {
               <Button className="w-full" onClick={() => {
                 update.mutate({
                   id: dette.id,
+                  titre: editTitre,
                   personne: editPersonne,
                   montant: editMontant,
                   date_echeance: editDateFin || null,
