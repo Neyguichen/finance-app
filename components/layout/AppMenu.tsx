@@ -58,13 +58,11 @@ export default function AppMenu() {
         <div className="p-4 space-y-1">
 
           {/* Autres fonctionnalités */}
-          <div className="border-t border-slate-700 pt-3 mt-3">
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Autres fonctionnalités</p>
-            <MenuLink icon={Handshake} label="Dettes" onClick={() => {
-              setOpen(false)
-              router.push('/dette')
-            }} />
-          </div>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Autres fonctionnalités</p>
+          <MenuLink icon={Handshake} label="Dettes" onClick={() => {
+            setOpen(false)
+            router.push('/dette')
+          }} />
 
           {/* Section Paramètres */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2">Paramètres</p>
