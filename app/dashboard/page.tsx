@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useDbUsage } from '@/lib/hooks/useDbUsage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +17,7 @@ import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { formatEuro, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Database } from 'lucide-react'
 import type { Remboursement } from '@/lib/types'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [newNom, setNewNom] = useState('')
   const [newIcone, setNewIcone] = useState('🏠')
 
+  const { data: dbUsage } = useDbUsage()
   const { data: revenus = [] } = useRevenus(moisId)
   const { data: charges = [] } = useChargesFixes(moisId)
   const { data: transactions = [] } = useTransactions(moisId)
@@ -476,6 +478,44 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        {dbUsage && (
+          <Card className="bg-slate-900 border-slate-800">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-slate-400" />
+                <span className="text-sm font-medium text-slate-300">Base de données</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">
+                  {dbUsage.size_mb} Mo / {dbUsage.limit_mb} Mo
+                </span>
+                <span className={`font-bold ${
+                  dbUsage.percent > 80 ? 'text-red-400' :
+                  dbUsage.percent > 60 ? 'text-yellow-400' :
+                  'text-emerald-400'
+                }`}>
+                  {dbUsage.percent}%
+                </span>
+              </div>
+              <progress
+                className={`progress w-full ${
+                  dbUsage.percent > 80 ? 'progress-error' :
+                  dbUsage.percent > 60 ? 'progress-warning' :
+                  'progress-success'
+                }`}
+                value={dbUsage.percent}
+                max={100}
+              />
+              {dbUsage.percent > 80 && (
+                <p className="text-xs text-red-400">
+                  ⚠️ Stockage élevé — pense à archiver les anciens mois
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
       </div>
     </div>
   )
