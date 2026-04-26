@@ -162,7 +162,7 @@ export default function VariablesPage() {
                       </Button>
                     </div>
                     <div className="text-xs text-right">
-                      <span className={isOver ? 'text-red-400 font-semibold' : 'text-pink-400 font-semibold'}>{formatEuro(depense)}</span>
+                      {formatEuro(depense)}
                       <span className="text-slate-500"> / {formatEuro(prevu)}</span>
                     </div>
                     <div className="text-xs text-right">
