@@ -122,7 +122,7 @@ export default function AppMenu() {
 
         {/* Version en bas */}
         <div className="absolute bottom-6 left-0 right-0 text-center">
-          <span className="text-xs text-slate-600">Finance App v2.0</span>
+          <span className="text-xs text-slate-600">Finance App v1.0</span>
         </div>
       </div>
     </>
