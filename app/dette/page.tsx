@@ -28,7 +28,7 @@ function DetteDetail({ dette }: { dette: Dette }) {
   const [editPersonne, setEditPersonne] = useState(dette.personne)
   const [editMontant, setEditMontant] = useState(Number(dette.montant))
   const [editDateFin, setEditDateFin] = useState(dette.date_echeance || '')
-  const [editNote, setEditNote] = useState(dette.note || '')
+  const [editNote, setEditNote] = useState(dette.description || '')
 
   // --- Édition remboursement ---
   const [editRemb, setEditRemb] = useState<string | null>(null)
