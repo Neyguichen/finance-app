@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX } from 'lucide-react'
-import Link from 'next/link'
+import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake } from 'lucide-react'
 
 export default function AppMenu() {
   const [open, setOpen] = useState(false)
@@ -61,11 +60,10 @@ export default function AppMenu() {
           {/* Autres fonctionnalités */}
           <div className="border-t border-slate-700 pt-3 mt-3">
             <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Autres fonctionnalités</p>
-            <Link href="/dette" onClick={onClose}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300">
-              <span className="text-lg">🤝</span>
-              <span>Dettes</span>
-            </Link>
+            <MenuLink icon={Handshake} label="Dettes" onClick={() => {
+              setOpen(false)
+              router.push('/dette')
+            }} />
           </div>
 
           {/* Section Paramètres */}
