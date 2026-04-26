@@ -27,7 +27,7 @@ function DetteDetail({ dette }: { dette: Dette }) {
   const [editDette, setEditDette] = useState(false)
   const [editPersonne, setEditPersonne] = useState(dette.personne)
   const [editMontant, setEditMontant] = useState(Number(dette.montant))
-  const [editDateFin, setEditDateFin] = useState(dette.date_fin || '')
+  const [editDateFin, setEditDateFin] = useState(dette.date_echeance || '')
   const [editNote, setEditNote] = useState(dette.note || '')
 
   // --- Édition remboursement ---
@@ -40,9 +40,9 @@ function DetteDetail({ dette }: { dette: Dette }) {
   const reste = Number(dette.montant) - totalRemb
 
   // Mensualité basée sur le RESTE (pas le total dû)
-  const mensualite = dette.date_fin
+  const mensualite = dette.date_echeance
     ? (() => {
-        const moisRestants = differenceInMonths(new Date(dette.date_fin), new Date())
+        const moisRestants = differenceInMonths(new Date(dette.date_echeance), new Date())
         return moisRestants > 0 ? Math.ceil((reste / moisRestants) * 100) / 100 : reste
       })()
     : null
