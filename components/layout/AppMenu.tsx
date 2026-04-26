@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { Menu, X, Database, LogOut, Settings, Trash2, Info } from 'lucide-react'
+import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX } from 'lucide-react'
 
 export default function AppMenu() {
   const [open, setOpen] = useState(false)
@@ -78,6 +78,11 @@ export default function AppMenu() {
             router.push('/parametres/purge')
           }} />
 
+          <MenuLink icon={RotateCcw} label="Réinitialiser les données" onClick={() => {
+            setOpen(false)
+            router.push('/parametres/reset')
+          }} />
+
           {/* Jauge BDD */}
           {dbUsage && (
             <div className="mt-2 p-3 bg-slate-800 rounded-lg space-y-2">
@@ -122,6 +127,12 @@ export default function AppMenu() {
 
         {/* Version en bas */}
         <div className="absolute bottom-6 left-0 right-0 text-center">
+
+            <MenuLink icon={UserX} label="Supprimer mon compte" danger onClick={() => {
+            setOpen(false)
+            router.push('/parametres/delete-account')
+            }} />
+
           <span className="text-xs text-slate-600">Finance App v1.0</span>
         </div>
       </div>
