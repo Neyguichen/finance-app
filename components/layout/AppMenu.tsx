@@ -56,96 +56,100 @@ export default function AppMenu() {
         </div>
 
         {/* Contenu du menu — scrollable */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-1">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4">
 
+          {/* Admin */}
           {isAdmin(userId) && (
-            <>
-              <p className="text-xs text-slate-500 px-3 py-1">🔒 Admin</p>
+            <div className="mb-4">
+              <p className="text-xs text-slate-500 text-center mb-2">🔒 Admin</p>
               <MenuLink icon={Receipt} label="Remboursements ALSH" onClick={() => { setOpen(false); router.push('/admin/remboursements-alsh') }} />
-              <div className="border-t border-slate-700 my-2" />
-            </>
-          )}
-
-          <MenuLink icon={Info} label="À propos" onClick={() => {
-            setOpen(false)
-            router.push('/a-propos')
-          }} />
-
-          {/* Autres fonctionnalités */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Autres fonctionnalités</p>
-          <MenuLink icon={Handshake} label="Dettes" onClick={() => {
-            setOpen(false)
-            router.push('/dette')
-          }} />
-          <div className="border-t border-slate-700 my-2" />
-
-          {/* Section Paramètres */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Paramètres</p>
-
-          <MenuLink icon={Settings} label="Gérer les espaces" onClick={() => {
-            setOpen(false)
-            router.push('/parametres/espaces')
-          }} />
-
-          <MenuLink icon={Settings} label="Gérer les catégories" onClick={() => {
-            setOpen(false)
-            router.push('/parametres/categories')
-          }} />
-          <div className="border-t border-slate-700 my-2" />
-
-          {/* Section Données */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Données</p>
-
-          <MenuLink icon={Trash2} label="Purger les anciens mois" onClick={() => {
-            setOpen(false)
-            router.push('/parametres/purge')
-          }} />
-
-          <MenuLink icon={RotateCcw} label="Réinitialiser les données" onClick={() => {
-            setOpen(false)
-            router.push('/parametres/reset')
-          }} />
-
-          {/* Jauge BDD */}
-          {dbUsage && (
-            <div className="mt-2 p-3 bg-slate-800 rounded-lg space-y-2">
-              <div className="flex items-center gap-2">
-                <Database className="w-4 h-4 text-slate-400" />
-                <span className="text-sm text-slate-300">Base de données</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400">
-                  {dbUsage.size_mb} Mo / {dbUsage.limit_mb} Mo
-                </span>
-                <span className={`font-bold ${
-                  dbUsage.percent > 80 ? 'text-red-400' :
-                  dbUsage.percent > 60 ? 'text-yellow-400' :
-                  'text-emerald-400'
-                }`}>
-                  {dbUsage.percent}%
-                </span>
-              </div>
-              <progress
-                className={`progress w-full h-2 ${
-                  dbUsage.percent > 80 ? 'progress-error' :
-                  dbUsage.percent > 60 ? 'progress-warning' :
-                  'progress-success'
-                }`}
-                value={dbUsage.percent}
-                max={100}
-              />
             </div>
           )}
 
-          {/* Section Compte */}
-          <div className="border-t border-slate-700 my-2" />
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Compte</p>
+          {/* À propos */}
+          <div className="mb-4">
+            <MenuLink icon={Info} label="À propos" onClick={() => {
+              setOpen(false)
+              router.push('/a-propos')
+            }} />
+          </div>
 
-          <MenuLink icon={LogOut} label="Se déconnecter" onClick={handleLogout} />
-          <MenuLink icon={UserX} label="Supprimer mon compte" danger onClick={() => {
-            setOpen(false)
-            router.push('/parametres/delete-account')
-          }} />
+          {/* Autres fonctionnalités */}
+          <div className="mb-4 border-t border-slate-700 pt-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 text-center">Autres fonctionnalités</p>
+            <MenuLink icon={Handshake} label="Dettes" onClick={() => {
+              setOpen(false)
+              router.push('/dette')
+            }} />
+          </div>
+
+          {/* Paramètres */}
+          <div className="mb-4 border-t border-slate-700 pt-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 text-center">Paramètres</p>
+            <MenuLink icon={Settings} label="Gérer les espaces" onClick={() => {
+              setOpen(false)
+              router.push('/parametres/espaces')
+            }} />
+            <MenuLink icon={Settings} label="Gérer les catégories" onClick={() => {
+              setOpen(false)
+              router.push('/parametres/categories')
+            }} />
+          </div>
+
+          {/* Données */}
+          <div className="mb-4 border-t border-slate-700 pt-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 text-center">Données</p>
+            <MenuLink icon={Trash2} label="Purger les anciens mois" onClick={() => {
+              setOpen(false)
+              router.push('/parametres/purge')
+            }} />
+            <MenuLink icon={RotateCcw} label="Réinitialiser les données" onClick={() => {
+              setOpen(false)
+              router.push('/parametres/reset')
+            }} />
+
+            {/* Jauge BDD */}
+            {dbUsage && (
+              <div className="mt-2 p-3 bg-slate-800 rounded-lg space-y-2">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-slate-400" />
+                  <span className="text-sm text-slate-300">Base de données</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">
+                    {dbUsage.size_mb} Mo / {dbUsage.limit_mb} Mo
+                  </span>
+                  <span className={`font-bold ${
+                    dbUsage.percent > 80 ? 'text-red-400' :
+                    dbUsage.percent > 60 ? 'text-yellow-400' :
+                    'text-emerald-400'
+                  }`}>
+                    {dbUsage.percent}%
+                  </span>
+                </div>
+                <progress
+                  className={`progress w-full h-2 ${
+                    dbUsage.percent > 80 ? 'progress-error' :
+                    dbUsage.percent > 60 ? 'progress-warning' :
+                    'progress-success'
+                  }`}
+                  value={dbUsage.percent}
+                  max={100}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Compte */}
+          <div className="border-t border-slate-700 pt-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 text-center">Compte</p>
+            <MenuLink icon={LogOut} label="Se déconnecter" onClick={handleLogout} />
+            <MenuLink icon={UserX} label="Supprimer mon compte" danger onClick={() => {
+              setOpen(false)
+              router.push('/parametres/delete-account')
+            }} />
+          </div>
+
         </div>
 
         {/* Version — fixe en bas, hors du scroll */}
