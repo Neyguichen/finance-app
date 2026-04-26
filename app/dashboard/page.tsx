@@ -459,7 +459,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           <div
                             className="w-2.5 h-2.5 rounded-full"
-                            style= {{backgroundColor: entry.color }}
+                            style= {{backgroundColor: (entry.color) }}
                           />
                           <span className="text-purple-200">{entry.icon} {entry.name}</span>
                         </div>
