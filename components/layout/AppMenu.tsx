@@ -140,7 +140,7 @@ export default function AppMenu() {
           router.push('/parametres/delete-account')
           }} />
 
-          <span className="text-xs text-slate-600">Finance App v1.0</span>
+          <span className="text-xs text-slate-600">Finance App v2.0</span>
         </div>
       </div>
     </>
