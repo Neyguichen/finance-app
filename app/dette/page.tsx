@@ -228,7 +228,7 @@ function DetteDetail({ dette }: { dette: Dette }) {
 // --- Page principale ---
 export default function DettePage() {
   const { espace } = useApp()
-  const { data: dettes = [], create } = useDettes(espace?.id)
+  const { data: dettes = [], create, remboursements } = useDettes(espace?.id)
   const [tab, setTab] = useState<'je_dois' | 'jai_prete'>('je_dois')
   const [openAdd, setOpenAdd] = useState(false)
 
