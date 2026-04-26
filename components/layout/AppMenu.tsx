@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Link } from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
 import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX } from 'lucide-react'
+import Link from 'next/link'
 
 export default function AppMenu() {
   const [open, setOpen] = useState(false)
