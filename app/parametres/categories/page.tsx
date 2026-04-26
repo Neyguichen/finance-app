@@ -10,21 +10,7 @@ import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useApp } from '@/components/AppContext'
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
-
-const COULEURS = [
-  { value: '#8B5CF6', label: 'Violet' },
-  { value: '#3B82F6', label: 'Bleu' },
-  { value: '#10B981', label: 'Vert' },
-  { value: '#F59E0B', label: 'Jaune' },
-  { value: '#EF4444', label: 'Rouge' },
-  { value: '#EC4899', label: 'Rose' },
-  { value: '#6366F1', label: 'Indigo' },
-  { value: '#14B8A6', label: 'Teal' },
-  { value: '#F97316', label: 'Orange' },
-  { value: '#A855F7', label: 'Pourpre' },
-  { value: '#64748B', label: 'Gris' },
-  { value: '#84CC16', label: 'Lime' },
-]
+import { getCategoryColor } from '@/lib/utils'
 
 export default function GererCategoriesPage() {
   const router = useRouter()
@@ -91,13 +77,12 @@ export default function GererCategoriesPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map((cat) => {            
-            const bgStyle = { backgroundColor: cat.couleur }
+          {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map((cat, i) => {
             return (
               <Card key={cat.id} className="bg-slate-900 border-slate-800">
                 <CardContent className="flex items-center justify-between p-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 rounded-full" style={bgStyle} />
+                    <div className="w-4 h-4 rounded-full" style={{backgroundColor: getCategoryColor(i)}} />
                     <span className="text-lg">{cat.icone || '📂'}</span>
                     <p className="font-medium">{cat.nom}</p>
                   </div>

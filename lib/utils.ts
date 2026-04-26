@@ -44,3 +44,19 @@ export function pct(value: number, total: number): number {
   if (total === 0) return 0;
   return Math.round((value / total) * 10000) / 100;
 }
+
+export const VIOLET_SHADES = [
+  '#8B5CF6', // violet-500
+  '#A78BFA', // violet-400
+  '#6D28D9', // violet-700
+  '#C4B5FD', // violet-300
+  '#4C1D95', // violet-900
+  '#DDD6FE', // violet-200
+  '#7C3AED', // violet-600
+  '#EDE9FE', // violet-100
+  '#5B21B6', // violet-800
+]
+
+export function getCategoryColor(index: number): string {
+  return VIOLET_SHADES[index % VIOLET_SHADES.length]
+}

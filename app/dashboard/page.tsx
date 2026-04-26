@@ -19,6 +19,8 @@ import { formatEuro, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 import { Plus, Database } from 'lucide-react'
 import type { Remboursement } from '@/lib/types'
+// Couleurs pour le donut
+import { formatEuro, pct, getCategoryColor } from '@/lib/utils'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
 } from 'recharts'
@@ -103,16 +105,6 @@ export default function DashboardPage() {
       const reste = prevu - depense
       return { id: cat.id, nom: cat.nom, icone: cat.icone, couleur: cat.couleur, prevu, depense, reste }
     })
-
-  // Couleurs pour le donut
-  const VIOLET_SHADES = [
-    '#8B5CF6', // violet-500
-    '#A78BFA', // violet-400
-    '#6D28D9', // violet-700
-    '#C4B5FD', // violet-300
-    '#4C1D95', // violet-900
-    '#DDD6FE', // violet-200
-  ]
   
   // Construire les données du donut Répartition Catégories
   const repartitionChartData = [
@@ -128,7 +120,7 @@ export default function DashboardPage() {
     ...catStats.map((cat, i) => ({
       name: cat.nom,
       value: cat.depense,
-      color: VIOLET_SHADES[i % VIOLET_SHADES.length],
+      color: getCategoryColor(i),
       icon: cat.icone || '📂',
     })).filter(d => d.value > 0),
   ]
