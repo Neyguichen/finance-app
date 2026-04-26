@@ -9,8 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useApp } from '@/components/AppContext'
-import { ArrowLeft, Pencil, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
 
 const COULEURS = [
   { value: '#8B5CF6', label: 'Violet' },
@@ -29,7 +28,6 @@ const COULEURS = [
 
 export default function GererCategoriesPage() {
   const router = useRouter()
-  const supabase = createClient()
   const { espace } = useApp()
   const { data: categories = [], update, remove } = useCategories(espace?.id)
 
@@ -65,22 +63,6 @@ export default function GererCategoriesPage() {
     setDeleteTarget(null)
   }
 
-  const handleReorder = async (id: string, direction: 'up' | 'down') => {
-    const sorted = [...categories].sort((a, b) => a.ordre - b.ordre)
-    const idx = sorted.findIndex(c => c.id === id)
-    if (idx < 0) return
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
-    if (swapIdx < 0 || swapIdx >= sorted.length) return
-
-    const current = sorted[idx]
-    const swap = sorted[swapIdx]
-
-    await supabase.from('categories').update({ ordre: swapIdx }).eq('id', current.id)
-    await supabase.from('categories').update({ ordre: idx }).eq('id', swap.id)
-
-    window.location.reload()
-  }
-
   if (!espace) {
     return (
       <div className="p-4 text-center text-slate-400">
@@ -109,7 +91,7 @@ export default function GererCategoriesPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {[...categories].sort((a, b) => a.ordre - b.ordre).map((cat, idx) => {
+          {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map((cat) => {            
             const bgStyle = { backgroundColor: cat.couleur }
             return (
               <Card key={cat.id} className="bg-slate-900 border-slate-800">
@@ -121,16 +103,6 @@ export default function GererCategoriesPage() {
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500"
-                      disabled={idx === 0}
-                      onClick={() => handleReorder(cat.id, 'up')}>
-                      <ChevronUp className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500"
-                      disabled={idx === categories.length - 1}
-                      onClick={() => handleReorder(cat.id, 'down')}>
-                      <ChevronDown className="w-4 h-4" />
-                    </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500"
                       onClick={() => handleEdit(cat)}>
                       <Pencil className="w-4 h-4" />
