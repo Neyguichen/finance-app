@@ -107,9 +107,9 @@ export default function AppMenu() {
         </div>
 
         {/* Version en bas */}
-        <div className="absolute bottom-6 left-0 right-0 text-center">
         <div className="border-t border-slate-700 my-2" />
           {/* Section Données */}
+          <p></p>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Données</p>
 
           <MenuLink icon={Trash2} label="Purger les anciens mois" onClick={() => {
@@ -159,7 +159,6 @@ export default function AppMenu() {
           }} />
 
           <span className="text-xs text-slate-600">Finance App v2.0</span>
-        </div>
       </div>
     </>
   )
