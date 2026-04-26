@@ -267,19 +267,23 @@ export default function EpargnePage() {
           <div className="grid grid-cols-3 gap-2">
             {enveloppes.map((env) => (
               <Card key={env.id} className="bg-slate-900 border-slate-800">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="font-medium">{env.nom}</p>
-                    <p className="font-bold text-teal-400">{formatEuro(Number(env.solde))}</p>
-                  </div>
-                  {env.objectif && (
-                    <div>
-                      <div className="flex justify-between text-xs text-slate-400 mb-1">
-                        <span>{pct(Number(env.solde), Number(env.objectif))}%</span>
-                        <span>Obj: {formatEuro(Number(env.objectif))}</span>
-                      </div>
-                      <Progress value={pct(Number(env.solde), Number(env.objectif))} className="h-2" />
-                    </div>
+                <CardContent className="p-3 space-y-1">
+                  <p className="font-medium text-sm truncate">{env.nom}</p>
+                  <p className="text-lg font-bold text-emerald-400">{formatEuro(env.solde)}</p>
+                  {env.objectif && env.objectif > 0 && (
+                    <>
+                      <p className="text-xs text-slate-400">
+                        {env.solde > 0 && env.objectif > 0
+                          ? `${Math.round((env.solde / env.objectif) * 100)}%`
+                          : '0%'}
+                        Obj: {formatEuro(env.objectif)}
+                      </p>
+                      <progress
+                        className="progress progress-primary w-full"
+                        value={Math.min((env.solde / env.objectif) * 100, 100)}
+                        max={100}
+                      />
+                    </>
                   )}
                 </CardContent>
               </Card>
