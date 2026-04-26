@@ -8,7 +8,9 @@ export function useDettes(espaceId: string | undefined) {
   const supabase = createClient()
   const queryClient = useQueryClient()
   const key = ['dettes', espaceId]
+  const rembKey = ['remboursements_dette', espaceId]
 
+  // --- Dettes ---
   const query = useQuery({
     queryKey: key,
     enabled: !!espaceId,
@@ -24,7 +26,7 @@ export function useDettes(espaceId: string | undefined) {
   })
 
   const create = useMutation({
-    mutationFn: async (dette: Omit<Dette, 'id' | 'created_at'>) => {
+    mutationFn: async (dette: Omit<Dette, 'id' | 'created_at' | 'archived'>) => {
       const { data, error } = await supabase
         .from('dettes')
         .insert(dette)
@@ -55,45 +57,6 @@ export function useDettes(espaceId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  return { ...query, create, update, remove }
-}
-
-export function useRemboursementsDette(detteId: string | undefined) {
-  const supabase = createClient()
-  const queryClient = useQueryClient()
-  const key = ['remboursements_dette', detteId]
-
-  const query = useQuery({
-    queryKey: key,
-    enabled: !!detteId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('remboursements_dette')
-        .select('*')
-        .eq('dette_id', detteId!)
-        .order('date', { ascending: false })
-      if (error) throw error
-      return data as RemboursementDette[]
-    },
-  })
-
-  const create = useMutation({
-    mutationFn: async (r: Omit<RemboursementDette, 'id' | 'created_at'>) => {
-      const { data, error } = await supabase
-        .from('remboursements_dette')
-        .insert(r)
-        .select()
-        .single()
-      if (error) throw error
-      return data as RemboursementDette
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: key })
-      queryClient.invalidateQueries({ queryKey: ['dettes'] })
-    },
-  })
-
-    // Archiver une dette (au lieu de supprimer)
   const archive = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -105,7 +68,6 @@ export function useRemboursementsDette(detteId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  // Désarchiver une dette
   const unarchive = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -117,29 +79,73 @@ export function useRemboursementsDette(detteId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  // Modifier une dette
-  const update = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Dette> & { id: string }) => {
-      const { error } = await supabase
+  // --- Remboursements ---
+  const remboursements = useQuery({
+    queryKey: rembKey,
+    enabled: !!espaceId,
+    queryFn: async () => {
+      // On récupère tous les remboursements des dettes de cet espace
+      const { data: dettes } = await supabase
         .from('dettes')
-        .update(updates)
-        .eq('id', id)
+        .select('id')
+        .eq('espace_id', espaceId!)
+      if (!dettes || dettes.length === 0) return []
+      const detteIds = dettes.map(d => d.id)
+      const { data, error } = await supabase
+        .from('remboursements_dette')
+        .select('*')
+        .in('dette_id', detteIds)
+        .order('date', { ascending: false })
       if (error) throw error
+      return data as RemboursementDette[]
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  // Modifier un remboursement
-  const updateRemboursement = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<RemboursementDette> & { id: string }) => {
+  const addRemboursement = useMutation({
+    mutationFn: async (remb: { dette_id: string; montant: number; date: string }) => {
+      const { data, error } = await supabase
+        .from('remboursements_dette')
+        .insert(remb)
+        .select()
+        .single()
+      if (error) throw error
+      return data as RemboursementDette
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: rembKey }),
+  })
+
+  const removeRemboursement = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('remboursements_dette')
-        .update(updates)
+        .delete()
         .eq('id', id)
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: rembKey }),
   })
 
-  return { ...query, create, archive, unarchive, update, remboursements, addRemboursement, removeRemboursement, updateRemboursement, }
+  const updateRemboursement = useMutation({
+    mutationFn: async ({ id, montant, date }: { id: string; montant: number; date: string }) => {
+      const { error } = await supabase
+        .from('remboursements_dette')
+        .update({ montant, date })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: rembKey }),
+  })
+
+  return {
+    ...query,
+    create,
+    update,
+    remove,
+    archive,
+    unarchive,
+    remboursements,
+    addRemboursement,
+    removeRemboursement,
+    updateRemboursement,
+  }
 }
