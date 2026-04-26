@@ -129,4 +129,23 @@ export interface MouvementEpargne {
   note: string | null
 }
 
-// Evenement et ResumeMensuel supprimés en v2
+export interface Dette {
+  id: string
+  espace_id: string
+  type: 'je_dois' | 'jai_prete'
+  titre: string
+  description: string | null
+  personne: string
+  montant: number
+  date_echeance: string | null
+  created_at: string
+}
+
+export interface RemboursementDette {
+  id: string
+  dette_id: string
+  montant: number
+  date: string
+  note: string | null
+  created_at: string
+}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Link } from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
@@ -56,6 +57,16 @@ export default function AppMenu() {
 
         {/* Contenu du menu */}
         <div className="p-4 space-y-1">
+
+          {/* Autres fonctionnalités */}
+          <div className="border-t border-slate-700 pt-3 mt-3">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Autres fonctionnalités</p>
+            <Link href="/dette" onClick={onClose}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300">
+              <span className="text-lg">🤝</span>
+              <span>Dettes</span>
+            </Link>
+          </div>
 
           {/* Section Paramètres */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2">Paramètres</p>
