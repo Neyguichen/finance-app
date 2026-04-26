@@ -112,28 +112,6 @@ export default function GererCategoriesPage() {
             <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
             <EmojiPicker value={editIcone} onChange={setEditIcone} />
 
-            {/* Sélecteur de couleur */}
-            <div>
-              <label className="text-sm text-slate-400 mb-2 block">Couleur</label>
-              <div className="grid grid-cols-6 gap-2">
-                {COULEURS.map(c => {
-                  const cStyle = { backgroundColor: c.value }
-                  return (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onClick={() => setEditCouleur(c.value)}
-                      className={`w-10 h-10 rounded-full transition-all ${
-                        editCouleur === c.value ? 'ring-2 ring-white scale-110' : 'hover:scale-105'
-                      }`}
-                      style={cStyle}
-                      title={c.label}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-
             <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
             <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
           </div>
