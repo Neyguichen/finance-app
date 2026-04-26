@@ -276,7 +276,9 @@ export default function EpargnePage() {
                         {env.solde > 0 && env.objectif > 0
                           ? `${Math.round((env.solde / env.objectif) * 100)}%`
                           : '0%'}
-                        Obj: {formatEuro(env.objectif)}
+                          <p>
+                            Obj: {formatEuro(env.objectif)}
+                          </p>
                       </p>
                       <progress
                         className="progress progress-primary w-full"
