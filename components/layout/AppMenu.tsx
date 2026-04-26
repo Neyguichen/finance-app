@@ -101,9 +101,7 @@ export default function AppMenu() {
           }} />
           <div className="border-t border-slate-700 my-2" />
 
-          <div className="border-t border-slate-700 my-2" />
           {/* Section Données */}
-          <p></p>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Données</p>
 
           <MenuLink icon={Trash2} label="Purger les anciens mois" onClick={() => {
@@ -148,6 +146,7 @@ export default function AppMenu() {
           )}
 
           {/* Section Compte */}
+          <div className="border-t border-slate-700 my-2" />
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Compte</p>
 
           <MenuLink icon={LogOut} label="Se déconnecter" onClick={handleLogout} />
@@ -158,7 +157,7 @@ export default function AppMenu() {
         </div>
 
         {/* Version en bas */}
-        <div className="absolute bottom-6 left-0 right-0 text-center">
+        <div className="sticky bottom-0 left-0 right-0 text-center bg-slate-900 py-3 border-t border-slate-800">
 
           <span className="text-xs text-slate-600">Finance App v2.0</span>
         </div>
