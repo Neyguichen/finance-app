@@ -188,7 +188,7 @@ export default function EpargnePage() {
         </Card>
 
         {/* ENVELOPPES ACTIVES */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {enveloppesActives.map(env => {
             const pourcent = env.objectif ? Math.min(100, Math.round((Number(env.solde) / Number(env.objectif)) * 100)) : null
             return (
