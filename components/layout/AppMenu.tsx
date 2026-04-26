@@ -77,6 +77,20 @@ export default function AppMenu() {
             router.push('/parametres/categories')
           }} />
 
+          {/* Section Compte */}
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Compte</p>
+
+          <MenuLink icon={Info} label="À propos" onClick={() => {
+            setOpen(false)
+            router.push('/parametres/a-propos')
+          }} />
+
+          <MenuLink icon={LogOut} label="Se déconnecter" danger onClick={handleLogout} />
+        </div>
+
+        {/* Version en bas */}
+        <div className="absolute bottom-6 left-0 right-0 text-center">
+
           {/* Section Données */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Données</p>
 
@@ -121,24 +135,10 @@ export default function AppMenu() {
             </div>
           )}
 
-          {/* Section Compte */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Compte</p>
-
-          <MenuLink icon={Info} label="À propos" onClick={() => {
-            setOpen(false)
-            router.push('/parametres/a-propos')
+          <MenuLink icon={UserX} label="Supprimer mon compte" danger onClick={() => {
+          setOpen(false)
+          router.push('/parametres/delete-account')
           }} />
-
-          <MenuLink icon={LogOut} label="Se déconnecter" danger onClick={handleLogout} />
-        </div>
-
-        {/* Version en bas */}
-        <div className="absolute bottom-6 left-0 right-0 text-center">
-
-            <MenuLink icon={UserX} label="Supprimer mon compte" danger onClick={() => {
-            setOpen(false)
-            router.push('/parametres/delete-account')
-            }} />
 
           <span className="text-xs text-slate-600">Finance App v1.0</span>
         </div>
