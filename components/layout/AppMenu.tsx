@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake } from 'lucide-react'
+import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake, Users, Database, } from 'lucide-react'
+import { isAdmin } from '@/lib/utils'
 
 export default function AppMenu() {
   const [open, setOpen] = useState(false)
   const supabase = createClient()
   const router = useRouter()
-  const { espace, espaces } = useApp()
+  const { espace, espaces, userId } = useApp()
   const { data: dbUsage } = useDbUsage()
 
   const handleLogout = async () => {
@@ -63,6 +64,20 @@ export default function AppMenu() {
             setOpen(false)
             router.push('/dette')
           }} />
+
+          {isAdmin(userId) && (
+            <>
+              <div className="border-t border-slate-700 my-2" />
+              <p className="text-xs text-slate-500 px-3 py-1">🔒 Admin</p>
+              {/* Ajoute ici les liens admin que tu veux 
+              <MenuLink icon={Users} label="Tous les utilisateurs" onClick={() => { setOpen(false); router.push('/admin/users') }} />
+              <MenuLink icon={Database} label="Stats globales" onClick={() => { setOpen(false); router.push('/admin/stats') }} />
+              */
+              
+              
+              }
+            </>
+          )}
 
           {/* Section Paramètres */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2">Paramètres</p>

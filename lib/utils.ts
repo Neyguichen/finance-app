@@ -60,3 +60,9 @@ export const VIOLET_SHADES = [
 export function getCategoryColor(index: number): string {
   return VIOLET_SHADES[index % VIOLET_SHADES.length]
 }
+
+// Restriction d'accès superAdmin
+
+export function isAdmin(userId: string | null): boolean {
+  return !!userId && userId === process.env.NEXT_PUBLIC_ADMIN_UID
+}
