@@ -62,7 +62,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
               key={emoji}
               type="button"
               onClick={() => { onChange(emoji); setShowGrid(false) }}
-              className={`text-2xl p-2 rounded-lg hover:bg-slate-700 transition-colors ${
+              className={`text-2xl w-12 h-12 flex items-center justify-center rounded-lg hover:bg-slate-700 transition-colors ${
                 value === emoji ? 'bg-blue-600/30 ring-2 ring-blue-500' : ''
               }`}
             >
