@@ -7,10 +7,33 @@ const EMOJI_OPTIONS = [
   '🏠', '🏡', '🏢', '👤', '👫', '👨‍👩‍👧‍👦',
   // Finance
   '💰', '💳', '🏦', '💵', '📊', '📈',
-  // Catégories
-  '🛒', '🍔', '☕', '🚗', '⛽', '🏥',
-  '🎬', '🎮', '✈️', '👕', '📱', '🐶',
-  '🎓', '🏋️', '💊', '🎁', '🔧', '📦',
+  // Alimentation
+  '🛒', '🍔', '☕', '🍕', '🥗', '🍷',
+  '🧁', '🥐', '🍣', '🍺', '🥡', '🫕',
+  // Transport
+  '🚗', '⛽', '🚌', '🚲', '✈️', '🛵',
+  '🚇', '🅿️', '🛞', '⚡',
+  // Santé & Bien-être
+  '🏥', '💊', '🏋️', '🧘', '🦷', '👓',
+  // Loisirs & Culture
+  '🎬', '🎮', '🎵', '📚', '🎭', '🎨',
+  '🎪', '🎳', '🎲', '🍿',
+  // Shopping & Mode
+  '👕', '👗', '👟', '💄', '🛍️', '💍',
+  // Tech & Digital
+  '📱', '💻', '🖥️', '🎧', '📷', '🔌',
+  // Animaux
+  '🐶', '🐱', '🐟', '🐴', '🐦', '🐹',
+  // Éducation
+  '🎓', '📝', '📖', '🧪', '🎒',
+  // Maison & Travaux
+  '🔧', '🪑', '🧹', '🪴', '💡', '🏗️',
+  // Enfants & Famille
+  '👶', '🧸', '🎁', '🎂', '🎄', '🎃',
+  // Voyages
+  '🏖️', '⛷️', '🏕️', '🗺️', '🧳', '🌍',
+  // Divers
+  '📦', '📬', '🔑', '🏷️', '⚖️', '🛡️',
   // Nature & Fun
   '🌟', '🔥', '❤️', '💎', '🌈', '🎯',
 ]
@@ -33,7 +56,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
         {value || '🏠'} <span className="text-sm text-slate-400 ml-2">Choisir une icône</span>
       </button>
       {showGrid && (
-        <div className="mt-2 p-3 bg-slate-800 border border-slate-700 rounded-xl grid grid-cols-6 gap-2">
+        <div className="mt-2 p-3 bg-slate-800 border border-slate-700 rounded-xl grid grid-cols-8 gap-2 max-h-64 overflow-y-auto">
           {EMOJI_OPTIONS.map(emoji => (
             <button
               key={emoji}
