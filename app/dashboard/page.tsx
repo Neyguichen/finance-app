@@ -41,9 +41,9 @@ export default function DashboardPage() {
     return Number(tx.montant) - totalRemb
   }
 
-  // Épargne : alimentations = sorties, reprises = entrées, transferts = neutres
+  // Épargne : épargnes = sorties, reprises = entrées, transferts = neutres
   const totalEpargnes = mouvements
-  .filter(m => m.type === 'alimentation')
+  .filter(m => m.type === 'epargne')
   .reduce((s, m) => s + Number(m.montant), 0)
   const totalReprises = mouvements
   .filter(m => m.type === 'reprise')

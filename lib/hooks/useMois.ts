@@ -106,7 +106,7 @@ export function useMois(espaceId: string | undefined) {
           enveloppe_source_id: null,
           enveloppe_dest_id: rec.enveloppe_dest_id,
           montant: rec.montant,
-          type: 'alimentation' as const,
+          type: 'epargne' as const,
           date: mois,
           note: rec.note,
         }))

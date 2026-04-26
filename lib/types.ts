@@ -123,7 +123,7 @@ export interface MouvementEpargne {
   enveloppe_source_id: string | null
   enveloppe_dest_id: string | null
   montant: number
-  type: 'alimentation' | 'reprise' | 'transfert'
+  type: 'epargne' | 'reprise' | 'transfert'
   date: string
   note: string | null
 }
