@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake, Users, Receipt, } from 'lucide-react'
+import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake, Users, Receipt } from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
 
 export default function AppMenu() {
@@ -40,12 +40,12 @@ export default function AppMenu() {
 
       {/* Drawer (slide depuis la droite) */}
       <div
-        className={`fixed top-0 right-0 h-full w-72 bg-slate-900 border-l border-slate-800 z-[70] transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-72 bg-slate-900 border-l border-slate-800 z-[70] transform transition-transform duration-300 ease-in-out flex flex-col ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Header du drawer */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-800">
+        {/* Header du drawer — fixe */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-800 flex-shrink-0">
           <h2 className="font-semibold text-lg">Menu</h2>
           <button
             onClick={() => setOpen(false)}
@@ -55,24 +55,16 @@ export default function AppMenu() {
           </button>
         </div>
 
-        {/* Contenu du menu */}
-        <div className="p-4 space-y-1">
+        {/* Contenu du menu — scrollable */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-1">
 
-        {isAdmin(userId) && (
+          {isAdmin(userId) && (
             <>
               <p className="text-xs text-slate-500 px-3 py-1">🔒 Admin</p>
-              {/* Ajoute ici les liens admin que tu veux 
-              <MenuLink icon={Users} label="Tous les utilisateurs" onClick={() => { setOpen(false); router.push('/admin/users') }} />
-              <MenuLink icon={Database} label="Stats globales" onClick={() => { setOpen(false); router.push('/admin/stats') }} />
-              */
-              
               <MenuLink icon={Receipt} label="Remboursements ALSH" onClick={() => { setOpen(false); router.push('/admin/remboursements-alsh') }} />
-              
-              }
               <div className="border-t border-slate-700 my-2" />
             </>
           )}
-
 
           <MenuLink icon={Info} label="À propos" onClick={() => {
             setOpen(false)
@@ -102,7 +94,7 @@ export default function AppMenu() {
           <div className="border-t border-slate-700 my-2" />
 
           {/* Section Données */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Données</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-4">Données</p>
 
           <MenuLink icon={Trash2} label="Purger les anciens mois" onClick={() => {
             setOpen(false)
@@ -147,18 +139,17 @@ export default function AppMenu() {
 
           {/* Section Compte */}
           <div className="border-t border-slate-700 my-2" />
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Compte</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-4">Compte</p>
 
           <MenuLink icon={LogOut} label="Se déconnecter" onClick={handleLogout} />
           <MenuLink icon={UserX} label="Supprimer mon compte" danger onClick={() => {
-          setOpen(false)
-          router.push('/parametres/delete-account')
+            setOpen(false)
+            router.push('/parametres/delete-account')
           }} />
         </div>
 
-        {/* Version en bas */}
-        <div className="sticky bottom-0 left-0 right-0 text-center bg-slate-900 py-3 border-t border-slate-800">
-
+        {/* Version — fixe en bas, hors du scroll */}
+        <div className="flex-shrink-0 text-center bg-slate-900 py-3 border-t border-slate-800">
           <span className="text-xs text-slate-600">Finance App v2.0</span>
         </div>
       </div>
@@ -166,7 +157,6 @@ export default function AppMenu() {
   )
 }
 
-// Composant interne pour les liens du menu
 function MenuLink({ icon: Icon, label, onClick, danger }: {
   icon: any
   label: string
