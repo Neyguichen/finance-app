@@ -457,7 +457,7 @@ export default function EpargnePage() {
               className="flex items-center gap-2 animate-fade-in"
             >
               <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Mouvement</span>
-              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">↕️</span>
+              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">💰</span>
             </button>
             <button
               onClick={() => { setFabOpen(false); setOpenEnv(true) }}
