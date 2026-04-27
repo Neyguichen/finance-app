@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Trash2, Pencil } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
+import { useMouvements, useEnveloppes } from '@/lib/hooks/useEpargne'
 import { formatEuro, pct } from '@/lib/utils'
 import { useForm } from 'react-hook-form'
 import { useApp } from '@/components/AppContext'
@@ -33,8 +34,13 @@ export default function RevenusPage() {
   const { data: revenus = [], toggleRecu, create, update, remove, removeDefinitif } = useRevenus(moisId)
   const { create: createRecurrent } = useRevenusRecurrents(espace?.id)
 
-  const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0)
-  const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
+  const { data: mouvements = [] } = useMouvements(moisId)
+  const { data: enveloppes = [] } = useEnveloppes(espace?.id)
+
+  const reprises = mouvements.filter(m => m.type === 'reprise')
+  const totalReprises = reprises.reduce((s, m) => s + Number(m.montant), 0)
+
+  const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises  const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
   const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
 
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
@@ -184,6 +190,12 @@ export default function RevenusPage() {
               <span>Passif</span>
               <span>{formatEuro(totalPassif)} ({pct(totalPassif, totalEntrants)}%)</span>
             </div>
+            {totalReprises > 0 && (
+              <div className="flex justify-between text-sm text-slate-400">
+                <span>Reprises épargne</span>
+                <span>{formatEuro(totalReprises)} ({pct(totalReprises, totalEntrants)}%)</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -229,6 +241,27 @@ export default function RevenusPage() {
               </CardContent>
             </Card>
           ))}
+          {/* REPRISES D'ÉPARGNE (lecture seule) */}
+          {reprises.map((rep) => {
+            const envNom = enveloppes.find(e => e.id === rep.enveloppe_source_id)?.nom || 'Enveloppe'
+            return (
+              <Card key={rep.id} className="bg-slate-900 border-slate-800">
+                <CardContent className="flex items-center justify-between p-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📤</span>
+                    <div>
+                      <p className="font-medium">Reprise — {envNom}</p>
+                      {rep.note && <p className="text-xs text-slate-500">{rep.note}</p>}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-900 text-emerald-400">reprise</span>
+                    </div>
+                  </div>
+                  <span className="font-bold text-emerald-400">
+                    {formatEuro(Number(rep.montant))}
+                  </span>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
 
         {/* DIALOG D'ÉDITION */}
