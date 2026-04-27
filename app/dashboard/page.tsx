@@ -151,14 +151,8 @@ export default function DashboardPage() {
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
       <div className="p-4 space-y-4">
-        {/* Espace actif + bouton ajouter */}
+        {/* bouton ajouter */}
         <div className="flex items-center justify-between">
-        {espace && (
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{espace.icone}</span>
-            <span className="font-semibold">{espace.nom}</span>
-          </div>
-        )}
           <Dialog open={openEspace} onOpenChange={setOpenEspace}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Espace</Button>

@@ -8,7 +8,7 @@ export default function EspaceSelector() {
   const pathname = usePathname()
 
   // Masquer sur la page login
-  if (pathname === '/login' || espaces.length <= 1) return null
+  if (pathname === '/login') return null
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 bg-slate-900 border-b border-slate-800">
