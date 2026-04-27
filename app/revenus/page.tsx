@@ -40,7 +40,8 @@ export default function RevenusPage() {
   const reprises = mouvements.filter(m => m.type === 'reprise')
   const totalReprises = reprises.reduce((s, m) => s + Number(m.montant), 0)
 
-  const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises  const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
+  const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises  
+  const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
   const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
 
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
