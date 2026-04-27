@@ -412,7 +412,7 @@ export default function DashboardPage() {
                     <td className="py-2">
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#E11D48'}}  />
-                        <span className="text-purple-200">📌 Charges fixes</span>
+                        <span className="text-purple-200">💶 Charges fixes</span>
                       </div>
                     </td>
                     <td className="text-right text-purple-200">{formatEuro(totalChargesFixes)}</td>
@@ -425,7 +425,7 @@ export default function DashboardPage() {
                     <td className="py-2">
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#881337'}}  />
-                        <span className="text-purple-200">🐷 Épargne</span>
+                        <span className="text-purple-200">📧 Épargne</span>
                       </div>
                     </td>
                     <td className="text-right text-purple-600">—</td>
