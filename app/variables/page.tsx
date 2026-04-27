@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Pencil, Plus, Trash2, ReceiptText } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useCategories } from '@/lib/hooks/useCategories'
@@ -20,6 +20,9 @@ import { useRemboursements } from '@/lib/hooks/useRemboursements'
 export default function VariablesPage() {
   const { moisId, month, setMonth, espace } = useApp()
   const espaceId = espace?.id
+
+  // FAB Speed Dial
+  const [fabOpen, setFabOpen] = useState(false)
 
   const [catOpen, setCatOpen] = useState(false)
   const [txOpen, setTxOpen] = useState(false)
@@ -55,6 +58,7 @@ export default function VariablesPage() {
   const getDepenses = (catId: string) => transactions
     .filter(t => t.categorie_id === catId)
     .reduce((s, t) => s + getMontantNet(t), 0)
+
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
     const totalRemb = rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
@@ -67,55 +71,10 @@ export default function VariablesPage() {
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
+
       <div className="p-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold">Variables</h1>
-          <div className="flex gap-2">
-            <Dialog open={catOpen} onOpenChange={setCatOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Catégorie</Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-900 border-slate-700">
-                <DialogHeader><DialogTitle>Nouvelle catégorie</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <Input placeholder="Nom (ex: Courses)" value={newCatNom} onChange={e => setNewCatNom(e.target.value)} />
-                  <EmojiPicker value={newCatIcone} onChange={setNewCatIcone} />
-                  <Button className="w-full" onClick={async () => {
-                    if (!newCatNom.trim() || !espaceId) return
-                    await createCat.mutateAsync({ espace_id: espaceId, nom: newCatNom.trim(), icone: newCatIcone, couleur: '#8B5CF6', ordre: categories.length })
-                    setNewCatNom('')
-                    setCatOpen(false)
-                  }}>Créer</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-            <Dialog open={txOpen} onOpenChange={setTxOpen}>
-              {/*<DialogTrigger asChild>
-                <Button size="sm"><Plus className="w-4 h-4 mr-1" />Dépense</Button>
-                </DialogTrigger>*/}
-              <DialogContent className="bg-slate-900 border-slate-700">
-                <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                    value={txCat} onChange={e => setTxCat(e.target.value)}>
-                    <option value="">Catégorie...</option>
-                    {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
-                  </select>
-                  <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
-                  <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
-                  <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
-                  <Button className="w-full" onClick={async () => {
-                    if (!txCat || !moisId) return
-                    await createTx.mutateAsync({ mois_id: moisId, categorie_id: txCat, montant: txMontant, date: txDate, infos: txInfos || null })                    
-                    setTxMontant(0)
-                    setTxInfos('')
-                    setTxOpen(false)
-                  }}>Ajouter</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+        {/* Titre simple sans boutons (les boutons sont dans le FAB) */}
+        <h1 className="text-xl font-bold">Variables</h1>
 
         {/* 1. TOTAL EN HAUT */}
         <Card className="bg-pink-950 border-pink-800">
@@ -138,7 +97,7 @@ export default function VariablesPage() {
           </CardContent>
         </Card>
 
-        {/* 2. BUDGETS EN GRILLE COMPACTE (3 par ligne) */}
+        {/* 2. BUDGETS EN GRILLE COMPACTE */}
         {activeCategories.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
@@ -256,16 +215,63 @@ export default function VariablesPage() {
         </div>
       </div>
 
-      {/* DIALOG ÉDITION DÉPENSE */}
+      {/* ======================== */}
+      {/* DIALOG NOUVELLE CATÉGORIE */}
+      {/* ======================== */}
+      <Dialog open={catOpen} onOpenChange={setCatOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700">
+          <DialogHeader><DialogTitle>Nouvelle catégorie</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <Input placeholder="Nom (ex: Courses)" value={newCatNom} onChange={e => setNewCatNom(e.target.value)} />
+            <EmojiPicker value={newCatIcone} onChange={setNewCatIcone} />
+            <Button className="w-full" onClick={async () => {
+              if (!newCatNom.trim() || !espaceId) return
+              await createCat.mutateAsync({ espace_id: espaceId, nom: newCatNom.trim(), icone: newCatIcone, couleur: '#8B5CF6', ordre: categories.length })
+              setNewCatNom('')
+              setCatOpen(false)
+            }}>Créer</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======================== */}
+      {/* DIALOG NOUVELLE DÉPENSE  */}
+      {/* ======================== */}
+      <Dialog open={txOpen} onOpenChange={setTxOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700">
+          <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+              value={txCat} onChange={e => setTxCat(e.target.value)}>
+              <option value="">Catégorie...</option>
+              {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
+            </select>
+            <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
+            <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
+            <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
+            <Button className="w-full" onClick={async () => {
+              if (!txCat || !moisId) return
+              await createTx.mutateAsync({ mois_id: moisId, categorie_id: txCat, montant: txMontant, date: txDate, infos: txInfos || null })
+              setTxMontant(0)
+              setTxInfos('')
+              setTxOpen(false)
+            }}>Ajouter</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======================== */}
+      {/* DIALOG ÉDITION DÉPENSE   */}
+      {/* ======================== */}
       <Dialog open={!!editTx} onOpenChange={(v) => { if (!v) setEditTx(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700">
-          <DialogHeader><DialogTitle>Modifier la d&eacute;pense</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Modifier la dépense</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <select className="select select-bordered w-full bg-slate-800 border-slate-700"
               value={editTxCat} onChange={e => setEditTxCat(e.target.value)}>
               {categories.map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
             </select>
-            <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
+            <CalculatorInput value={editTxMontant} onChange={setEditTxMontant} placeholder="Montant" />
             <Input type="date" value={editTxDate} onChange={e => setEditTxDate(e.target.value)} />
             <Input placeholder="Infos" value={editTxInfos} onChange={e => setEditTxInfos(e.target.value)} />
             <Button className="w-full" onClick={async () => {
@@ -278,7 +284,9 @@ export default function VariablesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG REMBOURSEMENTS */}
+      {/* ======================== */}
+      {/* DIALOG REMBOURSEMENTS     */}
+      {/* ======================== */}
       <Dialog open={!!rembTx} onOpenChange={(v) => { if (!v) setRembTx(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700">
           <DialogHeader>
@@ -286,9 +294,8 @@ export default function VariablesPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-sm text-slate-400">
-              D&eacute;pense initiale : <span className="text-pink-400 font-bold">{formatEuro(Number(rembTx?.montant || 0))}</span>
+              Dépense initiale : <span className="text-pink-400 font-bold">{formatEuro(Number(rembTx?.montant || 0))}</span>
             </div>
-
             {/* Liste des remboursements existants */}
             {remboursements.length > 0 && (
               <div className="space-y-2">
@@ -306,11 +313,10 @@ export default function VariablesPage() {
                 ))}
               </div>
             )}
-
             {/* Ajouter un remboursement */}
             <div className="border-t border-slate-700 pt-3 space-y-3">
               <p className="text-sm font-semibold">Ajouter un remboursement</p>
-              <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
+              <CalculatorInput value={newRembMontant} onChange={setNewRembMontant} placeholder="Montant" />
               <Input placeholder="Note (optionnel)" value={newRembNote} onChange={e => setNewRembNote(e.target.value)} />
               <Input type="date" value={newRembDate} onChange={e => setNewRembDate(e.target.value)} />
               <Button className="w-full" onClick={async () => {
@@ -325,20 +331,21 @@ export default function VariablesPage() {
                 setNewRembNote('')
               }}>Ajouter</Button>
             </div>
-
             <Button className="w-full" variant="ghost" onClick={() => setRembTx(null)}>Fermer</Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG D'ARCHIVAGE */}
+      {/* ======================== */}
+      {/* DIALOG D'ARCHIVAGE        */}
+      {/* ======================== */}
       <Dialog open={!!archiveTarget} onOpenChange={(v) => { if (!v) setArchiveTarget(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700">
           <DialogHeader>
-            <DialogTitle>Archiver la cat&eacute;gorie &laquo; {archiveTarget?.nom} &raquo; ?</DialogTitle>
+            <DialogTitle>Archiver la catégorie « {archiveTarget?.nom} » ?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-400">
-            Elle ne sera plus visible sur les prochains mois, mais les budgets et d&eacute;penses existants seront conserv&eacute;s.
+            Elle ne sera plus visible sur les prochains mois, mais les budgets et dépenses existants seront conservés.
           </p>
           <div className="space-y-3 mt-2">
             <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => {
@@ -354,13 +361,54 @@ export default function VariablesPage() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* FAB Ajouter une dépense */}
-      <button
-        onClick={() => setTxOpen(true)}
-        className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
-      >
-        <Plus className="w-7 h-7" />
-      </button>
+
+      {/* ======================== */}
+      {/* FAB SPEED DIAL            */}
+      {/* ======================== */}
+
+      {/* Overlay sombre */}
+      {fabOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40"
+          onClick={() => setFabOpen(false)}
+        />
+      )}
+
+      <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3">
+        {/* Sous-boutons (visibles quand fabOpen) */}
+        {fabOpen && (
+          <>
+            {/* Bouton Catégorie */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white bg-slate-800 px-2 py-1 rounded-lg shadow">Catégorie</span>
+              <button
+                onClick={() => { setFabOpen(false); setCatOpen(true) }}
+                className="w-11 h-11 rounded-full bg-purple-600 text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
+              >
+                📂
+              </button>
+            </div>
+            {/* Bouton Dépense */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white bg-slate-800 px-2 py-1 rounded-lg shadow">Dépense</span>
+              <button
+                onClick={() => { setFabOpen(false); setTxOpen(true) }}
+                className="w-11 h-11 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
+              >
+                💸
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Bouton principal */}
+        <button
+          onClick={() => setFabOpen(!fabOpen)}
+          className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
+        >
+          <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
+        </button>
+      </div>
     </div>
   )
 }
