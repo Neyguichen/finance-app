@@ -27,14 +27,38 @@ export function useMois(espaceId: string | undefined) {
     mutationFn: async ({ espace_id, mois, user_id }: { espace_id: string; mois: string; user_id: string }) => {
       // 1. Vérifier si le mois existe déjà
       const { data: existing } = await supabase
-        .from('mois')
-        .select('*')
-        .eq('espace_id', espace_id)
-        .eq('mois', mois)
-        .single()
+      .from('mois')
+      .select('*')
+      .eq('espace_id', espace_id)
+      .eq('mois', mois)
+      .single()
 
-      if (existing) return existing as Mois
+      let theMois: Mois
 
+      if (existing) {
+      theMois = existing as Mois
+
+      // Vérifier si les récurrences ont déjà été copiées
+      const { count: revCount } = await supabase
+        .from('revenus')
+        .select('*', { count: 'exact', head: true })
+        .eq('mois_id', theMois.id)
+
+      const { count: cfCount } = await supabase
+        .from('charges_fixes')
+        .select('*', { count: 'exact', head: true })
+        .eq('mois_id', theMois.id)
+
+      const { count: epCount } = await supabase
+        .from('mouvements_epargne')
+        .select('*', { count: 'exact', head: true })
+        .eq('mois_id', theMois.id)
+
+      // Si le mois a déjà des données, on ne recopie pas
+      if ((revCount ?? 0) > 0 || (cfCount ?? 0) > 0 || (epCount ?? 0) > 0) {
+        return theMois
+      }
+      } else {
       // 2. Créer le mois
       const { data, error } = await supabase
         .from('mois')
@@ -42,7 +66,8 @@ export function useMois(espaceId: string | undefined) {
         .select()
         .single()
       if (error) throw error
-      const newMois = data as Mois
+      theMois = data as Mois
+      }
 
       const moisDate = new Date(mois)
       const shouldCopy = (rec: { created_at: string; frequence_mois: number }) => {
