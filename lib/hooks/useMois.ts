@@ -55,62 +55,120 @@ export function useMois(espaceId: string | undefined) {
 
       // 3a. Auto-copier les revenus récurrents actifs
       const { data: revRec } = await supabase
-        .from('revenus_recurrents')
-        .select('*')
-        .eq('espace_id', espace_id)
-        .eq('actif', true)
+      .from('revenus_recurrents')
+      .select('*')
+      .eq('espace_id', espace_id)
+      .eq('actif', true)
 
       if (revRec && revRec.length > 0) {
-        const rows = revRec.filter(shouldCopy).map((rec, i) => ({
-          mois_id: newMois.id,
-          recurrent_id: rec.id,
-          type: rec.type,
-          nom: rec.nom,
-          montant: rec.montant,
-          recu: false,
-          ordre: i,
-        }))
-        if (rows.length > 0) await supabase.from('revenus').insert(rows)
+      const toCopy = revRec.filter(shouldCopy)
+      if (toCopy.length > 0) {
+        // Chercher la dernière instance de chaque récurrent
+        const { data: prevInstances } = await supabase
+          .from('revenus')
+          .select('recurrent_id, montant, nom, type, created_at')
+          .in('recurrent_id', toCopy.map(r => r.id))
+          .order('created_at', { ascending: false })
+
+        const latestMap = new Map<string, { montant: number; nom: string; type: string }>()
+        for (const inst of (prevInstances || [])) {
+          if (inst.recurrent_id && !latestMap.has(inst.recurrent_id)) {
+            latestMap.set(inst.recurrent_id, inst)
+          }
+        }
+
+        const rows = toCopy.map((rec, i) => {
+          const latest = latestMap.get(rec.id)
+          return {
+            mois_id: newMois.id,
+            recurrent_id: rec.id,
+            type: latest?.type ?? rec.type,
+            nom: latest?.nom ?? rec.nom,
+            montant: latest?.montant ?? rec.montant,
+            recu: false,
+            ordre: i,
+          }
+        })
+        await supabase.from('revenus').insert(rows)
+      }
       }
 
       // 3b. Auto-copier les charges fixes récurrentes actives
       const { data: cfRec } = await supabase
-        .from('charges_fixes_recurrentes')
-        .select('*')
-        .eq('espace_id', espace_id)
-        .eq('actif', true)
+      .from('charges_fixes_recurrentes')
+      .select('*')
+      .eq('espace_id', espace_id)
+      .eq('actif', true)
 
       if (cfRec && cfRec.length > 0) {
-        const rows = cfRec.filter(shouldCopy).map((rec, i) => ({
-          mois_id: newMois.id,
-          recurrent_id: rec.id,
-          nom: rec.nom,
-          montant: rec.montant,
-          payee: false,
-          ordre: i,
-        }))
-        if (rows.length > 0) await supabase.from('charges_fixes').insert(rows)
+      const toCopy = cfRec.filter(shouldCopy)
+      if (toCopy.length > 0) {
+        const { data: prevInstances } = await supabase
+          .from('charges_fixes')
+          .select('recurrent_id, montant, nom, created_at')
+          .in('recurrent_id', toCopy.map(r => r.id))
+          .order('created_at', { ascending: false })
+
+        const latestMap = new Map<string, { montant: number; nom: string }>()
+        for (const inst of (prevInstances || [])) {
+          if (inst.recurrent_id && !latestMap.has(inst.recurrent_id)) {
+            latestMap.set(inst.recurrent_id, inst)
+          }
+        }
+
+        const rows = toCopy.map((rec, i) => {
+          const latest = latestMap.get(rec.id)
+          return {
+            mois_id: newMois.id,
+            recurrent_id: rec.id,
+            nom: latest?.nom ?? rec.nom,
+            montant: latest?.montant ?? rec.montant,
+            payee: false,
+            ordre: i,
+          }
+        })
+        await supabase.from('charges_fixes').insert(rows)
+      }
       }
 
-      // 3c. Auto-copier les versements épargne récurrents actifs (optionnel)
+      // 3c. Auto-copier les versements épargne récurrents actifs
       const { data: epRec } = await supabase
-        .from('epargne_recurrentes')
-        .select('*')
-        .eq('espace_id', espace_id)
-        .eq('actif', true)
+      .from('epargne_recurrentes')
+      .select('*')
+      .eq('espace_id', espace_id)
+      .eq('actif', true)
 
       if (epRec && epRec.length > 0) {
-        const rows = epRec.filter(shouldCopy).map((rec) => ({
-          mois_id: newMois.id,
-          recurrent_id: rec.id,
-          enveloppe_source_id: null,
-          enveloppe_dest_id: rec.enveloppe_dest_id,
-          montant: rec.montant,
-          type: 'epargne' as const,
-          date: mois,
-          note: rec.note,
-        }))
-        if (rows.length > 0) await supabase.from('mouvements_epargne').insert(rows)
+      const toCopy = epRec.filter(shouldCopy)
+      if (toCopy.length > 0) {
+        const { data: prevInstances } = await supabase
+          .from('mouvements_epargne')
+          .select('recurrent_id, montant, note, created_at')
+          .in('recurrent_id', toCopy.map(r => r.id))
+          .order('created_at', { ascending: false })
+
+        const latestMap = new Map<string, { montant: number; note: string | null }>()
+        for (const inst of (prevInstances || [])) {
+          if (inst.recurrent_id && !latestMap.has(inst.recurrent_id)) {
+            latestMap.set(inst.recurrent_id, inst)
+          }
+        }
+
+        const rows = toCopy.map((rec) => {
+          const latest = latestMap.get(rec.id)
+          return {
+            mois_id: newMois.id,
+            recurrent_id: rec.id,
+            enveloppe_source_id: null,
+            enveloppe_dest_id: rec.enveloppe_dest_id,
+            montant: latest?.montant ?? rec.montant,
+            type: 'epargne' as const,
+            date: mois,
+            note: latest?.note ?? rec.note,
+          }
+        })
+        await supabase.from('mouvements_epargne').insert(rows)
+      }
       }
 
       return newMois
