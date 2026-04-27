@@ -76,7 +76,7 @@ export function useMois(espaceId: string | undefined) {
         const diff =
           (moisDate.getFullYear() - created.getFullYear()) * 12 +
           (moisDate.getMonth() - created.getMonth())
-        return diff >= 0 && diff % rec.frequence_mois === 0
+        return diff % rec.frequence_mois === 0
       }
 
       // 3a. Auto-copier les revenus récurrents actifs
