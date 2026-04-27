@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,11 @@ interface CalculatorInputProps {
 export function CalculatorInput({ value, onChange, placeholder = '0', className }: CalculatorInputProps) {
   const [raw, setRaw] = useState(value ? String(value) : '')
   const [focused, setFocused] = useState(false)
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
+
+  useEffect(() => {
+    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0)
+  }, [])
 
   const evaluate = (expr: string) => {
     try {
@@ -39,21 +44,41 @@ export function CalculatorInput({ value, onChange, placeholder = '0', className 
   }
 
   return (
-    <Input
-      type="text"
-      inputMode="decimal"
-      className={cn('bg-slate-800 border-slate-700', className)}
-      placeholder={placeholder}
-      value={focused ? raw : (value ? String(value) : '')}
-      onFocus={handleFocus}
-      onChange={e => setRaw(e.target.value)}
-      onBlur={handleBlur}
-      onKeyDown={e => {
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          e.currentTarget.blur()
-        }
-      }}
-    />
+    <div>
+      <Input
+        type="text"
+        inputMode="decimal"
+        className={cn('bg-slate-800 border-slate-700', className)}
+        placeholder={placeholder}
+        value={focused ? raw : (value ? String(value) : '')}
+        onFocus={handleFocus}
+        onChange={e => setRaw(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            e.currentTarget.blur()
+          }
+        }}
+      />
+      {focused && isTouchDevice && (
+        <div className="flex gap-1 mt-1">
+          {['+', '-', '×', '÷', '(', ')'].map(op => (
+            <button
+              key={op}
+              type="button"
+              className="flex-1 py-1.5 rounded bg-slate-700 text-slate-300 text-sm font-mono hover:bg-slate-600 active:bg-slate-500"
+              onMouseDown={e => {
+                e.preventDefault()
+                const char = op === '×' ? '*' : op === '÷' ? '/' : op
+                setRaw(prev => prev + char)
+              }}
+            >
+              {op}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
