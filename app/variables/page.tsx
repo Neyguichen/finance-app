@@ -90,9 +90,9 @@ export default function VariablesPage() {
               </DialogContent>
             </Dialog>
             <Dialog open={txOpen} onOpenChange={setTxOpen}>
-              <DialogTrigger asChild>
+              {/*<DialogTrigger asChild>
                 <Button size="sm"><Plus className="w-4 h-4 mr-1" />Dépense</Button>
-              </DialogTrigger>
+                </DialogTrigger>*/}
               <DialogContent className="bg-slate-900 border-slate-700">
                 <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
                 <div className="space-y-4">
@@ -356,7 +356,7 @@ export default function VariablesPage() {
       </Dialog>
       {/* FAB Ajouter une dépense */}
       <button
-        onClick={() => setOpenTx(true)}
+        onClick={() => setTxOpen(true)}
         className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
       >
         <Plus className="w-7 h-7" />
