@@ -441,25 +441,6 @@ export default function EpargnePage() {
       )}
 
       <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse items-center gap-3">
-        {/* Sous-boutons (visibles si fabOpen) */}
-        {fabOpen && (
-          <>
-            <button
-              onClick={() => { setFabOpen(false); setOpenMvt(true) }}
-              className="flex items-center gap-2 animate-fade-in"
-            >
-              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Mouvement</span>
-              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">💸</span>
-            </button>
-            <button
-              onClick={() => { setFabOpen(false); setOpenEnv(true) }}
-              className="flex items-center gap-2 animate-fade-in"
-            >
-              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Enveloppe</span>
-              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">🏦</span>
-            </button>
-          </>
-        )}
 
         {/* Bouton principal */}
         <button
@@ -468,6 +449,25 @@ export default function EpargnePage() {
         >
           <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
         </button>
+        {/* Sous-boutons (visibles si fabOpen) */}
+        {fabOpen && (
+          <>
+            <button
+              onClick={() => { setFabOpen(false); setOpenMvt(true) }}
+              className="flex items-center gap-2 animate-fade-in"
+            >
+              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Mouvement</span>
+              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">↕️</span>
+            </button>
+            <button
+              onClick={() => { setFabOpen(false); setOpenEnv(true) }}
+              className="flex items-center gap-2 animate-fade-in"
+            >
+              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Enveloppe</span>
+              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">✉️</span>
+            </button>
+          </>
+        )}
       </div>
     </div>
   )

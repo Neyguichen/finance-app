@@ -378,9 +378,9 @@ export default function VariablesPage() {
         {/* Sous-boutons (visibles quand fabOpen) */}
         {fabOpen && (
           <>
-            {/* Bouton Catégorie */}
+            {/* Bouton Budget */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Catégorie</span>
+              <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Budget</span>
               <button
                 onClick={() => { setFabOpen(false); setCatOpen(true) }}
                 className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
