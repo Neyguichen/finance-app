@@ -82,6 +82,12 @@ export default function DashboardPage() {
     { name: 'Reprises épargne', value: totalReprises, color: '#064E3B' }, // emerald-900 — vert foncé
   ].filter(d => d.value > 0)
 
+  // Somme brute des budgets prévisionnels (pour affichage)
+  const totalVariablesBudget = categories.reduce((sum, cat) => {
+    const budget = budgets.find(b => b.categorie_id === cat.id)
+    return sum + (budget ? Number(budget.prevu) : 0)
+  }, 0)
+
   const sortantsChartData = [
     { name: 'Fixes', value: totalChargesFixes, color: '#E11D48' },    // rose-600 — rose vif (principal)
     { name: 'Variables', value: totalDepenses, color: '#FDA4AF' },      // rose-300 — rose clair
@@ -327,7 +333,7 @@ export default function DashboardPage() {
                     <div className="text-right">
                       <span className="text-xs text-slate-400 flex-shrink-0">{formatEuro(totalVariablesPrevu)}</span>
                       <span className="text-xs text-slate-600 ml-1">
-                        ({totalSortantsAll > 0 ? Math.round((totalVariablesPrevu / totalSortantsAll) * 100) : 0}%)
+                        ({totalSortantsAll > 0 ? Math.round((totalVariablesBudget / totalSortantsAll) * 100) : 0}%)
                       </span>
                     </div>
                   </div>
