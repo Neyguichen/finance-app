@@ -354,6 +354,13 @@ export default function VariablesPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* FAB Ajouter une dépense */}
+      <button
+        onClick={() => setOpenTx(true)}
+        className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
+      >
+        <Plus className="w-7 h-7" />
+      </button>
     </div>
   )
 }
