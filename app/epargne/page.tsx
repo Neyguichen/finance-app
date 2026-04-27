@@ -92,26 +92,39 @@ export default function EpargnePage() {
   const handleCreateMvt = async () => {
     if (!moisId || !espace || mvtMontant <= 0) return
 
-    if (mvtFreq === 0) {
+    // Forcer ponctuel pour reprise et transfert (pas de modèle récurrent possible)
+    const freq = mvtType === 'epargne' ? mvtFreq : 0
+
+    const sourceId = (mvtType === 'reprise' || mvtType === 'transfert') ? (mvtSourceId || null) : null
+    const destId = (mvtType === 'epargne' || mvtType === 'transfert') ? (mvtDestId || null) : null
+
+    // Validation
+    const montantNum = parseFloat(String(mvtMontant))
+    if (isNaN(montantNum) || montantNum <= 0) return
+    if (mvtType === 'reprise' && !sourceId) return
+    if (mvtType === 'epargne' && !destId) return
+    if (mvtType === 'transfert' && (!sourceId || !destId)) return
+
+    if (freq === 0) {
       // Ponctuel
       await createMvt.mutateAsync({
         mois_id: moisId,
         recurrent_id: null,
-        enveloppe_source_id: mvtType === 'reprise' || mvtType === 'transfert' ? mvtSourceId || null : null,
-        enveloppe_dest_id: mvtType === 'epargne' || mvtType === 'transfert' ? mvtDestId || null : null,
-        montant: mvtMontant,
+        enveloppe_source_id: sourceId,
+        enveloppe_dest_id: destId,
+        montant: montantNum,
         type: mvtType,
         date: month,
         note: mvtNote || null,
       })
     } else {
-      // Récurrent : créer le modèle puis l'instance
+      // Récurrent (uniquement pour type 'epargne')
       const rec = await createRecurrent.mutateAsync({
         espace_id: espace.id,
-        enveloppe_dest_id: mvtDestId,
-        montant: mvtMontant,
+        enveloppe_dest_id: destId!,
+        montant: montantNum,
         actif: true,
-        frequence_mois: mvtFreq,
+        frequence_mois: freq,
         note: mvtNote || null,
         ordre: 0,
       })
@@ -119,8 +132,8 @@ export default function EpargnePage() {
         mois_id: moisId,
         recurrent_id: rec.id,
         enveloppe_source_id: null,
-        enveloppe_dest_id: mvtDestId || null,
-        montant: mvtMontant,
+        enveloppe_dest_id: destId,
+        montant: montantNum,
         type: 'epargne',
         date: month,
         note: mvtNote || null,
