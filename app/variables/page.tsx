@@ -380,20 +380,20 @@ export default function VariablesPage() {
           <>
             {/* Bouton Catégorie */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white bg-slate-800 px-2 py-1 rounded-lg shadow">Catégorie</span>
+              <span className="text-xs text-white bg-slate-700 px-2 py-1 rounded-lg shadow">Catégorie</span>
               <button
                 onClick={() => { setFabOpen(false); setCatOpen(true) }}
-                className="w-11 h-11 rounded-full bg-purple-600 text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
+                className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
               >
                 📂
               </button>
             </div>
             {/* Bouton Dépense */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white bg-slate-800 px-2 py-1 rounded-lg shadow">Dépense</span>
+              <span className="text-xs text-white bg-slate-700 px-2 py-1 rounded-lg shadow">Dépense</span>
               <button
                 onClick={() => { setFabOpen(false); setTxOpen(true) }}
-                className="w-11 h-11 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
+                className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
               >
                 💸
               </button>
