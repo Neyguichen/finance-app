@@ -62,6 +62,10 @@ export default function EpargnePage() {
   const totalEpargne = mouvements.filter(m => m.type === 'epargne').reduce((s, m) => s + Number(m.montant), 0)
   const totalReprise = mouvements.filter(m => m.type === 'reprise').reduce((s, m) => s + Number(m.montant), 0)
 
+  // Total disponible en épargne (somme des soldes)
+  const totalDisponible = enveloppesActives.reduce((s, e) => s + Number(e.solde), 0)
+
+
   const handleCreateEnv = async () => {
     if (!espace || !newEnvNom.trim()) return
     await createEnv.mutateAsync({
@@ -186,6 +190,10 @@ export default function EpargnePage() {
         {/* TOTAUX DU MOIS */}
         <Card className="bg-teal-950 border-teal-800">
           <CardContent className="p-4 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-emerald-400">💰 Total disponible</span>
+              <span className="font-bold text-xl text-emerald-400">{formatEuro(totalDisponible)}</span>
+            </div>
             <div className="flex justify-between text-sm">
               <span className="text-slate-400">Épargné ce mois</span>
               <span className="font-bold text-teal-400">{formatEuro(totalEpargne)}</span>
