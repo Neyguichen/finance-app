@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Plus, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
@@ -55,6 +55,9 @@ export default function EpargnePage() {
   // État suppression mouvement
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; note: string | null } | null>(null)
 
+  // Speed Dial FAB
+  const [fabOpen, setFabOpen] = useState(false)
+
   // Totaux du mois
   const totalEpargne = mouvements.filter(m => m.type === 'epargne').reduce((s, m) => s + Number(m.montant), 0)
   const totalReprise = mouvements.filter(m => m.type === 'reprise').reduce((s, m) => s + Number(m.montant), 0)
@@ -91,10 +94,8 @@ export default function EpargnePage() {
 
   const handleCreateMvt = async () => {
     if (!moisId || !espace || mvtMontant <= 0) return
-
     // Forcer ponctuel pour reprise et transfert (pas de modèle récurrent possible)
     const freq = mvtType === 'epargne' ? mvtFreq : 0
-
     const sourceId = (mvtType === 'reprise' || mvtType === 'transfert') ? (mvtSourceId || null) : null
     const destId = (mvtType === 'epargne' || mvtType === 'transfert') ? (mvtDestId || null) : null
 
@@ -163,28 +164,24 @@ export default function EpargnePage() {
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
       <div className="p-4 space-y-4">
-
         {/* HEADER */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold">Épargne</h1>
-          <Dialog open={openEnv} onOpenChange={setOpenEnv}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4 mr-1" />Enveloppe</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-700">
-              <DialogHeader><DialogTitle>Nouvelle enveloppe</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <Input placeholder="Nom (ex: Vacances)" value={newEnvNom} onChange={e => setNewEnvNom(e.target.value)} />
-                <Input type="number" step="0.01" placeholder="Objectif (optionnel)"
-                  value={newEnvObjectif ?? ''} onChange={e => {
-                    const val = e.target.value
-                    setNewEnvObjectif(val === '' ? null : parseFloat(val))
-                  }} />
-                <Button className="w-full" onClick={handleCreateEnv}>Créer</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <h1 className="text-xl font-bold">Épargne</h1>
+
+        {/* DIALOG CRÉATION ENVELOPPE (ouvert par FAB) */}
+        <Dialog open={openEnv} onOpenChange={setOpenEnv}>
+          <DialogContent className="bg-slate-900 border-slate-700">
+            <DialogHeader><DialogTitle>Nouvelle enveloppe</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <Input placeholder="Nom (ex: Vacances)" value={newEnvNom} onChange={e => setNewEnvNom(e.target.value)} />
+              <Input type="number" step="0.01" placeholder="Objectif (optionnel)"
+                value={newEnvObjectif ?? ''} onChange={e => {
+                  const val = e.target.value
+                  setNewEnvObjectif(val === '' ? null : parseFloat(val))
+                }} />
+              <Button className="w-full" onClick={handleCreateEnv}>Créer</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* TOTAUX DU MOIS */}
         <Card className="bg-teal-950 border-teal-800">
@@ -267,88 +264,85 @@ export default function EpargnePage() {
           </div>
         )}
 
-        {/* BOUTON NOUVEAU MOUVEMENT */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Mouvements du mois</h2>
-          <Dialog open={openMvt} onOpenChange={setOpenMvt}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4 mr-1" />Mouvement</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-700">
-              <DialogHeader><DialogTitle>Nouveau mouvement</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                {/* Type */}
+        {/* TITRE MOUVEMENTS (sans bouton — géré par FAB) */}
+        <h2 className="text-lg font-semibold">Mouvements du mois</h2>
+
+        {/* DIALOG NOUVEAU MOUVEMENT (ouvert par FAB) */}
+        <Dialog open={openMvt} onOpenChange={setOpenMvt}>
+          <DialogContent className="bg-slate-900 border-slate-700">
+            <DialogHeader><DialogTitle>Nouveau mouvement</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              {/* Type */}
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Type</label>
+                <div className="flex gap-2">
+                  {(['epargne', 'reprise', 'transfert'] as const).map(t => (
+                    <button key={t} type="button" onClick={() => setMvtType(t)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        mvtType === t
+                          ? 'bg-teal-600 text-white'
+                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      }`}>
+                      {t === 'epargne' ? 'Épargner' : t === 'reprise' ? 'Reprendre' : 'Transférer'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Input type="number" step="0.01" placeholder="Montant" value={mvtMontant || ''}
+                onChange={e => setMvtMontant(parseFloat(e.target.value) || 0)} />
+
+              {/* Enveloppe destination (épargne + transfert) */}
+              {(mvtType === 'epargne' || mvtType === 'transfert') && (
                 <div>
-                  <label className="text-sm text-slate-400 mb-1 block">Type</label>
-                  <div className="flex gap-2">
-                    {(['epargne', 'reprise', 'transfert'] as const).map(t => (
-                      <button key={t} type="button" onClick={() => setMvtType(t)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-                          mvtType === t
-                            ? 'bg-teal-600 text-white'
+                  <label className="text-sm text-slate-400 mb-1 block">Vers</label>
+                  <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                    value={mvtDestId} onChange={e => setMvtDestId(e.target.value)}>
+                    <option value="">Sélectionner...</option>
+                    {enveloppesActives.map(env => (
+                      <option key={env.id} value={env.id}>{env.nom}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Enveloppe source (reprise + transfert) */}
+              {(mvtType === 'reprise' || mvtType === 'transfert') && (
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Depuis</label>
+                  <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                    value={mvtSourceId} onChange={e => setMvtSourceId(e.target.value)}>
+                    <option value="">Sélectionner...</option>
+                    {enveloppesActives.map(env => (
+                      <option key={env.id} value={env.id}>{env.nom} ({formatEuro(Number(env.solde))})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <Input placeholder="Note (optionnel)" value={mvtNote} onChange={e => setMvtNote(e.target.value)} />
+
+              {/* Fréquence (seulement pour épargne) */}
+              {mvtType === 'epargne' && (
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
+                  <div className="grid flex-wrap gap-1">
+                    {FREQUENCES.map(f => (
+                      <button key={f.value} type="button" onClick={() => setMvtFreq(f.value)}
+                        className={`py-2 rounded-lg text-xs font-medium transition-colors flex-1 min-w-[4.5rem] ${
+                          mvtFreq === f.value
+                            ? 'bg-purple-600 text-white'
                             : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                        }`}>
-                        {t === 'epargne' ? 'Épargner' : t === 'reprise' ? 'Reprendre' : 'Transférer'}
-                      </button>
+                        }`}>{f.label}</button>
                     ))}
                   </div>
                 </div>
+              )}
 
-                <Input type="number" step="0.01" placeholder="Montant" value={mvtMontant || ''}
-                  onChange={e => setMvtMontant(parseFloat(e.target.value) || 0)} />
-
-                {/* Enveloppe destination (épargne + transfert) */}
-                {(mvtType === 'epargne' || mvtType === 'transfert') && (
-                  <div>
-                    <label className="text-sm text-slate-400 mb-1 block">Vers</label>
-                    <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                      value={mvtDestId} onChange={e => setMvtDestId(e.target.value)}>
-                      <option value="">Sélectionner...</option>
-                      {enveloppesActives.map(env => (
-                        <option key={env.id} value={env.id}>{env.nom}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Enveloppe source (reprise + transfert) */}
-                {(mvtType === 'reprise' || mvtType === 'transfert') && (
-                  <div>
-                    <label className="text-sm text-slate-400 mb-1 block">Depuis</label>
-                    <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                      value={mvtSourceId} onChange={e => setMvtSourceId(e.target.value)}>
-                      <option value="">Sélectionner...</option>
-                      {enveloppesActives.map(env => (
-                        <option key={env.id} value={env.id}>{env.nom} ({formatEuro(Number(env.solde))})</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <Input placeholder="Note (optionnel)" value={mvtNote} onChange={e => setMvtNote(e.target.value)} />
-
-                {/* Fréquence (seulement pour épargne) */}
-                {mvtType === 'epargne' && (
-                  <div>
-                    <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-                    <div className="grid flex-wrap gap-1">
-                      {FREQUENCES.map(f => (
-                        <button key={f.value} type="button" onClick={() => setMvtFreq(f.value)}
-                          className={`py-2 rounded-lg text-xs font-medium transition-colors flex-1 min-w-[4.5rem] ${
-                            mvtFreq === f.value
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                          }`}>{f.label}</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <Button className="w-full" onClick={handleCreateMvt}>Ajouter</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <Button className="w-full" onClick={handleCreateMvt}>Ajouter</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* LISTE DES MOUVEMENTS */}
         <div className="space-y-2">
@@ -439,7 +433,41 @@ export default function EpargnePage() {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
 
+      {/* SPEED DIAL FAB */}
+      {fabOpen && (
+        <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setFabOpen(false)} />
+      )}
+
+      <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse items-center gap-3">
+        {/* Sous-boutons (visibles si fabOpen) */}
+        {fabOpen && (
+          <>
+            <button
+              onClick={() => { setFabOpen(false); setOpenMvt(true) }}
+              className="flex items-center gap-2 animate-fade-in"
+            >
+              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Mouvement</span>
+              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">💸</span>
+            </button>
+            <button
+              onClick={() => { setFabOpen(false); setOpenEnv(true) }}
+              className="flex items-center gap-2 animate-fade-in"
+            >
+              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Enveloppe</span>
+              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">🏦</span>
+            </button>
+          </>
+        )}
+
+        {/* Bouton principal */}
+        <button
+          onClick={() => setFabOpen(!fabOpen)}
+          className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+        >
+          <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
+        </button>
       </div>
     </div>
   )

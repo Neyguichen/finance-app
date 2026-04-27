@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Plus, Trash2, Pencil } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
@@ -33,14 +33,13 @@ export default function RevenusPage() {
   const { moisId, month, setMonth, espace } = useApp()
   const { data: revenus = [], toggleRecu, create, update, remove, removeDefinitif } = useRevenus(moisId)
   const { create: createRecurrent } = useRevenusRecurrents(espace?.id)
-
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: enveloppes = [] } = useEnveloppes(espace?.id)
 
   const reprises = mouvements.filter(m => m.type === 'reprise')
   const totalReprises = reprises.reduce((s, m) => s + Number(m.montant), 0)
+  const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises
 
-  const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises  
   const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
   const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
 
@@ -52,9 +51,7 @@ export default function RevenusPage() {
 
   const onSubmit = async (values: { nom: string; montant: number }) => {
     if (!moisId || !espace) return
-
     if (formFreq === 0) {
-      // Ponctuel : pas de modèle récurrent, juste l'instance
       await create.mutateAsync({
         mois_id: moisId,
         recurrent_id: null,
@@ -65,7 +62,6 @@ export default function RevenusPage() {
         ordre: revenus.length,
       })
     } else {
-      // Récurrent : créer le modèle puis l'instance
       const rec = await createRecurrent.mutateAsync({
         espace_id: espace.id,
         type: formType,
@@ -91,7 +87,6 @@ export default function RevenusPage() {
     setOpen(false)
   }
 
-  // Gestion suppression
   const handleDelete = (mode: 'mois' | 'definitif') => {
     if (!deleteTarget) return
     if (mode === 'definitif' && deleteTarget.recurrentId) {
@@ -124,57 +119,8 @@ export default function RevenusPage() {
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
       <div className="p-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold">Revenus</h1>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4 mr-1" />Ajouter</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-700">
-              <DialogHeader><DialogTitle>Nouveau revenu</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Input placeholder="Nom" {...register('nom', { required: true })} />
-                <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
-
-                {/* Toggle Actif / Passif */}
-                <div>
-                  <label className="text-sm text-slate-400 mb-1 block">Type</label>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => setFormType('actif')}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        formType === 'actif'
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      }`}>Actif</button>
-                    <button type="button" onClick={() => setFormType('passif')}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        formType === 'passif'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      }`}>Passif</button>
-                  </div>
-                </div>
-
-                {/* Sélecteur de fréquence */}
-                <div>
-                  <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-                  <div className="grid flex-wrap gap-1">
-                    {FREQUENCES.map(f => (
-                      <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
-                        className={`py-2 rounded-lg text-xs font-medium transition-colors flex-1 min-w-[4.5rem] ${
-                          formFreq === f.value
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                        }`}>{f.label}</button>
-                    ))}
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full">Ajouter</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+        {/* Header sans bouton — le FAB remplace */}
+        <h1 className="text-xl font-bold">Revenus</h1>
 
         {/* TOTAL EN HAUT */}
         <Card className="bg-blue-950 border-blue-800">
@@ -242,6 +188,7 @@ export default function RevenusPage() {
               </CardContent>
             </Card>
           ))}
+
           {/* REPRISES D'ÉPARGNE (lecture seule) */}
           {reprises.map((rep) => {
             const envNom = enveloppes.find(e => e.id === rep.enveloppe_source_id)?.nom || 'Enveloppe'
@@ -264,6 +211,62 @@ export default function RevenusPage() {
             )
           })}
         </div>
+
+        {/* ========== FAB FLOTTANT ========== */}
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-2xl hover:brightness-110 transition-all"
+          aria-label="Ajouter un revenu"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+
+        {/* DIALOG AJOUT REVENU */}
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="bg-slate-900 border-slate-700">
+            <DialogHeader><DialogTitle>Nouveau revenu</DialogTitle></DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <Input placeholder="Nom" {...register('nom', { required: true })} />
+              <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
+
+              {/* Toggle Actif / Passif */}
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Type</label>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setFormType('actif')}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      formType === 'actif'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}>Actif</button>
+                  <button type="button" onClick={() => setFormType('passif')}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      formType === 'passif'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}>Passif</button>
+                </div>
+              </div>
+
+              {/* Sélecteur de fréquence */}
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
+                <div className="grid flex-wrap gap-1">
+                  {FREQUENCES.map(f => (
+                    <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
+                      className={`py-2 rounded-lg text-xs font-medium transition-colors flex-1 min-w-[4.5rem] ${
+                        formFreq === f.value
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      }`}>{f.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full">Ajouter</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* DIALOG D'ÉDITION */}
         <Dialog open={!!editTarget} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
