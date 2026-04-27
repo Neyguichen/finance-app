@@ -1,60 +1,68 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { cn } from '@/lib/utils'
-
-function safeEval(expr: string): number | null {
-  try {
-    const sanitized = expr.replace(/[^0-9+\-*/().,]/g, '').replace(/,/g, '.')
-    if (!sanitized) return null
-    const result = new Function('"use strict"; return (' + sanitized + ')')()
-    if (typeof result !== 'number' || !isFinite(result)) return null
-    return Math.round(result * 100) / 100
-  } catch {
-    return null
-  }
-}
+import { useRef, useState, useEffect } from 'react'
 
 interface CalculatorInputProps {
   value: number | string
   onChange: (value: number) => void
   placeholder?: string
   className?: string
-  step?: string
 }
 
-const OPERATORS = [
-  { label: '+', value: '+' },
-  { label: '−', value: '-' },
-  { label: '×', value: '*' },
-  { label: '÷', value: '/' },
-  { label: '(', value: '(' },
-  { label: ')', value: ')' },
-]
+function safeEval(expr: string): number | null {
+  try {
+    const sanitized = expr.replace(/[^0-9+\-*/().," ]/g, '').replace(/,/g, '.')
+    if (!sanitized) return null
+    const result = new Function('"use strict"; return (' + sanitized + ')')()
+    if (typeof result === 'number' && isFinite(result)) {
+      return Math.round(result * 100) / 100
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
-export function CalculatorInput({
-  value,
-  onChange,
-  placeholder = 'Montant',
-  className,
-  step = '0.01',
-}: CalculatorInputProps) {
+export function CalculatorInput({ value, onChange, placeholder = '0', className = '' }: CalculatorInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
   const [display, setDisplay] = useState(String(value || ''))
   const [focused, setFocused] = useState(false)
   const [isTouchDevice, setIsTouchDevice] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [toolbarBottom, setToolbarBottom] = useState(0)
 
-  // Détecter appareil tactile
+  // Détecter si c'est un appareil tactile
   useEffect(() => {
-    setIsTouchDevice(
-      'ontouchstart' in window || navigator.maxTouchPoints > 0
-    )
+    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0)
   }, [])
 
-  // Sync si la valeur externe change (ex: reset formulaire)
+  // Positionner la barre au-dessus du clavier via visualViewport
+  useEffect(() => {
+    if (!focused || !isTouchDevice) return
+
+    const vv = window.visualViewport
+    if (!vv) return
+
+    const update = () => {
+      const keyboardHeight = window.innerHeight - vv.height
+      setToolbarBottom(Math.max(0, keyboardHeight))
+    }
+
+    // Calculer immédiatement + écouter les changements
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+      setToolbarBottom(0)
+    }
+  }, [focused, isTouchDevice])
+
+  // Sync si la valeur externe change
   useEffect(() => {
     if (!focused) {
-      setDisplay(String(value || ''))
+      setDisplay(value ? String(value) : '')
     }
   }, [value, focused])
 
@@ -70,57 +78,63 @@ export function CalculatorInput({
   }
 
   const insertOperator = (op: string) => {
-    // Insérer l'opérateur à la position du curseur
     const input = inputRef.current
     if (!input) return
+
     const start = input.selectionStart ?? display.length
     const end = input.selectionEnd ?? display.length
-    const newVal = display.slice(0, start) + op + display.slice(end)
-    setDisplay(newVal)
+    const newValue = display.slice(0, start) + op + display.slice(end)
+    setDisplay(newValue)
 
-    // Replacer le curseur après l'opérateur inséré
+    // Repositionner le curseur après l'opérateur inséré
+    const newPos = start + op.length
     requestAnimationFrame(() => {
-      const pos = start + op.length
-      input.setSelectionRange(pos, pos)
       input.focus()
+      input.setSelectionRange(newPos, newPos)
     })
   }
 
+  const bottomStyle = { bottom: toolbarBottom + 'px' }
+
   return (
-    <>
+    <div className="relative">
       <input
         ref={inputRef}
         type="text"
         inputMode="decimal"
-        value={display}
+        className={`input input-bordered w-full bg-slate-800 border-slate-700 ${className}`}
         placeholder={placeholder}
-        className={cn(
-          'input input-bordered w-full bg-slate-800 border-slate-700',
-          className
-        )}
+        value={display}
+        onChange={(e) => setDisplay(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={handleBlur}
-        onChange={(e) => setDisplay(e.target.value)}
       />
 
-      {/* Barre d'opérateurs — uniquement mobile + focus */}
+      {/* Barre d'opérateurs — visible uniquement sur mobile quand le champ est focus */}
       {focused && isTouchDevice && (
-        <div className="fixed bottom-0 left-0 right-0 z-[9999] flex justify-around bg-slate-800 border-t border-slate-600 px-2 py-1.5 safe-bottom">
-          {OPERATORS.map((op) => (
+        <div
+          className="fixed left-0 right-0 z-[9999] flex justify-around bg-slate-800 border-t border-slate-700 py-2 safe-bottom"
+          style={bottomStyle}
+        >
+          {['+', '−', '×', '÷', '(', ')'].map((op) => (
             <button
-              key={op.value}
+              key={op}
               type="button"
-              // onMouseDown + preventDefault empêche le blur du champ
-              onMouseDown={(e) => e.preventDefault()}
-              onTouchStart={(e) => e.preventDefault()}
-              onClick={() => insertOperator(op.value)}
-              className="flex-1 mx-0.5 py-2 rounded-lg bg-slate-700 text-white text-lg font-semibold active:bg-blue-600 transition-colors"
+              onTouchStart={(e) => {
+                e.preventDefault()
+                insertOperator(op === '×' ? '*' : op === '÷' ? '/' : op === '−' ? '-' : op)
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                insertOperator(op === '×' ? '*' : op === '÷' ? '/' : op === '−' ? '-' : op)
+              }}
+              className="w-12 h-10 rounded-lg bg-purple-700 text-white text-lg font-bold active:bg-purple-500"
             >
-              {op.label}
+              {op}
             </button>
           ))}
         </div>
       )}
-    </>
+    </div>
   )
 }
