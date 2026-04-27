@@ -397,7 +397,7 @@ export default function DashboardPage() {
                     <th className="text-left py-2 font-medium">Catégorie</th>
                     <th className="text-right py-2 font-medium">Prévu</th>
                     <th className="text-right py-2 font-medium">Reste</th>
-                    <th className="text-right py-2 font-medium">Dépense</th>
+                    <th className="text-right py-2 font-medium">Dépensé</th>
                   </tr>
                 </thead>
                 <tbody>
