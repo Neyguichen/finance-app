@@ -197,9 +197,14 @@ export function useMois(espaceId: string | undefined) {
       }
 
       // 3d. Auto-copier les budgets du mois précédent
-      const prevMoisDate = new Date(moisDate)
-      prevMoisDate.setMonth(prevMoisDate.getMonth() - 1)
-      const prevMoisStr = prevMoisDate.toISOString().slice(0, 10)
+      const prevY = moisDate.getFullYear()
+      const prevM = moisDate.getMonth() // 0-indexed
+      const prevMoisDate2 = new Date(prevY, prevM - 1, 1)
+      const prevMoisStr = [
+        prevMoisDate2.getFullYear(),
+        String(prevMoisDate2.getMonth() + 1).padStart(2, '0'),
+        '01'
+      ].join('-')
 
       const { data: prevMois } = await supabase
         .from('mois')
