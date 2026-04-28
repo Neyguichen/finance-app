@@ -18,6 +18,7 @@ export function useTransactions(moisId: string | undefined) {
         .select('*, categorie:categories(*), remboursements(*)')
         .eq('mois_id', moisId!)
         .order('date', { ascending: false })
+        .order('created_at',{ascending:false})
       if (error) throw error
       return data as (Transaction & { remboursements?: Remboursement[] })[]
     },
