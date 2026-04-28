@@ -196,6 +196,42 @@ export function useMois(espaceId: string | undefined) {
         }
       }
 
+      // 3d. Auto-copier les budgets du mois précédent
+      const prevMoisDate = new Date(moisDate)
+      prevMoisDate.setMonth(prevMoisDate.getMonth() - 1)
+      const prevMoisStr = prevMoisDate.toISOString().slice(0, 10)
+
+      const { data: prevMois } = await supabase
+        .from('mois')
+        .select('id')
+        .eq('espace_id', espace_id)
+        .eq('mois', prevMoisStr)
+        .single()
+
+      if (prevMois) {
+        const { data: prevBudgets } = await supabase
+          .from('budgets')
+          .select('*')
+          .eq('mois_id', prevMois.id)
+
+        if (prevBudgets && prevBudgets.length > 0) {
+          // Vérifier qu'il n'y a pas déjà des budgets pour ce mois
+          const { count } = await supabase
+            .from('budgets')
+            .select('*', { count: 'exact', head: true })
+            .eq('mois_id', newMois.id)
+
+          if (!count || count === 0) {
+            const rows = prevBudgets.map(b => ({
+              mois_id: newMois.id,
+              categorie_id: b.categorie_id,
+              prevu: b.prevu,
+            }))
+            await supabase.from('budgets').insert(rows)
+          }
+        }
+      }
+
       return theMois
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
