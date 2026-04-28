@@ -14,6 +14,7 @@ import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useCategories } from '@/lib/hooks/useCategories'
+import { useResteM1 } from '@/lib/hooks/useResteM1'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useApp } from '@/components/AppContext'
 import { Plus, Database } from 'lucide-react'
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: categories = [] } = useCategories(espace?.id)
   const { data: budgets = [] } = useBudgets(moisId)
+  const { data: resteM1 } = useResteM1(espace?.id, month)
 
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
@@ -71,10 +73,12 @@ export default function DashboardPage() {
     return sum + Math.max(prevu, depense)
   }, 0)
 
-  const restePrevu = totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
+  const resteM1Value = resteM1 ?? 0
+
+  const restePrevu = resteM1Value + totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
 
   // Reste à vivre — RÉEL
-  const resteReel = totalRevenus - totalChargesPayees - totalDepenses - totalEpargnes
+  const resteReel = resteM1Value + totalRevenus - totalChargesPayees - totalDepenses - totalEpargnes
 
   const revenusChartData = [
     { name: 'Actif', value: totalActif, color: '#10B981' },       // emerald-500 — vert vif
@@ -184,6 +188,12 @@ export default function DashboardPage() {
 
         <Card className="bg-blue-950 border-blue-800">
           <CardContent className="p-4 space-y-2">
+            <h3 className="font-semibold text-blue-400">Reste M-1</h3>
+            <div className="flex justify-between text-sm">
+            <span className={resteM1Value >= 0 ? 'font-bold text-slate-300' : 'font-bold text-red-400'}>
+              {resteM1 !== null && resteM1 !== undefined ? formatEuro(resteM1Value) : '—'}
+            </span>
+            </div>
             <h2 className="font-semibold text-blue-400">Reste à vivre</h2>
             <div className="flex justify-between text-sm">
               <span className="text-slate-400">Prévu</span>
