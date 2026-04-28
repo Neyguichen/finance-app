@@ -33,7 +33,10 @@ export function useEnveloppes(espaceId: string | undefined) {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+    },
   })
 
   const update = useMutation({
@@ -44,7 +47,10 @@ export function useEnveloppes(espaceId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+    },
   })
 
   const archive = useMutation({
@@ -55,7 +61,10 @@ export function useEnveloppes(espaceId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+    },
   })
 
   const unarchive = useMutation({
@@ -66,7 +75,10 @@ export function useEnveloppes(espaceId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+    },
   })
 
   return { ...query, create, update, archive, unarchive }
@@ -104,6 +116,7 @@ export function useMouvements(moisId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
     },
   })
 
@@ -118,6 +131,7 @@ export function useMouvements(moisId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
     },
   })
 
@@ -129,6 +143,7 @@ export function useMouvements(moisId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
     },
   })
 
@@ -143,6 +158,7 @@ export function useMouvements(moisId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
       queryClient.invalidateQueries({ queryKey: ['epargne_recurrentes'] })
     },
   })
@@ -180,7 +196,10 @@ export function useEpargneRecurrentes(espaceId: string | undefined) {
       if (error) throw error
       return data as EpargneRecurrente
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+    },
   })
 
   return { ...query, create }
