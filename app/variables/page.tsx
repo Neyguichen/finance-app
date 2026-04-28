@@ -220,7 +220,7 @@ export default function VariablesPage() {
       {/* ======================== */}
       <Dialog open={catOpen} onOpenChange={setCatOpen}>
         <DialogContent className="bg-slate-900 border-slate-700">
-          <DialogHeader><DialogTitle>Nouvelle catégorie</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Nouveau budget</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Input placeholder="Nom (ex: Courses)" value={newCatNom} onChange={e => setNewCatNom(e.target.value)} />
             <EmojiPicker value={newCatIcone} onChange={setNewCatIcone} />
@@ -244,7 +244,7 @@ export default function VariablesPage() {
             <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
             <select className="select select-bordered w-full bg-slate-800 border-slate-700"
               value={txCat} onChange={e => setTxCat(e.target.value)}>
-              <option value="">Catégorie...</option>
+              <option value="">Budget...</option>
               {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
             </select>
             <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
@@ -342,7 +342,7 @@ export default function VariablesPage() {
       <Dialog open={!!archiveTarget} onOpenChange={(v) => { if (!v) setArchiveTarget(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700">
           <DialogHeader>
-            <DialogTitle>Archiver la catégorie « {archiveTarget?.nom} » ?</DialogTitle>
+            <DialogTitle>Archiver le budget « {archiveTarget?.nom} » ?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-400">
             Elle ne sera plus visible sur les prochains mois, mais les budgets et dépenses existants seront conservés.
