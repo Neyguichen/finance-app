@@ -276,7 +276,7 @@ export default function RevenusPage() {
             </DialogHeader>
             <div className="space-y-4">
               <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
-              <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
+              <CalculatorInput value={editMontant} onChange={(val) => setEditMontant(val)} placeholder="Montant" />
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Type</label>
                 <div className="flex gap-2">
