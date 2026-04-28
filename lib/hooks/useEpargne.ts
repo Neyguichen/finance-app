@@ -202,5 +202,16 @@ export function useEpargneRecurrentes(espaceId: string | undefined) {
     },
   })
 
-  return { ...query, create }
+  const update = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<EpargneRecurrente> & { id: string }) => {
+      const { error } = await supabase
+        .from('epargne_recurrentes')
+        .update(updates)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+  
+  return { ...query, create, update }
 }
