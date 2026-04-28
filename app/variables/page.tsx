@@ -241,13 +241,13 @@ export default function VariablesPage() {
         <DialogContent className="bg-slate-900 border-slate-700">
           <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
             <select className="select select-bordered w-full bg-slate-800 border-slate-700"
               value={txCat} onChange={e => setTxCat(e.target.value)}>
               <option value="">Catégorie...</option>
               {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
             </select>
             <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
-            <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
             <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
             <Button className="w-full" onClick={async () => {
               if (!txCat || !moisId) return
@@ -267,12 +267,12 @@ export default function VariablesPage() {
         <DialogContent className="bg-slate-900 border-slate-700">
           <DialogHeader><DialogTitle>Modifier la dépense</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            <Input type="date" value={editTxDate} onChange={e => setEditTxDate(e.target.value)} />
             <select className="select select-bordered w-full bg-slate-800 border-slate-700"
               value={editTxCat} onChange={e => setEditTxCat(e.target.value)}>
               {categories.map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
             </select>
             <CalculatorInput value={editTxMontant} onChange={setEditTxMontant} placeholder="Montant" />
-            <Input type="date" value={editTxDate} onChange={e => setEditTxDate(e.target.value)} />
             <Input placeholder="Infos" value={editTxInfos} onChange={e => setEditTxInfos(e.target.value)} />
             <Button className="w-full" onClick={async () => {
               if (!editTx) return
