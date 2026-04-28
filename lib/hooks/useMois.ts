@@ -113,12 +113,15 @@ export function useMois(espaceId: string | undefined) {
       // 3. Copier les récurrences
       const moisDate = new Date(mois + 'T00:00:00')
 
-      const shouldCopy = (rec: { created_at: string; frequence_mois: number }) => {
-        const created = new Date(rec.created_at)
+      const shouldCopy = (rec: { created_at: string; mois_debut?: string | null; frequence_mois: number }) => {
+        // Utiliser mois_debut si disponible, sinon fallback sur created_at
+        const refDate = rec.mois_debut
+          ? new Date(rec.mois_debut + 'T00:00:00')  // forcer local
+          : new Date(rec.created_at)
         const diff =
-          (moisDate.getFullYear() - created.getFullYear()) * 12 +
-          (moisDate.getMonth() - created.getMonth())
-        return diff % rec.frequence_mois === 0
+          (moisDate.getFullYear() - refDate.getFullYear()) * 12 +
+          (moisDate.getMonth() - refDate.getMonth())
+        return diff >= 0 && diff % rec.frequence_mois === 0
       }
 
       // 3a. Auto-copier les revenus récurrents actifs

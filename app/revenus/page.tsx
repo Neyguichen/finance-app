@@ -70,6 +70,7 @@ export default function RevenusPage() {
         actif: true,
         frequence_mois: formFreq,
         ordre: revenus.length,
+        mois_debut: month,
       })
       await create.mutateAsync({
         mois_id: moisId,

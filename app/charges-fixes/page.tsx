@@ -60,6 +60,7 @@ export default function ChargesFixesPage() {
         actif: true,
         frequence_mois: formFreq,
         ordre: charges.length,
+        mois_debut: month,
       })
       await create.mutateAsync({
         mois_id: moisId,

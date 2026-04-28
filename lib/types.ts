@@ -22,6 +22,7 @@ export interface RevenuRecurrent {
   montant: number
   actif: boolean
   frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
+  mois_debut: string | null
   ordre: number
   created_at: string
 }
@@ -44,6 +45,7 @@ export interface ChargeFixeRecurrente {
   montant: number
   actif: boolean
   frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
+  mois_debut: string | null
   ordre: number
   created_at: string
 }
@@ -112,6 +114,7 @@ export interface EpargneRecurrente {
   montant: number
   actif: boolean
   frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
+  mois_debut: string | null
   note: string | null
   ordre: number
   created_at: string

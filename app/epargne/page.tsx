@@ -134,6 +134,7 @@ export default function EpargnePage() {
         frequence_mois: freq,
         note: mvtNote || null,
         ordre: 0,
+        mois_debut: month,
       })
       await createMvt.mutateAsync({
         mois_id: moisId,
