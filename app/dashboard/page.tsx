@@ -78,7 +78,7 @@ export default function DashboardPage() {
   const restePrevu = resteM1Value + totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
 
   // Reste à vivre — RÉEL
-  const resteReel = resteM1Value + totalRevenus - totalSortantsAll
+  const resteReel = resteM1Value + totalRevenus - totalChargesPayees - totalDepenses - totalEpargnes
 
   const revenusChartData = [
     { name: 'Actif', value: totalActif, color: '#10B981' },       // emerald-500 — vert vif
