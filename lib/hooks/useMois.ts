@@ -219,11 +219,11 @@ export function useMois(espaceId: string | undefined) {
           const { count } = await supabase
             .from('budgets')
             .select('*', { count: 'exact', head: true })
-            .eq('mois_id', newMois.id)
+            .eq('mois_id', theMois.id)
 
           if (!count || count === 0) {
             const rows = prevBudgets.map(b => ({
-              mois_id: newMois.id,
+              mois_id: theMois.id,
               categorie_id: b.categorie_id,
               prevu: b.prevu,
             }))
