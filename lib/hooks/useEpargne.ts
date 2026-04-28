@@ -35,7 +35,7 @@ export function useEnveloppes(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
 
@@ -49,7 +49,7 @@ export function useEnveloppes(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
 
@@ -63,7 +63,7 @@ export function useEnveloppes(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
 
@@ -77,7 +77,7 @@ export function useEnveloppes(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
 
@@ -116,7 +116,7 @@ export function useMouvements(moisId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
 
@@ -131,7 +131,7 @@ export function useMouvements(moisId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
 
@@ -143,7 +143,7 @@ export function useMouvements(moisId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
 
@@ -158,7 +158,7 @@ export function useMouvements(moisId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
       queryClient.invalidateQueries({ queryKey: ['epargne_recurrentes'] })
     },
   })
@@ -198,7 +198,7 @@ export function useEpargneRecurrentes(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes-at-month'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
 
