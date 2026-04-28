@@ -8,7 +8,8 @@ import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Plus, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
-import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
+import { useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
+import { useEnveloppesAtMonth } from '@/lib/hooks/useEnveloppesAtMonth'
 import { formatEuro } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 
@@ -22,7 +23,8 @@ const FREQUENCES = [
 
 export default function EpargnePage() {
   const { moisId, month, setMonth, espace } = useApp()
-  const { data: enveloppes = [], create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
+  const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
+  const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
   const { data: mouvements = [], create: createMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
   const { create: createRecurrent } = useEpargneRecurrentes(espace?.id)
 
