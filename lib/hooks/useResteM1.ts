@@ -43,8 +43,7 @@ export function useResteM1(espaceId: string | undefined, currentMonth: string) {
 
       const totalEntrants = totalRevenus + totalReprises
 
-      const totalChargesPayees = (charges || [])
-        .filter(c => c.payee)
+      const totalChargesFixes = (charges || [])
         .reduce((s, c) => s + Number(c.montant), 0)
 
       const totalDepenses = (transactions || []).reduce((s, t) => s + Number(t.montant), 0)
@@ -54,7 +53,7 @@ export function useResteM1(espaceId: string | undefined, currentMonth: string) {
         .reduce((s, m) => s + Number(m.montant), 0)
 
       // Solde cumulé = tout ce qui est entré - tout ce qui est sorti (payé/dépensé)
-      return totalEntrants - totalChargesPayees - totalDepenses - totalEpargnes
+      return totalEntrants - totalChargesFixes - totalDepenses - totalEpargnes
     },
   })
 }
