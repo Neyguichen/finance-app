@@ -196,7 +196,7 @@ export default function ChargesFixesPage() {
             </DialogHeader>
             <div className="space-y-4">
               <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
-              <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
+              <CalculatorInput value={editMontant} onChange={(val) => setEditMontant(val)} placeholder="Montant" />
               <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
             </div>
