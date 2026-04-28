@@ -54,7 +54,48 @@ export function useMois(espaceId: string | undefined) {
           .select('*', { count: 'exact', head: true })
           .eq('mois_id', theMois.id)
 
-        // Si le mois a déjà des données, on ne recopie pas
+        // === TOUJOURS vérifier les budgets, même si le mois a des données ===
+        const { count: budgetCount } = await supabase
+          .from('budgets')
+          .select('*', { count: 'exact', head: true })
+          .eq('mois_id', theMois.id)
+
+        if (!budgetCount || budgetCount === 0) {
+          const moisDate = new Date(mois + 'T00:00:00')
+          const prevY = moisDate.getFullYear()
+          const prevM = moisDate.getMonth()
+          const prevMoisDate2 = new Date(prevY, prevM - 1, 1)
+          const prevMoisStr = [
+            prevMoisDate2.getFullYear(),
+            String(prevMoisDate2.getMonth() + 1).padStart(2, '0'),
+            '01'
+          ].join('-')
+
+          const { data: prevMois } = await supabase
+            .from('mois')
+            .select('id')
+            .eq('espace_id', espace_id)
+            .eq('mois', prevMoisStr)
+            .single()
+
+          if (prevMois) {
+            const { data: prevBudgets } = await supabase
+              .from('budgets')
+              .select('*')
+              .eq('mois_id', prevMois.id)
+
+            if (prevBudgets && prevBudgets.length > 0) {
+              const rows = prevBudgets.map(b => ({
+                mois_id: theMois.id,
+                categorie_id: b.categorie_id,
+                prevu: b.prevu,
+              }))
+              await supabase.from('budgets').insert(rows)
+            }
+          }
+        }
+
+        // Si le mois a déjà des données récurrentes, on ne recopie pas
         if ((revCount ?? 0) > 0 || (cfCount ?? 0) > 0 || (epCount ?? 0) > 0) {
           return theMois
         }
@@ -71,6 +112,7 @@ export function useMois(espaceId: string | undefined) {
 
       // 3. Copier les récurrences
       const moisDate = new Date(mois + 'T00:00:00')
+
       const shouldCopy = (rec: { created_at: string; frequence_mois: number }) => {
         const created = new Date(rec.created_at)
         const diff =
@@ -198,7 +240,7 @@ export function useMois(espaceId: string | undefined) {
 
       // 3d. Auto-copier les budgets du mois précédent
       const prevY = moisDate.getFullYear()
-      const prevM = moisDate.getMonth() // 0-indexed
+      const prevM = moisDate.getMonth()
       const prevMoisDate2 = new Date(prevY, prevM - 1, 1)
       const prevMoisStr = [
         prevMoisDate2.getFullYear(),
@@ -220,7 +262,6 @@ export function useMois(espaceId: string | undefined) {
           .eq('mois_id', prevMois.id)
 
         if (prevBudgets && prevBudgets.length > 0) {
-          // Vérifier qu'il n'y a pas déjà des budgets pour ce mois
           const { count } = await supabase
             .from('budgets')
             .select('*', { count: 'exact', head: true })
