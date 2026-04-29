@@ -289,7 +289,7 @@ export default function EpargnePage() {
                     <p className="font-medium text-sm truncate">{env.nom}</p>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                        onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde) })}>
+                        onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
