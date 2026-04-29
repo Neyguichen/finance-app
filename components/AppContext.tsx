@@ -43,7 +43,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const espace = espaces.find(e => e.id === espaceId) || espaces[0] || null
 
-  const { getOrCreate } = useMois(espace?.id)
   const [moisId, setMoisId] = useState<string | undefined>(undefined)
 
   // 1. Écouter les changements d'auth
@@ -81,16 +80,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId])
 
   // 3. Récupérer ou créer le mois actif pour l'espace sélectionné
+  const { data: allMois, getOrCreate } = useMois(espace?.id)
   const moisCache = useRef<Map<string, string>>(new Map())
 
   useEffect(() => {
     if (!espace || !userId) return
+
     const cacheKey = `${espace.id}_${month}`
+
+    // 1. Cache local (mois déjà visités cette session)
     const cached = moisCache.current.get(cacheKey)
     if (cached) {
       setMoisId(cached)
       return
     }
+
+    // 2. Chercher dans allMois (chargés en 1 requête au démarrage)
+    const found = allMois?.find(m => m.mois === month)
+    if (found) {
+      moisCache.current.set(cacheKey, found.id)
+      setMoisId(found.id)
+      return
+    }
+
+    // 3. Le mois n'existe pas encore → créer (seul cas avec latence réseau)
     getOrCreate.mutateAsync({
       espace_id: espace.id,
       mois: month,
@@ -99,7 +112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       moisCache.current.set(cacheKey, m.id)
       setMoisId(m.id)
     })
-  }, [espace, month, userId])
+  }, [espace, month, userId, allMois])
 
   // Ajouter un espace (avec solde_initial optionnel)
   const addEspace = async (nom: string, icone = '\ud83c\udfe0', soldeInitial = 0) => {
