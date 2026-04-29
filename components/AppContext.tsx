@@ -16,16 +16,17 @@ interface AppContextType {
   month: string
   setMonth: (m: string) => void
   loading: boolean
-  addEspace: (nom: string, icone?: string) => Promise<void>
-  updateEspace: (id: string, updates: { nom?: string; icone?: string }) => Promise<void>
+  addEspace: (nom: string, icone?: string, soldeInitial?: number) => Promise<void>
+  updateEspace: (id: string, updates: { nom?: string; icone?: string; solde_initial?: number }) => Promise<void>
   removeEspace: (id: string) => Promise<void>
+  refreshEspaces: () => Promise<void>
 }
 
 const defaultCtx: AppContextType = {
   userId: null, espaces: [], espace: null, setEspaceId: () => {},
   moisId: undefined, month: currentMonth(), setMonth: () => {},
-  loading: true, addEspace: async () => {},removeEspace: async () => {},
-  updateEspace: async () => {},
+  loading: true, addEspace: async () => {}, removeEspace: async () => {},
+  updateEspace: async () => {}, refreshEspaces: async () => {},
 }
 
 const AppContext = createContext<AppContextType>(defaultCtx)
@@ -56,23 +57,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Fonction de chargement des espaces (réutilisable)
+  const loadEspaces = async () => {
+    if (!userId) return
+    try {
+      const { data } = await supabase
+        .from('espaces')
+        .select('*')
+        .eq('user_id', userId)
+        .order('ordre')
+      setEspaces(data || [])
+    } catch (err) {
+      console.error('Erreur chargement espaces:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // 2. Charger les espaces
   useEffect(() => {
     if (!userId) return
-    async function loadEspaces() {
-      try {
-        const { data } = await supabase
-          .from('espaces')
-          .select('*')
-          .eq('user_id', userId)
-          .order('ordre')
-        setEspaces(data || [])
-      } catch (err) {
-        console.error('Erreur chargement espaces:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
     loadEspaces()
   }, [userId])
 
@@ -86,12 +90,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }).then(m => setMoisId(m.id))
   }, [espace, month, userId])
 
-  // Ajouter un espace
-  const addEspace = async (nom: string, icone = '\ud83c\udfe0') => {
+  // Ajouter un espace (avec solde_initial optionnel)
+  const addEspace = async (nom: string, icone = '\ud83c\udfe0', soldeInitial = 0) => {
     if (!userId) return
     const { data } = await supabase
       .from('espaces')
-      .insert({ user_id: userId, nom, icone, ordre: espaces.length })
+      .insert({ user_id: userId, nom, icone, ordre: espaces.length, solde_initial: soldeInitial })
       .select()
       .single()
     if (data) setEspaces(prev => [...prev, data])
@@ -102,19 +106,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.from('espaces').delete().eq('id', id)
     if (error) { console.error('Erreur suppression espace:', error); return }
     setEspaces(prev => prev.filter(e => e.id !== id))
-    // Si on supprime l'espace actif, basculer sur le premier restant
     if (espaceId === id) setEspaceId(null)
   }
 
-  const updateEspace = async (id: string, updates: { nom?: string; icone?: string }) => {
+  // Mettre à jour un espace (nom, icone, solde_initial)
+  const updateEspace = async (id: string, updates: { nom?: string; icone?: string; solde_initial?: number }) => {
     const { error } = await supabase.from('espaces').update(updates).eq('id', id)
     if (error) { console.error('Erreur update espace:', error); return }
     setEspaces(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e))
   }
 
+  // Recharger les espaces (utile après calibration)
+  const refreshEspaces = async () => {
+    await loadEspaces()
+  }
+
   const ctxValue: AppContextType = {
     userId, espaces, espace, setEspaceId: (id) => setEspaceId(id),
-    moisId, month, setMonth, loading, addEspace, updateEspace, removeEspace,
+    moisId, month, setMonth, loading, addEspace, updateEspace, removeEspace, refreshEspaces,
   }
 
   return (

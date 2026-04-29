@@ -3,11 +3,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 
-export function useResteM1(espaceId: string | undefined, currentMonth: string) {
+export function useResteM1(espaceId: string | undefined, currentMonth: string, soldeInitial: number = 0) {
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['reste_m1', espaceId, currentMonth],
+    queryKey: ['reste_m1', espaceId, currentMonth, soldeInitial],
     enabled: !!espaceId,
     queryFn: async () => {
       // 1. Récupérer TOUS les mois précédents
@@ -17,12 +17,14 @@ export function useResteM1(espaceId: string | undefined, currentMonth: string) {
         .eq('espace_id', espaceId!)
         .lt('mois', currentMonth)
 
-      if (!moisList || moisList.length === 0) return null
+      if (!moisList || moisList.length === 0) {
+        // Aucun mois précédent → le solde initial est le reste M-1
+        return soldeInitial !== 0 ? soldeInitial : null
+      }
 
       const moisIds = moisList.map(m => m.id)
 
       // 2. Requêter toutes les données en parallèle
-      // IMPORTANT : transactions avec remboursements joints
       const [
         { data: revenus = [] },
         { data: charges = [] },
@@ -44,12 +46,12 @@ export function useResteM1(espaceId: string | undefined, currentMonth: string) {
 
       const totalEntrants = totalRevenus + totalReprises
 
-      // FIX 1 : charges PAYÉES uniquement (comme le dashboard)
+      // Charges PAYÉES uniquement (comme le dashboard)
       const totalChargesPayees = (charges || [])
         .filter((c: any) => c.payee)
         .reduce((s, c) => s + Number(c.montant), 0)
 
-      // FIX 2 : dépenses NETTES (montant - remboursements, comme getMontantNet)
+      // Dépenses NETTES (montant - remboursements)
       const totalDepenses = (transactions || []).reduce((s, t: any) => {
         const rembs = t.remboursements || []
         const totalRemb = rembs.reduce((sr: number, r: any) => sr + Number(r.montant), 0)
@@ -60,8 +62,8 @@ export function useResteM1(espaceId: string | undefined, currentMonth: string) {
         .filter(m => m.type === 'epargne')
         .reduce((s, m) => s + Number(m.montant), 0)
 
-      // Formule identique au dashboard
-      return totalEntrants - totalChargesPayees - totalDepenses - totalEpargnes
+      // Formule : solde_initial + cumul des mois précédents
+      return soldeInitial + totalEntrants - totalChargesPayees - totalDepenses - totalEpargnes
     },
   })
 }

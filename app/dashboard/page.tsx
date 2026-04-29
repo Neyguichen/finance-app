@@ -14,8 +14,8 @@ import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useCategories } from '@/lib/hooks/useCategories'
-import { useResteM1 } from '@/lib/hooks/useResteM1'
 import { useBudgets } from '@/lib/hooks/useBudgets'
+import { useResteM1 } from '@/lib/hooks/useResteM1'
 import { useApp } from '@/components/AppContext'
 import { Plus, Database } from 'lucide-react'
 import type { Remboursement } from '@/lib/types'
@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const [openEspace, setOpenEspace] = useState(false)
   const [newNom, setNewNom] = useState('')
   const [newIcone, setNewIcone] = useState('🏠')
+  const [newSoldeInitial, setNewSoldeInitial] = useState<number | null>(null)
 
   const { data: dbUsage } = useDbUsage()
   const { data: revenus = [] } = useRevenus(moisId)
@@ -37,7 +38,7 @@ export default function DashboardPage() {
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: categories = [] } = useCategories(espace?.id)
   const { data: budgets = [] } = useBudgets(moisId)
-  const { data: resteM1 } = useResteM1(espace?.id, month)
+  const { data: resteM1 } = useResteM1(espace?.id, month, espace?.solde_initial ?? 0)
 
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
@@ -73,24 +74,16 @@ export default function DashboardPage() {
     return sum + Math.max(prevu, depense)
   }, 0)
 
-  const resteM1Value = resteM1 ?? 0
-
-  const restePrevu = resteM1Value + totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
+  const restePrevu = totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
 
   // Reste à vivre — RÉEL
-  const resteReel = resteM1Value + totalRevenus - totalChargesPayees - totalDepenses - totalEpargnes
+  const resteReel = totalRevenus - totalChargesPayees - totalDepenses - totalEpargnes
 
   const revenusChartData = [
     { name: 'Actif', value: totalActif, color: '#10B981' },       // emerald-500 — vert vif
     { name: 'Passif', value: totalPassif, color: '#6EE7B7' },     // emerald-300 — vert clair
     { name: 'Reprises épargne', value: totalReprises, color: '#064E3B' }, // emerald-900 — vert foncé
   ].filter(d => d.value > 0)
-
-  // Somme brute des budgets prévisionnels (pour affichage)
-  const totalVariablesBudget = categories.reduce((sum, cat) => {
-    const budget = budgets.find(b => b.categorie_id === cat.id)
-    return sum + (budget ? Number(budget.prevu) : 0)
-  }, 0)
 
   const sortantsChartData = [
     { name: 'Fixes', value: totalChargesFixes, color: '#E11D48' },    // rose-600 — rose vif (principal)
@@ -146,10 +139,16 @@ export default function DashboardPage() {
         <div className="max-w-xs mx-auto space-y-3">
           <Input placeholder="Nom (ex: Perso)" value={newNom} onChange={e => setNewNom(e.target.value)} />
           <EmojiPicker value={newIcone} onChange={setNewIcone} />
+          <Input type="number" step="0.01" placeholder="Solde initial (optionnel)"
+            value={newSoldeInitial ?? ''} onChange={e => {
+              const val = e.target.value
+              setNewSoldeInitial(val === '' ? null : parseFloat(val))
+            }} />
           <Button className="w-full" onClick={async () => {
             if (!newNom.trim()) return
-            await addEspace(newNom.trim(), newIcone || undefined)
+            await addEspace(newNom.trim(), newIcone || undefined, newSoldeInitial ?? 0)
             setNewNom('')
+            setNewSoldeInitial(null)
           }}>Créer l&apos;espace</Button>
         </div>
       </div>
@@ -161,8 +160,14 @@ export default function DashboardPage() {
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
       <div className="p-4 space-y-4">
-        {/* bouton ajouter */}
+        {/* Espace actif + bouton ajouter */}
         <div className="flex items-center justify-between">
+        {espace && (
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{espace.icone}</span>
+            <span className="font-semibold">{espace.nom}</span>
+          </div>
+        )}
           <Dialog open={openEspace} onOpenChange={setOpenEspace}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Espace</Button>
@@ -172,11 +177,17 @@ export default function DashboardPage() {
               <div className="space-y-4">
                 <Input placeholder="Nom (ex: Joint)" value={newNom} onChange={e => setNewNom(e.target.value)} />
                 <EmojiPicker value={newIcone} onChange={setNewIcone} />
+                <Input type="number" step="0.01" placeholder="Solde initial (optionnel)"
+                  value={newSoldeInitial ?? ''} onChange={e => {
+                    const val = e.target.value
+                    setNewSoldeInitial(val === '' ? null : parseFloat(val))
+                  }} />
                 <Button className="w-full" onClick={async () => {
                   if (!newNom.trim()) return
-                  await addEspace(newNom.trim(), newIcone || undefined)
+                  await addEspace(newNom.trim(), newIcone || undefined, newSoldeInitial ?? 0)
                   setNewNom('')
                   setNewIcone('\ud83c\udfe0')
+                  setNewSoldeInitial(null)
                   setOpenEspace(false)
                 }}>Créer l&apos;espace</Button>
               </div>
@@ -188,12 +199,12 @@ export default function DashboardPage() {
 
         <Card className="bg-blue-950 border-blue-800">
           <CardContent className="p-4 space-y-2">
-            <h3 className="font-semibold text-blue-400">Reste M-1</h3>
-            <div className="flex justify-between text-sm">
-            <span className={resteM1Value >= 0 ? 'font-bold text-slate-300' : 'font-bold text-red-400'}>
-              {resteM1 !== null && resteM1 !== undefined ? formatEuro(resteM1Value) : '—'}
-            </span>
-            </div>
+            {resteM1 !== null && resteM1 !== undefined && (
+              <>
+                <h2 className="font-semibold text-blue-400">Reste M-1</h2>
+                <p className="text-xl font-bold text-blue-300">{formatEuro(resteM1)}</p>
+              </>
+            )}
             <h2 className="font-semibold text-blue-400">Reste à vivre</h2>
             <div className="flex justify-between text-sm">
               <span className="text-slate-400">Prévu</span>
@@ -210,7 +221,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Card className="bg-emerald-950 border-emerald-800">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-emerald-400">Entrants</CardTitle>
@@ -250,11 +261,11 @@ export default function DashboardPage() {
                 <div className="space-y-1 w-full">
                   {revenusChartData.map(d => (
                     <div key={d.name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: d.color}}  />
-                        <span className="text-xs text-slate-300 truncate">{d.name}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: d.color}}  />
+                        <span className="text-xs text-slate-300">{d.name}</span>
                       </div>
-                      <div className="text-right flex-shrink-0">
+                      <div className="text-right">
                         <span className="text-xs font-semibold text-white">{formatEuro(d.value)}</span>
                         <span className="text-xs text-slate-500 ml-1">
                           ({totalRevenus > 0 ? Math.round((d.value / totalRevenus) * 100) : 0}%)
@@ -310,12 +321,12 @@ export default function DashboardPage() {
                 {/* Légende */}
                 <div className="space-y-1 w-full">
                   {/* Charges fixes */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2.5 h-2.5 rounded-full bg-pink-600 flex-shrink-0" />
-                      <span className="text-xs text-slate-300 truncate">Fixes</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-pink-600" />
+                      <span className="text-xs text-slate-300">Fixes</span>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right">
                       <span className="text-xs font-semibold text-white">{formatEuro(chargesFixesNonPayees)} / {formatEuro(totalChargesPayees)}</span>
                       <span className="text-xs text-slate-500 ml-1">
                         ({totalChargesFixes > 0 ? Math.round((totalChargesFixes / totalSortantsAll) * 100) : 0}%)
@@ -324,12 +335,12 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Variables */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2.5 h-2.5 rounded-full bg-pink-300 flex-shrink-0" />
-                      <span className="text-xs text-slate-300 truncate">Variables</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-pink-300" />
+                      <span className="text-xs text-slate-300">Variables</span>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right">
                       <span className="text-xs font-semibold text-white">{formatEuro(totalDepenses)}</span>
                       <span className="text-xs text-slate-500 ml-1">
                         ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
@@ -338,20 +349,20 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Variables — Prévu (hors diagramme) */}
-                  <div className="flex items-center justify-between gap-2 pl-5">
+                  <div className="flex items-center justify-between pl-5">
                     <span className="text-xs text-slate-500">Prévu</span>
                     <div className="text-right">
-                      <span className="text-xs text-slate-400 flex-shrink-0">{formatEuro(totalVariablesPrevu)}</span>
+                      <span className="text-xs text-slate-400">{formatEuro(totalVariablesPrevu)}</span>
                       <span className="text-xs text-slate-600 ml-1">
-                        ({totalSortantsAll > 0 ? Math.round((totalVariablesBudget / totalSortantsAll) * 100) : 0}%)
+                        ({totalSortantsAll > 0 ? Math.round((totalVariablesPrevu / totalSortantsAll) * 100) : 0}%)
                       </span>
                     </div>
                   </div>
 
                   {/* Variables — Réel (hors diagramme) */}
-                  <div className="flex items-center justify-between gap-2 pl-5">
+                  <div className="flex items-center justify-between pl-5">
                     <span className="text-xs text-slate-500">Réel</span>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right">
                       <span className="text-xs text-slate-400">{formatEuro(totalDepenses)}</span>
                       <span className="text-xs text-slate-600 ml-1">
                         ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
@@ -360,12 +371,12 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Épargne */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2.5 h-2.5 rounded-full bg-pink-900 flex-shrink-0" />
-                      <span className="text-xs text-slate-300 truncate">Épargne</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-pink-900" />
+                      <span className="text-xs text-slate-300">Épargne</span>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right">
                       <span className="text-xs font-semibold text-white">{formatEuro(totalEpargnes)}</span>
                       <span className="text-xs text-slate-500 ml-1">
                         ({totalSortantsAll > 0 ? Math.round((totalEpargnes / totalSortantsAll) * 100) : 0}%)
@@ -413,7 +424,7 @@ export default function DashboardPage() {
                     <th className="text-left py-2 font-medium">Catégorie</th>
                     <th className="text-right py-2 font-medium">Prévu</th>
                     <th className="text-right py-2 font-medium">Reste</th>
-                    <th className="text-right py-2 font-medium">Dépensé</th>
+                    <th className="text-right py-2 font-medium">Dépense</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -435,7 +446,7 @@ export default function DashboardPage() {
                     <td className="py-2">
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#881337'}}  />
-                        <span className="text-purple-200">💰 Épargne</span>
+                        <span className="text-purple-200">🐷 Épargne</span>
                       </div>
                     </td>
                     <td className="text-right text-purple-600">—</td>

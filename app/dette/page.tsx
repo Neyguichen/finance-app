@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Plus, Trash2, Pencil, ChevronDown, ChevronUp, CalendarClock } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useDettes } from '@/lib/hooks/useDettes'
@@ -53,6 +53,7 @@ function DetteDetail({ dette }: { dette: Dette }) {
   return (
     <Card className={cardClass}>
       <CardContent className="p-3 space-y-2">
+
         {/* === ZONE PRINCIPALE (toujours visible) === */}
         <div className="flex justify-between items-start">
           <div>
@@ -149,13 +150,13 @@ function DetteDetail({ dette }: { dette: Dette }) {
 
             {/* Ajouter un remboursement */}
             {!dette.archived && reste > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2">
                 <Input type="number" step="0.01" placeholder="Montant"
-                  className="flex-1 h-8 min-w-[100px] text-sm" value={newMontant}
+                  className="flex-1 h-8 text-sm" value={newMontant}
                   onChange={e => setNewMontant(e.target.value)} />
-                <Input type="date" className="w-32 h-8 min-w-[140px] text-sm"
+                <Input type="date" className="w-32 h-8 text-sm"
                   value={newDate} onChange={e => setNewDate(e.target.value)} />
-                <Button size="sm" className="h-8 flex-shrink-0" onClick={() => {
+                <Button size="sm" className="h-8" onClick={() => {
                   if (!newMontant) return
                   addRemboursement.mutate({
                     dette_id: dette.id, montant: parseFloat(newMontant), date: newDate
@@ -218,6 +219,7 @@ function DetteDetail({ dette }: { dette: Dette }) {
             </div>
           </DialogContent>
         </Dialog>
+
       </CardContent>
     </Card>
   )
@@ -227,7 +229,6 @@ function DetteDetail({ dette }: { dette: Dette }) {
 export default function DettePage() {
   const { espace } = useApp()
   const { data: dettes = [], create, remboursements } = useDettes(espace?.id)
-
   const [tab, setTab] = useState<'je_dois' | 'jai_prete'>('je_dois')
   const [openAdd, setOpenAdd] = useState(false)
 
@@ -269,8 +270,32 @@ export default function DettePage() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* HEADER — titre seul */}
-      <h1 className="text-xl font-bold">Dettes</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold">Dettes</h1>
+        <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+          <DialogTrigger asChild>
+            <Button size="sm"><Plus className="w-4 h-4 mr-1" />Ajouter</Button>
+          </DialogTrigger>
+          <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {tab === 'je_dois' ? 'Nouvelle dette (je dois)' : 'Nouveau prêt (j\'ai prêté)'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Input placeholder="Titre (ex: Prêt voiture)" value={titre} onChange={e => setTitre(e.target.value)} />
+              <Input placeholder="Description (optionnel)" value={description} onChange={e => setDescription(e.target.value)} />
+              <Input placeholder={tab === 'je_dois' ? 'À qui je dois ?' : 'À qui j\'ai prêté ?'} value={personne} onChange={e => setPersonne(e.target.value)} />
+              <Input type="number" step="0.01" placeholder="Montant total" value={montant} onChange={e => setMontant(e.target.value)} />
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Date de remboursement souhaitée (optionnel)</label>
+                <Input type="date" value={dateEcheance} onChange={e => setDateEcheance(e.target.value)} />
+              </div>
+              <Button className="w-full" onClick={handleAdd}>Ajouter</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {/* Résumé */}
       <div className="grid grid-cols-2 gap-3">
@@ -307,6 +332,7 @@ export default function DettePage() {
             {tab === 'je_dois' ? 'Aucune dette enregistrée 🎉' : 'Aucun prêt enregistré'}
           </p>
         )}
+
         {dettesActives.map(dette => (
           <DetteDetail key={dette.id} dette={dette} />
         ))}
@@ -325,36 +351,6 @@ export default function DettePage() {
           </div>
         </details>
       )}
-
-      {/* DIALOG AJOUT DETTE (contrôlé par openAdd) */}
-      <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-        <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {tab === 'je_dois' ? 'Nouvelle dette (je dois)' : 'Nouveau prêt (j\'ai prêté)'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input placeholder="Titre (ex: Prêt voiture)" value={titre} onChange={e => setTitre(e.target.value)} />
-            <Input placeholder="Description (optionnel)" value={description} onChange={e => setDescription(e.target.value)} />
-            <Input placeholder={tab === 'je_dois' ? 'À qui je dois ?' : 'À qui j\'ai prêté ?'} value={personne} onChange={e => setPersonne(e.target.value)} />
-            <Input type="number" step="0.01" placeholder="Montant total" value={montant} onChange={e => setMontant(e.target.value)} />
-            <div>
-              <label className="text-sm text-slate-400 mb-1 block">Date de remboursement souhaitée (optionnel)</label>
-              <Input type="date" value={dateEcheance} onChange={e => setDateEcheance(e.target.value)} />
-            </div>
-            <Button className="w-full" onClick={handleAdd}>Ajouter</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* FAB — bouton flottant */}
-      <button
-        onClick={() => setOpenAdd(true)}
-        className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
     </div>
   )
 }

@@ -38,11 +38,13 @@ export default function EpargnePage() {
   const [openEnv, setOpenEnv] = useState(false)
   const [newEnvNom, setNewEnvNom] = useState('')
   const [newEnvObjectif, setNewEnvObjectif] = useState<number | null>(null)
+  const [newEnvSolde, setNewEnvSolde] = useState<number | null>(null)
 
   // États édition enveloppe
   const [editEnv, setEditEnv] = useState<{ id: string; nom: string; objectif: number | null } | null>(null)
   const [editEnvNom, setEditEnvNom] = useState('')
   const [editEnvObjectif, setEditEnvObjectif] = useState<number | null>(null)
+  const [editEnvSolde, setEditEnvSolde] = useState<number>(0)
 
   // Afficher/masquer archivées
   const [showArchived, setShowArchived] = useState(false)
@@ -82,19 +84,21 @@ export default function EpargnePage() {
     await createEnv.mutateAsync({
       espace_id: espace.id,
       nom: newEnvNom.trim(),
-      solde: 0,
+      solde: newEnvSolde ?? 0,
       objectif: newEnvObjectif,
       ordre: enveloppes.length,
     })
     setNewEnvNom('')
     setNewEnvObjectif(null)
+    setNewEnvSolde(null)
     setOpenEnv(false)
   }
 
-  const handleEditEnv = (env: { id: string; nom: string; objectif: number | null }) => {
+  const handleEditEnv = (env: { id: string; nom: string; objectif: number | null; solde: number }) => {
     setEditEnv(env)
     setEditEnvNom(env.nom)
     setEditEnvObjectif(env.objectif)
+    setEditEnvSolde(Number(env.solde))
   }
 
   const handleSaveEditEnv = async () => {
@@ -103,6 +107,7 @@ export default function EpargnePage() {
       id: editEnv.id,
       nom: editEnvNom,
       objectif: editEnvObjectif,
+      solde: editEnvSolde,
     })
     setEditEnv(null)
   }
@@ -237,6 +242,11 @@ export default function EpargnePage() {
                   const val = e.target.value
                   setNewEnvObjectif(val === '' ? null : parseFloat(val))
                 }} />
+              <Input type="number" step="0.01" placeholder="Solde initial (optionnel)"
+                value={newEnvSolde ?? ''} onChange={e => {
+                  const val = e.target.value
+                  setNewEnvSolde(val === '' ? null : parseFloat(val))
+                }} />
               <Button className="w-full" onClick={handleCreateEnv}>Créer</Button>
             </div>
           </DialogContent>
@@ -271,7 +281,7 @@ export default function EpargnePage() {
                     <p className="font-medium text-sm truncate">{env.nom}</p>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                        onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif })}>
+                        onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde) })}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
@@ -467,6 +477,12 @@ export default function EpargnePage() {
                     setEditEnvObjectif(val === '' ? null : parseFloat(val))
                   }}
                   placeholder="Laisser vide = pas d'objectif" />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Solde actuel (€)</label>
+                <Input type="number" step="0.01"
+                  value={editEnvSolde}
+                  onChange={e => setEditEnvSolde(parseFloat(e.target.value) || 0)} />
               </div>
               <Button className="w-full" onClick={handleSaveEditEnv}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditEnv(null)}>Annuler</Button>

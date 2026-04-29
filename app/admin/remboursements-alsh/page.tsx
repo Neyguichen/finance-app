@@ -7,7 +7,7 @@ import { useRemboursementsAlsh } from '@/lib/hooks/useRemboursementsAlsh'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Plus, Trash2, Pencil, ExternalLink } from 'lucide-react'
 import { formatDate, formatEuro } from '@/lib/utils'
 import type { RemboursementAlsh } from '@/lib/types'
@@ -76,6 +76,7 @@ export default function RemboursementsAlshPage() {
 
   const handleSubmit = async () => {
     if (!periodeDebut || !periodeFin || !userId) return
+
     const payload = {
       user_id: userId,
       lien_facture: lienFacture || null,
@@ -87,6 +88,7 @@ export default function RemboursementsAlshPage() {
       montant: montant ? parseFloat(montant) : null,
       note: note || null,
     }
+
     if (editItem) {
       await update.mutateAsync({ id: editItem.id, ...payload })
     } else {
@@ -102,65 +104,67 @@ export default function RemboursementsAlshPage() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* HEADER — titre seul */}
-      <h1 className="text-xl font-bold">🏕️ Remboursements ALSH</h1>
-
-      {/* DIALOG (ajout + édition, contrôlé par open) */}
-      <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); setOpen(v) }}>
-        <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-md mx-auto max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editItem ? 'Modifier' : 'Nouveau remboursement'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-slate-400">Lien facture (Google Drive)</label>
-              <Input placeholder="https://drive.google.com/..." value={lienFacture} onChange={e => setLienFacture(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold">🏕️ Remboursements ALSH</h1>
+        <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); setOpen(v) }}>
+          <DialogTrigger asChild>
+            <Button size="sm"><Plus className="w-4 h-4 mr-1" />Ajouter</Button>
+          </DialogTrigger>
+          <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editItem ? 'Modifier' : 'Nouveau remboursement'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
               <div>
-                <label className="text-xs text-slate-400">Période début</label>
-                <Input type="date" value={periodeDebut} onChange={e => setPeriodeDebut(e.target.value)} />
+                <label className="text-xs text-slate-400">Lien facture (Google Drive)</label>
+                <Input placeholder="https://drive.google.com/..." value={lienFacture} onChange={e => setLienFacture(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-slate-400">Période début</label>
+                  <Input type="date" value={periodeDebut} onChange={e => setPeriodeDebut(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Période fin</label>
+                  <Input type="date" value={periodeFin} onChange={e => setPeriodeFin(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-slate-400">Date paiement</label>
+                  <Input type="date" value={datePaiement} onChange={e => setDatePaiement(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Partagé à Audrey</label>
+                  <Input type="date" value={datePartage} onChange={e => setDatePartage(e.target.value)} />
+                </div>
               </div>
               <div>
-                <label className="text-xs text-slate-400">Période fin</label>
-                <Input type="date" value={periodeFin} onChange={e => setPeriodeFin(e.target.value)} />
+                <label className="text-xs text-slate-400">Statut</label>
+                <div className="grid grid-cols-2 gap-1 mt-1">
+                  {STATUTS.map(s => (
+                    <button key={s.value} type="button" onClick={() => setStatut(s.value)}
+                      className={`py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
+                        statut === s.value ? s.color : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      }`}>{s.label}</button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-slate-400">Date paiement</label>
-                <Input type="date" value={datePaiement} onChange={e => setDatePaiement(e.target.value)} />
+                <label className="text-xs text-slate-400">Montant (optionnel)</label>
+                <Input type="number" step="0.01" placeholder="0.00" value={montant} onChange={e => setMontant(e.target.value)} />
               </div>
               <div>
-                <label className="text-xs text-slate-400">Partagé à Audrey</label>
-                <Input type="date" value={datePartage} onChange={e => setDatePartage(e.target.value)} />
+                <label className="text-xs text-slate-400">Note</label>
+                <Input placeholder="Note..." value={note} onChange={e => setNote(e.target.value)} />
               </div>
+              <Button className="w-full" onClick={handleSubmit}>
+                {editItem ? 'Enregistrer' : 'Ajouter'}
+              </Button>
             </div>
-            <div>
-              <label className="text-xs text-slate-400">Statut</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1">
-                {STATUTS.map(s => (
-                  <button key={s.value} type="button" onClick={() => setStatut(s.value)}
-                    className={`py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
-                      statut === s.value ? s.color : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                    }`}>{s.label}</button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-slate-400">Montant (optionnel)</label>
-              <Input type="number" step="0.01" placeholder="0.00" value={montant} onChange={e => setMontant(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400">Note</label>
-              <Input placeholder="Note..." value={note} onChange={e => setNote(e.target.value)} />
-            </div>
-            <Button className="w-full" onClick={handleSubmit}>
-              {editItem ? 'Enregistrer' : 'Ajouter'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {/* Résumé */}
       <Card className="bg-slate-900 border-slate-800">
@@ -204,11 +208,13 @@ export default function RemboursementsAlshPage() {
                   </Button>
                 </div>
               </div>
+
               <div className="text-xs text-slate-500 space-y-0.5">
                 {item.date_paiement && <p>💳 Payé le {formatDate(item.date_paiement)}</p>}
                 {item.date_partage_audrey && <p>📤 Partagé à Audrey le {formatDate(item.date_partage_audrey)}</p>}
                 {item.note && <p className="text-slate-400 italic">{item.note}</p>}
               </div>
+
               {item.lien_facture && (
                 <a href={item.lien_facture} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-blue-400 hover:underline">
@@ -222,14 +228,6 @@ export default function RemboursementsAlshPage() {
           <p className="text-center text-slate-500 py-8">Aucun remboursement pour le moment</p>
         )}
       </div>
-
-      {/* FAB — bouton flottant */}
-      <button
-        onClick={() => { resetForm(); setOpen(true) }}
-        className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
     </div>
   )
 }
