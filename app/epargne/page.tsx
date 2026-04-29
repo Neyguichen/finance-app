@@ -95,17 +95,18 @@ export default function EpargnePage() {
     setOpenEnv(false)
   }
 
-  const handleEditEnv = (env: { id: string; nom: string; objectif: number | null; solde: number }) => {
+  const handleEditEnv = (env: { id: string; nom: string; objectif: number | null; solde: number; solde_initial: number }) => {
     setEditEnv(env)
     setEditEnvNom(env.nom)
     setEditEnvObjectif(env.objectif)
     setEditEnvSolde(Number(env.solde))
+    setEditEnvSoldeInitial(Number(env.solde_initial))
   }
 
   const handleSaveEditEnv = async () => {
     if (!editEnv) return
   
-    const oldInitial = Number(editEnv.solde_initial) || 0
+    const oldInitial = editEnvSoldeInitial
     const newInitial = editEnvSolde
     const diff = newInitial - oldInitial
   
@@ -113,7 +114,7 @@ export default function EpargnePage() {
       id: editEnv.id,
       nom: editEnvNom,
       objectif: editEnvObjectif,
-      solde_initial: newInitial,
+      solde_initial: newSolde,
       solde: Number(editEnv.solde) + diff,
     })
     setEditEnv(null)
@@ -488,8 +489,8 @@ export default function EpargnePage() {
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Solde Initial (€)</label>
                 <Input type="number" step="0.01"
-                  value={editEnvSolde}
-                  onChange={e => setEditEnvSolde(parseFloat(e.target.value) || 0)} />
+                  value={editEnvSoldeInitial}
+                  onChange={e => setEditEnvSoldeInitial(parseFloat(e.target.value) || 0)} />
               </div>
               <Button className="w-full" onClick={handleSaveEditEnv}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditEnv(null)}>Annuler</Button>
