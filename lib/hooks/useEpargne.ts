@@ -24,7 +24,7 @@ export function useEnveloppes(espaceId: string | undefined) {
   })
 
   const create = useMutation({
-    mutationFn: async (env: Omit<Enveloppe, 'id' | 'archived'>) => {
+    mutationFn: async (env: Omit<Enveloppe, 'id'>) => {
       const { data, error } = await supabase
         .from('enveloppes')
         .insert(env)
@@ -38,7 +38,7 @@ export function useEnveloppes(espaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
-
+  
   const update = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Enveloppe> & { id: string }) => {
       const { error } = await supabase
