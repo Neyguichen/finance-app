@@ -1,7 +1,7 @@
 'use client'
 /* eslint-disable react-hooks/exhaustive-deps */
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useMois } from '@/lib/hooks/useMois'
 import { currentMonth } from '@/lib/utils'
@@ -81,13 +81,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId])
 
   // 3. Récupérer ou créer le mois actif pour l'espace sélectionné
+  const moisCache = useRef<Map<string, string>>(new Map())
+
   useEffect(() => {
     if (!espace || !userId) return
+    const cacheKey = `${espace.id}_${month}`
+    const cached = moisCache.current.get(cacheKey)
+    if (cached) {
+      setMoisId(cached)
+      return
+    }
     getOrCreate.mutateAsync({
       espace_id: espace.id,
       mois: month,
       user_id: userId,
-    }).then(m => setMoisId(m.id))
+    }).then(m => {
+      moisCache.current.set(cacheKey, m.id)
+      setMoisId(m.id)
+    })
   }, [espace, month, userId])
 
   // Ajouter un espace (avec solde_initial optionnel)
