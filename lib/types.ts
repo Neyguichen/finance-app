@@ -4,6 +4,7 @@ export interface Espace {
   nom: string
   icone: string
   ordre: number
+  solde_initial: number
   created_at: string
 }
 
