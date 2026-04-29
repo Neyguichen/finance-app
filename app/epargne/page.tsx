@@ -115,7 +115,7 @@ export default function EpargnePage() {
       id: editEnv.id,
       nom: editEnvNom,
       objectif: editEnvObjectif,
-      solde_initial: newSolde,
+      solde_initial: editEnvSoldeInitial,
       solde: Number(editEnv.solde) + diff,
     })
     setEditEnv(null)
