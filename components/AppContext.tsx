@@ -118,7 +118,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Recharger les espaces (utile après calibration)
   const refreshEspaces = async () => {
-    await loadEspaces()
+    if (!userId) return
+    const { data } = await supabase
+      .from('espaces')
+      .select('*')
+      .eq('user_id', userId)
+      .order('ordre')
+    setEspaces(data || [])
   }
 
   const ctxValue: AppContextType = {

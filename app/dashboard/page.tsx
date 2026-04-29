@@ -5,7 +5,6 @@ import { useDbUsage } from '@/lib/hooks/useDbUsage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import MonthSelector from '@/components/layout/MonthSelector'
@@ -17,7 +16,7 @@ import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useResteM1 } from '@/lib/hooks/useResteM1'
 import { useApp } from '@/components/AppContext'
-import { Plus, Database } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import type { Remboursement } from '@/lib/types'
 import { formatEuro, pct, getCategoryColor } from '@/lib/utils'
 import {
@@ -31,7 +30,6 @@ export default function DashboardPage() {
   const [newIcone, setNewIcone] = useState('🏠')
   const [newSoldeInitial, setNewSoldeInitial] = useState<number | null>(null)
 
-  const { data: dbUsage } = useDbUsage()
   const { data: revenus = [] } = useRevenus(moisId)
   const { data: charges = [] } = useChargesFixes(moisId)
   const { data: transactions = [] } = useTransactions(moisId)
