@@ -84,6 +84,7 @@ export default function EpargnePage() {
     await createEnv.mutateAsync({
       espace_id: espace.id,
       nom: newEnvNom.trim(),
+      solde_initial: newEnvSolde ?? 0,
       solde: newEnvSolde ?? 0,
       objectif: newEnvObjectif,
       ordre: enveloppes.length,
@@ -103,11 +104,17 @@ export default function EpargnePage() {
 
   const handleSaveEditEnv = async () => {
     if (!editEnv) return
+  
+    const oldInitial = Number(editEnv.solde_initial) || 0
+    const newInitial = editEnvSolde
+    const diff = newInitial - oldInitial
+  
     await updateEnv.mutateAsync({
       id: editEnv.id,
       nom: editEnvNom,
       objectif: editEnvObjectif,
-      solde: editEnvSolde,
+      solde_initial: newInitial,
+      solde: Number(editEnv.solde) + diff,
     })
     setEditEnv(null)
   }
@@ -479,7 +486,7 @@ export default function EpargnePage() {
                   placeholder="Laisser vide = pas d'objectif" />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Solde actuel (€)</label>
+                <label className="text-sm text-slate-400 mb-1 block">Solde Initial (€)</label>
                 <Input type="number" step="0.01"
                   value={editEnvSolde}
                   onChange={e => setEditEnvSolde(parseFloat(e.target.value) || 0)} />

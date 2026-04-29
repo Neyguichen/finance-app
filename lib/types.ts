@@ -103,6 +103,7 @@ export interface Enveloppe {
   espace_id: string
   nom: string
   solde: number
+  solde_initial: number
   objectif: number | null
   ordre: number
   archived?: boolean
