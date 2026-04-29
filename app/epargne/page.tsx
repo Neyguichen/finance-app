@@ -45,6 +45,7 @@ export default function EpargnePage() {
   const [editEnvNom, setEditEnvNom] = useState('')
   const [editEnvObjectif, setEditEnvObjectif] = useState<number | null>(null)
   const [editEnvSolde, setEditEnvSolde] = useState<number>(0)
+  const [editEnvSoldeInitial, setEditEnvSoldeInitial] = useState(0)
 
   // Afficher/masquer archivées
   const [showArchived, setShowArchived] = useState(false)
