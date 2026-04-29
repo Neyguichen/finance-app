@@ -41,7 +41,7 @@ export default function EpargnePage() {
   const [newEnvSolde, setNewEnvSolde] = useState<number | null>(null)
 
   // États édition enveloppe
-  const [editEnv, setEditEnv] = useState<{ id: string; nom: string; objectif: number | null } | null>(null)
+  const [editEnv, setEditEnv] = useState<{ id: string; nom: string; objectif: number | null; solde: number; solde_initial: number } | null>(null)
   const [editEnvNom, setEditEnvNom] = useState('')
   const [editEnvObjectif, setEditEnvObjectif] = useState<number | null>(null)
   const [editEnvSolde, setEditEnvSolde] = useState<number>(0)
@@ -107,9 +107,8 @@ export default function EpargnePage() {
   const handleSaveEditEnv = async () => {
     if (!editEnv) return
   
-    const oldInitial = editEnvSoldeInitial
-    const newInitial = editEnvSolde
-    const diff = newInitial - oldInitial
+    const oldInitial = Number(editEnv.solde_initial) || 0
+    const diff = editEnvSoldeInitial  - oldInitial
   
     await updateEnv.mutateAsync({
       id: editEnv.id,
