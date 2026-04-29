@@ -4,7 +4,6 @@ export interface Espace {
   nom: string
   icone: string
   ordre: number
-  solde_initial: number
   created_at: string
 }
 
@@ -23,8 +22,8 @@ export interface RevenuRecurrent {
   montant: number
   actif: boolean
   frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
-  ordre: number
   mois_debut: string | null
+  ordre: number
   created_at: string
 }
 
@@ -46,8 +45,8 @@ export interface ChargeFixeRecurrente {
   montant: number
   actif: boolean
   frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
-  ordre: number
   mois_debut: string | null
+  ordre: number
   created_at: string
 }
 
@@ -103,10 +102,9 @@ export interface Enveloppe {
   espace_id: string
   nom: string
   solde: number
-  solde_initial: number
   objectif: number | null
   ordre: number
-  archived?: boolean
+  archived: boolean
 }
 
 export interface EpargneRecurrente {
@@ -116,9 +114,9 @@ export interface EpargneRecurrente {
   montant: number
   actif: boolean
   frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
+  mois_debut: string | null
   note: string | null
   ordre: number
-  mois_debut: string | null
   created_at: string
 }
 

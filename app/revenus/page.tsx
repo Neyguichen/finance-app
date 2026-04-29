@@ -26,14 +26,13 @@ const FREQUENCES = [
 export default function RevenusPage() {
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; nom: string } | null>(null)
-  const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId: string | null } | null>(null)
-  const [scopeTarget, setScopeTarget] = useState<{ id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId: string } | null>(null)
+  const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number; type: 'actif' | 'passif' } | null>(null)
   const [editNom, setEditNom] = useState('')
   const [editMontant, setEditMontant] = useState(0)
   const [editType, setEditType] = useState<'actif' | 'passif'>('actif')
   const { moisId, month, setMonth, espace } = useApp()
   const { data: revenus = [], toggleRecu, create, update, remove, removeDefinitif } = useRevenus(moisId)
-  const { create: createRecurrent, update: updateRecurrent } = useRevenusRecurrents(espace?.id)
+  const { create: createRecurrent } = useRevenusRecurrents(espace?.id)
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: enveloppes = [] } = useEnveloppes(espace?.id)
 
@@ -99,52 +98,22 @@ export default function RevenusPage() {
     setDeleteTarget(null)
   }
 
-  const handleEdit = (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId: string | null }) => {
+  const handleEdit = (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif' }) => {
     setEditTarget(rev)
     setEditNom(rev.nom)
     setEditMontant(Number(rev.montant))
     setEditType(rev.type)
   }
-  
+
   const handleSaveEdit = async () => {
     if (!editTarget) return
-    if (editTarget.recurrentId) {
-      setScopeTarget({
-        id: editTarget.id,
-        nom: editNom,
-        montant: editMontant,
-        type: editType,
-        recurrentId: editTarget.recurrentId,
-      })
-      setEditTarget(null)
-    } else {
-      await update.mutateAsync({
-        id: editTarget.id,
-        nom: editNom,
-        montant: editMontant,
-        type: editType,
-      })
-      setEditTarget(null)
-    }
-  }
-  
-  const handleScopeEdit = async (scope: 'mois' | 'tous') => {
-    if (!scopeTarget) return
     await update.mutateAsync({
-      id: scopeTarget.id,
-      nom: scopeTarget.nom,
-      montant: scopeTarget.montant,
-      type: scopeTarget.type,
+      id: editTarget.id,
+      nom: editNom,
+      montant: editMontant,
+      type: editType,
     })
-    if (scope === 'tous') {
-      await updateRecurrent.mutateAsync({
-        id: scopeTarget.recurrentId,
-        nom: scopeTarget.nom,
-        montant: scopeTarget.montant,
-        type: scopeTarget.type,
-      })
-    }
-    setScopeTarget(null)
+    setEditTarget(null)
   }
 
   return (
@@ -209,7 +178,7 @@ export default function RevenusPage() {
                     {formatEuro(Number(rev.montant))}
                   </span>
                   <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => handleEdit({ id: rev.id, nom: rev.nom, montant: Number(rev.montant), type: rev.type, recurrentId: rev.recurrent_id })}>
+                    onClick={() => handleEdit({ id: rev.id, nom: rev.nom, montant: Number(rev.montant), type: rev.type })}>
                     <Pencil className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
@@ -320,26 +289,6 @@ export default function RevenusPage() {
               </div>
               <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* DIALOG CHOIX DE SCOPE */}
-        <Dialog open={!!scopeTarget} onOpenChange={(v) => { if (!v) setScopeTarget(null) }}>
-          <DialogContent className="bg-slate-900 border-slate-700">
-            <DialogHeader>
-              <DialogTitle>Modifier &laquo; {scopeTarget?.nom} &raquo;</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <Button className="w-full" variant="outline" onClick={() => handleScopeEdit('mois')}>
-                Ce mois seulement
-              </Button>
-              <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white" onClick={() => handleScopeEdit('tous')}>
-                Tous les prochains mois
-              </Button>
-              <Button className="w-full" variant="ghost" onClick={() => setScopeTarget(null)}>
-                Annuler
-              </Button>
             </div>
           </DialogContent>
         </Dialog>

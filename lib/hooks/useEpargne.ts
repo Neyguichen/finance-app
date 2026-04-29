@@ -24,7 +24,7 @@ export function useEnveloppes(espaceId: string | undefined) {
   })
 
   const create = useMutation({
-    mutationFn: async (env: Omit<Enveloppe, 'id'>) => {
+    mutationFn: async (env: Omit<Enveloppe, 'id' | 'archived'>) => {
       const { data, error } = await supabase
         .from('enveloppes')
         .insert(env)
@@ -38,7 +38,7 @@ export function useEnveloppes(espaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
     },
   })
-  
+
   const update = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Enveloppe> & { id: string }) => {
       const { error } = await supabase
@@ -202,16 +202,5 @@ export function useEpargneRecurrentes(espaceId: string | undefined) {
     },
   })
 
-  const update = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<EpargneRecurrente> & { id: string }) => {
-      const { error } = await supabase
-        .from('epargne_recurrentes')
-        .update(updates)
-        .eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
-  })
-  
-  return { ...query, create, update }
+  return { ...query, create }
 }

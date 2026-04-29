@@ -11,7 +11,7 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
     queryKey: ['enveloppes_at_month', espaceId, month],
     enabled: !!espaceId,
     queryFn: async () => {
-      // 1. Charger les enveloppes (avec solde_initial)
+      // 1. Charger les enveloppes (pour nom, objectif, ordre…)
       const { data: enveloppes, error: envErr } = await supabase
         .from('enveloppes')
         .select('*')
@@ -19,7 +19,7 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
         .order('ordre')
       if (envErr) throw envErr
 
-      // 2. Récupérer les mois_id jusqu'au mois sélectionné (inclus)
+      // 2. Récupérer tous les mois_id jusqu'au mois sélectionné (inclus)
       const { data: moisList, error: moisErr } = await supabase
         .from('mois')
         .select('id')
@@ -29,12 +29,9 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
 
       const moisIds = (moisList || []).map(m => m.id)
 
-      // Aucun mois → solde = solde_initial uniquement
+      // Aucun mois → solde 0 partout
       if (moisIds.length === 0) {
-        return (enveloppes || []).map(e => ({
-          ...e,
-          solde: Number(e.solde_initial) || 0,
-        })) as Enveloppe[]
+        return (enveloppes || []).map(e => ({ ...e, solde: 0 })) as Enveloppe[]
       }
 
       // 3. Charger tous les mouvements jusqu'à ce mois
@@ -44,7 +41,7 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
         .in('mois_id', moisIds)
       if (mvtErr) throw mvtErr
 
-      // 4. Calculer le cumul des mouvements par enveloppe
+      // 4. Calculer le solde cumulé par enveloppe
       const soldeMap: Record<string, number> = {}
       for (const mvt of (mouvements || [])) {
         if (mvt.type === 'epargne' && mvt.enveloppe_dest_id) {
@@ -61,10 +58,9 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
         }
       }
 
-      // 5. solde affiché = solde_initial + cumul mouvements
       return (enveloppes || []).map(e => ({
         ...e,
-        solde: (Number(e.solde_initial) || 0) + (soldeMap[e.id] || 0),
+        solde: soldeMap[e.id] || 0,
       })) as Enveloppe[]
     },
   })

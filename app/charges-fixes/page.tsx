@@ -25,17 +25,12 @@ const FREQUENCES = [
 export default function ChargesFixesPage() {
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; nom: string } | null>(null)
-  // ✅ recurrentId ajouté dans editTarget
-  const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number; recurrentId: string | null } | null>(null)
+  const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number } | null>(null)
   const [editNom, setEditNom] = useState('')
   const [editMontant, setEditMontant] = useState(0)
-  // ✅ Nouveau state pour le choix de scope
-  const [scopeTarget, setScopeTarget] = useState<{ id: string; nom: string; montant: number; recurrentId: string } | null>(null)
-
   const { moisId, month, setMonth, espace } = useApp()
   const { data: charges = [], togglePayee, create, update, remove, removeDefinitif } = useChargesFixes(moisId)
-  // ✅ Destructurer update depuis le hook récurrent
-  const { create: createRecurrent, update: updateRecurrent } = useChargesFixesRecurrentes(espace?.id)
+  const { create: createRecurrent } = useChargesFixesRecurrentes(espace?.id)
 
   const total = charges.reduce((s, c) => s + Number(c.montant), 0)
   const totalPayee = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
@@ -91,54 +86,20 @@ export default function ChargesFixesPage() {
     setDeleteTarget(null)
   }
 
-  // ✅ recurrentId capturé dans handleEdit
-  const handleEdit = (charge: { id: string; nom: string; montant: number; recurrentId: string | null }) => {
+  const handleEdit = (charge: { id: string; nom: string; montant: number }) => {
     setEditTarget(charge)
     setEditNom(charge.nom)
     setEditMontant(Number(charge.montant))
   }
 
-  // ✅ Logique de scope dans handleSaveEdit
   const handleSaveEdit = async () => {
     if (!editTarget) return
-    if (editTarget.recurrentId) {
-      // Récurrent → ouvrir le choix de scope
-      setScopeTarget({
-        id: editTarget.id,
-        nom: editNom,
-        montant: editMontant,
-        recurrentId: editTarget.recurrentId,
-      })
-      setEditTarget(null)
-    } else {
-      // Ponctuel → sauver directement
-      await update.mutateAsync({
-        id: editTarget.id,
-        nom: editNom,
-        montant: editMontant,
-      })
-      setEditTarget(null)
-    }
-  }
-
-  // ✅ Handler pour le choix de scope
-  const handleScopeEdit = async (scope: 'mois' | 'tous') => {
-    if (!scopeTarget) return
-    // Toujours mettre à jour l'instance du mois
     await update.mutateAsync({
-      id: scopeTarget.id,
-      nom: scopeTarget.nom,
-      montant: scopeTarget.montant,
+      id: editTarget.id,
+      nom: editNom,
+      montant: editMontant,
     })
-    // Si "tous les prochains mois", mettre à jour aussi le modèle récurrent
-    if (scope === 'tous') {
-      await updateRecurrent.mutateAsync({
-        id: scopeTarget.recurrentId,
-        nom: scopeTarget.nom,
-        montant: scopeTarget.montant,
-      })
-    }
-    setScopeTarget(null)
+    setEditTarget(null)
   }
 
   return (
@@ -214,9 +175,8 @@ export default function ChargesFixesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-purple-400">{formatEuro(Number(charge.montant))}</span>
-                  {/* ✅ recurrentId passé dans handleEdit */}
                   <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => handleEdit({ id: charge.id, nom: charge.nom, montant: Number(charge.montant), recurrentId: charge.recurrent_id })}>
+                    onClick={() => handleEdit({ id: charge.id, nom: charge.nom, montant: Number(charge.montant) })}>
                     <Pencil className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
@@ -240,26 +200,6 @@ export default function ChargesFixesPage() {
               <CalculatorInput value={editMontant} onChange={(val) => setEditMontant(val)} placeholder="Montant" />
               <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* ✅ DIALOG CHOIX DE SCOPE (nouveau) */}
-        <Dialog open={!!scopeTarget} onOpenChange={(v) => { if (!v) setScopeTarget(null) }}>
-          <DialogContent className="bg-slate-900 border-slate-700">
-            <DialogHeader>
-              <DialogTitle>Modifier &laquo; {scopeTarget?.nom} &raquo;</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <Button className="w-full" variant="outline" onClick={() => handleScopeEdit('mois')}>
-                Ce mois seulement
-              </Button>
-              <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white" onClick={() => handleScopeEdit('tous')}>
-                Tous les prochains mois
-              </Button>
-              <Button className="w-full" variant="ghost" onClick={() => setScopeTarget(null)}>
-                Annuler
-              </Button>
             </div>
           </DialogContent>
         </Dialog>

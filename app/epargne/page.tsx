@@ -25,10 +25,8 @@ export default function EpargnePage() {
   const { moisId, month, setMonth, espace } = useApp()
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
-  // ✅ Ajout de update: updateMvt
-  const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
-  // ✅ Ajout de update: updateRecurrent
-  const { create: createRecurrent, update: updateRecurrent } = useEpargneRecurrentes(espace?.id)
+  const { data: mouvements = [], create: createMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
+  const { create: createRecurrent } = useEpargneRecurrentes(espace?.id)
 
   // Séparer actives et archivées
   const enveloppesActives = enveloppes.filter(e => !e.archived)
@@ -38,14 +36,11 @@ export default function EpargnePage() {
   const [openEnv, setOpenEnv] = useState(false)
   const [newEnvNom, setNewEnvNom] = useState('')
   const [newEnvObjectif, setNewEnvObjectif] = useState<number | null>(null)
-  const [newEnvSolde, setNewEnvSolde] = useState<number | null>(null)
 
   // États édition enveloppe
-  const [editEnv, setEditEnv] = useState<{ id: string; nom: string; objectif: number | null; solde: number; solde_initial: number } | null>(null)
+  const [editEnv, setEditEnv] = useState<{ id: string; nom: string; objectif: number | null } | null>(null)
   const [editEnvNom, setEditEnvNom] = useState('')
   const [editEnvObjectif, setEditEnvObjectif] = useState<number | null>(null)
-  const [editEnvSolde, setEditEnvSolde] = useState<number>(0)
-  const [editEnvSoldeInitial, setEditEnvSoldeInitial] = useState(0)
 
   // Afficher/masquer archivées
   const [showArchived, setShowArchived] = useState(false)
@@ -62,14 +57,6 @@ export default function EpargnePage() {
   // État suppression mouvement
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; note: string | null } | null>(null)
 
-  // ✅ États édition mouvement (nouveau)
-  const [editMvt, setEditMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string | null } | null>(null)
-  const [editMvtMontant, setEditMvtMontant] = useState(0)
-  const [editMvtNote, setEditMvtNote] = useState('')
-
-  // ✅ État choix de scope mouvement (nouveau)
-  const [scopeMvt, setScopeMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string } | null>(null)
-
   // Speed Dial FAB
   const [fabOpen, setFabOpen] = useState(false)
 
@@ -80,53 +67,45 @@ export default function EpargnePage() {
   // Total disponible en épargne (somme des soldes)
   const totalDisponible = enveloppesActives.reduce((s, e) => s + Number(e.solde), 0)
 
+
   const handleCreateEnv = async () => {
     if (!espace || !newEnvNom.trim()) return
     await createEnv.mutateAsync({
       espace_id: espace.id,
       nom: newEnvNom.trim(),
-      solde_initial: newEnvSolde ?? 0,
-      solde: newEnvSolde ?? 0,
+      solde: 0,
       objectif: newEnvObjectif,
       ordre: enveloppes.length,
     })
     setNewEnvNom('')
     setNewEnvObjectif(null)
-    setNewEnvSolde(null)
     setOpenEnv(false)
   }
 
-  const handleEditEnv = (env: { id: string; nom: string; objectif: number | null; solde: number; solde_initial: number }) => {
+  const handleEditEnv = (env: { id: string; nom: string; objectif: number | null }) => {
     setEditEnv(env)
     setEditEnvNom(env.nom)
     setEditEnvObjectif(env.objectif)
-    setEditEnvSolde(Number(env.solde))
-    setEditEnvSoldeInitial(Number(env.solde_initial))
   }
 
   const handleSaveEditEnv = async () => {
     if (!editEnv) return
-  
-    const oldInitial = Number(editEnv.solde_initial) || 0
-    const diff = editEnvSoldeInitial  - oldInitial
-  
     await updateEnv.mutateAsync({
       id: editEnv.id,
       nom: editEnvNom,
       objectif: editEnvObjectif,
-      solde_initial: editEnvSoldeInitial,
-      solde: Number(editEnv.solde) + diff,
     })
     setEditEnv(null)
   }
 
   const handleCreateMvt = async () => {
     if (!moisId || !espace || mvtMontant <= 0) return
-    // Forcer ponctuel pour reprise et transfert
+    // Forcer ponctuel pour reprise et transfert (pas de modèle récurrent possible)
     const freq = mvtType === 'epargne' ? mvtFreq : 0
     const sourceId = (mvtType === 'reprise' || mvtType === 'transfert') ? (mvtSourceId || null) : null
     const destId = (mvtType === 'epargne' || mvtType === 'transfert') ? (mvtDestId || null) : null
 
+    // Validation
     const montantNum = parseFloat(String(mvtMontant))
     if (isNaN(montantNum) || montantNum <= 0) return
     if (mvtType === 'reprise' && !sourceId) return
@@ -134,6 +113,7 @@ export default function EpargnePage() {
     if (mvtType === 'transfert' && (!sourceId || !destId)) return
 
     if (freq === 0) {
+      // Ponctuel
       await createMvt.mutateAsync({
         mois_id: moisId,
         recurrent_id: null,
@@ -145,6 +125,7 @@ export default function EpargnePage() {
         note: mvtNote || null,
       })
     } else {
+      // Récurrent (uniquement pour type 'epargne')
       const rec = await createRecurrent.mutateAsync({
         espace_id: espace.id,
         enveloppe_dest_id: destId!,
@@ -161,7 +142,7 @@ export default function EpargnePage() {
         enveloppe_source_id: null,
         enveloppe_dest_id: destId,
         montant: montantNum,
-        type: 'epargne' as const,
+        type: 'epargne',
         date: month,
         note: mvtNote || null,
       })
@@ -184,52 +165,6 @@ export default function EpargnePage() {
     setDeleteTarget(null)
   }
 
-  // ✅ Fonctions d'édition mouvement (nouveau)
-  const handleEditMvt = (mvt: { id: string; montant: number; note: string | null; recurrentId: string | null }) => {
-    setEditMvt(mvt)
-    setEditMvtMontant(Number(mvt.montant))
-    setEditMvtNote(mvt.note || '')
-  }
-
-  const handleSaveEditMvt = async () => {
-    if (!editMvt) return
-    if (editMvt.recurrentId) {
-      // Récurrent → ouvrir le choix de scope
-      setScopeMvt({
-        id: editMvt.id,
-        montant: editMvtMontant,
-        note: editMvtNote || null,
-        recurrentId: editMvt.recurrentId,
-      })
-      setEditMvt(null)
-    } else {
-      // Ponctuel → sauver directement
-      await updateMvt.mutateAsync({
-        id: editMvt.id,
-        montant: editMvtMontant,
-        note: editMvtNote || null,
-      })
-      setEditMvt(null)
-    }
-  }
-
-  const handleScopeEditMvt = async (scope: 'mois' | 'tous') => {
-    if (!scopeMvt) return
-    await updateMvt.mutateAsync({
-      id: scopeMvt.id,
-      montant: scopeMvt.montant,
-      note: scopeMvt.note,
-    })
-    if (scope === 'tous') {
-      await updateRecurrent.mutateAsync({
-        id: scopeMvt.recurrentId,
-        montant: scopeMvt.montant,
-        note: scopeMvt.note,
-      })
-    }
-    setScopeMvt(null)
-  }
-
   const getEnvNom = (id: string | null) => enveloppes.find(e => e.id === id)?.nom || '—'
 
   return (
@@ -239,7 +174,7 @@ export default function EpargnePage() {
         {/* HEADER */}
         <h1 className="text-xl font-bold">Épargne</h1>
 
-        {/* DIALOG CRÉATION ENVELOPPE */}
+        {/* DIALOG CRÉATION ENVELOPPE (ouvert par FAB) */}
         <Dialog open={openEnv} onOpenChange={setOpenEnv}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader><DialogTitle>Nouvelle enveloppe</DialogTitle></DialogHeader>
@@ -249,11 +184,6 @@ export default function EpargnePage() {
                 value={newEnvObjectif ?? ''} onChange={e => {
                   const val = e.target.value
                   setNewEnvObjectif(val === '' ? null : parseFloat(val))
-                }} />
-              <Input type="number" step="0.01" placeholder="Solde initial (optionnel)"
-                value={newEnvSolde ?? ''} onChange={e => {
-                  const val = e.target.value
-                  setNewEnvSolde(val === '' ? null : parseFloat(val))
                 }} />
               <Button className="w-full" onClick={handleCreateEnv}>Créer</Button>
             </div>
@@ -289,7 +219,7 @@ export default function EpargnePage() {
                     <p className="font-medium text-sm truncate">{env.nom}</p>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                        onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
+                        onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif })}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
@@ -345,10 +275,10 @@ export default function EpargnePage() {
           </div>
         )}
 
-        {/* TITRE MOUVEMENTS */}
+        {/* TITRE MOUVEMENTS (sans bouton — géré par FAB) */}
         <h2 className="text-lg font-semibold">Mouvements du mois</h2>
 
-        {/* DIALOG NOUVEAU MOUVEMENT */}
+        {/* DIALOG NOUVEAU MOUVEMENT (ouvert par FAB) */}
         <Dialog open={openMvt} onOpenChange={setOpenMvt}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader><DialogTitle>Nouveau mouvement</DialogTitle></DialogHeader>
@@ -369,8 +299,10 @@ export default function EpargnePage() {
                   ))}
                 </div>
               </div>
+
               <Input type="number" step="0.01" placeholder="Montant" value={mvtMontant || ''}
                 onChange={e => setMvtMontant(parseFloat(e.target.value) || 0)} />
+
               {/* Enveloppe destination (épargne + transfert) */}
               {(mvtType === 'epargne' || mvtType === 'transfert') && (
                 <div>
@@ -384,6 +316,7 @@ export default function EpargnePage() {
                   </select>
                 </div>
               )}
+
               {/* Enveloppe source (reprise + transfert) */}
               {(mvtType === 'reprise' || mvtType === 'transfert') && (
                 <div>
@@ -397,7 +330,9 @@ export default function EpargnePage() {
                   </select>
                 </div>
               )}
+
               <Input placeholder="Note (optionnel)" value={mvtNote} onChange={e => setMvtNote(e.target.value)} />
+
               {/* Fréquence (seulement pour épargne) */}
               {mvtType === 'epargne' && (
                 <div>
@@ -414,6 +349,7 @@ export default function EpargnePage() {
                   </div>
                 </div>
               )}
+
               <Button className="w-full" onClick={handleCreateMvt}>Ajouter</Button>
             </div>
           </DialogContent>
@@ -449,11 +385,6 @@ export default function EpargnePage() {
                     mvt.type === 'epargne' ? 'text-teal-400' :
                     mvt.type === 'reprise' ? 'text-orange-400' : 'text-blue-400'
                   }`}>{formatEuro(Number(mvt.montant))}</span>
-                  {/* ✅ Bouton édition mouvement (nouveau) */}
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => handleEditMvt({ id: mvt.id, montant: Number(mvt.montant), note: mvt.note, recurrentId: mvt.recurrent_id })}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
                   <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
                     onClick={() => setDeleteTarget({ id: mvt.id, recurrentId: mvt.recurrent_id, note: mvt.note })}>
                     <Trash2 className="w-4 h-4" />
@@ -486,49 +417,8 @@ export default function EpargnePage() {
                   }}
                   placeholder="Laisser vide = pas d'objectif" />
               </div>
-              <div>
-                <label className="text-sm text-slate-400 mb-1 block">Solde Initial (€)</label>
-                <Input type="number" step="0.01"
-                  value={editEnvSoldeInitial}
-                  onChange={e => setEditEnvSoldeInitial(parseFloat(e.target.value) || 0)} />
-              </div>
               <Button className="w-full" onClick={handleSaveEditEnv}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditEnv(null)}>Annuler</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* ✅ DIALOG ÉDITION MOUVEMENT (nouveau) */}
-        <Dialog open={!!editMvt} onOpenChange={(v) => { if (!v) setEditMvt(null) }}>
-          <DialogContent className="bg-slate-900 border-slate-700">
-            <DialogHeader><DialogTitle>Modifier le mouvement</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <Input type="number" step="0.01" placeholder="Montant" value={editMvtMontant || ''}
-                onChange={e => setEditMvtMontant(parseFloat(e.target.value) || 0)} />
-              <Input placeholder="Note (optionnel)" value={editMvtNote}
-                onChange={e => setEditMvtNote(e.target.value)} />
-              <Button className="w-full" onClick={handleSaveEditMvt}>Enregistrer</Button>
-              <Button className="w-full" variant="ghost" onClick={() => setEditMvt(null)}>Annuler</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* ✅ DIALOG CHOIX DE SCOPE MOUVEMENT (nouveau) */}
-        <Dialog open={!!scopeMvt} onOpenChange={(v) => { if (!v) setScopeMvt(null) }}>
-          <DialogContent className="bg-slate-900 border-slate-700">
-            <DialogHeader>
-              <DialogTitle>Modifier ce mouvement récurrent</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <Button className="w-full" variant="outline" onClick={() => handleScopeEditMvt('mois')}>
-                Ce mois seulement
-              </Button>
-              <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white" onClick={() => handleScopeEditMvt('tous')}>
-                Tous les prochains mois
-              </Button>
-              <Button className="w-full" variant="ghost" onClick={() => setScopeMvt(null)}>
-                Annuler
-              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -560,7 +450,9 @@ export default function EpargnePage() {
       {fabOpen && (
         <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setFabOpen(false)} />
       )}
+
       <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse items-center gap-3">
+
         {/* Bouton principal */}
         <button
           onClick={() => setFabOpen(!fabOpen)}
@@ -568,7 +460,7 @@ export default function EpargnePage() {
         >
           <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
         </button>
-        {/* Sous-boutons */}
+        {/* Sous-boutons (visibles si fabOpen) */}
         {fabOpen && (
           <>
             <button
