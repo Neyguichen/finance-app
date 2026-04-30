@@ -20,6 +20,7 @@ interface AppContextType {
   updateEspace: (id: string, updates: { nom?: string; icone?: string; solde_initial?: number }) => Promise<void>
   removeEspace: (id: string) => Promise<void>
   refreshEspaces: () => Promise<void>
+  syncing: boolean
 }
 
 const defaultCtx: AppContextType = {
@@ -27,6 +28,7 @@ const defaultCtx: AppContextType = {
   moisId: undefined, month: currentMonth(), setMonth: () => {},
   loading: true, addEspace: async () => {}, removeEspace: async () => {},
   updateEspace: async () => {}, refreshEspaces: async () => {},
+  syncing: false,
 }
 
 const AppContext = createContext<AppContextType>(defaultCtx)
@@ -40,6 +42,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [espaceId, setEspaceId] = useState<string | null>(null)
   const [month, setMonth] = useState(currentMonth())
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
 
   const espace = espaces.find(e => e.id === espaceId) || espaces[0] || null
 
@@ -98,6 +101,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const found = allMois?.find(m => m.mois === month)
     if (found) {
       setMoisId(found.id) // UI immédiate, pas de latence
+      setSyncing(true)
       // Copier les récurrences manquantes en arrière-plan
       getOrCreate.mutateAsync({
         espace_id: espace.id,
@@ -105,9 +109,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         user_id: userId,
       }).then(m => {
         moisCache.current.set(cacheKey, m.id)
-      })
+      }).finally(() => setSyncing(false))
       return
     }
+
+    setSyncing(true)
 
     // 3. Mois n'existe pas du tout → créer (seul cas avec latence réseau)
     getOrCreate.mutateAsync({
@@ -117,7 +123,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }).then(m => {
       moisCache.current.set(cacheKey, m.id)
       setMoisId(m.id)
-    })
+    }).finally(() => setSyncing(false))
   }, [espace, month, userId, allMois])
 
   // Ajouter un espace (avec solde_initial optionnel)
@@ -159,7 +165,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const ctxValue: AppContextType = {
     userId, espaces, espace, setEspaceId: (id) => setEspaceId(id),
-    moisId, month, setMonth, loading, addEspace, updateEspace, removeEspace, refreshEspaces,
+    moisId, month, setMonth, loading, syncing, addEspace, updateEspace, removeEspace, refreshEspaces,
   }
 
   return (
