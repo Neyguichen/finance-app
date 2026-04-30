@@ -120,5 +120,16 @@ export function useChargesFixesRecurrentes(espaceId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  return { ...query, create }
+  const update = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<ChargeFixeRecurrente> & { id: string }) => {
+      const { error } = await supabase
+        .from('charges_fixes_recurrentes')
+        .update(updates)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
+  return { ...query, create, update }
 }

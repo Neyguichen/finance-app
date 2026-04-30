@@ -26,20 +26,20 @@ const FREQUENCES = [
 export default function RevenusPage() {
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; nom: string } | null>(null)
-  const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number; type: 'actif' | 'passif' } | null>(null)
+  const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null } | null>(null)
   const [editNom, setEditNom] = useState('')
   const [editMontant, setEditMontant] = useState(0)
   const [editType, setEditType] = useState<'actif' | 'passif'>('actif')
+  const [editScopeOpen, setEditScopeOpen] = useState(false)
   const { moisId, month, setMonth, espace } = useApp()
   const { data: revenus = [], toggleRecu, create, update, remove, removeDefinitif } = useRevenus(moisId)
-  const { create: createRecurrent } = useRevenusRecurrents(espace?.id)
+  const { create: createRecurrent, update: updateRecurrent } = useRevenusRecurrents(espace?.id)
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: enveloppes = [] } = useEnveloppes(espace?.id)
 
   const reprises = mouvements.filter(m => m.type === 'reprise')
   const totalReprises = reprises.reduce((s, m) => s + Number(m.montant), 0)
   const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises
-
   const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
   const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
 
@@ -98,14 +98,23 @@ export default function RevenusPage() {
     setDeleteTarget(null)
   }
 
-  const handleEdit = (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif' }) => {
+  const handleEdit = (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null }) => {
     setEditTarget(rev)
     setEditNom(rev.nom)
     setEditMontant(Number(rev.montant))
     setEditType(rev.type)
   }
 
-  const handleSaveEdit = async () => {
+  const handleSaveEditClick = () => {
+    if (!editTarget) return
+    if (editTarget.recurrentId) {
+      setEditScopeOpen(true)
+    } else {
+      saveEdit('mois')
+    }
+  }
+
+  const saveEdit = async (scope: 'mois' | 'tous') => {
     if (!editTarget) return
     await update.mutateAsync({
       id: editTarget.id,
@@ -113,6 +122,15 @@ export default function RevenusPage() {
       montant: editMontant,
       type: editType,
     })
+    if (scope === 'tous' && editTarget.recurrentId) {
+      await updateRecurrent.mutateAsync({
+        id: editTarget.recurrentId,
+        nom: editNom,
+        montant: editMontant,
+        type: editType,
+      })
+    }
+    setEditScopeOpen(false)
     setEditTarget(null)
   }
 
@@ -178,7 +196,7 @@ export default function RevenusPage() {
                     {formatEuro(Number(rev.montant))}
                   </span>
                   <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => handleEdit({ id: rev.id, nom: rev.nom, montant: Number(rev.montant), type: rev.type })}>
+                    onClick={() => handleEdit({ id: rev.id, nom: rev.nom, montant: Number(rev.montant), type: rev.type, recurrentId: rev.recurrent_id })}>
                     <Pencil className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
@@ -189,7 +207,6 @@ export default function RevenusPage() {
               </CardContent>
             </Card>
           ))}
-
           {/* REPRISES D'ÉPARGNE (lecture seule) */}
           {reprises.map((rep) => {
             const envNom = enveloppes.find(e => e.id === rep.enveloppe_source_id)?.nom || 'Enveloppe'
@@ -229,7 +246,6 @@ export default function RevenusPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <Input placeholder="Nom" {...register('nom', { required: true })} />
               <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
-
               {/* Toggle Actif / Passif */}
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Type</label>
@@ -248,7 +264,6 @@ export default function RevenusPage() {
                     }`}>Passif</button>
                 </div>
               </div>
-
               {/* Sélecteur de fréquence */}
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
@@ -263,14 +278,13 @@ export default function RevenusPage() {
                   ))}
                 </div>
               </div>
-
               <Button type="submit" className="w-full">Ajouter</Button>
             </form>
           </DialogContent>
         </Dialog>
 
         {/* DIALOG D'ÉDITION */}
-        <Dialog open={!!editTarget} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
+        <Dialog open={!!editTarget && !editScopeOpen} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
               <DialogTitle>Modifier le revenu</DialogTitle>
@@ -287,8 +301,28 @@ export default function RevenusPage() {
                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${editType === 'passif' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Passif</button>
                 </div>
               </div>
-              <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
+              <Button className="w-full" onClick={handleSaveEditClick}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* DIALOG CHOIX SCOPE ÉDITION */}
+        <Dialog open={editScopeOpen} onOpenChange={(v) => { if (!v) { setEditScopeOpen(false); setEditTarget(null) } }}>
+          <DialogContent className="bg-slate-900 border-slate-700">
+            <DialogHeader>
+              <DialogTitle>Appliquer la modification à…</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Button className="w-full" variant="outline" onClick={() => saveEdit('mois')}>
+                Ce mois seulement
+              </Button>
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={() => saveEdit('tous')}>
+                Tous les prochains mois
+              </Button>
+              <Button className="w-full" variant="ghost" onClick={() => { setEditScopeOpen(false); setEditTarget(null) }}>
+                Annuler
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

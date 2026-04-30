@@ -123,5 +123,16 @@ export function useRevenusRecurrents(espaceId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  return { ...query, create }
+  const update = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<RevenuRecurrent> & { id: string }) => {
+      const { error } = await supabase
+        .from('revenus_recurrents')
+        .update(updates)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
+  return { ...query, create, update }
 }
