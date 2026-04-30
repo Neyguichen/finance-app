@@ -92,6 +92,9 @@ export default function DashboardPage() {
     return sum + (budget ? Number(budget.prevu) : 0)
   }, 0)
 
+  // tiret au lieu de zéro
+  const fmtOrDash = (v: number) => v === 0 ? '—' : formatEuro(v)
+
   const sortantsChartData = [
     { name: 'Fixes', value: totalChargesFixes, color: '#E11D48' },    // rose-600 — rose vif (principal)
     { name: 'Variables', value: totalDepenses, color: '#FDA4AF' },      // rose-300 — rose clair
@@ -407,62 +410,61 @@ export default function DashboardPage() {
 
             {/* Légende + Tableau catégories */}
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-purple-600 border-b border-purple-800">
-                    <th className="text-left py-2 font-medium">Catégorie</th>
-                    <th className="text-right py-2 font-medium">Prévu</th>
-                    <th className="text-right py-2 font-medium">Reste</th>
-                    <th className="text-right py-2 font-medium">Dépensé</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Charges fixes */}
-                  <tr className="border-b border-purple-900">
-                    <td className="py-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#E11D48'}}  />
-                        <span className="text-purple-200">📌 Charges fixes</span>
-                      </div>
-                    </td>
-                    <td className="text-right text-purple-200">{formatEuro(totalChargesFixes)}</td>
-                    <td className="text-right text-purple-200">{formatEuro(chargesFixesNonPayees)}</td>
-                    <td className="text-right text-purple-200">{formatEuro(totalChargesPayees)}</td>
-                  </tr>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-purple-600 border-b border-purple-800">
+                  <th className="text-left py-2 font-medium">Catégorie</th>
+                  <th className="text-right py-2 font-medium">Prévu</th>
+                  <th className="text-right py-2 font-medium">Dépensé</th>
+                  <th className="text-right py-2 font-medium">Reste</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Charges fixes */}
+                <tr className="border-b border-purple-900">
+                  <td className="py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#E11D48'}}  />
+                      <span className="text-purple-200">📌 Charges fixes</span>
+                    </div>
+                  </td>
+                  <td className="text-right text-purple-200">{fmtOrDash(totalChargesFixes)}</td>
+                  <td className="text-right text-purple-200">{fmtOrDash(totalChargesPayees)}</td>
+                  <td className={`text-right ${chargesFixesNonPayees >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(chargesFixesNonPayees)}</td>
+                </tr>
 
-                  {/* Épargne */}
-                  <tr className="border-b border-purple-900">
-                    <td className="py-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#881337'}}  />
-                        <span className="text-purple-200">💰 Épargne</span>
-                      </div>
-                    </td>
-                    <td className="text-right text-purple-600">—</td>
-                    <td className="text-right text-purple-600">—</td>
-                    <td className="text-right text-purple-200">{formatEuro(totalEpargnes)}</td>
-                  </tr>
+                {/* Épargne */}
+                <tr className="border-b border-purple-900">
+                  <td className="py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#881337'}}  />
+                      <span className="text-purple-200">💰 Épargne</span>
+                    </div>
+                  </td>
+                  <td className="text-right text-purple-600">—</td>
+                  <td className="text-right text-purple-200">{fmtOrDash(totalEpargnes)}</td>
+                  <td className="text-right text-purple-600">—</td>
+                </tr>
 
-                  {/* Catégories variables triées alphabétiquement */}
-                  {catStats.map((cat, i) => {
-                    const chartColor = getCategoryColor(i)
-                    const dotStyle = { backgroundColor: chartColor }
-                    return (
-                      <tr key={cat.id} className="border-b border-purple-900">
-                        <td className="py-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full" style={dotStyle} />
-                            <span className="text-purple-200">{cat.icone || '📂'} {cat.nom}</span>
-                          </div>
-                        </td>
-                        <td className="text-right text-purple-200">{formatEuro(cat.prevu)}</td>
-                        <td className={`text-right ${cat.reste >= 0 ? 'text-purple-200' : 'text-red-400'}`}>{formatEuro(cat.reste)}</td>
-                        <td className="text-right text-white">{formatEuro(cat.depense)}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                {/* Catégories variables */}
+                {catStats.map((cat, i) => {
+                  const chartColor = getCategoryColor(i)
+                  return (
+                    <tr key={cat.id} className="border-b border-purple-900">
+                      <td className="py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: chartColor }} />
+                          <span className="text-purple-200">{cat.icone || '📂'} {cat.nom}</span>
+                        </div>
+                      </td>
+                      <td className="text-right text-purple-200">{fmtOrDash(cat.prevu)}</td>
+                      <td className="text-right text-white">{fmtOrDash(cat.depense)}</td>
+                      <td className={`text-right ${cat.reste >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(cat.reste)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
             </div>
           </CardContent>
         </Card>
