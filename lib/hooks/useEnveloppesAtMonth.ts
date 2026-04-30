@@ -31,7 +31,7 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
 
       // Aucun mois → solde 0 partout
       if (moisIds.length === 0) {
-        return (enveloppes || []).map(e => ({ ...e, solde: 0 })) as Enveloppe[]
+        return (enveloppes || []).map(e => ({ ...e, solde: Number(e.solde_initial || 0) })) as Enveloppe[]
       }
 
       // 3. Charger tous les mouvements jusqu'à ce mois
@@ -60,7 +60,7 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
 
       return (enveloppes || []).map(e => ({
         ...e,
-        solde: soldeMap[e.id] || 0,
+        solde: (soldeMap[e.id] || 0) + Number(e.solde_initial || 0),
       })) as Enveloppe[]
     },
   })
