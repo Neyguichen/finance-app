@@ -430,7 +430,7 @@ export default function DashboardPage() {
                   </td>
                   <td className="text-right text-purple-200">{fmtOrDash(totalChargesFixes)}</td>
                   <td className="text-right text-purple-200">{fmtOrDash(totalChargesPayees)}</td>
-                  <td className={`text-right ${chargesFixesNonPayees >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(chargesFixesNonPayees)}</td>
+                  <td className={`text-right ${chargesFixesNonPayees === 0 ? 'text-purple-600' : chargesFixesNonPayees > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(chargesFixesNonPayees)}</td>
                 </tr>
 
                 {/* Épargne */}
@@ -459,7 +459,7 @@ export default function DashboardPage() {
                       </td>
                       <td className="text-right text-purple-200">{fmtOrDash(cat.prevu)}</td>
                       <td className="text-right text-white">{fmtOrDash(cat.depense)}</td>
-                      <td className={`text-right ${cat.reste >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(cat.reste)}</td>
+                      <td className={`text-right ${cat.reste === 0 ? 'text-purple-600' : cat.reste > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(cat.reste)}</td>
                     </tr>
                   )
                 })}
