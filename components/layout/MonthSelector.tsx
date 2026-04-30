@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatMois, nextMonth, prevMonth } from '@/lib/utils';
 import { useApp } from '@/components/AppContext';
