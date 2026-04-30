@@ -33,94 +33,121 @@ export function useMois(espaceId: string | undefined) {
         .eq('mois', mois)
         .single()
 
-      let theMois: Mois
-
       if (existing) {
-        theMois = existing as Mois
+        const theMois = existing as Mois
 
         // Vérifier si les récurrences ont déjà été copiées
         const { count: revCount } = await supabase
           .from('revenus')
-          .select('*', { count: 'exact', head: true })
+          .select('recurrent_id', { count: 'exact', head: true })
           .eq('mois_id', theMois.id)
+          .not('recurrent_id', 'is', null)
 
         const { count: cfCount } = await supabase
           .from('charges_fixes')
-          .select('*', { count: 'exact', head: true })
+          .select('recurrent_id', { count: 'exact', head: true })
           .eq('mois_id', theMois.id)
+          .not('recurrent_id', 'is', null)
 
         const { count: epCount } = await supabase
           .from('mouvements_epargne')
-          .select('*', { count: 'exact', head: true })
+          .select('recurrent_id', { count: 'exact', head: true })
           .eq('mois_id', theMois.id)
+          .not('recurrent_id', 'is', null)
 
-        // === TOUJOURS vérifier les budgets, même si le mois a des données ===
-        const { count: budgetCount } = await supabase
-          .from('budgets')
-          .select('*', { count: 'exact', head: true })
-          .eq('mois_id', theMois.id)
-
-        if (!budgetCount || budgetCount === 0) {
-          const moisDate = new Date(mois + 'T00:00:00')
-          const prevY = moisDate.getFullYear()
-          const prevM = moisDate.getMonth()
-          const prevMoisDate2 = new Date(prevY, prevM - 1, 1)
-          const prevMoisStr = [
-            prevMoisDate2.getFullYear(),
-            String(prevMoisDate2.getMonth() + 1).padStart(2, '0'),
-            '01'
-          ].join('-')
-
-          const { data: prevMois } = await supabase
-            .from('mois')
-            .select('id')
-            .eq('espace_id', espace_id)
-            .eq('mois', prevMoisStr)
-            .single()
-
-          if (prevMois) {
-            const { data: prevBudgets } = await supabase
-              .from('budgets')
-              .select('*')
-              .eq('mois_id', prevMois.id)
-
-            if (prevBudgets && prevBudgets.length > 0) {
-              const rows = prevBudgets.map(b => ({
-                mois_id: theMois.id,
-                categorie_id: b.categorie_id,
-                prevu: b.prevu,
-              }))
-              await supabase.from('budgets').insert(rows)
-            }
-          }
-        }
-
-        // Si le mois a déjà des données récurrentes, on ne recopie pas
+        // Si au moins une récurrence existe déjà → déjà copié, on skip
         if ((revCount ?? 0) > 0 || (cfCount ?? 0) > 0 || (epCount ?? 0) > 0) {
           return theMois
         }
-      } else {
-        // 2. Créer le mois
-        const { data, error } = await supabase
-          .from('mois')
-          .insert({ espace_id, mois, user_id })
-          .select()
-          .single()
-        if (error) throw error
-        theMois = data as Mois
+
+        // Sinon → copier les récurrences manquantes
+        const moisDate = new Date(mois)
+        const shouldCopy = (rec: { created_at: string; frequence_mois: number }) => {
+          const created = new Date(rec.created_at)
+          const diff =
+            (moisDate.getFullYear() - created.getFullYear()) * 12 +
+            (moisDate.getMonth() - created.getMonth())
+          return diff >= 0 && diff % rec.frequence_mois === 0
+        }
+
+        // Copier revenus récurrents
+        const { data: revRec } = await supabase
+          .from('revenus_recurrents')
+          .select('*')
+          .eq('espace_id', espace_id)
+          .eq('actif', true)
+
+        if (revRec && revRec.length > 0) {
+          const rows = revRec.filter(shouldCopy).map((rec, i) => ({
+            mois_id: theMois.id,
+            recurrent_id: rec.id,
+            type: rec.type,
+            nom: rec.nom,
+            montant: rec.montant,
+            recu: false,
+            ordre: i,
+          }))
+          if (rows.length > 0) await supabase.from('revenus').insert(rows)
+        }
+
+        // Copier charges fixes récurrentes
+        const { data: cfRec } = await supabase
+          .from('charges_fixes_recurrentes')
+          .select('*')
+          .eq('espace_id', espace_id)
+          .eq('actif', true)
+
+        if (cfRec && cfRec.length > 0) {
+          const rows = cfRec.filter(shouldCopy).map((rec, i) => ({
+            mois_id: theMois.id,
+            recurrent_id: rec.id,
+            nom: rec.nom,
+            montant: rec.montant,
+            payee: false,
+            ordre: i,
+          }))
+          if (rows.length > 0) await supabase.from('charges_fixes').insert(rows)
+        }
+
+        // Copier épargne récurrentes
+        const { data: epRec } = await supabase
+          .from('epargne_recurrentes')
+          .select('*')
+          .eq('espace_id', espace_id)
+          .eq('actif', true)
+
+        if (epRec && epRec.length > 0) {
+          const rows = epRec.filter(shouldCopy).map((rec) => ({
+            mois_id: theMois.id,
+            recurrent_id: rec.id,
+            enveloppe_source_id: null,
+            enveloppe_dest_id: rec.enveloppe_dest_id,
+            montant: rec.montant,
+            type: 'epargne' as const,
+            date: mois,
+            note: rec.note,
+          }))
+          if (rows.length > 0) await supabase.from('mouvements_epargne').insert(rows)
+        }
+
+        return theMois
       }
 
-      // 3. Copier les récurrences
-      const moisDate = new Date(mois + 'T00:00:00')
+      // 2. Créer le mois
+      const { data, error } = await supabase
+        .from('mois')
+        .insert({ espace_id, mois, user_id })
+        .select()
+        .single()
+      if (error) throw error
+      const newMois = data as Mois
 
-      const shouldCopy = (rec: { created_at: string; mois_debut?: string | null; frequence_mois: number }) => {
-        // Utiliser mois_debut si disponible, sinon fallback sur created_at
-        const refDate = rec.mois_debut
-          ? new Date(rec.mois_debut + 'T00:00:00')  // forcer local
-          : new Date(rec.created_at)
+      const moisDate = new Date(mois)
+      const shouldCopy = (rec: { created_at: string; frequence_mois: number }) => {
+        const created = new Date(rec.created_at)
         const diff =
-          (moisDate.getFullYear() - refDate.getFullYear()) * 12 +
-          (moisDate.getMonth() - refDate.getMonth())
+          (moisDate.getFullYear() - created.getFullYear()) * 12 +
+          (moisDate.getMonth() - created.getMonth())
         return diff >= 0 && diff % rec.frequence_mois === 0
       }
 
@@ -132,35 +159,16 @@ export function useMois(espaceId: string | undefined) {
         .eq('actif', true)
 
       if (revRec && revRec.length > 0) {
-        const toCopy = revRec.filter(shouldCopy)
-        if (toCopy.length > 0) {
-          const { data: prevInstances } = await supabase
-            .from('revenus')
-            .select('recurrent_id, montant, nom, type, created_at')
-            .in('recurrent_id', toCopy.map(r => r.id))
-            .order('created_at', { ascending: false })
-
-          const latestMap = new Map<string, { montant: number; nom: string; type: string }>()
-          for (const inst of (prevInstances || [])) {
-            if (inst.recurrent_id && !latestMap.has(inst.recurrent_id)) {
-              latestMap.set(inst.recurrent_id, inst)
-            }
-          }
-
-          const rows = toCopy.map((rec, i) => {
-            const latest = latestMap.get(rec.id)
-            return {
-              mois_id: theMois.id,
-              recurrent_id: rec.id,
-              type: latest?.type ?? rec.type,
-              nom: latest?.nom ?? rec.nom,
-              montant: latest?.montant ?? rec.montant,
-              recu: false,
-              ordre: i,
-            }
-          })
-          await supabase.from('revenus').insert(rows)
-        }
+        const rows = revRec.filter(shouldCopy).map((rec, i) => ({
+          mois_id: newMois.id,
+          recurrent_id: rec.id,
+          type: rec.type,
+          nom: rec.nom,
+          montant: rec.montant,
+          recu: false,
+          ordre: i,
+        }))
+        if (rows.length > 0) await supabase.from('revenus').insert(rows)
       }
 
       // 3b. Auto-copier les charges fixes récurrentes actives
@@ -171,34 +179,15 @@ export function useMois(espaceId: string | undefined) {
         .eq('actif', true)
 
       if (cfRec && cfRec.length > 0) {
-        const toCopy = cfRec.filter(shouldCopy)
-        if (toCopy.length > 0) {
-          const { data: prevInstances } = await supabase
-            .from('charges_fixes')
-            .select('recurrent_id, montant, nom, created_at')
-            .in('recurrent_id', toCopy.map(r => r.id))
-            .order('created_at', { ascending: false })
-
-          const latestMap = new Map<string, { montant: number; nom: string }>()
-          for (const inst of (prevInstances || [])) {
-            if (inst.recurrent_id && !latestMap.has(inst.recurrent_id)) {
-              latestMap.set(inst.recurrent_id, inst)
-            }
-          }
-
-          const rows = toCopy.map((rec, i) => {
-            const latest = latestMap.get(rec.id)
-            return {
-              mois_id: theMois.id,
-              recurrent_id: rec.id,
-              nom: latest?.nom ?? rec.nom,
-              montant: latest?.montant ?? rec.montant,
-              payee: false,
-              ordre: i,
-            }
-          })
-          await supabase.from('charges_fixes').insert(rows)
-        }
+        const rows = cfRec.filter(shouldCopy).map((rec, i) => ({
+          mois_id: newMois.id,
+          recurrent_id: rec.id,
+          nom: rec.nom,
+          montant: rec.montant,
+          payee: false,
+          ordre: i,
+        }))
+        if (rows.length > 0) await supabase.from('charges_fixes').insert(rows)
       }
 
       // 3c. Auto-copier les versements épargne récurrents actifs
@@ -209,79 +198,20 @@ export function useMois(espaceId: string | undefined) {
         .eq('actif', true)
 
       if (epRec && epRec.length > 0) {
-        const toCopy = epRec.filter(shouldCopy)
-        if (toCopy.length > 0) {
-          const { data: prevInstances } = await supabase
-            .from('mouvements_epargne')
-            .select('recurrent_id, montant, note, created_at')
-            .in('recurrent_id', toCopy.map(r => r.id))
-            .order('created_at', { ascending: false })
-
-          const latestMap = new Map<string, { montant: number; note: string | null }>()
-          for (const inst of (prevInstances || [])) {
-            if (inst.recurrent_id && !latestMap.has(inst.recurrent_id)) {
-              latestMap.set(inst.recurrent_id, inst)
-            }
-          }
-
-          const rows = toCopy.map((rec) => {
-            const latest = latestMap.get(rec.id)
-            return {
-              mois_id: theMois.id,
-              recurrent_id: rec.id,
-              enveloppe_source_id: null,
-              enveloppe_dest_id: rec.enveloppe_dest_id,
-              montant: latest?.montant ?? rec.montant,
-              type: 'epargne' as const,
-              date: mois,
-              note: latest?.note ?? rec.note,
-            }
-          })
-          await supabase.from('mouvements_epargne').insert(rows)
-        }
+        const rows = epRec.filter(shouldCopy).map((rec) => ({
+          mois_id: newMois.id,
+          recurrent_id: rec.id,
+          enveloppe_source_id: null,
+          enveloppe_dest_id: rec.enveloppe_dest_id,
+          montant: rec.montant,
+          type: 'epargne' as const,
+          date: mois,
+          note: rec.note,
+        }))
+        if (rows.length > 0) await supabase.from('mouvements_epargne').insert(rows)
       }
 
-      // 3d. Auto-copier les budgets du mois précédent
-      const prevY = moisDate.getFullYear()
-      const prevM = moisDate.getMonth()
-      const prevMoisDate2 = new Date(prevY, prevM - 1, 1)
-      const prevMoisStr = [
-        prevMoisDate2.getFullYear(),
-        String(prevMoisDate2.getMonth() + 1).padStart(2, '0'),
-        '01'
-      ].join('-')
-
-      const { data: prevMois } = await supabase
-        .from('mois')
-        .select('id')
-        .eq('espace_id', espace_id)
-        .eq('mois', prevMoisStr)
-        .single()
-
-      if (prevMois) {
-        const { data: prevBudgets } = await supabase
-          .from('budgets')
-          .select('*')
-          .eq('mois_id', prevMois.id)
-
-        if (prevBudgets && prevBudgets.length > 0) {
-          const { count } = await supabase
-            .from('budgets')
-            .select('*', { count: 'exact', head: true })
-            .eq('mois_id', theMois.id)
-
-          if (!count || count === 0) {
-            const rows = prevBudgets.map(b => ({
-              mois_id: theMois.id,
-              categorie_id: b.categorie_id,
-              prevu: b.prevu,
-            }))
-            await supabase.from('budgets').insert(rows)
-          }
-        }
-      }
-
-      return theMois
+      return newMois
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })

@@ -45,6 +45,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [moisId, setMoisId] = useState<string | undefined>(undefined)
 
+  const { data: allMois, getOrCreate } = useMois(espace?.id)
+  const moisCache = useRef<Map<string, string>>(new Map())
+
   // 1. Écouter les changements d'auth
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -80,30 +83,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId])
 
   // 3. Récupérer ou créer le mois actif pour l'espace sélectionné
-  const { data: allMois, getOrCreate } = useMois(espace?.id)
-  const moisCache = useRef<Map<string, string>>(new Map())
-
   useEffect(() => {
     if (!espace || !userId) return
-
     const cacheKey = `${espace.id}_${month}`
 
-    // 1. Cache local (mois déjà visités cette session)
+    // 1. Cache session → déjà visité, getOrCreate déjà appelé
     const cached = moisCache.current.get(cacheKey)
     if (cached) {
       setMoisId(cached)
       return
     }
 
-    // 2. Chercher dans allMois (chargés en 1 requête au démarrage)
+    // 2. allMois → affichage INSTANTANÉ + getOrCreate en arrière-plan
     const found = allMois?.find(m => m.mois === month)
     if (found) {
-      moisCache.current.set(cacheKey, found.id)
-      setMoisId(found.id)
+      setMoisId(found.id) // UI immédiate, pas de latence
+      // Copier les récurrences manquantes en arrière-plan
+      getOrCreate.mutateAsync({
+        espace_id: espace.id,
+        mois: month,
+        user_id: userId,
+      }).then(m => {
+        moisCache.current.set(cacheKey, m.id)
+      })
       return
     }
 
-    // 3. Le mois n'existe pas encore → créer (seul cas avec latence réseau)
+    // 3. Mois n'existe pas du tout → créer (seul cas avec latence réseau)
     getOrCreate.mutateAsync({
       espace_id: espace.id,
       mois: month,
@@ -115,7 +121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [espace, month, userId, allMois])
 
   // Ajouter un espace (avec solde_initial optionnel)
-  const addEspace = async (nom: string, icone = '\ud83c\udfe0', soldeInitial = 0) => {
+  const addEspace = async (nom: string, icone = '🏠', soldeInitial = 0) => {
     if (!userId) return
     const { data } = await supabase
       .from('espaces')
