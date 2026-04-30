@@ -341,7 +341,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between gap-2 pl-5">
                     <span className="text-xs text-slate-500">Prévu</span>
                     <div className="text-right">
-                      <span className="text-xs text-slate-400 flex-shrink-0">{formatEuro(totalVariablesPrevu)}</span>
+                      <span className="text-xs text-slate-400 flex-shrink-0">{formatEuro(totalVariablesBudget)}</span>
                       <span className="text-xs text-slate-600 ml-1">
                         ({totalSortantsAll > 0 ? Math.round((totalVariablesBudget / totalSortantsAll) * 100) : 0}%)
                       </span>
