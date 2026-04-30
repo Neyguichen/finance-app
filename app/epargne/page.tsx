@@ -245,16 +245,8 @@ export default function EpargnePage() {
             <DialogHeader><DialogTitle>Nouvelle enveloppe</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <Input placeholder="Nom (ex: Vacances)" value={newEnvNom} onChange={e => setNewEnvNom(e.target.value)} />
-              <Input type="number" step="0.01" placeholder="Objectif (optionnel)"
-                value={newEnvObjectif ?? ''} onChange={e => {
-                  const val = e.target.value
-                  setNewEnvObjectif(val === '' ? null : parseFloat(val))
-                }} />
-              <Input type="number" step="0.01" placeholder="Solde initial (optionnel)"
-                value={newEnvSolde ?? ''} onChange={e => {
-                  const val = e.target.value
-                  setNewEnvSolde(val === '' ? null : parseFloat(val))
-                }} />
+              <CalculatorInput value={newEnvObjectif ?? 0} onChange={v => setNewEnvObjectif(v || null)} placeholder="Objectif (optionnel)" />
+              <CalculatorInput value={newEnvSolde ?? 0} onChange={v => setNewEnvSolde(v || null)} placeholder="Solde initial (optionnel)" />
               <Button className="w-full" onClick={handleCreateEnv}>Créer</Button>
             </div>
           </DialogContent>
@@ -369,8 +361,7 @@ export default function EpargnePage() {
                   ))}
                 </div>
               </div>
-              <Input type="number" step="0.01" placeholder="Montant" value={mvtMontant || ''}
-                onChange={e => setMvtMontant(parseFloat(e.target.value) || 0)} />
+              <CalculatorInput value={mvtMontant} onChange={setMvtMontant} placeholder="Montant" />
               {/* Enveloppe destination (épargne + transfert) */}
               {(mvtType === 'epargne' || mvtType === 'transfert') && (
                 <div>
@@ -478,19 +469,11 @@ export default function EpargnePage() {
               </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Objectif (€)</label>
-                <Input type="number" step="0.01"
-                  value={editEnvObjectif ?? ''}
-                  onChange={e => {
-                    const val = e.target.value
-                    setEditEnvObjectif(val === '' ? null : parseFloat(val))
-                  }}
-                  placeholder="Laisser vide = pas d'objectif" />
+                <CalculatorInput value={editEnvObjectif ?? 0} onChange={v => setEditEnvObjectif(v || null)} placeholder="Laisser vide = pas d'objectif" />
               </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Solde Initial (€)</label>
-                <Input type="number" step="0.01"
-                  value={editEnvSoldeInitial}
-                  onChange={e => setEditEnvSoldeInitial(parseFloat(e.target.value) || 0)} />
+                <CalculatorInput value={editEnvSoldeInitial} onChange={setEditEnvSoldeInitial} placeholder="Solde initial" />
               </div>
               <Button className="w-full" onClick={handleSaveEditEnv}>Enregistrer</Button>
               <Button className="w-full" variant="ghost" onClick={() => setEditEnv(null)}>Annuler</Button>
@@ -503,8 +486,7 @@ export default function EpargnePage() {
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader><DialogTitle>Modifier le mouvement</DialogTitle></DialogHeader>
             <div className="space-y-4">
-              <Input type="number" step="0.01" placeholder="Montant" value={editMvtMontant || ''}
-                onChange={e => setEditMvtMontant(parseFloat(e.target.value) || 0)} />
+              <CalculatorInput value={editMvtMontant} onChange={setEditMvtMontant} placeholder="Montant" />
               <Input placeholder="Note (optionnel)" value={editMvtNote}
                 onChange={e => setEditMvtNote(e.target.value)} />
               <Button className="w-full" onClick={handleSaveEditMvt}>Enregistrer</Button>
