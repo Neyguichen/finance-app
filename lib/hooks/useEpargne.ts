@@ -196,11 +196,20 @@ export function useEpargneRecurrentes(espaceId: string | undefined) {
       if (error) throw error
       return data as EpargneRecurrente
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: key })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  return { ...query, create }
+  // ✅ AJOUT : update pour le scope "tous les prochains mois"
+  const update = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<EpargneRecurrente> & { id: string }) => {
+      const { error } = await supabase
+        .from('epargne_recurrentes')
+        .update(updates)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
+  return { ...query, create, update }
 }
