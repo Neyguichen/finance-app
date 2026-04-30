@@ -84,7 +84,7 @@ export function useMois(espaceId: string | undefined) {
               mois_id: theMois.id, recurrent_id: rec.id, type: rec.type,
               nom: rec.nom, montant: rec.montant, recu: false, ordre: i,
             }))
-            if (rows.length > 0) inserts.push(supabase.from('revenus').insert(rows).select())
+            if (rows.length > 0) inserts.push(supabase.from('revenus').insert(rows).select().then())
           }
         
           if (cfRec && cfRec.length > 0) {
@@ -92,7 +92,7 @@ export function useMois(espaceId: string | undefined) {
               mois_id: theMois.id, recurrent_id: rec.id,
               nom: rec.nom, montant: rec.montant, payee: false, ordre: i,
             }))
-            if (rows.length > 0) inserts.push(supabase.from('charges_fixes').insert(rows).select())
+            if (rows.length > 0) inserts.push(supabase.from('charges_fixes').insert(rows).select().then())
           }
         
           if (epRec && epRec.length > 0) {
@@ -101,7 +101,7 @@ export function useMois(espaceId: string | undefined) {
               enveloppe_dest_id: rec.enveloppe_dest_id, montant: rec.montant,
               type: 'epargne' as const, date: mois, note: rec.note,
             }))
-            if (rows.length > 0) inserts.push(supabase.from('mouvements_epargne').insert(rows).select())
+            if (rows.length > 0) inserts.push(supabase.from('mouvements_epargne').insert(rows).select().then())
           }
         
           if (inserts.length > 0) await Promise.all(inserts)
@@ -150,7 +150,7 @@ export function useMois(espaceId: string | undefined) {
           mois_id: newMois.id, recurrent_id: rec.id,
           nom: rec.nom, montant: rec.montant, payee: false, ordre: i,
         }))
-        if (rows.length > 0) inserts.push(supabase.from('charges_fixes').insert(rows).select())
+        if (rows.length > 0) inserts.push(supabase.from('charges_fixes').insert(rows).select().then())
       }
 
       if (epRec && epRec.length > 0) {
@@ -159,7 +159,7 @@ export function useMois(espaceId: string | undefined) {
           enveloppe_dest_id: rec.enveloppe_dest_id, montant: rec.montant,
           type: 'epargne' as const, date: mois, note: rec.note,
         }))
-        if (rows.length > 0) inserts.push(supabase.from('mouvements_epargne').insert(rows).select())
+        if (rows.length > 0) inserts.push(supabase.from('mouvements_epargne').insert(rows).select().then())
       }
 
       if (inserts.length > 0) await Promise.all(inserts)
