@@ -57,6 +57,11 @@ export default function DashboardPage() {
   const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
   const totalRevenus = totalActif + totalPassif + totalReprises
 
+  // Revenus cochés (reçus) uniquement — pour le reste réel
+  const totalActifRecu = revenus.filter(r => r.type === 'actif' && r.recu).reduce((s, r) => s + Number(r.montant), 0)
+  const totalPassifRecu = revenus.filter(r => r.type === 'passif' && r.recu).reduce((s, r) => s + Number(r.montant), 0)
+  const totalRevenusRecus = totalActifRecu + totalPassifRecu + totalReprises
+
   const totalChargesFixes = charges.reduce((s, c) => s + Number(c.montant), 0)
   const totalChargesPayees = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
   const totalDepenses = transactions.reduce((s, t) => s + getMontantNet(t), 0)
@@ -78,7 +83,7 @@ export default function DashboardPage() {
   const restePrevu = resteM1Value + totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
 
   // Reste à vivre — RÉEL
-  const resteReel = resteM1Value + totalRevenus - totalChargesPayees - totalDepenses - totalEpargnes
+  const resteReel = resteM1Value + totalRevenusRecus - totalChargesPayees - totalDepenses - totalEpargnes
 
   const revenusChartData = [
     { name: 'Actif', value: totalActif, color: '#10B981' },       // emerald-500 — vert vif
