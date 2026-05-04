@@ -415,13 +415,13 @@ export default function DashboardPage() {
 
             {/* Légende + Tableau catégories */}
             <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-xs table-fixed">
               <thead>
                 <tr className="text-purple-600 border-b border-purple-800">
-                  <th className="text-left py-2 font-medium">Catégorie</th>
-                  <th className="text-right py-2 font-medium">Prévu</th>
-                  <th className="text-right py-2 font-medium">Dépensé</th>
-                  <th className="text-right py-2 font-medium">Reste</th>
+                  <th className="text-left py-2 font-medium w-2/5 truncate">Catégorie</th>
+                  <th className="text-right py-2 font-medium w-1/5">Prévu</th>
+                  <th className="text-right py-2 font-medium w-1/5">Dépensé</th>
+                  <th className="text-right py-2 font-medium w-1/5">Reste</th>
                 </tr>
               </thead>
               <tbody>
@@ -430,7 +430,7 @@ export default function DashboardPage() {
                   <td className="py-2">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#E11D48'}}  />
-                      <span className="text-purple-200">📌 Charges fixes</span>
+                      <span className="text-purple-200 truncate">📌 Charges fixes</span>
                     </div>
                   </td>
                   <td className="text-right text-purple-200">{fmtOrDash(totalChargesFixes)}</td>
@@ -443,7 +443,7 @@ export default function DashboardPage() {
                   <td className="py-2">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: '#881337'}}  />
-                      <span className="text-purple-200">💰 Épargne</span>
+                      <span className="text-purple-200 truncate">💰 Épargne</span>
                     </div>
                   </td>
                   <td className="text-right text-purple-600">—</td>
@@ -459,7 +459,7 @@ export default function DashboardPage() {
                       <td className="py-2">
                         <div className="flex items-center gap-2">
                           <div className="w-2.5 h-2.5 rounded-full" style= {{backgroundColor: chartColor }} />
-                          <span className="text-purple-200">{cat.icone || '📂'} {cat.nom}</span>
+                          <span className="text-purple-200 truncate">{cat.icone || '📂'} {cat.nom}</span>
                         </div>
                       </td>
                       <td className="text-right text-purple-200">{fmtOrDash(cat.prevu)}</td>
