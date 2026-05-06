@@ -71,7 +71,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .eq('user_id', userId)
         .order('ordre')
-      setEspaces(data || [])
+      const list = data || []
+      setEspaces(list)
+      // Restaurer l'espace précédemment sélectionné
+      const savedId = localStorage.getItem('app_espace_id')
+      if (savedId && list.some(e => e.id === savedId)) {
+        setEspaceId(savedId)
+      }
     } catch (err) {
       console.error('Erreur chargement espaces:', err)
     } finally {
@@ -142,7 +148,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.from('espaces').delete().eq('id', id)
     if (error) { console.error('Erreur suppression espace:', error); return }
     setEspaces(prev => prev.filter(e => e.id !== id))
-    if (espaceId === id) setEspaceId(null)
+    if (espaceId === id) {
+      setEspaceId(null)
+      localStorage.removeItem('finzee_espace_id')
+    }
   }
 
   // Mettre à jour un espace (nom, icone, solde_initial)
@@ -164,7 +173,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   const ctxValue: AppContextType = {
-    userId, espaces, espace, setEspaceId: (id) => setEspaceId(id),
+    userId, espaces, espace, setEspaceId: (id) => {
+      setEspaceId(id)
+      localStorage.setItem('app_espace_id', id)
+    },
     moisId, month, setMonth, loading, syncing, addEspace, updateEspace, removeEspace, refreshEspaces,
   }
 
