@@ -26,7 +26,7 @@ export default function ChargesFixesPage() {
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; nom: string } | null>(null)
   const [editTarget, setEditTarget] = useState<{ id: string; nom: string; montant: number; recurrentId: string | null } | null>(null)
-  const [editScopeOpen, setEditScopeOpen] = useState(false)
+  const [scopeEdit, setScopeEdit] = useState<{ id: string; nom: string; montant: number; recurrentId: string } | null>(null)
   const [editNom, setEditNom] = useState('')
   const [editMontant, setEditMontant] = useState(0)
   const { moisId, month, setMonth, espace } = useApp()
@@ -96,30 +96,41 @@ export default function ChargesFixesPage() {
   const handleSaveEditClick = () => {
     if (!editTarget) return
     if (editTarget.recurrentId) {
-      setEditScopeOpen(true)
+      setScopeEdit({
+        id: editTarget.id,
+        nom: editNom,
+        montant: editMontant,
+        recurrentId: editTarget.recurrentId,
+      })
+      setEditTarget(null)
     } else {
       saveEdit('mois')
     }
   }
 
   const saveEdit = async (scope: 'mois' | 'tous') => {
-    if (!editTarget) return
-    // Toujours mettre à jour l'instance du mois
-    await update.mutateAsync({
-      id: editTarget.id,
-      nom: editNom,
-      montant: editMontant,
-    })
-    // Si "tous", mettre aussi à jour le modèle récurrent
-    if (scope === 'tous' && editTarget.recurrentId) {
-      await updateRecurrent.mutateAsync({
-        id: editTarget.recurrentId,
+    if (scopeEdit) {
+      await update.mutateAsync({
+        id: scopeEdit.id,
+        nom: scopeEdit.nom,
+        montant: scopeEdit.montant,
+      })
+      if (scope === 'tous') {
+        await updateRecurrent.mutateAsync({
+          id: scopeEdit.recurrentId,
+          nom: scopeEdit.nom,
+          montant: scopeEdit.montant,
+        })
+      }
+      setScopeEdit(null)
+    } else if (editTarget) {
+      await update.mutateAsync({
+        id: editTarget.id,
         nom: editNom,
         montant: editMontant,
       })
+      setEditTarget(null)
     }
-    setEditScopeOpen(false)
-    setEditTarget(null)
   }
 
   return (
@@ -210,7 +221,7 @@ export default function ChargesFixesPage() {
         </div>
 
         {/* DIALOG D'ÉDITION */}
-        <Dialog open={!!editTarget && !editScopeOpen} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
+        <Dialog open={!!editTarget} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
               <DialogTitle>Modifier la charge fixe</DialogTitle>
@@ -248,10 +259,10 @@ export default function ChargesFixesPage() {
       </div>
 
       {/* DIALOG CHOIX PORTÉE ÉDITION */}
-      <Dialog open={editScopeOpen} onOpenChange={(v) => { if (!v) { setEditScopeOpen(false); setEditTarget(null) } }}>
+      <Dialog open={!!scopeEdit} onOpenChange={(v) => { if (!v) setScopeEdit(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700">
           <DialogHeader>
-            <DialogTitle>Modifier « {editTarget?.nom} »</DialogTitle>
+            <DialogTitle>Modifier « {scopeEdit?.nom} »</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Button className="w-full" variant="outline" onClick={() => saveEdit('mois')}>
@@ -260,7 +271,7 @@ export default function ChargesFixesPage() {
             <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white" onClick={() => saveEdit('tous')}>
               Tous les prochains mois
             </Button>
-            <Button className="w-full" variant="ghost" onClick={() => { setEditScopeOpen(false); setEditTarget(null) }}>
+            <Button className="w-full" variant="ghost" onClick={() => setScopeEdit(null)}>
               Annuler
             </Button>
           </div>
