@@ -30,7 +30,7 @@ export default function RevenusPage() {
   const [editNom, setEditNom] = useState('')
   const [editMontant, setEditMontant] = useState(0)
   const [editType, setEditType] = useState<'actif' | 'passif'>('actif')
-  const [editScopeOpen, setEditScopeOpen] = useState(false)
+  const [scopeEdit, setScopeEdit] = useState<{ id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId: string } | null>(null)
   const { moisId, month, setMonth, espace } = useApp()
   const { data: revenus = [], toggleRecu, create, update, remove, removeDefinitif } = useRevenus(moisId)
   const { create: createRecurrent, update: updateRecurrent } = useRevenusRecurrents(espace?.id)
@@ -108,30 +108,49 @@ export default function RevenusPage() {
   const handleSaveEditClick = () => {
     if (!editTarget) return
     if (editTarget.recurrentId) {
-      setEditScopeOpen(true)
+      // Capturer les valeurs AVANT de fermer le dialog d'édition
+      setScopeEdit({
+        id: editTarget.id,
+        nom: editNom,
+        montant: editMontant,
+        type: editType,
+        recurrentId: editTarget.recurrentId,
+      })
+      setEditTarget(null) // Ferme proprement le dialog d'édition
     } else {
+      // Ponctuel → sauver directement
       saveEdit('mois')
     }
   }
 
   const saveEdit = async (scope: 'mois' | 'tous') => {
-    if (!editTarget) return
-    await update.mutateAsync({
-      id: editTarget.id,
-      nom: editNom,
-      montant: editMontant,
-      type: editType,
-    })
-    if (scope === 'tous' && editTarget.recurrentId) {
-      await updateRecurrent.mutateAsync({
-        id: editTarget.recurrentId,
+    if (scopeEdit) {
+      // Appelé depuis le dialog de scope
+      await update.mutateAsync({
+        id: scopeEdit.id,
+        nom: scopeEdit.nom,
+        montant: scopeEdit.montant,
+        type: scopeEdit.type,
+      })
+      if (scope === 'tous') {
+        await updateRecurrent.mutateAsync({
+          id: scopeEdit.recurrentId,
+          nom: scopeEdit.nom,
+          montant: scopeEdit.montant,
+          type: scopeEdit.type,
+        })
+      }
+      setScopeEdit(null)
+    } else if (editTarget) {
+      // Appelé directement (ponctuel)
+      await update.mutateAsync({
+        id: editTarget.id,
         nom: editNom,
         montant: editMontant,
         type: editType,
       })
+      setEditTarget(null)
     }
-    setEditScopeOpen(false)
-    setEditTarget(null)
   }
 
   return (
@@ -284,7 +303,7 @@ export default function RevenusPage() {
         </Dialog>
 
         {/* DIALOG D'ÉDITION */}
-        <Dialog open={!!editTarget && !editScopeOpen} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
+        <Dialog open={!!editTarget} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
               <DialogTitle>Modifier le revenu</DialogTitle>
@@ -308,7 +327,7 @@ export default function RevenusPage() {
         </Dialog>
 
         {/* DIALOG CHOIX SCOPE ÉDITION */}
-        <Dialog open={editScopeOpen} onOpenChange={(v) => { if (!v) { setEditScopeOpen(false); setEditTarget(null) } }}>
+        <Dialog open={!!scopeEdit} onOpenChange={(v) => { if (!v) setScopeEdit(null) }}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
               <DialogTitle>Appliquer la modification à…</DialogTitle>
@@ -320,7 +339,7 @@ export default function RevenusPage() {
               <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={() => saveEdit('tous')}>
                 Tous les prochains mois
               </Button>
-              <Button className="w-full" variant="ghost" onClick={() => { setEditScopeOpen(false); setEditTarget(null) }}>
+              <Button className="w-full" variant="ghost" onClick={() => setScopeEdit(null)}>
                 Annuler
               </Button>
             </div>
