@@ -356,7 +356,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Variables — Réel (hors diagramme) */}
+                  {/* Variables — Réel (hors diagramme) 
                   <div className="flex items-center justify-between gap-2 pl-5">
                     <span className="text-xs text-slate-500">Réel</span>
                     <div className="text-right flex-shrink-0">
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                         ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
                       </span>
                     </div>
-                  </div>
+                  </div>*/}
 
                   {/* Épargne */}
                   <div className="flex items-center justify-between gap-2">
