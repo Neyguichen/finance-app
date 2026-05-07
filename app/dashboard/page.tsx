@@ -225,53 +225,55 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xl font-bold text-emerald-400">{formatEuro(totalRevenus)}</p>
-              <div className="flex flex-col items-center gap-3">
-                {/* Donut */}
-                <div className="relative w-28 h-28 flex-shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={revenusChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={30}
-                        outerRadius={50}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {revenusChartData.map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number, name: string) => {
-                          const pourcent = totalRevenus > 0 ? Math.round((value / totalRevenus) * 100) : 0
-                          return [`${formatEuro(value)} (${pourcent}%)`, name]
-                        }}
-                        contentStyle={tooltipStyle}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+              {revenusChartData.length > 1 && (
+                <div className="flex flex-col items-center gap-3">
+                  {/* Donut */}
+                  <div className="relative w-28 h-28 flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={revenusChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={30}
+                          outerRadius={50}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {revenusChartData.map((entry, i) => (
+                            <Cell key={i} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: number, name: string) => {
+                            const pourcent = totalRevenus > 0 ? Math.round((value / totalRevenus) * 100) : 0
+                            return [`${formatEuro(value)} (${pourcent}%)`, name]
+                          }}
+                          contentStyle={tooltipStyle}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
 
-                {/* Légende */}
-                <div className="space-y-1 w-full">
-                  {revenusChartData.map(d => (
-                    <div key={d.name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: d.color}}  />
-                        <span className="text-xs text-slate-300 truncate">{d.name}</span>
+                  {/* Légende */}
+                  <div className="space-y-1 w-full">
+                    {revenusChartData.map(d => (
+                      <div key={d.name} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: d.color}}  />
+                          <span className="text-xs text-slate-300 truncate">{d.name}</span>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-xs font-semibold text-white">{formatEuro(d.value)}</span>
+                          <span className="text-xs text-slate-500 ml-1">
+                            ({totalRevenus > 0 ? Math.round((d.value / totalRevenus) * 100) : 0}%)
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="text-xs font-semibold text-white">{formatEuro(d.value)}</span>
-                        <span className="text-xs text-slate-500 ml-1">
-                          ({totalRevenus > 0 ? Math.round((d.value / totalRevenus) * 100) : 0}%)
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -280,97 +282,99 @@ export default function DashboardPage() {
               <CardTitle className="text-sm text-rose-400">Sortants</CardTitle>
             </CardHeader>
             <CardContent>
-            <p className="text-xl font-bold text-rose-300">
-              {formatEuro(totalSortantsAll)}
-              <span className="text-sm font-normal text-rose-500 ml-2">
-                ({totalRevenus > 0 ? Math.round((totalSortantsAll / totalRevenus) * 100) : 0}% des revenus)
-              </span>
-            </p>
-              <div className="flex flex-col items-center gap-3">
-                {/* Donut */}
-                <div className="relative w-28 h-28">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={sortantsChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={30}
-                        outerRadius={50}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {sortantsChartData.map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number, name: string) => {
-                          const pourcent = totalSortantsAll > 0 ? Math.round((value / totalSortantsAll) * 100) : 0
-                          return [`${formatEuro(value)} (${pourcent}%)`, name]
-                        }}
-                        contentStyle={tooltipStyle}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+              <p className="text-xl font-bold text-rose-300">
+                {formatEuro(totalSortantsAll)}
+                <span className="text-sm font-normal text-rose-500 ml-2">
+                  ({totalRevenus > 0 ? Math.round((totalSortantsAll / totalRevenus) * 100) : 0}% des revenus)
+                </span>
+              </p>
+              {sortantsChartData.length > 1 && (
+                <div className="flex flex-col items-center gap-3">
+                  {/* Donut */}
+                  <div className="relative w-28 h-28">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={sortantsChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={30}
+                          outerRadius={50}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {sortantsChartData.map((entry, i) => (
+                            <Cell key={i} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: number, name: string) => {
+                            const pourcent = totalSortantsAll > 0 ? Math.round((value / totalSortantsAll) * 100) : 0
+                            return [`${formatEuro(value)} (${pourcent}%)`, name]
+                          }}
+                          contentStyle={tooltipStyle}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Légende */}
+                  <div className="space-y-1 w-full">
+                    {/* Charges fixes */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full bg-pink-600 flex-shrink-0" />
+                        <span className="text-xs text-slate-300 truncate">Fixes</span>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-xs font-semibold text-white">{formatEuro(chargesFixesNonPayees)} / {formatEuro(totalChargesPayees)}</span>
+                        <span className="text-xs text-slate-500 ml-1">
+                          ({totalChargesFixes > 0 ? Math.round((totalChargesFixes / totalSortantsAll) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Variables */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full bg-pink-300 flex-shrink-0" />
+                        <span className="text-xs text-slate-300 truncate">Variables</span>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-xs font-semibold text-white">{formatEuro(totalDepenses)}</span>
+                        <span className="text-xs text-slate-500 ml-1">
+                          ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Variables — Prévu (hors diagramme) */}
+                    <div className="flex items-center justify-between gap-2 pl-5">
+                      <span className="text-xs text-slate-500">Prévu</span>
+                      <div className="text-right">
+                        <span className="text-xs text-slate-400 flex-shrink-0">{formatEuro(totalVariablesBudget)}</span>
+                        <span className="text-xs text-slate-600 ml-1">
+                          ({totalSortantsAll > 0 ? Math.round((totalVariablesBudget / totalSortantsAll) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Épargne */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full bg-pink-900 flex-shrink-0" />
+                        <span className="text-xs text-slate-300 truncate">Épargne</span>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-xs font-semibold text-white">{formatEuro(totalEpargnes)}</span>
+                        <span className="text-xs text-slate-500 ml-1">
+                          ({totalSortantsAll > 0 ? Math.round((totalEpargnes / totalSortantsAll) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-
-                {/* Légende */}
-                <div className="space-y-1 w-full">
-                  {/* Charges fixes */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2.5 h-2.5 rounded-full bg-pink-600 flex-shrink-0" />
-                      <span className="text-xs text-slate-300 truncate">Fixes</span>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <span className="text-xs font-semibold text-white">{formatEuro(chargesFixesNonPayees)} / {formatEuro(totalChargesPayees)}</span>
-                      <span className="text-xs text-slate-500 ml-1">
-                        ({totalChargesFixes > 0 ? Math.round((totalChargesFixes / totalSortantsAll) * 100) : 0}%)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Variables */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2.5 h-2.5 rounded-full bg-pink-300 flex-shrink-0" />
-                      <span className="text-xs text-slate-300 truncate">Variables</span>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <span className="text-xs font-semibold text-white">{formatEuro(totalDepenses)}</span>
-                      <span className="text-xs text-slate-500 ml-1">
-                        ({totalSortantsAll > 0 ? Math.round((totalDepenses / totalSortantsAll) * 100) : 0}%)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Variables — Prévu (hors diagramme) */}
-                  <div className="flex items-center justify-between gap-2 pl-5">
-                    <span className="text-xs text-slate-500">Prévu</span>
-                    <div className="text-right">
-                      <span className="text-xs text-slate-400 flex-shrink-0">{formatEuro(totalVariablesBudget)}</span>
-                      <span className="text-xs text-slate-600 ml-1">
-                        ({totalSortantsAll > 0 ? Math.round((totalVariablesBudget / totalSortantsAll) * 100) : 0}%)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Épargne */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2.5 h-2.5 rounded-full bg-pink-900 flex-shrink-0" />
-                      <span className="text-xs text-slate-300 truncate">Épargne</span>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <span className="text-xs font-semibold text-white">{formatEuro(totalEpargnes)}</span>
-                      <span className="text-xs text-slate-500 ml-1">
-                        ({totalSortantsAll > 0 ? Math.round((totalEpargnes / totalSortantsAll) * 100) : 0}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -381,26 +385,28 @@ export default function DashboardPage() {
             <CardTitle className="text-sm text-purple-400">Répartition Catégories</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Donut */}
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={repartitionChartData}
-                  cx="50%" cy="50%"
-                  innerRadius={50} outerRadius={80}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {repartitionChartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value: number, name: string) => [formatEuro(value), name]}
-                  contentStyle={tooltipStyle}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {repartitionChartData.length > 1 && (
+              /* Donut */
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={repartitionChartData}
+                    cx="50%" cy="50%"
+                    innerRadius={50} outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {repartitionChartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number, name: string) => [formatEuro(value), name]}
+                    contentStyle={tooltipStyle}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
 
             {/* Légende + Tableau catégories */}
             <div className="overflow-x-auto">
