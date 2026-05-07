@@ -435,9 +435,9 @@ export default function DashboardPage() {
                       <span className="text-purple-200 truncate">💰 Épargne</span>
                     </div>
                   </td>
-                  <td className="text-right text-purple-600">—</td>
+                  <td className="text-right text-purple-600"></td>
                   <td className="text-right text-purple-200">{fmtOrDash(totalEpargnes)}</td>
-                  <td className="text-right text-purple-600">—</td>
+                  <td className="text-right text-purple-600"></td>
                 </tr>
 
                 {/* Catégories variables */}
@@ -453,7 +453,7 @@ export default function DashboardPage() {
                       </td>
                       <td className="text-right text-purple-200">{fmtOrDash(cat.prevu)}</td>
                       <td className="text-right text-white">{fmtOrDash(cat.depense)}</td>
-                      <td className={`text-right ${cat.reste === 0 ? 'text-purple-600' : cat.reste > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(cat.reste)}</td>
+                      <td className={`text-right ${cat.reste === 0 ? 'text-white' : cat.reste > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(cat.reste)}</td>
                     </tr>
                   )
                 })}
