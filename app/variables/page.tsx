@@ -46,16 +46,6 @@ export default function VariablesPage() {
 
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
   const activeCategories = categories.filter(c => (c as any).actif !== false)
-  const categoriesAvecActivite = activeCategories.filter(cat => {
-    const budget = getBudget(cat.id)
-    const prevu = budget ? Number(budget.prevu) : 0
-    return prevu > 0 || getDepenses(cat.id) > 0
-  })
-  const categoriesSansActivite = activeCategories.filter(cat => {
-    const budget = getBudget(cat.id)
-    const prevu = budget ? Number(budget.prevu) : 0
-    return prevu === 0 && getDepenses(cat.id) === 0
-  })
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], create: createTx, update: updateTx, remove: removeTx } = useTransactions(moisId)
   const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
@@ -75,6 +65,16 @@ export default function VariablesPage() {
     const totalRemb = rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
     return Number(tx.montant) - totalRemb
   }
+  const categoriesAvecActivite = activeCategories.filter(cat => {
+    const budget = getBudget(cat.id)
+    const prevu = budget ? Number(budget.prevu) : 0
+    return prevu > 0 || getDepenses(cat.id) > 0
+  })
+  const categoriesSansActivite = activeCategories.filter(cat => {
+    const budget = getBudget(cat.id)
+    const prevu = budget ? Number(budget.prevu) : 0
+    return prevu === 0 && getDepenses(cat.id) === 0
+  })
 
   const totalPrevu = budgets.reduce((s, b) => s + Number(b.prevu), 0)
   const totalReel = transactions.reduce((s, t) => s + getMontantNet(t), 0)
