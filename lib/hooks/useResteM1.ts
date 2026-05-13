@@ -7,7 +7,7 @@ export function useResteM1(espaceId: string | undefined, currentMonth: string,so
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['reste_m1', espaceId, currentMonth],
+    queryKey: ['reste_m1', espaceId, currentMonth, soldeInitial],
     enabled: !!espaceId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
