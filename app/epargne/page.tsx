@@ -33,6 +33,9 @@ export default function EpargnePage() {
 
   // Séparer actives et archivées
   const enveloppesActives = enveloppes.filter(e => !e.archived)
+  const enveloppesVisibles = enveloppesActives.filter(env =>
+    Number(env.solde) !== 0 || (env.objectif && Number(env.objectif) > 0)
+  )
   const enveloppesArchivees = enveloppes.filter(e => e.archived)
 
   // États création enveloppe
@@ -272,41 +275,43 @@ export default function EpargnePage() {
         </Card>
 
         {/* ENVELOPPES ACTIVES */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-          {enveloppesActives.map(env => {
-            const pourcent = env.objectif ? Math.min(100, Math.round((Number(env.solde) / Number(env.objectif)) * 100)) : null
-            return (
-              <Card key={env.id} className="bg-slate-900 border-slate-800">
-                <CardContent className="p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm truncate">{env.nom}</p>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                        onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                        onClick={() => {
-                          if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
-                        }}>
-                        <Archive className="w-3.5 h-3.5" />
-                      </Button>
+        {enveloppesActives.length > 1 && enveloppesVisibles.length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+            {enveloppesVisibles.map(env => {
+              const pourcent = env.objectif ? Math.min(100, Math.round((Number(env.solde) / Number(env.objectif)) * 100)) : null
+              return (
+                <Card key={env.id} className="bg-slate-900 border-slate-800">
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm truncate">{env.nom}</p>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                          onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                          onClick={() => {
+                            if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
+                          }}>
+                          <Archive className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-lg font-bold text-emerald-400">{formatEuro(Number(env.solde))}</p>
-                  {env.objectif && pourcent !== null && (
-                    <>
-                      <Progress value={pourcent} className="h-2" />
-                      <p className="text-xs text-slate-500">
-                        {pourcent}% — Objectif {formatEuro(Number(env.objectif))}
-                      </p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                    <p className="text-lg font-bold text-emerald-400">{formatEuro(Number(env.solde))}</p>
+                    {env.objectif && pourcent !== null && (
+                      <>
+                        <Progress value={pourcent} className="h-2" />
+                        <p className="text-xs text-slate-500">
+                          {pourcent}% — Objectif {formatEuro(Number(env.objectif))}
+                        </p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        )}
 
         {/* ENVELOPPES ARCHIVÉES */}
         {enveloppesArchivees.length > 0 && (
