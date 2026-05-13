@@ -36,6 +36,9 @@ export default function EpargnePage() {
   const enveloppesVisibles = enveloppesActives.filter(env =>
     Number(env.solde) !== 0 || (env.objectif && Number(env.objectif) > 0)
   )
+  const enveloppesInactives = enveloppesActives.filter(env =>
+    Number(env.solde) === 0 && (!env.objectif || Number(env.objectif) === 0)
+  )
   const enveloppesArchivees = enveloppes.filter(e => e.archived)
 
   // États création enveloppe
@@ -76,6 +79,9 @@ export default function EpargnePage() {
 
   // Speed Dial FAB
   const [fabOpen, setFabOpen] = useState(false)
+
+  // Masquer les enveloppes inactives
+  const [showInactiveEnv, setShowInactiveEnv] = useState(false)
 
   // Totaux du mois
   const totalEpargne = mouvements.filter(m => m.type === 'epargne').reduce((s, m) => s + Number(m.montant), 0)
@@ -275,41 +281,81 @@ export default function EpargnePage() {
         </Card>
 
         {/* ENVELOPPES ACTIVES */}
-        {enveloppesActives.length > 1 && enveloppesVisibles.length > 0 && (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-            {enveloppesVisibles.map(env => {
-              const pourcent = env.objectif ? Math.min(100, Math.round((Number(env.solde) / Number(env.objectif)) * 100)) : null
-              return (
-                <Card key={env.id} className="bg-slate-900 border-slate-800">
-                  <CardContent className="p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-sm truncate">{env.nom}</p>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                          onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                          onClick={() => {
-                            if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
-                          }}>
-                          <Archive className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="text-lg font-bold text-emerald-400">{formatEuro(Number(env.solde))}</p>
-                    {env.objectif && pourcent !== null && (
-                      <>
-                        <Progress value={pourcent} className="h-2" />
-                        <p className="text-xs text-slate-500">
-                          {pourcent}% — Objectif {formatEuro(Number(env.objectif))}
-                        </p>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              )
-            })}
+        {(enveloppesActives.length > 1 || enveloppesActives.some(e => e.objectif && Number(e.objectif) > 0)) && (
+          <div>
+            {enveloppesVisibles.length > 0 && (
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                {enveloppesVisibles.map(env => {
+                  const pourcent = env.objectif ? Math.min(100, Math.round((Number(env.solde) / Number(env.objectif)) * 100)) : null
+                  return (
+                    <Card key={env.id} className="bg-slate-900 border-slate-800">
+                      <CardContent className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-sm truncate">{env.nom}</p>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                              onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                              onClick={() => {
+                                if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
+                              }}>
+                              <Archive className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-lg font-bold text-emerald-400">{formatEuro(Number(env.solde))}</p>
+                        {env.objectif && pourcent !== null && (
+                          <>
+                            <Progress value={pourcent} className="h-2" />
+                            <p className="text-xs text-slate-500">
+                              {pourcent}% — Objectif {formatEuro(Number(env.objectif))}
+                            </p>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+            {enveloppesInactives.length > 0 && (
+              <div className="mt-2">
+                <button
+                  onClick={() => setShowInactiveEnv(!showInactiveEnv)}
+                  className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showInactiveEnv ? '▼' : '▶'} Autres enveloppes ({enveloppesInactives.length})
+                </button>
+                {showInactiveEnv && (
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+                    {enveloppesInactives.map(env => (
+                      <Card key={env.id} className="bg-slate-900/50 border-slate-800 opacity-60">
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium text-sm truncate">{env.nom}</p>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                                onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                                onClick={() => {
+                                  if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
+                                }}>
+                                <Archive className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-lg font-bold text-slate-400">{formatEuro(Number(env.solde))}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
