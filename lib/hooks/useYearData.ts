@@ -123,7 +123,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         total: number; avg: number; min: number; max: number
       }> = {}
 
-      for (const catId of allCatIds) {
+      for (const catId of Array.from(allCatIds)) {
         const values = months.map(m => monthlyData[m]?.catDepenses[catId] || 0)
         const nonZero = values.filter(v => v > 0)
         const total = values.reduce((s, v) => s + v, 0)
