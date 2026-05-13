@@ -29,6 +29,7 @@ export default function VariablesPage() {
   const [newCatNom, setNewCatNom] = useState('')
   const [newCatIcone, setNewCatIcone] = useState('🛒')
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; nom: string } | null>(null)
+  const [showInactive, setShowInactive] = useState(false)
 
   // Édition dépense
   const [editTx, setEditTx] = useState<any>(null)
@@ -45,6 +46,16 @@ export default function VariablesPage() {
 
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
   const activeCategories = categories.filter(c => (c as any).actif !== false)
+  const categoriesAvecActivite = activeCategories.filter(cat => {
+    const budget = getBudget(cat.id)
+    const prevu = budget ? Number(budget.prevu) : 0
+    return prevu > 0 || getDepenses(cat.id) > 0
+  })
+  const categoriesSansActivite = activeCategories.filter(cat => {
+    const budget = getBudget(cat.id)
+    const prevu = budget ? Number(budget.prevu) : 0
+    return prevu === 0 && getDepenses(cat.id) === 0
+  })
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], create: createTx, update: updateTx, remove: removeTx } = useTransactions(moisId)
   const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
@@ -102,13 +113,7 @@ export default function VariablesPage() {
           <div>
             <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-            {[...activeCategories]
-              .filter(cat => {
-                const budget = getBudget(cat.id)
-                const prevu = budget ? Number(budget.prevu) : 0
-                return prevu > 0 || getDepenses(cat.id) > 0
-              })
-              .sort((a, b) => a.nom.localeCompare(b.nom)).map(cat => {
+            {[...categoriesAvecActivite].sort((a, b) => a.nom.localeCompare(b.nom)).map(cat => {
                 const budget = getBudget(cat.id)
                 const depense = getDepenses(cat.id)
                 const prevu = budget ? Number(budget.prevu) : 0
@@ -161,6 +166,58 @@ export default function VariablesPage() {
                 )
               })}
             </div>
+            {categoriesSansActivite.length > 0 && (
+              <div className="mt-2">
+                <button
+                  onClick={() => setShowInactive(!showInactive)}
+                  className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showInactive ? '▼' : '▶'} Autres budgets ({categoriesSansActivite.length})
+                </button>
+                {showInactive && (
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+                    {[...categoriesSansActivite].sort((a, b) => a.nom.localeCompare(b.nom)).map(cat => {
+                      const budget = getBudget(cat.id)
+                      const prevu = budget ? Number(budget.prevu) : 0
+                      return (
+                        <div key={cat.id} className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 space-y-1.5 opacity-60">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-base">{cat.icone}</span>
+                              <span className="text-xs font-medium truncate">{cat.nom}</span>
+                            </div>
+                            <Button variant="ghost" size="icon" className="text-slate-600 h-5 w-5 flex-shrink-0"
+                              onClick={() => setArchiveTarget({ id: cat.id, nom: cat.nom })}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          <div className="flex gap-1">
+                            <Input
+                              type="number" step="0.01"
+                              className="h-6 text-xs bg-slate-800 border-slate-700 px-2 flex-1"
+                              placeholder="Budget"
+                              defaultValue={prevu || ''}
+                              id={`budget-${cat.id}`}
+                            />
+                            <button
+                              className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                              onClick={() => {
+                                if (!moisId) return
+                                const input = document.getElementById(`budget-${cat.id}`) as HTMLInputElement
+                                const val = parseFloat(input?.value) || 0
+                                upsertBudget.mutate({ mois_id: moisId, categorie_id: cat.id, prevu: val })
+                              }}
+                            >
+                              ✓
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
