@@ -31,17 +31,16 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       const moisMap = new Map(moisList.map(m => [m.id, m.mois]))
 
       // 2. Charger toutes les données en parallèle
-      const [
-        { data: revenus = [] },
-        { data: charges = [] },
-        { data: transactions = [] },
-        { data: mouvements = [] },
-      ] = await Promise.all([
+      const [revResult, charResult, txResult, mvtResult] = await Promise.all([
         supabase.from('revenus').select('montant, type, mois_id').in('mois_id', moisIds),
         supabase.from('charges_fixes').select('montant, payee, mois_id').in('mois_id', moisIds),
         supabase.from('transactions').select('montant, categorie_id, mois_id, remboursements(montant)').in('mois_id', moisIds),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', moisIds),
       ])
+      const revenus = revResult.data || []
+      const charges = charResult.data || []
+      const transactions = txResult.data || []
+      const mouvements = mvtResult.data || []
 
       // 3. Agréger par mois
       type MonthData = {
