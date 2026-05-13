@@ -26,8 +26,8 @@ import {
 } from 'recharts'
 
 export default function DashboardPage() {
-  const currentMonth = month
   const { moisId, month, setMonth, espaces, espace, loading, addEspace, removeEspace } = useApp()
+  const currentMonth = month
   const [openEspace, setOpenEspace] = useState(false)
   const [newNom, setNewNom] = useState('')
   const [newIcone, setNewIcone] = useState('🏠')
