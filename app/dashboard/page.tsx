@@ -16,8 +16,9 @@ import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useResteM1 } from '@/lib/hooks/useResteM1'
 import { useBudgets } from '@/lib/hooks/useBudgets'
+import { useYearData } from '@/lib/hooks/useYearData'
 import { useApp } from '@/components/AppContext'
-import { Plus, Database } from 'lucide-react'
+import { Plus, Database, TrendingUp, TrendingDown, Minus, Calendar } from 'lucide-react'
 import type { Remboursement } from '@/lib/types'
 import { formatEuro, pct, getCategoryColor } from '@/lib/utils'
 import {
@@ -25,6 +26,7 @@ import {
 } from 'recharts'
 
 export default function DashboardPage() {
+  const currentMonth = month
   const { moisId, month, setMonth, espaces, espace, loading, addEspace, removeEspace } = useApp()
   const [openEspace, setOpenEspace] = useState(false)
   const [newNom, setNewNom] = useState('')
@@ -38,6 +40,7 @@ export default function DashboardPage() {
   const { data: categories = [] } = useCategories(espace?.id)
   const { data: budgets = [] } = useBudgets(moisId)
   const { data: resteM1 } = useResteM1(espace?.id, month, espace?.solde_initial ?? 0)
+  const { data: yearData } = useYearData(espace?.id, month)
 
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
@@ -99,6 +102,30 @@ export default function DashboardPage() {
 
   // tiret au lieu de zéro
   const fmtOrDash = (v: number) => v === 0 ? '—' : formatEuro(v)
+
+  // Nom de mois en français
+  const moisNomFr = (m: string) => {
+    const [, mo] = m.split('-').map(Number)
+    return ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][mo - 1] || ''
+  }
+
+  // Badge d'évolution en %
+  const EvoBadge = ({ current, previous }: { current: number; previous: number | undefined }) => {
+    if (previous === undefined || previous === 0) return null
+    const pctChange = Math.round(((current - previous) / previous) * 100)
+    if (pctChange === 0) return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-slate-500 ml-2">
+        <Minus className="w-3 h-3" />0%
+      </span>
+    )
+    const isUp = pctChange > 0
+    return (
+      <span className={`inline-flex items-center gap-0.5 text-xs ml-2 ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+        {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+        {isUp ? '+' : ''}{pctChange}%
+      </span>
+    )
+  }
 
   const sortantsChartData = [
     { name: 'Fixes', value: totalChargesFixes, color: '#E11D48' },    // rose-600 — rose vif (principal)
@@ -224,7 +251,10 @@ export default function DashboardPage() {
               <CardTitle className="text-sm text-emerald-400">Entrants</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xl font-bold text-emerald-400">{formatEuro(totalRevenus)}</p>
+            <p className="text-xl font-bold text-emerald-400">
+              {formatEuro(totalRevenus)}
+              <EvoBadge current={totalRevenus} previous={yearData?.prevMonth?.revenus} />
+            </p>
               {revenusChartData.length > 1 && (
                 <div className="flex flex-col items-center gap-3">
                   {/* Donut */}
@@ -412,12 +442,13 @@ export default function DashboardPage() {
             <div className="overflow-x-auto">
             <table className="w-full text-xs table-fixed">
               <thead>
-                <tr className="text-purple-600 border-b border-purple-800">
-                  <th className="text-left py-2 font-medium w-2/5 truncate">Catégorie</th>
-                  <th className="text-right py-2 font-medium w-1/5">Prévu</th>
-                  <th className="text-right py-2 font-medium w-1/5">Dépensé</th>
-                  <th className="text-right py-2 font-medium w-1/5">Reste</th>
-                </tr>
+              <tr className="text-purple-600 border-b border-purple-800">
+                <th className="text-left py-2 font-medium w-1/3 truncate">Catégorie</th>
+                <th className="text-right py-2 font-medium w-1/6">Prévu</th>
+                <th className="text-right py-2 font-medium w-1/6">Dépensé</th>
+                <th className="text-right py-2 font-medium w-1/6">Reste</th>
+                <th className="text-right py-2 font-medium w-1/6">Évol.</th>
+              </tr>
               </thead>
               <tbody>
                 {/* Charges fixes */}
@@ -431,6 +462,9 @@ export default function DashboardPage() {
                   <td className="text-right text-purple-200">{fmtOrDash(totalChargesFixes)}</td>
                   <td className="text-right text-purple-200">{fmtOrDash(totalChargesPayees)}</td>
                   <td className={`text-right ${chargesFixesNonPayees === 0 ? 'text-purple-600' : chargesFixesNonPayees > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(chargesFixesNonPayees)}</td>
+                  <td className="text-right">
+                    <EvoBadge current={totalChargesFixes} previous={yearData?.prevMonth?.charges} />
+                  </td>
                 </tr>
 
                 {/* Épargne */}
@@ -444,6 +478,9 @@ export default function DashboardPage() {
                   <td className="text-right text-purple-600"></td>
                   <td className="text-right text-purple-200">{fmtOrDash(totalEpargnes)}</td>
                   <td className="text-right text-purple-600"></td>
+                  <td className="text-right">
+                    <EvoBadge current={totalEpargnes} previous={yearData?.prevMonth?.epargne} />
+                  </td>
                 </tr>
 
                 {/* Catégories variables */}
@@ -460,6 +497,9 @@ export default function DashboardPage() {
                       <td className="text-right text-purple-200">{fmtOrDash(cat.prevu)}</td>
                       <td className="text-right text-white">{fmtOrDash(cat.depense)}</td>
                       <td className={`text-right ${cat.reste === 0 ? 'text-white' : cat.reste > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(cat.reste)}</td>
+                      <td className="text-right">
+                        <EvoBadge current={cat.depense} previous={yearData?.prevMonth?.catDepenses[cat.id]} />
+                      </td>
                     </tr>
                   )
                 })}
@@ -468,6 +508,108 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Card Annuelle */}
+        {yearData && yearData.nbMonths > 1 && (
+          <Card className="bg-amber-950 border-amber-800">
+            <CardHeader>
+              <CardTitle className="text-sm text-amber-400 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Bilan Annuel {currentMonth?.slice(0, 4)}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Résumé */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-amber-900/30 rounded-lg p-3">
+                  <p className="text-xs text-amber-500">Total Revenus</p>
+                  <p className="text-sm font-bold text-emerald-400">{formatEuro(yearData.annualTotals.revenus)}</p>
+                </div>
+                <div className="bg-amber-900/30 rounded-lg p-3">
+                  <p className="text-xs text-amber-500">Total Dépenses</p>
+                  <p className="text-sm font-bold text-rose-400">
+                    {formatEuro(yearData.annualTotals.charges + yearData.annualTotals.depenses + yearData.annualTotals.epargne)}
+                  </p>
+                </div>
+                <div className="bg-amber-900/30 rounded-lg p-3">
+                  <p className="text-xs text-amber-500">Taux d&apos;épargne</p>
+                  <p className={`text-sm font-bold ${yearData.tauxEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {yearData.tauxEpargne}%
+                  </p>
+                </div>
+                <div className="bg-amber-900/30 rounded-lg p-3">
+                  <p className="text-xs text-amber-500">Épargne nette</p>
+                  <p className="text-sm font-bold text-teal-400">{formatEuro(yearData.annualTotals.epargne)}</p>
+                </div>
+              </div>
+
+              {/* Mois extrêmes */}
+              <div className="flex gap-3">
+                {yearData.moisMaxDepense.mois && (
+                  <div className="flex-1 bg-red-900/20 rounded-lg p-2">
+                    <p className="text-xs text-red-400">📈 Plus dépensier</p>
+                    <p className="text-xs font-bold text-white">
+                      {moisNomFr(yearData.moisMaxDepense.mois)} — {formatEuro(yearData.moisMaxDepense.total)}
+                    </p>
+                  </div>
+                )}
+                {yearData.moisMinDepense.mois && (
+                  <div className="flex-1 bg-emerald-900/20 rounded-lg p-2">
+                    <p className="text-xs text-emerald-400">📉 Plus économe</p>
+                    <p className="text-xs font-bold text-white">
+                      {moisNomFr(yearData.moisMinDepense.mois)} — {formatEuro(yearData.moisMinDepense.total)}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Tableau par catégorie : Moy / Min / Max */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs table-fixed">
+                  <thead>
+                    <tr className="text-amber-600 border-b border-amber-800">
+                      <th className="text-left py-2 font-medium w-2/5 truncate">Catégorie</th>
+                      <th className="text-right py-2 font-medium w-1/5">Total</th>
+                      <th className="text-right py-2 font-medium w-1/5">Moy/mois</th>
+                      <th className="text-right py-2 font-medium w-1/5">Min — Max</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Charges fixes annuelles */}
+                    <tr className="border-b border-amber-900">
+                      <td className="py-2 text-amber-200">📌 Charges fixes</td>
+                      <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.charges)}</td>
+                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.charges / yearData.nbMonths))}</td>
+                      <td className="text-right text-amber-500">—</td>
+                    </tr>
+                    {/* Épargne annuelle */}
+                    <tr className="border-b border-amber-900">
+                      <td className="py-2 text-amber-200">💰 Épargne</td>
+                      <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.epargne)}</td>
+                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.epargne / yearData.nbMonths))}</td>
+                      <td className="text-right text-amber-500">—</td>
+                    </tr>
+                    {/* Catégories variables */}
+                    {catStats.map(cat => {
+                      const annual = yearData.catAnnualStats[cat.id]
+                      if (!annual || annual.total === 0) return null
+                      return (
+                        <tr key={cat.id} className="border-b border-amber-900">
+                          <td className="py-2 text-amber-200 truncate">{cat.icone} {cat.nom}</td>
+                          <td className="text-right text-white">{formatEuro(annual.total)}</td>
+                          <td className="text-right text-amber-200">{formatEuro(annual.avg)}</td>
+                          <td className="text-right text-amber-400 whitespace-nowrap">
+                            {formatEuro(annual.min)} — {formatEuro(annual.max)}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
