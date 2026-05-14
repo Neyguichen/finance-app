@@ -200,7 +200,7 @@ export default function DashboardPage() {
   // Maîtrise des dépenses : dépensé réel vs budget prévu total
   // Inclut TOUTES les dépenses, même celles sans budget
   const tauxMaitrise = totalPrevu > 0
-  ? Math.round((totalReel / totalPrevu) * 100)
+  ? Math.round((totalDepenses / totalVariablesBudget) * 100)
   : null
 
   // Ratio charges fixes / revenus
