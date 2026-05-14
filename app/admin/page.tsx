@@ -41,7 +41,7 @@ export default function AdminPage() {
       .select('user_id')
       .then(({ data }) => {
         // Récupère les user_ids uniques depuis les espaces
-        const uniqueIds = [...new Set((data || []).map((e: any) => e.user_id))]
+        const uniqueIds = Array.from(new Set((data || []).map((e: any) => e.user_id)))
         // Pour chaque user_id, on récupère l'email depuis auth (via une table profil ou espaces)
         // Simplification : on liste les user_ids avec leur premier espace
         const userRows: UserRow[] = uniqueIds.map((uid: any) => ({
