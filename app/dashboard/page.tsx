@@ -23,7 +23,7 @@ import { formatEuro, pct, getCategoryColor } from '@/lib/utils'
 import { Plus, Database, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldCheck } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Info
 } from 'recharts'
 
 export default function DashboardPage() {
