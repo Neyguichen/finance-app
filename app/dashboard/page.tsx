@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const { data: categories = [] } = useCategories(espace?.id)
   const { data: budgets = [] } = useBudgets(moisId)
   const { data: resteM1 } = useResteM1(espace?.id, month, espace?.solde_initial ?? 0)
-  const { data: yearData } = useYearData(espace?.id, month)
+  const { data: yearData } = useYearData(espace?.id, month) as { data: any }
   const { data: adminData } = useAdminMoisData(month)
   const { isAdminViewing } = useApp()
 
