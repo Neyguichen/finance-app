@@ -606,7 +606,7 @@ export default function DashboardPage() {
                   {tauxMaitrise !== null ? `${tauxMaitrise}%` : '—'}
                 </p>
                 <p className="text-xs text-slate-600">
-                  {formatEuro(totalReel)} / {formatEuro(totalPrevu)}
+                  {formatEuro(totalDepenses)} / {formatEuro(totalVariablesBudget)}
                 </p>
               </div>
               {/* Capacité d'épargne réelle */}
