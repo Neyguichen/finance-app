@@ -65,6 +65,7 @@ export default function AppMenu() {
           )}
 
           {/* Autres fonctionnalités */}
+          <p></p>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2 text-center">Autres fonctionnalités</p>
           <div className="border-t border-slate-700 my-2" />
           <MenuLink icon={Handshake} label="Dettes" onClick={() => {
@@ -73,6 +74,7 @@ export default function AppMenu() {
           }} />
 
           {/* Section Paramètres */}
+          <p></p>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2 text-center">Paramètres</p>
           <div className="border-t border-slate-700 my-2" />
 
@@ -87,6 +89,7 @@ export default function AppMenu() {
           }} />
 
           {/* Section Compte */}
+          <p></p>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Compte</p>
           <div className="border-t border-slate-700 my-2" />
 
