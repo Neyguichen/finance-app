@@ -37,9 +37,9 @@ export default function ChargesFixesPage() {
   const { data: adminData } = useAdminMoisData(month)
   const effectiveCharges = isAdminViewing ? (adminData?.charges_fixes || []) : charges
 
-  const total = effectiveCharges.reduce((s, c) => s + Number(c.montant), 0)
-  const totalPayee = effectiveCharges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
-  const aVenir = effectiveCharges.filter(c => !c.payee).reduce((s, c) => s + Number(c.montant), 0)
+  const total = effectiveCharges.reduce((s: number, c: any) => s + Number(c.montant), 0)
+  const totalPayee = effectiveCharges.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
+  const aVenir = effectiveCharges.filter((c: any) => !c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
 
   const [formFreq, setFormFreq] = useState(1)
   const { register, handleSubmit, reset, setValue, watch } = useForm({
