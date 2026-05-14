@@ -10,7 +10,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
   // Calcul du mois précédent
   const [y, m] = currentMonth.split('-').map(Number)
   const prevDate = new Date(y, m - 2, 1)
-  const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
+  const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`
 
   return useQuery({
     queryKey: ['year_data', espaceId, year],
@@ -22,8 +22,8 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         .from('mois')
         .select('id, mois')
         .eq('espace_id', espaceId!)
-        .gte('mois', `${year}-01`)
-        .lte('mois', `${year}-12`)
+        .gte('mois', `${year}-01-01`)
+        .lte('mois', `${year}-12-31`)
 
       if (!moisList || moisList.length === 0) return null
 

@@ -47,14 +47,9 @@ export default function DashboardPage() {
     if (!yearData?.monthlyData) return null
     const [y, m] = month.split('-').map(Number)
     const d = new Date(y, m - 2, 1)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
     return yearData.monthlyData[key] ?? null
   })()
-
-  console.log('DEBUG yearData:', { 
-    monthlyDataKeys: yearData?.monthlyData ? Object.keys(yearData.monthlyData) : 'null',
-    prevMonthData 
-  })
 
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
