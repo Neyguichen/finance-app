@@ -17,7 +17,7 @@ type UserRow = {
 
 export default function AdminPage() {
   const router = useRouter()
-  const { userId, enterAdminView } = useApp()
+  const { userId, setAdminViewUserId } = useApp()
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -56,7 +56,7 @@ export default function AdminPage() {
   }, [])
 
   const handleViewAs = (targetUserId: string) => {
-    enterAdminView(targetUserId)
+    setAdminViewUserId(targetUserId)
     router.push('/')
   }
 
