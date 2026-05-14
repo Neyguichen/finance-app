@@ -185,7 +185,7 @@ export default function ChargesFixesPage() {
 
         {/* LISTE DES CHARGES */}
         <div className="space-y-2">
-          {charges.map((charge) => (
+          {[...charges].sort((a, b) => a.nom.localeCompare(b.nom)).map((charge) => (
             <Card key={charge.id} className="bg-slate-900 border-slate-800">
               <CardContent className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">

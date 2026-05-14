@@ -7,11 +7,15 @@ import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Pencil, Plus, Trash2, ReceiptText } from 'lucide-react'
+import { Pencil, Plus, Trash2, ReceiptText, Info } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useTransactions } from '@/lib/hooks/useTransactions'
+import { useRevenus } from '@/lib/hooks/useRevenus'
+import { useChargesFixes as useChargesFixesData } from '@/lib/hooks/useChargesFixes'
+import { useMouvements } from '@/lib/hooks/useEpargne'
+import { useYearData } from '@/lib/hooks/useYearData'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { formatEuro, formatDate, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
@@ -49,6 +53,21 @@ export default function VariablesPage() {
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], create: createTx, update: updateTx, remove: removeTx } = useTransactions(moisId)
   const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
+
+  // Données pour le budget disponible
+  const { data: revenusList = [] } = useRevenus(moisId)
+  const { data: chargesList = [] } = useChargesFixesData(moisId)
+  const { data: mouvementsList = [] } = useMouvements(moisId)
+  const { data: yearData } = useYearData(espaceId, month)
+
+  const totalRevenusVar = revenusList.reduce((s: number, r: any) => s + Number(r.montant), 0)
+  const totalChargesVar = chargesList.reduce((s: number, c: any) => s + Number(c.montant), 0)
+  const totalEpargneVar = mouvementsList
+    .filter((m: any) => m.type === 'epargne')
+    .reduce((s: number, m: any) => s + Number(m.montant), 0)
+  const budgetDisponible = totalRevenusVar - totalChargesVar - totalEpargneVar
+
+  const [showBudgetInfo, setShowBudgetInfo] = useState(false)
 
   const [txCat, setTxCat] = useState('')
   const [txMontant, setTxMontant] = useState(0)
@@ -90,10 +109,32 @@ export default function VariablesPage() {
         {/* 1. TOTAL EN HAUT */}
         <Card className="bg-pink-950 border-pink-800">
           <CardContent className="p-4 space-y-2">
+            {/* Budget disponible */}
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-pink-300">Budget disponible</span>
+                <button onClick={() => setShowBudgetInfo(!showBudgetInfo)} className="text-slate-500 hover:text-slate-300">
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <span className={`font-bold ${budgetDisponible >= 0 ? 'text-pink-300' : 'text-red-400'}`}>
+                {formatEuro(budgetDisponible)}
+              </span>
+            </div>
+            {showBudgetInfo && (
+              <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
+                Revenus ({formatEuro(totalRevenusVar)}) − Charges fixes ({formatEuro(totalChargesVar)}) − Épargne ({formatEuro(totalEpargneVar)}) = Montant à répartir dans vos budgets variables
+              </div>
+            )}
+            <div className="border-t border-pink-900 pt-2" />
+            {/* Budget prévu */}
             <div className="flex justify-between">
               <span className="font-semibold">Budget prévu</span>
               <span className="font-bold">{formatEuro(totalPrevu)}</span>
             </div>
+            {totalPrevu > budgetDisponible && budgetDisponible > 0 && (
+              <p className="text-xs text-amber-400">⚠️ Budget prévu supérieur au disponible ({formatEuro(totalPrevu - budgetDisponible)} de dépassement)</p>
+            )}
             <div className="flex justify-between text-sm">
               <span>Dépensé réel</span>
               <span>{formatEuro(totalReel)}</span>
@@ -104,6 +145,12 @@ export default function VariablesPage() {
                 {formatEuro(totalPrevu - totalReel)}
               </span>
             </div>
+            {/* Moyenne annuelle */}
+            {yearData?.catAnnualStats[cat.id] && (
+              <div className="text-xs text-right text-slate-500">
+                Moy. <span className="text-slate-400">{formatEuro(yearData.catAnnualStats[cat.id].avg)}</span>/mois
+              </div>
+            )}
             <Progress value={totalPrevu > 0 ? pct(totalReel, totalPrevu) : 0} className="h-2" />
           </CardContent>
         </Card>
