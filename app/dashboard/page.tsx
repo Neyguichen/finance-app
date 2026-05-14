@@ -119,11 +119,11 @@ export default function DashboardPage() {
   }
 
   // Badge d'évolution en %
-  const EvoBadge = ({ current, previous }: { current: number; previous: number | undefined | null }) => {
+  const EvoBadge = ({ current, previous, invertColors = false }: { current: number; previous: number | undefined | null; invertColors?: boolean }) => {
     if (previous === undefined || previous === null) return null
     if (previous === 0 && current === 0) return null
     if (previous === 0 && current > 0) return (
-      <span className="inline-flex items-center gap-0.5 text-xs text-emerald-400 ml-2">
+      <span className={`inline-flex items-center gap-0.5 text-xs ml-2 ${invertColors ? 'text-red-400' : 'text-emerald-400'}`}>
         <TrendingUp className="w-3 h-3" />nouveau
       </span>
     )
@@ -134,8 +134,11 @@ export default function DashboardPage() {
       </span>
     )
     const isUp = pctChange > 0
+    // invertColors : pour les dépenses, "en hausse" = mauvais (rouge), "en baisse" = bon (vert)
+    const colorUp = invertColors ? 'text-red-400' : 'text-emerald-400'
+    const colorDown = invertColors ? 'text-emerald-400' : 'text-red-400'
     return (
-      <span className={`inline-flex items-center gap-0.5 text-xs ml-2 ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+      <span className={`inline-flex items-center gap-0.5 text-xs ml-2 ${isUp ? colorUp : colorDown}`}>
         {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
         {isUp ? '+' : ''}{pctChange}%
       </span>
@@ -478,7 +481,7 @@ export default function DashboardPage() {
                   <td className="text-right text-purple-200">{fmtOrDash(totalChargesPayees)}</td>
                   <td className={`text-right ${chargesFixesNonPayees === 0 ? 'text-purple-600' : chargesFixesNonPayees > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(chargesFixesNonPayees)}</td>
                   <td className="text-right">
-                    <EvoBadge current={totalChargesFixes} previous={prevMonthData?.charges} />
+                    <EvoBadge current={totalChargesFixes} previous={prevMonthData?.charges} invertColors />
                   </td>
                 </tr>
 
@@ -513,7 +516,7 @@ export default function DashboardPage() {
                       <td className="text-right text-white">{fmtOrDash(cat.depense)}</td>
                       <td className={`text-right ${cat.reste === 0 ? 'text-white' : cat.reste > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(cat.reste)}</td>
                       <td className="text-right">
-                        <EvoBadge current={cat.depense} previous={prevMonthData?.catDepenses[cat.id]} />
+                        <EvoBadge current={cat.depense} previous={prevMonthData?.catDepenses[cat.id]} invertColors />
                       </td>
                     </tr>
                   )
