@@ -42,6 +42,15 @@ export default function DashboardPage() {
   const { data: resteM1 } = useResteM1(espace?.id, month, espace?.solde_initial ?? 0)
   const { data: yearData } = useYearData(espace?.id, month)
 
+  // Calcul du mois précédent côté dashboard (évite le cache périmé)
+  const prevMonthData = (() => {
+    if (!yearData?.monthlyData) return null
+    const [y, m] = month.split('-').map(Number)
+    const d = new Date(y, m - 2, 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    return yearData.monthlyData[key] ?? null
+  })()
+
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
     const totalRemb = rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
@@ -110,8 +119,14 @@ export default function DashboardPage() {
   }
 
   // Badge d'évolution en %
-  const EvoBadge = ({ current, previous }: { current: number; previous: number | undefined }) => {
-    if (previous === undefined || previous === 0) return null
+  const EvoBadge = ({ current, previous }: { current: number; previous: number | undefined | null }) => {
+    if (previous === undefined || previous === null) return null
+    if (previous === 0 && current === 0) return null
+    if (previous === 0 && current > 0) return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-emerald-400 ml-2">
+        <TrendingUp className="w-3 h-3" />nouveau
+      </span>
+    )
     const pctChange = Math.round(((current - previous) / previous) * 100)
     if (pctChange === 0) return (
       <span className="inline-flex items-center gap-0.5 text-xs text-slate-500 ml-2">
@@ -253,7 +268,7 @@ export default function DashboardPage() {
             <CardContent>
             <p className="text-xl font-bold text-emerald-400">
               {formatEuro(totalRevenus)}
-              <EvoBadge current={totalRevenus} previous={yearData?.prevMonth?.revenus} />
+              <EvoBadge current={totalRevenus} previous={prevMonthData?.revenus} />
             </p>
               {revenusChartData.length > 1 && (
                 <div className="flex flex-col items-center gap-3">
@@ -463,7 +478,7 @@ export default function DashboardPage() {
                   <td className="text-right text-purple-200">{fmtOrDash(totalChargesPayees)}</td>
                   <td className={`text-right ${chargesFixesNonPayees === 0 ? 'text-purple-600' : chargesFixesNonPayees > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(chargesFixesNonPayees)}</td>
                   <td className="text-right">
-                    <EvoBadge current={totalChargesFixes} previous={yearData?.prevMonth?.charges} />
+                    <EvoBadge current={totalChargesFixes} previous={prevMonthData?.charges} />
                   </td>
                 </tr>
 
@@ -479,7 +494,7 @@ export default function DashboardPage() {
                   <td className="text-right text-purple-200">{fmtOrDash(totalEpargnes)}</td>
                   <td className="text-right text-purple-600"></td>
                   <td className="text-right">
-                    <EvoBadge current={totalEpargnes} previous={yearData?.prevMonth?.epargne} />
+                    <EvoBadge current={totalEpargnes} previous={prevMonthData?.epargne} />
                   </td>
                 </tr>
 
@@ -498,7 +513,7 @@ export default function DashboardPage() {
                       <td className="text-right text-white">{fmtOrDash(cat.depense)}</td>
                       <td className={`text-right ${cat.reste === 0 ? 'text-white' : cat.reste > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(cat.reste)}</td>
                       <td className="text-right">
-                        <EvoBadge current={cat.depense} previous={yearData?.prevMonth?.catDepenses[cat.id]} />
+                        <EvoBadge current={cat.depense} previous={prevMonthData?.catDepenses[cat.id]} />
                       </td>
                     </tr>
                   )
