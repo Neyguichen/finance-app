@@ -20,6 +20,7 @@ import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { formatEuro, formatDate, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 import { useRemboursements } from '@/lib/hooks/useRemboursements'
+import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 
 export default function VariablesPage() {
   const { moisId, month, setMonth, espace } = useApp()
@@ -54,20 +55,29 @@ export default function VariablesPage() {
   const [inlineCatIcone, setInlineCatIcone] = useState('🛒')
 
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
-  const activeCategories = categories.filter(c => (c as any).actif !== false)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], create: createTx, update: updateTx, remove: removeTx } = useTransactions(moisId)
   const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
-
   // Données pour le budget disponible
   const { data: revenusList = [] } = useRevenus(moisId)
   const { data: chargesList = [] } = useChargesFixesData(moisId)
   const { data: mouvementsList = [] } = useMouvements(moisId)
   const { data: yearData } = useYearData(espaceId, month)
+  
+  const { isAdminViewing } = useApp()
+  const { data: adminData } = useAdminMoisData(month)
+  const effectiveCategories = isAdminViewing ? (adminData?.categories || []) : categories
+  const effectiveBudgets = isAdminViewing ? (adminData?.budgets || []) : budgets
+  const effectiveTransactions = isAdminViewing ? (adminData?.transactions || []) : transactions
+  const effectiveRevenusList = isAdminViewing ? (adminData?.revenus || []) : revenusList
+  const effectiveChargesList = isAdminViewing ? (adminData?.charges_fixes || []) : chargesList
+  const effectiveMouvementsList = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvementsList
 
-  const totalRevenusVar = revenusList.reduce((s: number, r: any) => s + Number(r.montant), 0)
-  const totalChargesVar = chargesList.reduce((s: number, c: any) => s + Number(c.montant), 0)
-  const totalEpargneVar = mouvementsList
+  const activeCategories = effectiveCategories.filter(c => (c as any).actif !== false)
+
+  const totalRevenusVar = effectiveRevenusList.reduce((s: number, r: any) => s + Number(r.montant), 0)
+  const totalChargesVar = effectiveChargesList.reduce((s: number, c: any) => s + Number(c.montant), 0)
+  const totalEpargneVar = effectiveMouvementsList
     .filter((m: any) => m.type === 'epargne')
     .reduce((s: number, m: any) => s + Number(m.montant), 0)
   const budgetDisponible = totalRevenusVar - totalChargesVar - totalEpargneVar
@@ -79,8 +89,8 @@ export default function VariablesPage() {
   const [txInfos, setTxInfos] = useState('')
   const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0])
 
-  const getBudget = (catId: string) => budgets.find(b => b.categorie_id === catId)
-  const getDepenses = (catId: string) => transactions
+  const getBudget = (catId: string) => effectiveBudgets.find(b => b.categorie_id === catId)
+  const getDepenses = (catId: string) => effectiveTransactions
     .filter(t => t.categorie_id === catId)
     .reduce((s, t) => s + getMontantNet(t), 0)
 
@@ -100,8 +110,8 @@ export default function VariablesPage() {
     return prevu === 0 && getDepenses(cat.id) === 0
   })
 
-  const totalPrevu = budgets.reduce((s, b) => s + Number(b.prevu), 0)
-  const totalReel = transactions.reduce((s, t) => s + getMontantNet(t), 0)
+  const totalPrevu = effectiveBudgets.reduce((s, b) => s + Number(b.prevu), 0)
+  const totalReel = effectiveTransactions.reduce((s, t) => s + getMontantNet(t), 0)
 
   return (
     <div>
@@ -205,7 +215,7 @@ export default function VariablesPage() {
                       <button
                         className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
                         onClick={() => {
-                          if (!moisId) return
+                          if (isAdminViewing || !moisId) return
                           const input = document.getElementById(`budget-${cat.id}`) as HTMLInputElement
                           const val = parseFloat(input?.value) || 0
                           upsertBudget.mutate({ mois_id: moisId, categorie_id: cat.id, prevu: val })
@@ -282,11 +292,11 @@ export default function VariablesPage() {
         {/* 3. LISTE DES DÉPENSES */}
         <div>
           <h2 className="text-sm font-semibold text-slate-400 mb-2">Dépenses du mois</h2>
-          {transactions.length === 0 && (
+          {effectiveTransactions.length === 0 && (
             <p className="text-sm text-slate-600 text-center py-4">Aucune dépense ce mois-ci</p>
           )}
           <div className="space-y-2">
-            {transactions.map(tx => {
+            {effectiveTransactions.map(tx => {
               const net = getMontantNet(tx)
               const hasRemb = (tx as any).remboursements?.length > 0
               return (
@@ -308,24 +318,28 @@ export default function VariablesPage() {
                         )}
                         <p className="text-xs text-slate-500">{formatDate(tx.date)}</p>
                       </div>
-                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                        onClick={() => {
-                          setEditTx(tx)
-                          setEditTxMontant(Number(tx.montant))
-                          setEditTxInfos(tx.infos || '')
-                          setEditTxDate(tx.date)
-                          setEditTxCat(tx.categorie_id)
-                        }}>
-                        <Pencil className="w-3 h-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                        onClick={() => setRembTx(tx)}>
-                        <ReceiptText className="w-3 h-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                        onClick={() => removeTx.mutate(tx.id)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                      {!isAdminViewing && (
+                        <>
+                          <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                            onClick={() => {
+                              setEditTx(tx)
+                              setEditTxMontant(Number(tx.montant))
+                              setEditTxInfos(tx.infos || '')
+                              setEditTxDate(tx.date)
+                              setEditTxCat(tx.categorie_id)
+                            }}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                            onClick={() => setRembTx(tx)}>
+                            <ReceiptText className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                            onClick={() => { if (!isAdminViewing) removeTx.mutate(tx.id) }}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -346,8 +360,8 @@ export default function VariablesPage() {
             <Input placeholder="Nom (ex: Courses)" value={newCatNom} onChange={e => setNewCatNom(e.target.value)} />
             <EmojiPicker value={newCatIcone} onChange={setNewCatIcone} />
             <Button className="w-full" onClick={async () => {
-              if (!newCatNom.trim() || !espaceId) return
-              await createCat.mutateAsync({ espace_id: espaceId, nom: newCatNom.trim(), icone: newCatIcone, couleur: '#8B5CF6', ordre: categories.length })
+              if (isAdminViewing || !newCatNom.trim() || !espaceId) return
+              await createCat.mutateAsync({ espace_id: espaceId, nom: newCatNom.trim(), icone: newCatIcone, couleur: '#8B5CF6', ordre: effectiveCategories.length })
               setNewCatNom('')
               setCatOpen(false)
             }}>Créer</Button>
@@ -373,7 +387,7 @@ export default function VariablesPage() {
                   }
                 }}>
                 <option value="">Budget...</option>
-                {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => (
+                {[...effectiveCategories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => (
                   <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                 ))}
                 <option value="__NEW__">➕ Nouveau budget...</option>
@@ -393,7 +407,7 @@ export default function VariablesPage() {
                         nom: inlineCatNom.trim(),
                         icone: inlineCatIcone,
                         couleur: '#8B5CF6',
-                        ordre: categories.length,
+                        ordre: effectiveCategories.length,
                       })
                       setTxCat(newCat.id)
                       setInlineCatNom('')
@@ -411,7 +425,7 @@ export default function VariablesPage() {
             <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
             <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
             <Button className="w-full" onClick={async () => {
-              if (!txCat || !moisId) return
+              if (isAdminViewing || !txCat || !moisId) return
               await createTx.mutateAsync({ mois_id: moisId, categorie_id: txCat, montant: txMontant, date: txDate, infos: txInfos || null })
               setTxMontant(0)
               setTxInfos('')
@@ -439,7 +453,7 @@ export default function VariablesPage() {
                   }
                 }}>
                 <option value="">Budget...</option>
-                {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => (
+                {[...effectiveCategories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => (
                   <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                 ))}
                 <option value="__NEW__">➕ Nouveau budget...</option>
@@ -459,7 +473,7 @@ export default function VariablesPage() {
                         nom: inlineCatNom.trim(),
                         icone: inlineCatIcone,
                         couleur: '#8B5CF6',
-                        ordre: categories.length,
+                        ordre: effectiveCategories.length,
                       })
                       setEditTxCat(newCat.id)
                       setInlineCatNom('')
@@ -477,7 +491,7 @@ export default function VariablesPage() {
             <CalculatorInput value={editTxMontant} onChange={setEditTxMontant} placeholder="Montant" />
             <Input placeholder="Infos" value={editTxInfos} onChange={e => setEditTxInfos(e.target.value)} />
             <Button className="w-full" onClick={async () => {
-              if (!editTx) return
+              if (isAdminViewing || !editTx) return
               await updateTx.mutateAsync({ id: editTx.id, montant: editTxMontant, date: editTxDate, infos: editTxInfos || null, categorie_id: editTxCat })
               setEditTx(null)
             }}>Enregistrer</Button>
@@ -567,50 +581,53 @@ export default function VariablesPage() {
       {/* ======================== */}
       {/* FAB SPEED DIAL            */}
       {/* ======================== */}
+      {!isAdminViewing && (
+        <>
+          {/* Overlay sombre */}
+          {fabOpen && (
+            <div
+              className="fixed inset-0 bg-black/30 z-40"
+              onClick={() => setFabOpen(false)}
+            />
+          )}
 
-      {/* Overlay sombre */}
-      {fabOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 z-40"
-          onClick={() => setFabOpen(false)}
-        />
+          <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3">
+            {/* Sous-boutons (visibles quand fabOpen) */}
+            {fabOpen && (
+              <>
+                {/* Bouton Budget */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Budget</span>
+                  <button
+                    onClick={() => { setFabOpen(false); setCatOpen(true) }}
+                    className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
+                  >
+                    📂
+                  </button>
+                </div>
+                {/* Bouton Dépense */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Dépense</span>
+                  <button
+                    onClick={() => { setFabOpen(false); setTxOpen(true) }}
+                    className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
+                  >
+                    💳
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Bouton principal */}
+            <button
+              onClick={() => setFabOpen(!fabOpen)}
+              className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
+            >
+              <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
+            </button>
+          </div>
+        </>
       )}
-
-      <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3">
-        {/* Sous-boutons (visibles quand fabOpen) */}
-        {fabOpen && (
-          <>
-            {/* Bouton Budget */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Budget</span>
-              <button
-                onClick={() => { setFabOpen(false); setCatOpen(true) }}
-                className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
-              >
-                📂
-              </button>
-            </div>
-            {/* Bouton Dépense */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Dépense</span>
-              <button
-                onClick={() => { setFabOpen(false); setTxOpen(true) }}
-                className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
-              >
-                💳
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Bouton principal */}
-        <button
-          onClick={() => setFabOpen(!fabOpen)}
-          className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
-        >
-          <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
-        </button>
-      </div>
     </div>
   )
 }

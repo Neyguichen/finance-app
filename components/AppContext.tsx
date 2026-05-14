@@ -21,6 +21,14 @@ interface AppContextType {
   removeEspace: (id: string) => Promise<void>
   refreshEspaces: () => Promise<void>
   syncing: boolean
+  adminViewUserId: string | null
+  adminViewEspaceId: string | null
+  adminViewData: any
+  isAdminViewing: boolean
+  setAdminViewUserId: (id: string | null) => void
+  setAdminViewEspaceId: (id: string | null) => void
+  setAdminViewData: (data: any) => void
+  exitAdminView: () => void
 }
 
 const defaultCtx: AppContextType = {
@@ -29,6 +37,14 @@ const defaultCtx: AppContextType = {
   loading: true, addEspace: async () => {}, removeEspace: async () => {},
   updateEspace: async () => {}, refreshEspaces: async () => {},
   syncing: false,
+  adminViewUserId: null,
+  adminViewEspaceId: null,
+  adminViewData: null,
+  isAdminViewing: false,
+  setAdminViewUserId: () => {},
+  setAdminViewEspaceId: () => {},
+  setAdminViewData: () => {},
+  exitAdminView: () => {},
 }
 
 const AppContext = createContext<AppContextType>(defaultCtx)
@@ -43,6 +59,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [month, setMonth] = useState(currentMonth())
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+
+  const [adminViewUserId, setAdminViewUserId] = useState<string | null>(null)
+  const [adminViewEspaceId, setAdminViewEspaceId] = useState<string | null>(null)
+  const [adminViewData, setAdminViewData] = useState<any>(null)
+  const isAdminViewing = !!adminViewUserId
+
+  const exitAdminView = () => {
+    setAdminViewUserId(null)
+    setAdminViewEspaceId(null)
+    setAdminViewData(null)
+  }
 
   const espace = espaces.find(e => e.id === espaceId) || espaces[0] || null
 
@@ -178,6 +205,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('app_espace_id', id)
     },
     moisId, month, setMonth, loading, syncing, addEspace, updateEspace, removeEspace, refreshEspaces,
+    adminViewUserId, adminViewEspaceId, adminViewData, isAdminViewing,
+    setAdminViewUserId, setAdminViewEspaceId, setAdminViewData, exitAdminView,
   }
 
   return (

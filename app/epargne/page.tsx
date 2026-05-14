@@ -13,6 +13,7 @@ import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks
 import { useEnveloppesAtMonth } from '@/lib/hooks/useEnveloppesAtMonth'
 import { formatEuro } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
+import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 
 const FREQUENCES = [
   { value: 0, label: 'Ponctuel' },
@@ -31,15 +32,20 @@ export default function EpargnePage() {
   // ✅ Ajout de update: updateRecurrent
   const { create: createRecurrent, update: updateRecurrent } = useEpargneRecurrentes(espace?.id)
 
+  const { isAdminViewing } = useApp()
+  const { data: adminData } = useAdminMoisData(month)
+  const effectiveEnveloppes = isAdminViewing ? (adminData?.enveloppes || []) : enveloppes
+  const effectiveMouvements = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvements
+
   // Séparer actives et archivées
-  const enveloppesActives = enveloppes.filter(e => !e.archived)
+  const enveloppesActives = effectiveEnveloppes.filter(e => !e.archived)
   const enveloppesVisibles = enveloppesActives.filter(env =>
     Number(env.solde) !== 0 || (env.objectif && Number(env.objectif) > 0)
   )
   const enveloppesInactives = enveloppesActives.filter(env =>
     Number(env.solde) === 0 && (!env.objectif || Number(env.objectif) === 0)
   )
-  const enveloppesArchivees = enveloppes.filter(e => e.archived)
+  const enveloppesArchivees = effectiveEnveloppes.filter(e => e.archived)
 
   // États création enveloppe
   const [openEnv, setOpenEnv] = useState(false)
@@ -84,21 +90,21 @@ export default function EpargnePage() {
   const [showInactiveEnv, setShowInactiveEnv] = useState(false)
 
   // Totaux du mois
-  const totalEpargne = mouvements.filter(m => m.type === 'epargne').reduce((s, m) => s + Number(m.montant), 0)
-  const totalReprise = mouvements.filter(m => m.type === 'reprise').reduce((s, m) => s + Number(m.montant), 0)
+  const totalEpargne = effectiveMouvements.filter(m => m.type === 'epargne').reduce((s, m) => s + Number(m.montant), 0)
+  const totalReprise = effectiveMouvements.filter(m => m.type === 'reprise').reduce((s, m) => s + Number(m.montant), 0)
 
   // Total disponible en épargne (somme des soldes)
   const totalDisponible = enveloppesActives.reduce((s, e) => s + Number(e.solde), 0)
 
   const handleCreateEnv = async () => {
-    if (!espace || !newEnvNom.trim()) return
+    if (isAdminViewing || !espace || !newEnvNom.trim()) return
     await createEnv.mutateAsync({
       espace_id: espace.id,
       nom: newEnvNom.trim(),
       solde_initial: newEnvSolde ?? 0,
       solde: newEnvSolde ?? 0,
       objectif: newEnvObjectif,
-      ordre: enveloppes.length,
+      ordre: effectiveEnveloppes.length,
     })
     setNewEnvNom('')
     setNewEnvObjectif(null)
@@ -115,7 +121,7 @@ export default function EpargnePage() {
   }
 
   const handleSaveEditEnv = async () => {
-    if (!editEnv) return
+    if (isAdminViewing || !editEnv) return
 
     const oldInitial = Number(editEnv.solde_initial) || 0
     const diff = editEnvSoldeInitial  - oldInitial
@@ -131,7 +137,7 @@ export default function EpargnePage() {
   }
 
   const handleCreateMvt = async () => {
-    if (!moisId || !espace || mvtMontant <= 0) return
+    if (isAdminViewing || !moisId || !espace || mvtMontant <= 0) return
     // Forcer ponctuel pour reprise et transfert
     const freq = mvtType === 'epargne' ? mvtFreq : 0
     const sourceId = (mvtType === 'reprise' || mvtType === 'transfert') ? (mvtSourceId || null) : null
@@ -185,7 +191,7 @@ export default function EpargnePage() {
   }
 
   const handleDeleteMvt = (mode: 'mois' | 'definitif') => {
-    if (!deleteTarget) return
+    if (isAdminViewing || !deleteTarget) return
     if (mode === 'definitif' && deleteTarget.recurrentId) {
       removeDefinitif.mutate({ mouvementId: deleteTarget.id, recurrentId: deleteTarget.recurrentId })
     } else {
@@ -202,7 +208,7 @@ export default function EpargnePage() {
   }
 
   const handleSaveEditMvt = async () => {
-    if (!editMvt) return
+    if (isAdminViewing || !editMvt) return
     if (editMvt.recurrentId) {
       // Récurrent → ouvrir le choix de scope
       setScopeMvt({
@@ -224,7 +230,7 @@ export default function EpargnePage() {
   }
 
   const handleScopeEditMvt = async (scope: 'mois' | 'tous') => {
-    if (!scopeMvt) return
+    if (isAdminViewing || !scopeMvt) return
     await updateMvt.mutateAsync({
       id: scopeMvt.id,
       montant: scopeMvt.montant,
@@ -240,7 +246,7 @@ export default function EpargnePage() {
     setScopeMvt(null)
   }
 
-  const getEnvNom = (id: string | null) => enveloppes.find(e => e.id === id)?.nom || '—'
+  const getEnvNom = (id: string | null) => effectiveEnveloppes.find(e => e.id === id)?.nom || '—'
 
   return (
     <div>
@@ -293,16 +299,21 @@ export default function EpargnePage() {
                         <div className="flex items-center justify-between">
                           <p className="font-medium text-sm truncate">{env.nom}</p>
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                              onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                              onClick={() => {
-                                if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
-                              }}>
-                              <Archive className="w-3.5 h-3.5" />
-                            </Button>
+                            {!isAdminViewing && (
+                              <>
+                                <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                                  onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                                  onClick={() => {
+                                    if (isAdminViewing) return
+                                    if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
+                                  }}>
+                                  <Archive className="w-3.5 h-3.5" />
+                                </Button>
+                              </>
+                            )}  
                           </div>
                         </div>
                         <p className="text-lg font-bold text-emerald-400">{formatEuro(Number(env.solde))}</p>
@@ -336,16 +347,21 @@ export default function EpargnePage() {
                           <div className="flex items-center justify-between">
                             <p className="font-medium text-sm truncate">{env.nom}</p>
                             <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                                onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                                onClick={() => {
-                                  if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
-                                }}>
-                                <Archive className="w-3.5 h-3.5" />
-                              </Button>
+                              {!isAdminViewing && (
+                                <>
+                                  <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                                    onClick={() => handleEditEnv({ id: env.id, nom: env.nom, objectif: env.objectif, solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0 })}>
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
+                                    onClick={() => {
+                                      if (isAdminViewing) return
+                                      if (confirm(`Archiver "${env.nom}" ?`)) archive.mutate(env.id)
+                                    }}>
+                                    <Archive className="w-3.5 h-3.5" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </div>
                           <p className="text-lg font-bold text-slate-400">{formatEuro(Number(env.solde))}</p>
@@ -376,7 +392,10 @@ export default function EpargnePage() {
                       <div className="flex items-center justify-between">
                         <p className="font-medium text-sm truncate">{env.nom}</p>
                         <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                          onClick={() => unarchive.mutate(env.id)}>
+                          onClick={() => {
+                            if (isAdminViewing) return
+                            unarchive.mutate(env.id)
+                          }}>
                           <ArchiveRestore className="w-3.5 h-3.5" />
                         </Button>
                       </div>
@@ -462,9 +481,9 @@ export default function EpargnePage() {
           </DialogContent>
         </Dialog>
 
-        {/* LISTE DES MOUVEMENTS */}
+        {/* LISTE DES effectiveMouvements */}
         <div className="space-y-2">
-          {mouvements.map(mvt => (
+          {effectiveMouvements.map(mvt => (
             <Card key={mvt.id} className="bg-slate-900 border-slate-800">
               <CardContent className="flex items-center justify-between p-3">
                 <div>
@@ -493,19 +512,23 @@ export default function EpargnePage() {
                     mvt.type === 'reprise' ? 'text-orange-400' : 'text-blue-400'
                   }`}>{formatEuro(Number(mvt.montant))}</span>
                   {/* ✅ Bouton édition mouvement (nouveau) */}
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => handleEditMvt({ id: mvt.id, montant: Number(mvt.montant), note: mvt.note, recurrentId: mvt.recurrent_id })}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => setDeleteTarget({ id: mvt.id, recurrentId: mvt.recurrent_id, note: mvt.note })}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {!isAdminViewing && (
+                    <>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                        onClick={() => handleEditMvt({ id: mvt.id, montant: Number(mvt.montant), note: mvt.note, recurrentId: mvt.recurrent_id })}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                        onClick={() => setDeleteTarget({ id: mvt.id, recurrentId: mvt.recurrent_id, note: mvt.note })}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
-          {mouvements.length === 0 && (
+          {effectiveMouvements.length === 0 && (
             <p className="text-center text-slate-500 text-sm py-4">Aucun mouvement ce mois</p>
           )}
         </div>
@@ -590,38 +613,42 @@ export default function EpargnePage() {
         </Dialog>
       </div>
 
-      {/* SPEED DIAL FAB */}
-      {fabOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setFabOpen(false)} />
+      {!isAdminViewing && (
+        <>
+          {/* SPEED DIAL FAB */}
+          {fabOpen && (
+            <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setFabOpen(false)} />
+          )}
+          <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse items-center gap-3">
+            {/* Bouton principal */}
+            <button
+              onClick={() => setFabOpen(!fabOpen)}
+              className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+            >
+              <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
+            </button>
+            {/* Sous-boutons */}
+            {fabOpen && (
+              <>
+                <button
+                  onClick={() => { setFabOpen(false); setOpenMvt(true) }}
+                  className="flex items-center gap-2 animate-fade-in"
+                >
+                  <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Mouvement</span>
+                  <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">💰</span>
+                </button>
+                <button
+                  onClick={() => { setFabOpen(false); setOpenEnv(true) }}
+                  className="flex items-center gap-2 animate-fade-in"
+                >
+                  <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Enveloppe</span>
+                  <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">✉️</span>
+                </button>
+              </>
+            )}
+          </div>
+        </>
       )}
-      <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse items-center gap-3">
-        {/* Bouton principal */}
-        <button
-          onClick={() => setFabOpen(!fabOpen)}
-          className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-        >
-          <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
-        </button>
-        {/* Sous-boutons */}
-        {fabOpen && (
-          <>
-            <button
-              onClick={() => { setFabOpen(false); setOpenMvt(true) }}
-              className="flex items-center gap-2 animate-fade-in"
-            >
-              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Mouvement</span>
-              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">💰</span>
-            </button>
-            <button
-              onClick={() => { setFabOpen(false); setOpenEnv(true) }}
-              className="flex items-center gap-2 animate-fade-in"
-            >
-              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Enveloppe</span>
-              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">✉️</span>
-            </button>
-          </>
-        )}
-      </div>
     </div>
   )
 }

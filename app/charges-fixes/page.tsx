@@ -13,6 +13,7 @@ import { useChargesFixes, useChargesFixesRecurrentes } from '@/lib/hooks/useChar
 import { formatEuro, pct } from '@/lib/utils'
 import { useForm } from 'react-hook-form'
 import { useApp } from '@/components/AppContext'
+import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 
 const FREQUENCES = [
   { value: 0, label: 'Ponctuel' },
@@ -32,10 +33,13 @@ export default function ChargesFixesPage() {
   const { moisId, month, setMonth, espace } = useApp()
   const { data: charges = [], togglePayee, create, update, remove, removeDefinitif } = useChargesFixes(moisId)
   const { create: createRecurrent, update: updateRecurrent } = useChargesFixesRecurrentes(espace?.id)
+  const { isAdminViewing } = useApp()
+  const { data: adminData } = useAdminMoisData(month)
+  const effectiveCharges = isAdminViewing ? (adminData?.charges_fixes || []) : charges
 
-  const total = charges.reduce((s, c) => s + Number(c.montant), 0)
-  const totalPayee = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
-  const aVenir = charges.filter(c => !c.payee).reduce((s, c) => s + Number(c.montant), 0)
+  const total = effectiveCharges.reduce((s, c) => s + Number(c.montant), 0)
+  const totalPayee = effectiveCharges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
+  const aVenir = effectiveCharges.filter(c => !c.payee).reduce((s, c) => s + Number(c.montant), 0)
 
   const [formFreq, setFormFreq] = useState(1)
   const { register, handleSubmit, reset, setValue, watch } = useForm({
@@ -43,7 +47,7 @@ export default function ChargesFixesPage() {
   })
 
   const onSubmit = async (values: { nom: string; montant: number }) => {
-    if (!moisId || !espace) return
+    if (isAdminViewing || !moisId || !espace) return
     if (formFreq === 0) {
       await create.mutateAsync({
         mois_id: moisId,
@@ -78,7 +82,7 @@ export default function ChargesFixesPage() {
   }
 
   const handleDelete = (mode: 'mois' | 'definitif') => {
-    if (!deleteTarget) return
+    if (isAdminViewing || !deleteTarget) return
     if (mode === 'definitif' && deleteTarget.recurrentId) {
       removeDefinitif.mutate({ chargeId: deleteTarget.id, recurrentId: deleteTarget.recurrentId })
     } else {
@@ -109,6 +113,7 @@ export default function ChargesFixesPage() {
   }
 
   const saveEdit = async (scope: 'mois' | 'tous') => {
+    if (isAdminViewing) return
     if (scopeEdit) {
       await update.mutateAsync({
         id: scopeEdit.id,
@@ -185,15 +190,16 @@ export default function ChargesFixesPage() {
 
         {/* LISTE DES CHARGES */}
         <div className="space-y-2">
-          {[...charges].sort((a, b) => a.nom.localeCompare(b.nom)).map((charge) => (
+          {[...effectiveCharges].sort((a, b) => a.nom.localeCompare(b.nom)).map((charge) => (
             <Card key={charge.id} className="bg-slate-900 border-slate-800">
               <CardContent className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">
                   <Checkbox
                     checked={charge.payee}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked) => {
+                      if (isAdminViewing) return
                       togglePayee.mutate({ id: charge.id, payee: !!checked })
-                    }
+                    }}
                   />
                   <div>
                     <p className={charge.payee ? 'line-through text-slate-500' : 'font-medium'}>
@@ -206,14 +212,18 @@ export default function ChargesFixesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-purple-400">{formatEuro(Number(charge.montant))}</span>
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => handleEdit({ id: charge.id, nom: charge.nom, montant: Number(charge.montant), recurrentId: charge.recurrent_id })}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => setDeleteTarget({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom })}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {!isAdminViewing && (
+                    <>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                        onClick={() => handleEdit({ id: charge.id, nom: charge.nom, montant: Number(charge.montant), recurrentId: charge.recurrent_id })}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                        onClick={() => setDeleteTarget({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom })}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -279,12 +289,14 @@ export default function ChargesFixesPage() {
       </Dialog>
 
       {/* FAB */}
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-      >
-        <Plus className="w-7 h-7" />
-      </button>
+      {!isAdminViewing && (
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+        >
+          <Plus className="w-7 h-7" />
+        </button>
+      )}
     </div>
   )
 }

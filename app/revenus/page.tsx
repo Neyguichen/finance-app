@@ -14,6 +14,7 @@ import { useMouvements, useEnveloppes } from '@/lib/hooks/useEpargne'
 import { formatEuro, pct } from '@/lib/utils'
 import { useForm } from 'react-hook-form'
 import { useApp } from '@/components/AppContext'
+import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 
 const FREQUENCES = [
   { value: 0, label: 'Ponctuel' },
@@ -36,12 +37,17 @@ export default function RevenusPage() {
   const { create: createRecurrent, update: updateRecurrent } = useRevenusRecurrents(espace?.id)
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: enveloppes = [] } = useEnveloppes(espace?.id)
+  const { isAdminViewing } = useApp()
+  const { data: adminData } = useAdminMoisData(month)
+  const effectiveRevenus = isAdminViewing ? (adminData?.revenus || []) : revenus
+  const effectiveMouvements = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvements
+  const effectiveEnveloppes = isAdminViewing ? (adminData?.enveloppes || []) : enveloppes
 
-  const reprises = mouvements.filter(m => m.type === 'reprise')
+  const reprises = effectiveMouvements.filter(m => m.type === 'reprise')
   const totalReprises = reprises.reduce((s, m) => s + Number(m.montant), 0)
-  const totalEntrants = revenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises
-  const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
-  const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
+  const totalEntrants = effectiveRevenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises
+  const totalActif = effectiveRevenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
+  const totalPassif = effectiveRevenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
 
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
   const [formFreq, setFormFreq] = useState(1)
@@ -50,7 +56,7 @@ export default function RevenusPage() {
   })
 
   const onSubmit = async (values: { nom: string; montant: number }) => {
-    if (!moisId || !espace) return
+    if (isAdminViewing || !moisId || !espace) return
     if (formFreq === 0) {
       await create.mutateAsync({
         mois_id: moisId,
@@ -59,7 +65,7 @@ export default function RevenusPage() {
         nom: values.nom,
         montant: values.montant,
         recu: false,
-        ordre: revenus.length,
+        ordre: effectiveRevenus.length,
       })
     } else {
       const rec = await createRecurrent.mutateAsync({
@@ -69,7 +75,7 @@ export default function RevenusPage() {
         montant: values.montant,
         actif: true,
         frequence_mois: formFreq,
-        ordre: revenus.length,
+        ordre: effectiveRevenus.length,
         mois_debut: month,
       })
       await create.mutateAsync({
@@ -79,7 +85,7 @@ export default function RevenusPage() {
         nom: values.nom,
         montant: values.montant,
         recu: false,
-        ordre: revenus.length,
+        ordre: effectiveRevenus.length,
       })
     }
     reset()
@@ -89,7 +95,7 @@ export default function RevenusPage() {
   }
 
   const handleDelete = (mode: 'mois' | 'definitif') => {
-    if (!deleteTarget) return
+    if (isAdminViewing || !deleteTarget) return
     if (mode === 'definitif' && deleteTarget.recurrentId) {
       removeDefinitif.mutate({ revenuId: deleteTarget.id, recurrentId: deleteTarget.recurrentId })
     } else {
@@ -124,6 +130,7 @@ export default function RevenusPage() {
   }
 
   const saveEdit = async (scope: 'mois' | 'tous') => {
+    if (isAdminViewing) return
     if (scopeEdit) {
       // Appelé depuis le dialog de scope
       await update.mutateAsync({
@@ -186,15 +193,16 @@ export default function RevenusPage() {
 
         {/* LISTE DES REVENUS */}
         <div className="space-y-2">
-          {revenus.map((rev) => (
+          {effectiveRevenus.map((rev) => (
             <Card key={rev.id} className="bg-slate-900 border-slate-800">
               <CardContent className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">
                   <Checkbox
                     checked={rev.recu}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked) => {
+                      if (isAdminViewing) return
                       toggleRecu.mutate({ id: rev.id, recu: !!checked })
-                    }
+                    }}
                   />
                   <div>
                     <p className="font-medium">{rev.nom}</p>
@@ -214,21 +222,25 @@ export default function RevenusPage() {
                   <span className={`font-bold ${Number(rev.montant) < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                     {formatEuro(Number(rev.montant))}
                   </span>
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => handleEdit({ id: rev.id, nom: rev.nom, montant: Number(rev.montant), type: rev.type, recurrentId: rev.recurrent_id })}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                    onClick={() => setDeleteTarget({ id: rev.id, recurrentId: rev.recurrent_id, nom: rev.nom })}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {!isAdminViewing && (
+                    <>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                        onClick={() => handleEdit({ id: rev.id, nom: rev.nom, montant: Number(rev.montant), type: rev.type, recurrentId: rev.recurrent_id })}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
+                        onClick={() => setDeleteTarget({ id: rev.id, recurrentId: rev.recurrent_id, nom: rev.nom })}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
           {/* REPRISES D'ÉPARGNE (lecture seule) */}
           {reprises.map((rep) => {
-            const envNom = enveloppes.find(e => e.id === rep.enveloppe_source_id)?.nom || 'Enveloppe'
+            const envNom = effectiveEnveloppes.find(e => e.id === rep.enveloppe_source_id)?.nom || 'Enveloppe'
             return (
               <Card key={rep.id} className="bg-slate-900 border-slate-800">
                 <CardContent className="flex items-center justify-between p-3">
@@ -250,13 +262,15 @@ export default function RevenusPage() {
         </div>
 
         {/* ========== FAB FLOTTANT ========== */}
-        <button
-          onClick={() => setOpen(true)}
-          className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-2xl hover:brightness-110 transition-all"
-          aria-label="Ajouter un revenu"
-        >
-          <Plus className="w-6 h-6" />
-        </button>
+        {!isAdminViewing && (
+          <button
+            onClick={() => setOpen(true)}
+            className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-2xl hover:brightness-110 transition-all"
+            aria-label="Ajouter un revenu"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
+        )}
 
         {/* DIALOG AJOUT REVENU */}
         <Dialog open={open} onOpenChange={setOpen}>

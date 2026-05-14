@@ -25,6 +25,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
+import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 
 export default function DashboardPage() {
   const { moisId, month, setMonth, espaces, espace, loading, addEspace, removeEspace } = useApp()
@@ -43,6 +44,15 @@ export default function DashboardPage() {
   const { data: budgets = [] } = useBudgets(moisId)
   const { data: resteM1 } = useResteM1(espace?.id, month, espace?.solde_initial ?? 0)
   const { data: yearData } = useYearData(espace?.id, month)
+  const { data: adminData } = useAdminMoisData(month)
+  const { isAdminViewing } = useApp()
+  // Override les données en mode admin
+  const effectiveRevenus = isAdminViewing ? (adminData?.revenus || []) : revenus
+  const effectiveCharges = isAdminViewing ? (adminData?.charges_fixes || []) : charges
+  const effectiveTransactions = isAdminViewing ? (adminData?.transactions || []) : transactions
+  const effectiveMouvements = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvements
+  const effectiveCategories = isAdminViewing ? (adminData?.categories || []) : categories
+  const effectiveBudgets = isAdminViewing ? (adminData?.budgets || []) : budgets
 
   // Calcul du mois précédent côté dashboard (évite le cache périmé)
   const prevMonthData = (() => {
@@ -60,33 +70,33 @@ export default function DashboardPage() {
   }
 
   // Épargne : épargnes = sorties, reprises = entrées, transferts = neutres
-  const totalEpargnes = mouvements
+  const totalEpargnes = effectiveMouvements
   .filter(m => m.type === 'epargne')
   .reduce((s, m) => s + Number(m.montant), 0)
-  const totalReprises = mouvements
+  const totalReprises = effectiveMouvements
   .filter(m => m.type === 'reprise')
   .reduce((s, m) => s + Number(m.montant), 0)
 
-  const totalActif = revenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
-  const totalPassif = revenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
+  const totalActif = effectiveRevenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
+  const totalPassif = effectiveRevenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
   const totalRevenus = totalActif + totalPassif + totalReprises
 
   // Revenus cochés (reçus) uniquement — pour le reste réel
-  const totalActifRecu = revenus.filter(r => r.type === 'actif' && r.recu).reduce((s, r) => s + Number(r.montant), 0)
-  const totalPassifRecu = revenus.filter(r => r.type === 'passif' && r.recu).reduce((s, r) => s + Number(r.montant), 0)
+  const totalActifRecu = effectiveRevenus.filter(r => r.type === 'actif' && r.recu).reduce((s, r) => s + Number(r.montant), 0)
+  const totalPassifRecu = effectiveRevenus.filter(r => r.type === 'passif' && r.recu).reduce((s, r) => s + Number(r.montant), 0)
   const totalRevenusRecus = totalActifRecu + totalPassifRecu + totalReprises
 
-  const totalChargesFixes = charges.reduce((s, c) => s + Number(c.montant), 0)
-  const totalChargesPayees = charges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
-  const totalDepenses = transactions.reduce((s, t) => s + getMontantNet(t), 0)
+  const totalChargesFixes = effectiveCharges.reduce((s, c) => s + Number(c.montant), 0)
+  const totalChargesPayees = effectiveCharges.filter(c => c.payee).reduce((s, c) => s + Number(c.montant), 0)
+  const totalDepenses = effectiveTransactions.reduce((s, t) => s + getMontantNet(t), 0)
   const totalSortantsAll = totalChargesFixes + totalDepenses + totalEpargnes
 
   // Reste à vivre — PRÉVU
   // Pour chaque catégorie : max(budget prévu, dépenses réelles)
-  const totalVariablesPrevu = categories.reduce((sum, cat) => {
-    const budget = budgets.find(b => b.categorie_id === cat.id)
+  const totalVariablesPrevu = effectiveCategories.reduce((sum, cat) => {
+    const budget = effectiveBudgets.find(b => b.categorie_id === cat.id)
     const prevu = budget ? Number(budget.prevu) : 0
-    const depense = transactions
+    const depense = effectiveTransactions
       .filter(t => t.categorie_id === cat.id)
       .reduce((s, t) => s + getMontantNet(t), 0)
     return sum + Math.max(prevu, depense)
@@ -108,8 +118,8 @@ export default function DashboardPage() {
   ].filter(d => d.value > 0)
 
   // Somme brute des budgets prévisionnels (pour affichage)
-  const totalVariablesBudget = categories.reduce((sum, cat) => {
-    const budget = budgets.find(b => b.categorie_id === cat.id)
+  const totalVariablesBudget = effectiveCategories.reduce((sum, cat) => {
+    const budget = effectiveBudgets.find(b => b.categorie_id === cat.id)
     return sum + (budget ? Number(budget.prevu) : 0)
   }, 0)
 
@@ -159,12 +169,12 @@ export default function DashboardPage() {
   const chargesFixesNonPayees = totalChargesFixes - totalChargesPayees
 
   // Données par catégorie (ordre alphabétique)
-  const catStats = [...categories]
+  const catStats = [...effectiveCategories]
     .sort((a, b) => a.nom.localeCompare(b.nom))
     .map(cat => {
-      const budget = budgets.find(b => b.categorie_id === cat.id)
+      const budget = effectiveBudgets.find(b => b.categorie_id === cat.id)
       const prevu = budget ? Number(budget.prevu) : 0
-      const depense = transactions
+      const depense = effectiveTransactions
         .filter(t => t.categorie_id === cat.id)
         .reduce((s, t) => s + getMontantNet(t), 0)
       const reste = prevu - depense
@@ -195,7 +205,7 @@ export default function DashboardPage() {
   // ===== INDICATEURS MENSUELS =====
 
   // Top 3 dépenses du mois
-  const top3Depenses = [...transactions]
+  const top3Depenses = [...effectiveTransactions]
   .sort((a, b) => getMontantNet(b) - getMontantNet(a))
   .slice(0, 3)
 
@@ -230,7 +240,7 @@ export default function DashboardPage() {
     for (const m of months) {
       monthlyResteM1[m] = carry
       const d = yearData.monthlyData[m]
-      carry = carry + d.revenus + d.reprises - d.charges - d.depenses - d.epargne
+      carry = carry + d.effectiveRevenus + d.reprises - d.effectiveCharges - d.depenses - d.epargne
     }
   }
 
@@ -242,9 +252,9 @@ export default function DashboardPage() {
         const rm1 = monthlyResteM1[mois] ?? 0
         return {
           mois: moisNomFr(mois),
-          revenus: Math.round(rm1 + data.revenus + data.reprises),
-          sortants: Math.round(data.charges + data.depenses + data.epargne),
-          reste: Math.round(rm1 + data.revenus + data.reprises - data.charges - data.depenses - data.epargne),
+          effectiveRevenus: Math.round(rm1 + data.effectiveRevenus + data.reprises),
+          sortants: Math.round(data.effectiveCharges + data.depenses + data.epargne),
+          reste: Math.round(rm1 + data.effectiveRevenus + data.reprises - data.effectiveCharges - data.depenses - data.epargne),
         }
       })
   : []
@@ -287,25 +297,27 @@ export default function DashboardPage() {
       <div className="p-4 space-y-4">
         {/* bouton ajouter */}
         <div className="flex items-center justify-between">
-          <Dialog open={openEspace} onOpenChange={setOpenEspace}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Espace</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
-              <DialogHeader><DialogTitle>Nouvel espace</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <Input placeholder="Nom (ex: Joint)" value={newNom} onChange={e => setNewNom(e.target.value)} />
-                <EmojiPicker value={newIcone} onChange={setNewIcone} />
-                <Button className="w-full" onClick={async () => {
-                  if (!newNom.trim()) return
-                  await addEspace(newNom.trim(), newIcone || undefined)
-                  setNewNom('')
-                  setNewIcone('\ud83c\udfe0')
-                  setOpenEspace(false)
-                }}>Créer l&apos;espace</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          {!isAdminViewing && (
+            <Dialog open={openEspace} onOpenChange={setOpenEspace}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Espace</Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
+                <DialogHeader><DialogTitle>Nouvel espace</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                  <Input placeholder="Nom (ex: Joint)" value={newNom} onChange={e => setNewNom(e.target.value)} />
+                  <EmojiPicker value={newIcone} onChange={setNewIcone} />
+                  <Button className="w-full" onClick={async () => {
+                    if (!newNom.trim()) return
+                    await addEspace(newNom.trim(), newIcone || undefined)
+                    setNewNom('')
+                    setNewIcone('\ud83c\udfe0')
+                    setOpenEspace(false)
+                  }}>Créer l&apos;espace</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {/* Cartes résumé */}
@@ -551,7 +563,7 @@ export default function DashboardPage() {
                   <td className="text-right text-purple-200">{fmtOrDash(totalChargesPayees)}</td>
                   <td className={`text-right ${chargesFixesNonPayees === 0 ? 'text-purple-600' : chargesFixesNonPayees > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(chargesFixesNonPayees)}</td>
                   <td className="text-right">
-                    <EvoBadge current={totalChargesFixes} previous={prevMonthData?.charges} invertColors />
+                    <EvoBadge current={totalChargesFixes} previous={prevMonthData?.effectiveCharges} invertColors />
                   </td>
                 </tr>
 
@@ -733,12 +745,12 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-amber-900/30 rounded-lg p-3">
                   <p className="text-xs text-amber-500">Total Revenus</p>
-                  <p className="text-sm font-bold text-emerald-400">{formatEuro(yearData.annualTotals.revenus)}</p>
+                  <p className="text-sm font-bold text-emerald-400">{formatEuro(yearData.annualTotals.effectiveRevenus)}</p>
                 </div>
                 <div className="bg-amber-900/30 rounded-lg p-3">
                   <p className="text-xs text-amber-500">Total Dépenses</p>
                   <p className="text-sm font-bold text-rose-400">
-                    {formatEuro(yearData.annualTotals.charges + yearData.annualTotals.depenses + yearData.annualTotals.epargne)}
+                    {formatEuro(yearData.annualTotals.effectiveCharges + yearData.annualTotals.depenses + yearData.annualTotals.epargne)}
                   </p>
                 </div>
                 <div className="bg-amber-900/30 rounded-lg p-3">
@@ -834,8 +846,8 @@ export default function DashboardPage() {
                     {/* Charges fixes annuelles */}
                     <tr className="border-b border-amber-900">
                       <td className="py-2 text-amber-200">📌 Charges fixes</td>
-                      <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.charges)}</td>
-                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.charges / yearData.nbMonths))}</td>
+                      <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.effectiveCharges)}</td>
+                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.effectiveCharges / yearData.nbMonths))}</td>
                       <td className="text-right text-amber-500">—</td>
                     </tr>
                     {/* Épargne annuelle */}

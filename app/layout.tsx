@@ -5,6 +5,7 @@ import Providers from '@/components/Providers';
 import MobileNav from '@/components/layout/MobileNav';
 import EspaceSelector from '@/components/layout/EspaceSelector';
 import AppMenu from '@/components/layout/AppMenu';
+import AdminBanner from '@/components/layout/AdminBanner';
 
 const inter = Inter({ subsets: ['latin'] });
 
