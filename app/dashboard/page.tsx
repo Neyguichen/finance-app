@@ -666,7 +666,7 @@ export default function DashboardPage() {
             )}
             {activeTooltip === 'surplus' && (
               <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
-                Ce que vous pourriez épargner : Entrants − Charges fixes − Dépenses variables (sans compter l'épargne déjà faite). Le montant en 🐷 montre ce que vous avez réellement épargné ce mois.
+                Ce que vous pourriez épargner : Entrants − Charges fixes − Dépenses variables (sans compter l&apos;épargne déjà faite). Le montant en 🐷 montre ce que vous avez réellement épargné ce mois.
               </div>
             )}
 
