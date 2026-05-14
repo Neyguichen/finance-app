@@ -216,10 +216,11 @@ export default function DashboardPage() {
   ? Math.round((totalChargesFixes / totalEntrants) * 100)
   : null
 
-  // Capacité d'épargne réelle (ce qui reste vraiment après tous les sortants)
+  // Capacité d'épargne = ce qu'il reste après charges + variables (SANS l'épargne)
   const capaciteEpargne = totalEntrants > 0
-  ? Math.round(((totalEntrants - totalSortantsAll) / totalEntrants) * 100)
+  ? Math.round(((totalEntrants - totalChargesFixes - totalDepenses) / totalEntrants) * 100)
   : null
+  const montantCapacite = totalEntrants - totalChargesFixes - totalDepenses
 
   // Calculer le Reste M-1 rolling pour chaque mois de l'année
   const monthlyResteM1: Record<string, number> = {}
@@ -630,10 +631,10 @@ export default function DashboardPage() {
                   {formatEuro(totalDepenses)} / {formatEuro(totalVariablesBudget)}
                 </p>
               </div>
-              {/* Capacité d'épargne réelle */}
+              {/* Capacité d'épargne réelle vs réellement épargné */}
               <div className="bg-slate-800 rounded-lg p-2 text-center">
                 <div className="flex items-center justify-center gap-1">
-                  <p className="text-xs text-slate-500">💪 Capacité d&apos;épargne réelle</p>
+                  <p className="text-xs text-slate-500">💪 Capacité épargne</p>
                   <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
                   </button>
@@ -641,9 +642,14 @@ export default function DashboardPage() {
                 <p className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
                 </p>
-                <p className={`text-xs ${(totalEntrants - totalSortantsAll) >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
-                  {formatEuro(totalEntrants - totalSortantsAll)}
+                <p className={`text-xs ${montantCapacite >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
+                  {formatEuro(montantCapacite)}
                 </p>
+                {totalEpargnes > 0 && (
+                  <p className="text-xs text-teal-400 mt-0.5">
+                    🐷 {formatEuro(totalEpargnes)} épargnés
+                  </p>
+                )}
               </div>
             </div>
 
@@ -660,7 +666,7 @@ export default function DashboardPage() {
             )}
             {activeTooltip === 'surplus' && (
               <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
-                Ce qui reste réellement après tous les sortants (charges + variables + épargne), en % des revenus.
+                Ce que vous pourriez épargner : Entrants − Charges fixes − Dépenses variables (sans compter l'épargne déjà faite). Le montant en 🐷 montre ce que vous avez réellement épargné ce mois.
               </div>
             )}
 
