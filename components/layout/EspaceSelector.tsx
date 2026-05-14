@@ -11,7 +11,7 @@ export default function EspaceSelector() {
   if (pathname === '/login') return null
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 bg-slate-900 border-b border-slate-800">
+    <div className="flex items-center gap-2 px-4 py-2">
       {espaces.map(e => {
         const active = espace?.id === e.id
         return (
