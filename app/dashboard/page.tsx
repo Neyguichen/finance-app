@@ -197,6 +197,12 @@ export default function DashboardPage() {
   .sort((a, b) => getMontantNet(b) - getMontantNet(a))
   .slice(0, 3)
 
+  // Top 3 catégories les plus dépensières du mois
+  const top3Categories = [...catStats]
+  .filter(c => c.depense > 0)
+  .sort((a, b) => b.depense - a.depense)
+  .slice(0, 3)
+
   // Maîtrise des dépenses : dépensé réel vs budget prévu total
   // Inclut TOUTES les dépenses, même celles sans budget
   const tauxMaitrise = totalVariablesBudget > 0
@@ -658,6 +664,32 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <span className="text-xs font-bold text-pink-400 flex-shrink-0">{formatEuro(getMontantNet(tx))}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Top 3 catégories */}
+            {top3Categories.length > 0 && (
+              <div>
+                <p className="text-xs text-slate-500 mb-1.5">📊 Top 3 catégories du mois</p>
+                <div className="space-y-1">
+                  {top3Categories.map((cat, i) => (
+                    <div key={cat.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-2 py-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-bold text-slate-600">{i + 1}.</span>
+                        <span className="text-xs">{cat.icone || '📂'}</span>
+                        <span className="text-xs text-slate-300 truncate">{cat.nom}</span>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-xs font-bold text-pink-400">{formatEuro(cat.depense)}</span>
+                        {cat.prevu > 0 && (
+                          <span className={`text-xs ml-1 ${cat.depense <= cat.prevu ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
+                            / {formatEuro(cat.prevu)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
