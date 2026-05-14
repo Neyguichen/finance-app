@@ -48,6 +48,11 @@ export default function VariablesPage() {
   const [newRembNote, setNewRembNote] = useState('')
   const [newRembDate, setNewRembDate] = useState(new Date().toISOString().split('T')[0])
 
+  // Création de catégorie inline (depuis le dialog dépense)
+  const [inlineCatOpen, setInlineCatOpen] = useState(false)
+  const [inlineCatNom, setInlineCatNom] = useState('')
+  const [inlineCatIcone, setInlineCatIcone] = useState('🛒')
+
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
   const activeCategories = categories.filter(c => (c as any).actif !== false)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
@@ -353,16 +358,56 @@ export default function VariablesPage() {
       {/* ======================== */}
       {/* DIALOG NOUVELLE DÉPENSE  */}
       {/* ======================== */}
-      <Dialog open={txOpen} onOpenChange={setTxOpen}>
+      <Dialog open={txOpen} onOpenChange={(v) => { setTxOpen(v); if (!v) setInlineCatOpen(false) }}>
         <DialogContent className="bg-slate-900 border-slate-700">
           <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
-            <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-              value={txCat} onChange={e => setTxCat(e.target.value)}>
-              <option value="">Budget...</option>
-              {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
-            </select>
+            <div className="space-y-2">
+              <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                value={txCat} onChange={e => {
+                  if (e.target.value === '__NEW__') {
+                    setInlineCatOpen(true)
+                  } else {
+                    setTxCat(e.target.value)
+                  }
+                }}>
+                <option value="">Budget...</option>
+                {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => (
+                  <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
+                ))}
+                <option value="__NEW__">➕ Nouveau budget...</option>
+              </select>
+
+              {inlineCatOpen && (
+                <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-2">
+                  <p className="text-xs text-slate-400 font-semibold">Nouveau budget</p>
+                  <Input placeholder="Nom (ex: Courses)" value={inlineCatNom}
+                    onChange={e => setInlineCatNom(e.target.value)} />
+                  <EmojiPicker value={inlineCatIcone} onChange={setInlineCatIcone} />
+                  <div className="flex gap-2">
+                    <Button className="flex-1" size="sm" onClick={async () => {
+                      if (!inlineCatNom.trim() || !espaceId) return
+                      const newCat = await createCat.mutateAsync({
+                        espace_id: espaceId,
+                        nom: inlineCatNom.trim(),
+                        icone: inlineCatIcone,
+                        couleur: '#8B5CF6',
+                        ordre: categories.length,
+                      })
+                      setTxCat(newCat.id)
+                      setInlineCatNom('')
+                      setInlineCatIcone('🛒')
+                      setInlineCatOpen(false)
+                    }}>Créer</Button>
+                    <Button className="flex-1" size="sm" variant="ghost" onClick={() => {
+                      setInlineCatOpen(false)
+                      setInlineCatNom('')
+                    }}>Annuler</Button>
+                  </div>
+                </div>
+              )}
+            </div>
             <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
             <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
             <Button className="w-full" onClick={async () => {
@@ -379,15 +424,56 @@ export default function VariablesPage() {
       {/* ======================== */}
       {/* DIALOG ÉDITION DÉPENSE   */}
       {/* ======================== */}
-      <Dialog open={!!editTx} onOpenChange={(v) => { if (!v) setEditTx(null) }}>
+      <Dialog open={!!editTx} onOpenChange={(v) => { if (!v) { setEditTx(null); setInlineCatOpen(false) } }}>
         <DialogContent className="bg-slate-900 border-slate-700">
           <DialogHeader><DialogTitle>Modifier la dépense</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Input type="date" value={editTxDate} onChange={e => setEditTxDate(e.target.value)} />
-            <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-              value={editTxCat} onChange={e => setEditTxCat(e.target.value)}>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>)}
-            </select>
+            <div className="space-y-2">
+              <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                value={txCat} onChange={e => {
+                  if (e.target.value === '__NEW__') {
+                    setInlineCatOpen(true)
+                  } else {
+                    setEditTxCat(e.target.value)
+                  }
+                }}>
+                <option value="">Budget...</option>
+                {[...categories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => (
+                  <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
+                ))}
+                <option value="__NEW__">➕ Nouveau budget...</option>
+              </select>
+
+              {inlineCatOpen && (
+                <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-2">
+                  <p className="text-xs text-slate-400 font-semibold">Nouveau budget</p>
+                  <Input placeholder="Nom (ex: Courses)" value={inlineCatNom}
+                    onChange={e => setInlineCatNom(e.target.value)} />
+                  <EmojiPicker value={inlineCatIcone} onChange={setInlineCatIcone} />
+                  <div className="flex gap-2">
+                    <Button className="flex-1" size="sm" onClick={async () => {
+                      if (!inlineCatNom.trim() || !espaceId) return
+                      const newCat = await createCat.mutateAsync({
+                        espace_id: espaceId,
+                        nom: inlineCatNom.trim(),
+                        icone: inlineCatIcone,
+                        couleur: '#8B5CF6',
+                        ordre: categories.length,
+                      })
+                      setEditTxCat(newCat.id)
+                      setInlineCatNom('')
+                      setInlineCatIcone('🛒')
+                      setInlineCatOpen(false)
+                    }}>Créer</Button>
+                    <Button className="flex-1" size="sm" variant="ghost" onClick={() => {
+                      setInlineCatOpen(false)
+                      setInlineCatNom('')
+                    }}>Annuler</Button>
+                  </div>
+                </div>
+              )}
+            </div>
             <CalculatorInput value={editTxMontant} onChange={setEditTxMontant} placeholder="Montant" />
             <Input placeholder="Infos" value={editTxInfos} onChange={e => setEditTxInfos(e.target.value)} />
             <Button className="w-full" onClick={async () => {
