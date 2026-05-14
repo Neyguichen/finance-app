@@ -145,12 +145,6 @@ export default function VariablesPage() {
                 {formatEuro(totalPrevu - totalReel)}
               </span>
             </div>
-            {/* Moyenne annuelle */}
-            {yearData?.catAnnualStats[cat.id] && (
-              <div className="text-xs text-right text-slate-500">
-                Moy. <span className="text-slate-400">{formatEuro(yearData.catAnnualStats[cat.id].avg)}</span>/mois
-              </div>
-            )}
             <Progress value={totalPrevu > 0 ? pct(totalReel, totalPrevu) : 0} className="h-2" />
           </CardContent>
         </Card>
@@ -188,6 +182,12 @@ export default function VariablesPage() {
                         {formatEuro(prevu - depense)}
                       </span>
                     </div>
+                    {/* Moyenne annuelle */}
+                    {yearData?.catAnnualStats[cat.id] && (
+                      <div className="text-xs text-right text-slate-500">
+                        Moy. <span className="text-slate-400">{formatEuro(yearData.catAnnualStats[cat.id].avg)}</span>/mois
+                      </div>
+                    )}
                     <Progress value={Math.min(ratio, 100)} className="h-1" />
                     <div className="flex gap-1">
                       <Input
@@ -238,6 +238,12 @@ export default function VariablesPage() {
                               <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
+                          {/* Moyenne annuelle */}
+                          {yearData?.catAnnualStats[cat.id] && (
+                            <div className="text-xs text-right text-slate-500">
+                              Moy. <span className="text-slate-400">{formatEuro(yearData.catAnnualStats[cat.id].avg)}</span>/mois
+                            </div>
+                          )}
                           <div className="flex gap-1">
                             <Input
                               type="number" step="0.01"
