@@ -43,11 +43,11 @@ export default function RevenusPage() {
   const effectiveMouvements = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvements
   const effectiveEnveloppes = isAdminViewing ? (adminData?.enveloppes || []) : enveloppes
 
-  const reprises = effectiveMouvements.filter(m => m.type === 'reprise')
-  const totalReprises = reprises.reduce((s, m) => s + Number(m.montant), 0)
-  const totalEntrants = effectiveRevenus.reduce((s, r) => s + Number(r.montant), 0) + totalReprises
-  const totalActif = effectiveRevenus.filter(r => r.type === 'actif').reduce((s, r) => s + Number(r.montant), 0)
-  const totalPassif = effectiveRevenus.filter(r => r.type === 'passif').reduce((s, r) => s + Number(r.montant), 0)
+  const reprises = effectiveMouvements.filter((m: any) => m.type === 'reprise')
+  const totalReprises = reprises.reduce((s: number, m: any) => s + Number(m.montant), 0)
+  const totalEntrants = effectiveRevenus.reduce((s: number, r: any) => s + Number(r.montant), 0) + totalReprises
+  const totalActif = effectiveRevenus.filter((r: any) => r.type === 'actif').reduce((s: number, r: any) => s + Number(r.montant), 0)
+  const totalPassif = effectiveRevenus.filter((r: any) => r.type === 'passif').reduce((s: number, r: any) => s + Number(r.montant), 0)
 
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
   const [formFreq, setFormFreq] = useState(1)
@@ -193,7 +193,7 @@ export default function RevenusPage() {
 
         {/* LISTE DES REVENUS */}
         <div className="space-y-2">
-          {effectiveRevenus.map((rev) => (
+          {effectiveRevenus.map((rev: any) => (
             <Card key={rev.id} className="bg-slate-900 border-slate-800">
               <CardContent className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">
@@ -239,8 +239,8 @@ export default function RevenusPage() {
             </Card>
           ))}
           {/* REPRISES D'ÉPARGNE (lecture seule) */}
-          {reprises.map((rep) => {
-            const envNom = effectiveEnveloppes.find(e => e.id === rep.enveloppe_source_id)?.nom || 'Enveloppe'
+          {reprises.map((rep: any) => {
+            const envNom = effectiveEnveloppes.find((e: any) => e.id === rep.enveloppe_source_id)?.nom || 'Enveloppe'
             return (
               <Card key={rep.id} className="bg-slate-900 border-slate-800">
                 <CardContent className="flex items-center justify-between p-3">
