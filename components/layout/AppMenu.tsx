@@ -65,8 +65,7 @@ export default function AppMenu() {
           )}
 
           {/* Autres fonctionnalités */}
-          <div></div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2 text-center">Autres fonctionnalités</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2 text-center mt-4">Autres fonctionnalités</p>
           <div className="border-t border-slate-700 my-2" />
           <MenuLink icon={Handshake} label="Dettes" onClick={() => {
             setOpen(false)
@@ -75,7 +74,7 @@ export default function AppMenu() {
 
           {/* Section Paramètres */}
           <div></div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2 text-center">Paramètres</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2 text-center mt-4">Paramètres</p>
           <div className="border-t border-slate-700 my-2" />
 
           <MenuLink icon={Settings} label="Gérer les espaces" onClick={() => {
@@ -90,7 +89,7 @@ export default function AppMenu() {
 
           {/* Section Compte */}
           <div></div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Compte</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center mt-4">Compte</p>
           <div className="border-t border-slate-700 my-2" />
 
           <MenuLink icon={Info} label="À propos" onClick={() => {
