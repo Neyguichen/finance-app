@@ -20,10 +20,10 @@ import { useYearData } from '@/lib/hooks/useYearData'
 import { useApp } from '@/components/AppContext'
 import type { Remboursement } from '@/lib/types'
 import { formatEuro, pct, getCategoryColor } from '@/lib/utils'
-import { Plus, Database, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldCheck } from 'lucide-react'
+import { Plus, Database, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldCheck, Info } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Info
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
 
 export default function DashboardPage() {
