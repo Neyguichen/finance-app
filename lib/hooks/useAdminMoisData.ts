@@ -26,7 +26,7 @@ export function useAdminMoisData(month: string) {
       if (error) console.error('Admin RPC error:', error)
       setData(d)
     })
-    .finally(() => setLoading(false))
+    .then(() => setLoading(false), () => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdminViewing, adminViewEspaceId, month])
 
