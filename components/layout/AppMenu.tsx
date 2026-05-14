@@ -58,27 +58,19 @@ export default function AppMenu() {
         {/* Contenu du menu */}
         <div className="p-4 space-y-1">
 
+          {isAdmin(userId) && (
+            <>
+              <div className="border-t border-slate-700 my-2" />
+              <MenuLink icon={Users} label="🔒 Admin" onClick={() => { setOpen(false); router.push('/admin') }} />
+            </>
+          )}
+
           {/* Autres fonctionnalités */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Autres fonctionnalités</p>
           <MenuLink icon={Handshake} label="Dettes" onClick={() => {
             setOpen(false)
             router.push('/dette')
           }} />
-
-          {isAdmin(userId) && (
-            <>
-              <div className="border-t border-slate-700 my-2" />
-              <p className="text-xs text-slate-500 px-3 py-1">🔒 Admin</p>
-              {/* Ajoute ici les liens admin que tu veux 
-              <MenuLink icon={Users} label="Tous les utilisateurs" onClick={() => { setOpen(false); router.push('/admin/users') }} />
-              <MenuLink icon={Database} label="Stats globales" onClick={() => { setOpen(false); router.push('/admin/stats') }} />
-              */
-              
-              <MenuLink icon={Receipt} label="Remboursements ALSH" onClick={() => { setOpen(false); router.push('/admin/remboursements-alsh') }} />
-              
-              }
-            </>
-          )}
 
           {/* Section Paramètres */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2">Paramètres</p>
