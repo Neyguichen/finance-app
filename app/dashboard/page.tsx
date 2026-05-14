@@ -18,11 +18,12 @@ import { useResteM1 } from '@/lib/hooks/useResteM1'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useYearData } from '@/lib/hooks/useYearData'
 import { useApp } from '@/components/AppContext'
-import { Plus, Database, TrendingUp, TrendingDown, Minus, Calendar } from 'lucide-react'
 import type { Remboursement } from '@/lib/types'
 import { formatEuro, pct, getCategoryColor } from '@/lib/utils'
+import { Plus, Database, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldCheck } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
 
 export default function DashboardPage() {
@@ -187,6 +188,53 @@ export default function DashboardPage() {
   ]
 
   const tooltipStyle = { backgroundColor: '#344869', border: 'none' }
+
+  // ===== INDICATEURS MENSUELS =====
+
+  // Top 3 dépenses du mois
+  const top3Depenses = [...transactions]
+  .sort((a, b) => getMontantNet(b) - getMontantNet(a))
+  .slice(0, 3)
+
+  // Taux de respect des budgets (catégories avec budget où dépensé ≤ prévu)
+  const catsAvecBudget = catStats.filter(c => c.prevu > 0)
+  const catsRespectees = catsAvecBudget.filter(c => c.depense <= c.prevu)
+  const tauxRespect = catsAvecBudget.length > 0
+  ? Math.round((catsRespectees.length / catsAvecBudget.length) * 100)
+  : null
+
+  // Ratio charges fixes / revenus
+  const ratioChargesRevenus = totalRevenus > 0
+  ? Math.round((totalChargesFixes / totalRevenus) * 100)
+  : null
+
+  // Capacité d'épargne réelle (ce qui reste vraiment après tous les sortants)
+  const capaciteEpargne = totalRevenus > 0
+  ? Math.round(((totalRevenus - totalSortantsAll) / totalRevenus) * 100)
+  : null
+
+  // ===== DONNÉES ANNUELLES POUR LINE CHARTS =====
+
+  const lineChartData = yearData?.monthlyData
+  ? Object.entries(yearData.monthlyData)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([mois, data]) => ({
+        mois: moisNomFr(mois),
+        revenus: Math.round(data.revenus),
+        sortants: Math.round(data.charges + data.depenses + data.epargne),
+        reste: Math.round(data.revenus - data.charges - data.depenses - data.epargne),
+      }))
+  : []
+
+  // Catégorie la plus variable (plus grand écart min-max)
+  const catPlusVariable = yearData?.catAnnualStats
+  ? Object.entries(yearData.catAnnualStats)
+      .filter(([, stats]) => stats.total > 0 && stats.max > stats.min)
+      .sort(([, a], [, b]) => (b.max - b.min) - (a.max - a.min))[0] ?? null
+  : null
+  const catPlusVariableInfo = catPlusVariable
+  ? catStats.find(c => c.id === catPlusVariable[0])
+  : null
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><span className="loading loading-spinner loading-lg"></span></div>
 
@@ -527,6 +575,62 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Indicateurs du mois */}
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader>
+            <CardTitle className="text-sm text-slate-400">Indicateurs du mois</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              {/* Ratio charges / revenus */}
+              <div className="bg-slate-800 rounded-lg p-2 text-center">
+                <p className="text-xs text-slate-500">🏠 Fixes/Rev.</p>
+                <p className={`text-lg font-bold ${ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
+                </p>
+              </div>
+              {/* Taux de respect */}
+              <div className="bg-slate-800 rounded-lg p-2 text-center">
+                <p className="text-xs text-slate-500">🎯 Budgets OK</p>
+                <p className={`text-lg font-bold ${tauxRespect !== null && tauxRespect >= 80 ? 'text-emerald-400' : tauxRespect !== null && tauxRespect >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                  {tauxRespect !== null ? `${tauxRespect}%` : '—'}
+                </p>
+                {catsAvecBudget.length > 0 && (
+                  <p className="text-xs text-slate-600">{catsRespectees.length}/{catsAvecBudget.length}</p>
+                )}
+              </div>
+              {/* Capacité d'épargne réelle */}
+              <div className="bg-slate-800 rounded-lg p-2 text-center">
+                <p className="text-xs text-slate-500">💪 Surplus</p>
+                <p className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* Top 3 dépenses */}
+            {top3Depenses.length > 0 && (
+              <div>
+                <p className="text-xs text-slate-500 mb-1.5">🏆 Top 3 dépenses du mois</p>
+                <div className="space-y-1">
+                  {top3Depenses.map((tx, i) => (
+                    <div key={tx.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-2 py-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-bold text-slate-600">{i + 1}.</span>
+                        <span className="text-xs">{(tx as any).categorie?.icone || '📦'}</span>
+                        <span className="text-xs text-slate-300 truncate">
+                          {(tx as any).infos || (tx as any).categorie?.nom || 'Dépense'}
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-pink-400 flex-shrink-0">{formatEuro(getMontantNet(tx))}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Card Annuelle */}
         {yearData && yearData.nbMonths > 1 && (
           <Card className="bg-amber-950 border-amber-800">
@@ -580,6 +684,52 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
+
+              {/* Courbe Revenus vs Sortants */}
+              {lineChartData.length > 1 && (
+                <div>
+                  <p className="text-xs text-amber-500 mb-2">📈 Revenus vs Sortants</p>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <LineChart data={lineChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#78350f" />
+                      <XAxis dataKey="mois" tick= {{fontSize: 10, fill: '#d97706'}}  />
+                      <YAxis tick= {{fontSize: 10, fill: '#d97706'}}  width={45} />
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatEuro(v)} />
+                      <Line type="monotone" dataKey="revenus" stroke="#10B981" strokeWidth={2} dot= {{r: 3}}  name="Revenus" />
+                      <Line type="monotone" dataKey="sortants" stroke="#E11D48" strokeWidth={2} dot= {{r: 3}}  name="Sortants" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Courbe Reste à vivre */}
+              {lineChartData.length > 1 && (
+                <div>
+                  <p className="text-xs text-amber-500 mb-2">💰 Reste à vivre mensuel</p>
+                  <ResponsiveContainer width="100%" height={150}>
+                    <LineChart data={lineChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#78350f" />
+                      <XAxis dataKey="mois" tick= {{fontSize: 10, fill: '#d97706' }} />
+                      <YAxis tick= {{fontSize: 10, fill: '#d97706'}}  width={45} />
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatEuro(v)} />
+                      <Line type="monotone" dataKey="reste" stroke="#3B82F6" strokeWidth={2} dot= {{r: 3}}  name="Reste" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Catégorie la plus variable */}
+              {catPlusVariableInfo && catPlusVariable && (
+                <div className="bg-amber-900/20 rounded-lg p-2">
+                  <p className="text-xs text-amber-500">📊 Catégorie la plus variable</p>
+                  <p className="text-xs font-bold text-white">
+                    {catPlusVariableInfo.icone} {catPlusVariableInfo.nom} — écart de {formatEuro(catPlusVariable[1].max - catPlusVariable[1].min)}
+                  </p>
+                  <p className="text-xs text-amber-400">
+                    Min {formatEuro(catPlusVariable[1].min)} — Max {formatEuro(catPlusVariable[1].max)}
+                  </p>
+                </div>
+              )}
 
               {/* Tableau par catégorie : Moy / Min / Max */}
               <div className="overflow-x-auto">
