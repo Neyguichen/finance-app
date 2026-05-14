@@ -1,6 +1,6 @@
 'use client'
 
-import { useApp } from '@/lib/contexts/AppContext'
+import { useApp } from '@/components/AppContext'
 
 export default function AdminBanner() {
   const { isAdminViewing, exitAdminView } = useApp()
