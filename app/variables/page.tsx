@@ -73,7 +73,7 @@ export default function VariablesPage() {
   const effectiveChargesList = isAdminViewing ? (adminData?.charges_fixes || []) : chargesList
   const effectiveMouvementsList = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvementsList
 
-  const activeCategories = effectiveCategories.filter(c => (c as any).actif !== false)
+  const activeCategories = effectiveCategories.filter((c: any) => c.actif !== false)
 
   const totalRevenusVar = effectiveRevenusList.reduce((s: number, r: any) => s + Number(r.montant), 0)
   const totalChargesVar = effectiveChargesList.reduce((s: number, c: any) => s + Number(c.montant), 0)
@@ -89,29 +89,29 @@ export default function VariablesPage() {
   const [txInfos, setTxInfos] = useState('')
   const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0])
 
-  const getBudget = (catId: string) => effectiveBudgets.find(b => b.categorie_id === catId)
+  const getBudget = (catId: string) => effectiveBudgets.find((b: any) => b.categorie_id === catId)
   const getDepenses = (catId: string) => effectiveTransactions
-    .filter(t => t.categorie_id === catId)
-    .reduce((s, t) => s + getMontantNet(t), 0)
+    .filter((t: any) => t.categorie_id === catId)
+    .reduce((s: number, t: any) => s + getMontantNet(t), 0)
 
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
     const totalRemb = rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
     return Number(tx.montant) - totalRemb
   }
-  const categoriesAvecActivite = activeCategories.filter(cat => {
+  const categoriesAvecActivite = activeCategories.filter((cat: any) => {
     const budget = getBudget(cat.id)
     const prevu = budget ? Number(budget.prevu) : 0
     return prevu > 0 || getDepenses(cat.id) > 0
   })
-  const categoriesSansActivite = activeCategories.filter(cat => {
+  const categoriesSansActivite = activeCategories.filter((cat: any) => {
     const budget = getBudget(cat.id)
     const prevu = budget ? Number(budget.prevu) : 0
     return prevu === 0 && getDepenses(cat.id) === 0
   })
 
-  const totalPrevu = effectiveBudgets.reduce((s, b) => s + Number(b.prevu), 0)
-  const totalReel = effectiveTransactions.reduce((s, t) => s + getMontantNet(t), 0)
+  const totalPrevu = effectiveBudgets.reduce((s: number, b: any) => s + Number(b.prevu), 0)
+  const totalReel = effectiveTransactions.reduce((s: number, t: any) => s + getMontantNet(t), 0)
 
   return (
     <div>
@@ -169,7 +169,7 @@ export default function VariablesPage() {
           <div>
             <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-            {[...categoriesAvecActivite].sort((a, b) => a.nom.localeCompare(b.nom)).map(cat => {
+            {[...categoriesAvecActivite].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((cat: any) => {
                 const budget = getBudget(cat.id)
                 const depense = getDepenses(cat.id)
                 const prevu = budget ? Number(budget.prevu) : 0
@@ -238,7 +238,7 @@ export default function VariablesPage() {
                 </button>
                 {showInactive && (
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-                    {[...categoriesSansActivite].sort((a, b) => a.nom.localeCompare(b.nom)).map(cat => {
+                    {[...categoriesSansActivite].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((cat: any) => {
                       const budget = getBudget(cat.id)
                       const prevu = budget ? Number(budget.prevu) : 0
                       return (
@@ -296,7 +296,7 @@ export default function VariablesPage() {
             <p className="text-sm text-slate-600 text-center py-4">Aucune dépense ce mois-ci</p>
           )}
           <div className="space-y-2">
-            {effectiveTransactions.map(tx => {
+            {effectiveTransactions.map((tx: any) => {
               const net = getMontantNet(tx)
               const hasRemb = (tx as any).remboursements?.length > 0
               return (
@@ -387,7 +387,7 @@ export default function VariablesPage() {
                   }
                 }}>
                 <option value="">Budget...</option>
-                {[...effectiveCategories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => (
+                {[...effectiveCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                 ))}
                 <option value="__NEW__">➕ Nouveau budget...</option>
@@ -453,7 +453,7 @@ export default function VariablesPage() {
                   }
                 }}>
                 <option value="">Budget...</option>
-                {[...effectiveCategories].sort((a, b) => a.nom.localeCompare(b.nom)).map(c => (
+                {[...effectiveCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                 ))}
                 <option value="__NEW__">➕ Nouveau budget...</option>
