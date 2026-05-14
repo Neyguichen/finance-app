@@ -197,11 +197,10 @@ export default function DashboardPage() {
   .sort((a, b) => getMontantNet(b) - getMontantNet(a))
   .slice(0, 3)
 
-  // Taux de respect des budgets (catégories avec budget où dépensé ≤ prévu)
-  const catsAvecBudget = catStats.filter(c => c.prevu > 0)
-  const catsRespectees = catsAvecBudget.filter(c => c.depense <= c.prevu)
-  const tauxRespect = catsAvecBudget.length > 0
-  ? Math.round((catsRespectees.length / catsAvecBudget.length) * 100)
+  // Maîtrise des dépenses : dépensé réel vs budget prévu total
+  // Inclut TOUTES les dépenses, même celles sans budget
+  const tauxMaitrise = totalPrevu > 0
+  ? Math.round((totalReel / totalPrevu) * 100)
   : null
 
   // Ratio charges fixes / revenus
@@ -595,31 +594,34 @@ export default function DashboardPage() {
                   {ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
                 </p>
               </div>
-              {/* Taux de respect */}
+              {/* Maîtrise dépenses */}
               <div className="bg-slate-800 rounded-lg p-2 text-center">
                 <div className="flex items-center justify-center gap-1">
-                  <p className="text-xs text-slate-500">🎯 Budgets OK</p>
-                  <button onClick={() => setActiveTooltip(activeTooltip === 'budgets' ? null : 'budgets')} className="text-slate-600 hover:text-slate-400">
+                  <p className="text-xs text-slate-500">🎯 Maîtrise</p>
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
                   </button>
                 </div>
-                <p className={`text-lg font-bold ${tauxRespect !== null && tauxRespect >= 80 ? 'text-emerald-400' : tauxRespect !== null && tauxRespect >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
-                  {tauxRespect !== null ? `${tauxRespect}%` : '—'}
+                <p className={`text-lg font-bold ${tauxMaitrise !== null && tauxMaitrise <= 100 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {tauxMaitrise !== null ? `${tauxMaitrise}%` : '—'}
                 </p>
-                {catsAvecBudget.length > 0 && (
-                  <p className="text-xs text-slate-600">{catsRespectees.length}/{catsAvecBudget.length}</p>
-                )}
+                <p className="text-xs text-slate-600">
+                  {formatEuro(totalReel)} / {formatEuro(totalPrevu)}
+                </p>
               </div>
               {/* Capacité d'épargne réelle */}
               <div className="bg-slate-800 rounded-lg p-2 text-center">
                 <div className="flex items-center justify-center gap-1">
-                  <p className="text-xs text-slate-500">💪 Surplus</p>
+                  <p className="text-xs text-slate-500">💪 Capacité d&apos;épargne réelle</p>
                   <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
                   </button>
                 </div>
                 <p className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
+                </p>
+                <p className={`text-xs ${(totalRevenus - totalSortantsAll) >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
+                  {formatEuro(totalRevenus - totalSortantsAll)}
                 </p>
               </div>
             </div>
@@ -630,9 +632,9 @@ export default function DashboardPage() {
                 Part des charges fixes dans vos revenus. Idéalement en dessous de 50%.
               </div>
             )}
-            {activeTooltip === 'budgets' && (
+            {activeTooltip === 'maitrise' && (
               <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
-                Pourcentage de catégories où les dépenses réelles sont restées sous le budget prévu.
+                Dépenses réelles par rapport au budget total prévu. En dessous de 100% = vous êtes dans les clous.
               </div>
             )}
             {activeTooltip === 'surplus' && (
