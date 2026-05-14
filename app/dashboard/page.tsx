@@ -647,7 +647,7 @@ export default function DashboardPage() {
                 </p>
                 {totalEpargnes > 0 && (
                   <p className="text-xs text-teal-400 mt-0.5">
-                    🐷 {formatEuro(totalEpargnes)} épargnés
+                    🐷 {formatEuro(totalEpargnes)} réellement épargnés
                   </p>
                 )}
               </div>
