@@ -37,22 +37,20 @@ export default function AdminPage() {
   useEffect(() => {
     const supabase = createClient()
     supabase
-      .from('espaces')
-      .select('user_id')
-      .then(({ data }) => {
-        // Récupère les user_ids uniques depuis les espaces
-        const uniqueIds = Array.from(new Set((data || []).map((e: any) => e.user_id)))
-        // Pour chaque user_id, on récupère l'email depuis auth (via une table profil ou espaces)
-        // Simplification : on liste les user_ids avec leur premier espace
-        const userRows: UserRow[] = uniqueIds.map((uid: any) => ({
-          id: uid,
-          email: uid, // On affichera l'ID — voir note ci-dessous
-          created_at: '',
-        }))
-        setUsers(userRows)
+      .rpc('get_all_users')
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Erreur get_all_users:', error)
+          setUsers([])
+        } else {
+          setUsers((data || []).map((u: any) => ({
+            id: u.id,
+            email: u.email || u.id,
+            created_at: u.created_at || '',
+          })))
+        }
         setLoading(false)
       })
-      .then(() => setLoading(false), () => setLoading(false))
   }, [])
 
   const handleViewAs = (targetUserId: string) => {
@@ -98,7 +96,8 @@ export default function AdminPage() {
               <Card key={u.id} className="bg-slate-900 border-slate-800">
                 <CardContent className="p-3 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium font-mono">{u.id.slice(0, 8)}...</p>
+                  <p className="text-sm font-medium">{u.email}</p>
+                  <p className="text-xs text-slate-500 font-mono">{u.id.slice(0, 8)}...</p>
                     <p className="text-xs text-slate-500">
                       {u.id === userId ? '(Toi)' : 'Utilisateur'}
                     </p>
