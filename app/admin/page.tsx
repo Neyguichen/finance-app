@@ -1,11 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useIsAdmin } from '@/hooks/useIsAdmin'
-import { useApp } from '@/hooks/useApp'
+import { createClient } from '@/lib/supabase/client'
+import { useIsAdmin } from '@/lib/hooks/useIsAdmin'
+import { useApp } from '@/components/AppContext'
 import { useRouter } from 'next/navigation'
 
 export default function AdminPage() {
+  const supabase = createClient()
   const isAdmin = useIsAdmin()
   const router = useRouter()
   const { setAdminViewUserId, setAdminViewEspaceId } = useApp()
