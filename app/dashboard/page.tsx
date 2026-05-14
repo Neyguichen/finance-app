@@ -93,13 +93,15 @@ export default function DashboardPage() {
   }, 0)
 
   const resteM1Value = resteM1 ?? 0
+  const totalEntrants = resteM1Value + totalRevenus
 
-  const restePrevu = resteM1Value + totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
+  const restePrevu = totalEntrants - totalChargesFixes - totalVariablesPrevu - totalEpargnes
 
   // Reste à vivre — RÉEL
   const resteReel = resteM1Value + totalRevenusRecus - totalChargesPayees - totalDepenses - totalEpargnes
 
   const revenusChartData = [
+    { name: 'Reste M-1', value: Math.max(resteM1Value, 0), color: '#3B82F6' },
     { name: 'Actif', value: totalActif, color: '#10B981' },       // emerald-500 — vert vif
     { name: 'Passif', value: totalPassif, color: '#6EE7B7' },     // emerald-300 — vert clair
     { name: 'Reprises épargne', value: totalReprises, color: '#064E3B' }, // emerald-900 — vert foncé
@@ -210,26 +212,40 @@ export default function DashboardPage() {
   : null
 
   // Ratio charges fixes / revenus
-  const ratioChargesRevenus = totalRevenus > 0
-  ? Math.round((totalChargesFixes / totalRevenus) * 100)
+  const ratioChargesRevenus = totalEntrants > 0
+  ? Math.round((totalChargesFixes / totalEntrants) * 100)
   : null
 
   // Capacité d'épargne réelle (ce qui reste vraiment après tous les sortants)
-  const capaciteEpargne = totalRevenus > 0
-  ? Math.round(((totalRevenus - totalSortantsAll) / totalRevenus) * 100)
+  const capaciteEpargne = totalEntrants > 0
+  ? Math.round(((totalEntrants - totalSortantsAll) / totalEntrants) * 100)
   : null
 
-  // ===== DONNÉES ANNUELLES POUR LINE CHARTS =====
+  // Calculer le Reste M-1 rolling pour chaque mois de l'année
+  const monthlyResteM1: Record<string, number> = {}
+  if (yearData?.monthlyData) {
+    const months = Object.keys(yearData.monthlyData).sort()
+    let carry = espace?.solde_initial ?? 0
+    for (const m of months) {
+      monthlyResteM1[m] = carry
+      const d = yearData.monthlyData[m]
+      carry = carry + d.revenus + d.reprises - d.charges - d.depenses - d.epargne
+    }
+  }
 
+  // ===== DONNÉES ANNUELLES POUR LINE CHARTS =====
   const lineChartData = yearData?.monthlyData
   ? Object.entries(yearData.monthlyData)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([mois, data]) => ({
-        mois: moisNomFr(mois),
-        revenus: Math.round(data.revenus),
-        sortants: Math.round(data.charges + data.depenses + data.epargne),
-        reste: Math.round(data.revenus - data.charges - data.depenses - data.epargne),
-      }))
+      .map(([mois, data]) => {
+        const rm1 = monthlyResteM1[mois] ?? 0
+        return {
+          mois: moisNomFr(mois),
+          revenus: Math.round(rm1 + data.revenus + data.reprises),
+          sortants: Math.round(data.charges + data.depenses + data.epargne),
+          reste: Math.round(rm1 + data.revenus + data.reprises - data.charges - data.depenses - data.epargne),
+        }
+      })
   : []
 
   // Catégorie la plus variable (plus grand écart min-max)
@@ -295,12 +311,12 @@ export default function DashboardPage() {
 
         <Card className="bg-blue-950 border-blue-800">
           <CardContent className="p-4 space-y-2">
-            <h3 className="font-semibold text-blue-400">Reste M-1</h3>
+            {/*<h3 className="font-semibold text-blue-400">Reste M-1</h3>
             <div className="flex justify-between text-sm">
-            <span className={resteM1Value >= 0 ? 'font-bold text-slate-300' : 'font-bold text-red-400'}>
-              {resteM1 !== null && resteM1 !== undefined ? formatEuro(resteM1Value) : '—'}
-            </span>
-            </div>
+              <span className={resteM1Value >= 0 ? 'font-bold text-slate-300' : 'font-bold text-red-400'}>
+                {resteM1 !== null && resteM1 !== undefined ? formatEuro(resteM1Value) : '—'}
+              </span>
+            </div>*/}
             <h2 className="font-semibold text-blue-400">Reste à vivre</h2>
             <div className="flex justify-between text-sm">
               <span className="text-slate-400">Prévu</span>
@@ -323,10 +339,9 @@ export default function DashboardPage() {
               <CardTitle className="text-sm text-emerald-400">Entrants</CardTitle>
             </CardHeader>
             <CardContent>
-            <p className="text-xl font-bold text-emerald-400">
-              {formatEuro(totalRevenus)}
-              <EvoBadge current={totalRevenus} previous={prevMonthData?.revenus} />
-            </p>
+              <p className="text-xl font-bold text-emerald-400">
+                {formatEuro(totalEntrants)}
+              </p>
               {revenusChartData.length > 1 && (
                 <div className="flex flex-col items-center gap-3">
                   {/* Donut */}
@@ -348,7 +363,7 @@ export default function DashboardPage() {
                         </Pie>
                         <Tooltip
                           formatter={(value: number, name: string) => {
-                            const pourcent = totalRevenus > 0 ? Math.round((value / totalRevenus) * 100) : 0
+                            const pourcent = totalEntrants > 0 ? Math.round((value / totalEntrants) * 100) : 0
                             return [`${formatEuro(value)} (${pourcent}%)`, name]
                           }}
                           contentStyle={tooltipStyle}
@@ -368,7 +383,7 @@ export default function DashboardPage() {
                         <div className="text-right flex-shrink-0">
                           <span className="text-xs font-semibold text-white">{formatEuro(d.value)}</span>
                           <span className="text-xs text-slate-500 ml-1">
-                            ({totalRevenus > 0 ? Math.round((d.value / totalRevenus) * 100) : 0}%)
+                            ({totalEntrants > 0 ? Math.round((d.value / totalEntrants) * 100) : 0}%)
                           </span>
                         </div>
                       </div>
@@ -387,7 +402,7 @@ export default function DashboardPage() {
               <p className="text-xl font-bold text-rose-300">
                 {formatEuro(totalSortantsAll)}
                 <span className="text-sm font-normal text-rose-500 ml-2">
-                  ({totalRevenus > 0 ? Math.round((totalSortantsAll / totalRevenus) * 100) : 0}% des revenus)
+                  ({totalEntrants > 0 ? Math.round((totalSortantsAll / totalEntrants) * 100) : 0}% des revenus)
                 </span>
               </p>
               {sortantsChartData.length > 1 && (
@@ -626,8 +641,8 @@ export default function DashboardPage() {
                 <p className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
                 </p>
-                <p className={`text-xs ${(totalRevenus - totalSortantsAll) >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
-                  {formatEuro(totalRevenus - totalSortantsAll)}
+                <p className={`text-xs ${(totalEntrants - totalSortantsAll) >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
+                  {formatEuro(totalEntrants - totalSortantsAll)}
                 </p>
               </div>
             </div>
