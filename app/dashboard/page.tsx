@@ -51,6 +51,11 @@ export default function DashboardPage() {
     return yearData.monthlyData[key] ?? null
   })()
 
+  console.log('DEBUG yearData:', { 
+    monthlyDataKeys: yearData?.monthlyData ? Object.keys(yearData.monthlyData) : 'null',
+    prevMonthData 
+  })
+
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
     const totalRemb = rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
