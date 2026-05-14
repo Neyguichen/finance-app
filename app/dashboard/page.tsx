@@ -233,7 +233,7 @@ export default function DashboardPage() {
     let carry = espace?.solde_initial ?? 0
     for (const m of months) {
       monthlyResteM1[m] = carry
-      const d = yearData.monthlyData[m]
+      const d: any = yearData.monthlyData[m]
       carry = carry + d.effectiveRevenus + d.reprises - d.effectiveCharges - d.depenses - d.epargne
     }
   }
