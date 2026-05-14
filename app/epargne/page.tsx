@@ -27,9 +27,7 @@ export default function EpargnePage() {
   const { moisId, month, setMonth, espace } = useApp()
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
-  // ✅ Ajout de update: updateMvt
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
-  // ✅ Ajout de update: updateRecurrent
   const { create: createRecurrent, update: updateRecurrent } = useEpargneRecurrentes(espace?.id)
 
   const { isAdminViewing } = useApp()
@@ -38,14 +36,14 @@ export default function EpargnePage() {
   const effectiveMouvements = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvements
 
   // Séparer actives et archivées
-  const enveloppesActives = effectiveEnveloppes.filter(e => !e.archived)
-  const enveloppesVisibles = enveloppesActives.filter(env =>
+  const enveloppesActives = effectiveEnveloppes.filter((e: any) => !e.archived)
+  const enveloppesVisibles = enveloppesActives.filter((env: any) =>
     Number(env.solde) !== 0 || (env.objectif && Number(env.objectif) > 0)
   )
-  const enveloppesInactives = enveloppesActives.filter(env =>
+  const enveloppesInactives = enveloppesActives.filter((env: any) =>
     Number(env.solde) === 0 && (!env.objectif || Number(env.objectif) === 0)
   )
-  const enveloppesArchivees = effectiveEnveloppes.filter(e => e.archived)
+  const enveloppesArchivees = effectiveEnveloppes.filter((e: any) => e.archived)
 
   // États création enveloppe
   const [openEnv, setOpenEnv] = useState(false)
@@ -75,12 +73,12 @@ export default function EpargnePage() {
   // État suppression mouvement
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; note: string | null } | null>(null)
 
-  // ✅ États édition mouvement (nouveau)
+  // États édition mouvement
   const [editMvt, setEditMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string | null } | null>(null)
   const [editMvtMontant, setEditMvtMontant] = useState(0)
   const [editMvtNote, setEditMvtNote] = useState('')
 
-  // ✅ État choix de scope mouvement (nouveau)
+  // État choix de scope mouvement
   const [scopeMvt, setScopeMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string } | null>(null)
 
   // Speed Dial FAB
@@ -90,11 +88,11 @@ export default function EpargnePage() {
   const [showInactiveEnv, setShowInactiveEnv] = useState(false)
 
   // Totaux du mois
-  const totalEpargne = effectiveMouvements.filter(m => m.type === 'epargne').reduce((s, m) => s + Number(m.montant), 0)
-  const totalReprise = effectiveMouvements.filter(m => m.type === 'reprise').reduce((s, m) => s + Number(m.montant), 0)
+  const totalEpargne = effectiveMouvements.filter((m: any) => m.type === 'epargne').reduce((s: number, m: any) => s + Number(m.montant), 0)
+  const totalReprise = effectiveMouvements.filter((m: any) => m.type === 'reprise').reduce((s: number, m: any) => s + Number(m.montant), 0)
 
   // Total disponible en épargne (somme des soldes)
-  const totalDisponible = enveloppesActives.reduce((s, e) => s + Number(e.solde), 0)
+  const totalDisponible = enveloppesActives.reduce((s: number, e: any) => s + Number(e.solde), 0)
 
   const handleCreateEnv = async () => {
     if (isAdminViewing || !espace || !newEnvNom.trim()) return
@@ -124,7 +122,7 @@ export default function EpargnePage() {
     if (isAdminViewing || !editEnv) return
 
     const oldInitial = Number(editEnv.solde_initial) || 0
-    const diff = editEnvSoldeInitial  - oldInitial
+    const diff = editEnvSoldeInitial - oldInitial
 
     await updateEnv.mutateAsync({
       id: editEnv.id,
@@ -138,7 +136,6 @@ export default function EpargnePage() {
 
   const handleCreateMvt = async () => {
     if (isAdminViewing || !moisId || !espace || mvtMontant <= 0) return
-    // Forcer ponctuel pour reprise et transfert
     const freq = mvtType === 'epargne' ? mvtFreq : 0
     const sourceId = (mvtType === 'reprise' || mvtType === 'transfert') ? (mvtSourceId || null) : null
     const destId = (mvtType === 'epargne' || mvtType === 'transfert') ? (mvtDestId || null) : null
@@ -200,7 +197,6 @@ export default function EpargnePage() {
     setDeleteTarget(null)
   }
 
-  // ✅ Fonctions d'édition mouvement (nouveau)
   const handleEditMvt = (mvt: { id: string; montant: number; note: string | null; recurrentId: string | null }) => {
     setEditMvt(mvt)
     setEditMvtMontant(Number(mvt.montant))
@@ -210,7 +206,6 @@ export default function EpargnePage() {
   const handleSaveEditMvt = async () => {
     if (isAdminViewing || !editMvt) return
     if (editMvt.recurrentId) {
-      // Récurrent → ouvrir le choix de scope
       setScopeMvt({
         id: editMvt.id,
         montant: editMvtMontant,
@@ -219,7 +214,6 @@ export default function EpargnePage() {
       })
       setEditMvt(null)
     } else {
-      // Ponctuel → sauver directement
       await updateMvt.mutateAsync({
         id: editMvt.id,
         montant: editMvtMontant,
@@ -246,13 +240,12 @@ export default function EpargnePage() {
     setScopeMvt(null)
   }
 
-  const getEnvNom = (id: string | null) => effectiveEnveloppes.find(e => e.id === id)?.nom || '—'
+  const getEnvNom = (id: string | null) => effectiveEnveloppes.find((e: any) => e.id === id)?.nom || '—'
 
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
       <div className="p-4 space-y-4">
-        {/* HEADER */}
         <h1 className="text-xl font-bold">Épargne</h1>
 
         {/* DIALOG CRÉATION ENVELOPPE */}
@@ -287,11 +280,11 @@ export default function EpargnePage() {
         </Card>
 
         {/* ENVELOPPES ACTIVES */}
-        {(enveloppesActives.length > 1 || enveloppesActives.some(e => e.objectif && Number(e.objectif) > 0)) && (
+        {(enveloppesActives.length > 1 || enveloppesActives.some((e: any) => e.objectif && Number(e.objectif) > 0)) && (
           <div>
             {enveloppesVisibles.length > 0 && (
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                {enveloppesVisibles.map(env => {
+                {enveloppesVisibles.map((env: any) => {
                   const pourcent = env.objectif ? Math.min(100, Math.round((Number(env.solde) / Number(env.objectif)) * 100)) : null
                   return (
                     <Card key={env.id} className="bg-slate-900 border-slate-800">
@@ -313,7 +306,7 @@ export default function EpargnePage() {
                                   <Archive className="w-3.5 h-3.5" />
                                 </Button>
                               </>
-                            )}  
+                            )}
                           </div>
                         </div>
                         <p className="text-lg font-bold text-emerald-400">{formatEuro(Number(env.solde))}</p>
@@ -341,7 +334,7 @@ export default function EpargnePage() {
                 </button>
                 {showInactiveEnv && (
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-                    {enveloppesInactives.map(env => (
+                    {enveloppesInactives.map((env: any) => (
                       <Card key={env.id} className="bg-slate-900/50 border-slate-800 opacity-60">
                         <CardContent className="p-3 space-y-2">
                           <div className="flex items-center justify-between">
@@ -386,7 +379,7 @@ export default function EpargnePage() {
             </button>
             {showArchived && (
               <div className="grid grid-cols-2 gap-3 mt-2">
-                {enveloppesArchivees.map(env => (
+                {enveloppesArchivees.map((env: any) => (
                   <Card key={env.id} className="bg-slate-900/50 border-slate-800 opacity-60">
                     <CardContent className="p-3 space-y-2">
                       <div className="flex items-center justify-between">
@@ -416,11 +409,10 @@ export default function EpargnePage() {
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader><DialogTitle>Nouveau mouvement</DialogTitle></DialogHeader>
             <div className="space-y-4">
-              {/* Type */}
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Type</label>
                 <div className="flex gap-2">
-                  {(['epargne', 'reprise', 'transfert'] as const).map(t => (
+                  {(['epargne', 'reprise', 'transfert'] as const).map((t: any) => (
                     <button key={t} type="button" onClick={() => setMvtType(t)}
                       className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
                         mvtType === t
@@ -433,39 +425,36 @@ export default function EpargnePage() {
                 </div>
               </div>
               <CalculatorInput value={mvtMontant} onChange={setMvtMontant} placeholder="Montant" />
-              {/* Enveloppe destination (épargne + transfert) */}
               {(mvtType === 'epargne' || mvtType === 'transfert') && (
                 <div>
                   <label className="text-sm text-slate-400 mb-1 block">Vers</label>
                   <select className="select select-bordered w-full bg-slate-800 border-slate-700"
                     value={mvtDestId} onChange={e => setMvtDestId(e.target.value)}>
                     <option value="">Sélectionner...</option>
-                    {enveloppesActives.map(env => (
+                    {enveloppesActives.map((env: any) => (
                       <option key={env.id} value={env.id}>{env.nom}</option>
                     ))}
                   </select>
                 </div>
               )}
-              {/* Enveloppe source (reprise + transfert) */}
               {(mvtType === 'reprise' || mvtType === 'transfert') && (
                 <div>
                   <label className="text-sm text-slate-400 mb-1 block">Depuis</label>
                   <select className="select select-bordered w-full bg-slate-800 border-slate-700"
                     value={mvtSourceId} onChange={e => setMvtSourceId(e.target.value)}>
                     <option value="">Sélectionner...</option>
-                    {enveloppesActives.map(env => (
+                    {enveloppesActives.map((env: any) => (
                       <option key={env.id} value={env.id}>{env.nom} ({formatEuro(Number(env.solde))})</option>
                     ))}
                   </select>
                 </div>
               )}
               <Input placeholder="Note (optionnel)" value={mvtNote} onChange={e => setMvtNote(e.target.value)} />
-              {/* Fréquence (seulement pour épargne) */}
               {mvtType === 'epargne' && (
                 <div>
                   <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
                   <div className="grid flex-wrap gap-1">
-                    {FREQUENCES.map(f => (
+                    {FREQUENCES.map((f: any) => (
                       <button key={f.value} type="button" onClick={() => setMvtFreq(f.value)}
                         className={`py-2 rounded-lg text-xs font-medium transition-colors flex-1 min-w-[4.5rem] ${
                           mvtFreq === f.value
@@ -481,9 +470,9 @@ export default function EpargnePage() {
           </DialogContent>
         </Dialog>
 
-        {/* LISTE DES effectiveMouvements */}
+        {/* LISTE DES MOUVEMENTS */}
         <div className="space-y-2">
-          {effectiveMouvements.map(mvt => (
+          {effectiveMouvements.map((mvt: any) => (
             <Card key={mvt.id} className="bg-slate-900 border-slate-800">
               <CardContent className="flex items-center justify-between p-3">
                 <div>
@@ -511,7 +500,6 @@ export default function EpargnePage() {
                     mvt.type === 'epargne' ? 'text-teal-400' :
                     mvt.type === 'reprise' ? 'text-orange-400' : 'text-blue-400'
                   }`}>{formatEuro(Number(mvt.montant))}</span>
-                  {/* ✅ Bouton édition mouvement (nouveau) */}
                   {!isAdminViewing && (
                     <>
                       <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
@@ -556,7 +544,7 @@ export default function EpargnePage() {
           </DialogContent>
         </Dialog>
 
-        {/* ✅ DIALOG ÉDITION MOUVEMENT (nouveau) */}
+        {/* DIALOG ÉDITION MOUVEMENT */}
         <Dialog open={!!editMvt} onOpenChange={(v) => { if (!v) setEditMvt(null) }}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader><DialogTitle>Modifier le mouvement</DialogTitle></DialogHeader>
@@ -570,7 +558,7 @@ export default function EpargnePage() {
           </DialogContent>
         </Dialog>
 
-        {/* ✅ DIALOG CHOIX DE SCOPE MOUVEMENT (nouveau) */}
+        {/* DIALOG CHOIX DE SCOPE MOUVEMENT */}
         <Dialog open={!!scopeMvt} onOpenChange={(v) => { if (!v) setScopeMvt(null) }}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
@@ -615,19 +603,16 @@ export default function EpargnePage() {
 
       {!isAdminViewing && (
         <>
-          {/* SPEED DIAL FAB */}
           {fabOpen && (
             <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setFabOpen(false)} />
           )}
           <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse items-center gap-3">
-            {/* Bouton principal */}
             <button
               onClick={() => setFabOpen(!fabOpen)}
               className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
             >
               <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
             </button>
-            {/* Sous-boutons */}
             {fabOpen && (
               <>
                 <button
