@@ -1,8 +1,11 @@
+'use client'
+
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 
 export function useIsAdmin() {
   const [isAdmin, setIsAdmin] = useState(false)
+  const supabase = createClient()
 
   useEffect(() => {
     const check = async () => {
