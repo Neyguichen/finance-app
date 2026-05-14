@@ -614,7 +614,7 @@ export default function DashboardPage() {
                       return (
                         <tr key={cat.id} className="border-b border-amber-900">
                           <td className="py-2 text-amber-200 truncate">{cat.icone} {cat.nom}</td>
-                          <td className="text-right text-white">{formatEuro(annual.total)}</td>
+                          <td className="text-right text-amber-200">{formatEuro(annual.total)}</td>
                           <td className="text-right text-amber-200">{formatEuro(annual.avg)}</td>
                           <td className="text-right text-amber-400 whitespace-nowrap">
                             {formatEuro(annual.min)} — {formatEuro(annual.max)}
