@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const effectiveBudgets = isAdminViewing ? (adminData?.budgets || []) : budgets
 
   // Calcul du mois précédent côté dashboard (évite le cache périmé)
-  const prevMonthData = (() => {
+  const prevMonthData: any = (() => {
     if (!yearData?.monthlyData) return null
     const [y, m] = month.split('-').map(Number)
     const d = new Date(y, m - 2, 1)
