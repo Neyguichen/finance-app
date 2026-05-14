@@ -60,20 +60,21 @@ export default function AppMenu() {
 
           {isAdmin(userId) && (
             <>
-              <div className="border-t border-slate-700 my-2" />
               <MenuLink icon={Users} label="🔒 Admin" onClick={() => { setOpen(false); router.push('/admin') }} />
             </>
           )}
 
           {/* Autres fonctionnalités */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Autres fonctionnalités</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2 text-center">Autres fonctionnalités</p>
+          <div className="border-t border-slate-700 my-2" />
           <MenuLink icon={Handshake} label="Dettes" onClick={() => {
             setOpen(false)
             router.push('/dette')
           }} />
 
           {/* Section Paramètres */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2">Paramètres</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2 text-center">Paramètres</p>
+          <div className="border-t border-slate-700 my-2" />
 
           <MenuLink icon={Settings} label="Gérer les espaces" onClick={() => {
             setOpen(false)
@@ -86,7 +87,8 @@ export default function AppMenu() {
           }} />
 
           {/* Section Compte */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Compte</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center">Compte</p>
+          <div className="border-t border-slate-700 my-2" />
 
           <MenuLink icon={Info} label="À propos" onClick={() => {
             setOpen(false)
@@ -101,6 +103,7 @@ export default function AppMenu() {
 
           {/* Section Données */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Données</p>
+          <div className="border-t border-slate-700 my-2" />
 
           <MenuLink icon={Trash2} label="Purger les anciens mois" onClick={() => {
             setOpen(false)
