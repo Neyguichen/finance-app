@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [openEspace, setOpenEspace] = useState(false)
   const [newNom, setNewNom] = useState('')
   const [newIcone, setNewIcone] = useState('🏠')
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
 
   const { data: dbUsage } = useDbUsage()
   const { data: revenus = [] } = useRevenus(moisId)
@@ -584,14 +585,24 @@ export default function DashboardPage() {
             <div className="grid grid-cols-3 gap-2">
               {/* Ratio charges / revenus */}
               <div className="bg-slate-800 rounded-lg p-2 text-center">
-                <p className="text-xs text-slate-500">🏠 Fixes/Rev.</p>
+                <div className="flex items-center justify-center gap-1">
+                  <p className="text-xs text-slate-500">🏠 Fixes/Rev.</p>
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
+                    <Info className="w-3 h-3" />
+                  </button>
+                </div>
                 <p className={`text-lg font-bold ${ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
                 </p>
               </div>
               {/* Taux de respect */}
               <div className="bg-slate-800 rounded-lg p-2 text-center">
-                <p className="text-xs text-slate-500">🎯 Budgets OK</p>
+                <div className="flex items-center justify-center gap-1">
+                  <p className="text-xs text-slate-500">🎯 Budgets OK</p>
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'budgets' ? null : 'budgets')} className="text-slate-600 hover:text-slate-400">
+                    <Info className="w-3 h-3" />
+                  </button>
+                </div>
                 <p className={`text-lg font-bold ${tauxRespect !== null && tauxRespect >= 80 ? 'text-emerald-400' : tauxRespect !== null && tauxRespect >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
                   {tauxRespect !== null ? `${tauxRespect}%` : '—'}
                 </p>
@@ -601,12 +612,34 @@ export default function DashboardPage() {
               </div>
               {/* Capacité d'épargne réelle */}
               <div className="bg-slate-800 rounded-lg p-2 text-center">
-                <p className="text-xs text-slate-500">💪 Surplus</p>
+                <div className="flex items-center justify-center gap-1">
+                  <p className="text-xs text-slate-500">💪 Surplus</p>
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
+                    <Info className="w-3 h-3" />
+                  </button>
+                </div>
                 <p className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
                 </p>
               </div>
             </div>
+
+            {/* Tooltips explicatifs */}
+            {activeTooltip === 'ratio' && (
+              <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
+                Part des charges fixes dans vos revenus. Idéalement en dessous de 50%.
+              </div>
+            )}
+            {activeTooltip === 'budgets' && (
+              <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
+                Pourcentage de catégories où les dépenses réelles sont restées sous le budget prévu.
+              </div>
+            )}
+            {activeTooltip === 'surplus' && (
+              <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
+                Ce qui reste réellement après tous les sortants (charges + variables + épargne), en % des revenus.
+              </div>
+            )}
 
             {/* Top 3 dépenses */}
             {top3Depenses.length > 0 && (
