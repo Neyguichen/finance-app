@@ -97,10 +97,9 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         epargne: months.reduce((s, m) => s + monthlyData[m].epargne, 0),
       }
 
-      const totalSortants = annualTotals.charges + annualTotals.depenses + annualTotals.epargne
       const tauxEpargne = annualTotals.revenus > 0
-        ? Math.round(((annualTotals.revenus - totalSortants) / annualTotals.revenus) * 100)
-        : 0
+      ? Math.round((annualTotals.epargne / annualTotals.revenus) * 100)
+      : 0
 
       // Mois le plus dépensier / économe (sortants totaux par mois)
       let moisMaxDepense = { mois: '', total: 0 }
