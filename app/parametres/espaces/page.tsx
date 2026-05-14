@@ -86,6 +86,7 @@ export default function GererEspacesPage() {
 
     fetchReste()
     return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calibrateTarget])
 
   // --- Handlers ---

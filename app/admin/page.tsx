@@ -21,12 +21,14 @@ export default function AdminPage() {
     supabase.rpc('admin_list_users').then(({ data }) => {
       if (data) setUsers(data)
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin])
 
   useEffect(() => {
     if (!selectedUser) { setEspaces([]); return }
     supabase.rpc('admin_list_espaces', { target_user_id: selectedUser })
       .then(({ data }) => { if (data) setEspaces(data) })
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser])
 
   const viewEspace = (espaceId: string) => {

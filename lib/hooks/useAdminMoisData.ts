@@ -27,6 +27,7 @@ export function useAdminMoisData(month: string) {
       setData(d)
     })
     .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdminViewing, adminViewEspaceId, month])
 
   return { data, loading }

@@ -19,6 +19,7 @@ export function useIsAdmin() {
       setIsAdmin(!!data)
     }
     check()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return isAdmin
