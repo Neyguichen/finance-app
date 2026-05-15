@@ -179,6 +179,7 @@ export default function DashboardPage() {
       const reste = prevu - depense
       return { id: cat.id, nom: cat.nom, icone: cat.icone, couleur: cat.couleur, prevu, depense, reste }
     })
+    .filter((cat: any) => cat.prevu > 0 || cat.depense > 0)
 
   // Construire les données du donut Répartition Catégories
   const repartitionChartData = [
@@ -510,58 +511,68 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             )}
-            <p className="text-[10px] text-purple-500 text-right">Dépensé / Prévu — Évol. vs mois précédent</p>
-            <div className="space-y-2">
-              {/* Charges fixes */}
-              <div className="flex items-center justify-between py-1.5 border-b border-purple-900">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: '#E11D48'}}  />
-                  <span className="text-xs text-purple-200 truncate">📌 Charges fixes</span>
-                </div>
-                <div className="text-right flex-shrink-0 ml-3">
-                  <span className="text-xs font-semibold text-white">{fmtOrDash(totalChargesPayees)}</span>
-                  <span className="text-xs text-purple-400"> / {fmtOrDash(totalChargesFixes)}</span>
-                  <EvoBadge current={totalChargesFixes} previous={prevMonthData?.charges} invertColors />
-                </div>
-              </div>
-
-              {/* Épargne */}
-              <div className="flex items-center justify-between py-1.5 border-b border-purple-900">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: '#881337'}}  />
-                  <span className="text-xs text-purple-200 truncate">💰 Épargne</span>
-                </div>
-                <div className="text-right flex-shrink-0 ml-3">
-                  <span className="text-xs font-semibold text-white">{fmtOrDash(totalEpargnes)}</span>
-                  <EvoBadge current={totalEpargnes} previous={prevMonthData?.epargne} />
-                </div>
-              </div>
-
-              {/* Catégories variables */}
-              {catStats.map((cat: any, i: number) => (
-                <div key={cat.id} className="border-b border-purple-900 py-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: getCategoryColor(i)}}  />
-                      <span className="text-xs text-purple-200 truncate">{cat.icone || '📂'} {cat.nom}</span>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-3">
-                      <span className="text-xs font-semibold text-white">{fmtOrDash(cat.depense)}</span>
-                      {cat.prevu > 0 && (
-                        <span className="text-xs text-purple-400"> / {fmtOrDash(cat.prevu)}</span>
-                      )}
-                      <EvoBadge current={cat.depense} previous={prevMonthData?.catDepenses[cat.id]} invertColors />
-                    </div>
-                  </div>
-                  {cat.prevu > 0 && cat.depense > 0 && (
-                    <div className="flex justify-end mt-0.5">
-                      <span className={`text-[10px] ${cat.reste >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        Reste : {formatEuro(cat.reste)}
-                      </span>
-                    </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-purple-600 border-b border-purple-800">
+                    <th className="text-left py-2 font-medium">Catégorie</th>
+                    <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Dép. / Prévu</th>
+                    <th className="text-right py-2 font-medium whitespace-nowrap pl-2">vs M-1</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-purple-900">
+                    <td className="py-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style= {{backgroundColor: '#E11D48'}}  />
+                        <span className="text-purple-200 truncate text-xs">📌 Fixes</span>
+                      </div>
+                    </td>
+                    <td className="text-right whitespace-nowrap pl-2">
+                      <span className="text-white font-semibold">{fmtOrDash(totalChargesPayees)}</span>
+                      <span className="text-purple-400"> / {fmtOrDash(totalChargesFixes)}</span>
+                    </td>
+                    <td className="text-right pl-2">
+                      <EvoBadge current={totalChargesFixes} previous={prevMonthData?.charges} invertColors />
+                    </td>
+                  </tr>
+                  {totalEpargnes > 0 && (
+                    <tr className="border-b border-purple-900">
+                      <td className="py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style= {{backgroundColor: '#881337'}}  />
+                          <span className="text-purple-200 truncate text-xs">💰 Épargne</span>
+                        </div>
+                      </td>
+                      <td className="text-right whitespace-nowrap pl-2">
+                        <span className="text-white font-semibold">{fmtOrDash(totalEpargnes)}</span>
+                      </td>
+                      <td className="text-right pl-2">
+                        <EvoBadge current={totalEpargnes} previous={prevMonthData?.epargne} />
+                      </td>
+                    </tr>
                   )}
-                </div>
-              ))}
+                  {catStats.map((cat: any, i: number) => (
+                    <tr key={cat.id} className="border-b border-purple-900">
+                      <td className="py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style= {{backgroundColor: getCategoryColor(i)}}  />
+                          <span className="text-purple-200 truncate text-xs">{cat.icone || '📂'} {cat.nom}</span>
+                        </div>
+                      </td>
+                      <td className="text-right whitespace-nowrap pl-2">
+                        <span className="text-white font-semibold">{fmtOrDash(cat.depense)}</span>
+                        {cat.prevu > 0 && (
+                          <span className="text-purple-400"> / {fmtOrDash(cat.prevu)}</span>
+                        )}
+                      </td>
+                      <td className="text-right pl-2">
+                        <EvoBadge current={cat.depense} previous={prevMonthData?.catDepenses[cat.id]} invertColors />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
