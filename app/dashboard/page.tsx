@@ -585,10 +585,10 @@ export default function DashboardPage() {
             <CardTitle className="text-sm text-slate-400">Indicateurs du mois</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="space-y-2">
+            <div className="space-y-2 sm:grid sm:grid-cols-3 sm:gap-3 sm:space-y-0">
               {/* Fixes / Revenus */}
-              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1">
+                <div className="flex items-center gap-2 sm:justify-center">
                   <span className="text-sm">💶</span>
                   <button onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
@@ -601,8 +601,8 @@ export default function DashboardPage() {
               </div>
 
               {/* Maîtrise */}
-              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1">
+                <div className="flex items-center gap-2 sm:justify-center">
                   <span className="text-sm">🎯</span>
                   <button onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
@@ -618,8 +618,8 @@ export default function DashboardPage() {
               </div>
 
               {/* Capacité d'épargne */}
-              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1">
+                <div className="flex items-center gap-2 sm:justify-center">
                   <span className="text-sm">💰</span>
                   <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
