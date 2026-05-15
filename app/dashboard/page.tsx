@@ -510,6 +510,7 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             )}
+            <p className="text-[10px] text-purple-500 text-right">Dépensé / Prévu — Évol. vs mois précédent</p>
             <div className="space-y-2">
               {/* Charges fixes */}
               <div className="flex items-center justify-between py-1.5 border-b border-purple-900">
@@ -517,7 +518,7 @@ export default function DashboardPage() {
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: '#E11D48'}}  />
                   <span className="text-xs text-purple-200 truncate">📌 Charges fixes</span>
                 </div>
-                <div className="text-right flex-shrink-0 ml-2">
+                <div className="text-right flex-shrink-0 ml-3">
                   <span className="text-xs font-semibold text-white">{fmtOrDash(totalChargesPayees)}</span>
                   <span className="text-xs text-purple-400"> / {fmtOrDash(totalChargesFixes)}</span>
                   <EvoBadge current={totalChargesFixes} previous={prevMonthData?.charges} invertColors />
@@ -530,7 +531,7 @@ export default function DashboardPage() {
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: '#881337'}}  />
                   <span className="text-xs text-purple-200 truncate">💰 Épargne</span>
                 </div>
-                <div className="text-right flex-shrink-0 ml-2">
+                <div className="text-right flex-shrink-0 ml-3">
                   <span className="text-xs font-semibold text-white">{fmtOrDash(totalEpargnes)}</span>
                   <EvoBadge current={totalEpargnes} previous={prevMonthData?.epargne} />
                 </div>
@@ -544,7 +545,7 @@ export default function DashboardPage() {
                       <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: getCategoryColor(i)}}  />
                       <span className="text-xs text-purple-200 truncate">{cat.icone || '📂'} {cat.nom}</span>
                     </div>
-                    <div className="text-right flex-shrink-0 ml-2">
+                    <div className="text-right flex-shrink-0 ml-3">
                       <span className="text-xs font-semibold text-white">{fmtOrDash(cat.depense)}</span>
                       {cat.prevu > 0 && (
                         <span className="text-xs text-purple-400"> / {fmtOrDash(cat.prevu)}</span>
