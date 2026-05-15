@@ -585,50 +585,60 @@ export default function DashboardPage() {
             <CardTitle className="text-sm text-slate-400">Indicateurs du mois</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-slate-800 rounded-lg p-2 text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <p className="text-xs text-slate-500">🏠 Fixes/Rev.</p>
+            <div className="space-y-2">
+              {/* Fixes / Revenus */}
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">🏠</span>
+                  <span className="text-xs text-slate-400">Fixes / Revenus</span>
                   <button onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
                   </button>
                 </div>
-                <p className={`text-lg font-bold ${ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <span className={`text-lg font-bold ${ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
-                </p>
+                </span>
               </div>
-              <div className="bg-slate-800 rounded-lg p-2 text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <p className="text-xs text-slate-500">🎯 Maîtrise</p>
+
+              {/* Maîtrise */}
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">🎯</span>
+                  <div>
+                    <span className="text-xs text-slate-400">Maîtrise</span>
+                    <p className="text-[10px] text-slate-600">{formatEuro(totalDepenses)} / {formatEuro(totalVariablesBudget)}</p>
+                  </div>
                   <button onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
                   </button>
                 </div>
-                <p className={`text-lg font-bold ${tauxMaitrise !== null && tauxMaitrise <= 100 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`text-lg font-bold ${tauxMaitrise !== null && tauxMaitrise <= 100 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {tauxMaitrise !== null ? `${tauxMaitrise}%` : '—'}
-                </p>
-                <p className="text-xs text-slate-600">
-                  {formatEuro(totalDepenses)} / {formatEuro(totalVariablesBudget)}
-                </p>
+                </span>
               </div>
-              <div className="bg-slate-800 rounded-lg p-2 text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <p className="text-xs text-slate-500">💪 Capacité épargne</p>
+
+              {/* Capacité d'épargne */}
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">💪</span>
+                  <div>
+                    <span className="text-xs text-slate-400">Capacité épargne</span>
+                    <p className={`text-[10px] ${montantCapacite >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
+                      {formatEuro(montantCapacite)}
+                    </p>
+                    {totalEpargnes > 0 && (
+                      <p className="text-[10px] text-teal-400">
+                        🐷 {formatEuro(totalEpargnes)} épargnés
+                      </p>
+                    )}
+                  </div>
                   <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
                   </button>
                 </div>
-                <p className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
-                </p>
-                <p className={`text-xs ${montantCapacite >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
-                  {formatEuro(montantCapacite)}
-                </p>
-                {totalEpargnes > 0 && (
-                  <p className="text-xs text-teal-400 mt-0.5">
-                    🐷 {formatEuro(totalEpargnes)} réellement épargnés
-                  </p>
-                )}
+                </span>
               </div>
             </div>
 
