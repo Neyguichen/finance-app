@@ -513,7 +513,7 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             )}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto sm:max-w-lg">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-purple-600 border-b border-purple-800">
