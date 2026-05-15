@@ -587,38 +587,38 @@ export default function DashboardPage() {
           <CardContent className="space-y-3">
             <div className="space-y-2 sm:grid sm:grid-cols-3 sm:gap-3 sm:space-y-0">
               {/* Fixes / Revenus */}
-              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1 sm:relative">
                 <div className="flex items-center gap-2 sm:justify-center">
                   <span className="text-sm">💶</span>
                   <span className="text-xs text-slate-400">Fixes / Revenus</span>
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2">
+                    <Info className="w-3 h-3" />
+                  </button>
                 </div>
                 <span className={`text-lg font-bold ${ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
                 </span>
-                <button onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
-                  <Info className="w-3 h-3" />
-                </button>
               </div>
 
               {/* Maîtrise */}
-              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1 sm:relative">
                 <div className="flex items-center gap-2 sm:justify-center">
                   <span className="text-sm">🎯</span>
                   <div>
                     <span className="text-xs text-slate-400">Maîtrise</span>
                     <p className="text-[10px] text-slate-600">{formatEuro(totalDepenses)} / {formatEuro(totalVariablesBudget)}</p>
+                    <button onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
+                      <Info className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
                 <span className={`text-lg font-bold ${tauxMaitrise !== null && tauxMaitrise <= 100 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {tauxMaitrise !== null ? `${tauxMaitrise}%` : '—'}
                 </span>
-                <button onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
-                  <Info className="w-3 h-3" />
-                </button>
               </div>
 
               {/* Capacité d'épargne */}
-              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1 sm:relative">
                 <div className="flex items-center gap-2 sm:justify-center">
                   <span className="text-sm">💰</span>
                   <div>
@@ -632,13 +632,13 @@ export default function DashboardPage() {
                       </p>
                     )}
                   </div>
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2">
+                    <Info className="w-3 h-3" />
+                  </button>
                 </div>
                 <span className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
                 </span>
-                <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
-                  <Info className="w-3 h-3" />
-                </button>
               </div>
             </div>
 
