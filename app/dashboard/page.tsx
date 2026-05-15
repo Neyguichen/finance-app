@@ -511,14 +511,14 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             )}
             <div className="overflow-x-auto">
-              <table className="w-full text-xs table-fixed">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="text-purple-600 border-b border-purple-800">
-                    <th className="text-left py-2 font-medium w-1/3 truncate">Catégorie</th>
-                    <th className="text-right py-2 font-medium w-1/6">Prévu</th>
-                    <th className="text-right py-2 font-medium w-1/6">Dépensé</th>
-                    <th className="text-right py-2 font-medium w-1/6">Reste</th>
-                    <th className="text-right py-2 font-medium w-1/6">Évol.</th>
+                    <th className="text-left py-2 font-medium">Catégorie</th>
+                    <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Prévu</th>
+                    <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Dépensé</th>
+                    <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Reste</th>
+                    <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Évol.</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -787,13 +787,13 @@ export default function DashboardPage() {
               )}
 
               <div className="overflow-x-auto">
-                <table className="w-full text-xs table-fixed">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="text-amber-600 border-b border-amber-800">
-                      <th className="text-left py-2 font-medium w-2/5 truncate">Catégorie</th>
-                      <th className="text-right py-2 font-medium w-1/5">Total</th>
-                      <th className="text-right py-2 font-medium w-1/5">Moy/mois</th>
-                      <th className="text-right py-2 font-medium w-1/5">Min — Max</th>
+                      <th className="text-left py-2 font-medium">Catégorie</th>
+                      <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Total</th>
+                      <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Moy/mois</th>
+                      <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Min — Max</th>
                     </tr>
                   </thead>
                   <tbody>
