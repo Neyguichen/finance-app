@@ -799,8 +799,8 @@ export default function DashboardPage() {
                   <tbody>
                     <tr className="border-b border-amber-900">
                       <td className="py-2 text-amber-200">📌 Charges fixes</td>
-                      <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.effectiveCharges)}</td>
-                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.effectiveCharges / yearData.nbMonths))}</td>
+                      <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.charges)}</td>
+                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.charges / yearData.nbMonths))}</td>
                       <td className="text-right text-amber-500">—</td>
                     </tr>
                     <tr className="border-b border-amber-900">
