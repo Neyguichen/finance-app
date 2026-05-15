@@ -592,13 +592,13 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm">💶</span>
                   <span className="text-xs text-slate-400">Fixes / Revenus</span>
-                  <button onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
-                    <Info className="w-3 h-3" />
-                  </button>
                 </div>
                 <span className={`text-lg font-bold ${ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
                 </span>
+                <button onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
+                  <Info className="w-3 h-3" />
+                </button>
               </div>
 
               {/* Maîtrise */}
@@ -609,13 +609,13 @@ export default function DashboardPage() {
                     <span className="text-xs text-slate-400">Maîtrise</span>
                     <p className="text-[10px] text-slate-600">{formatEuro(totalDepenses)} / {formatEuro(totalVariablesBudget)}</p>
                   </div>
-                  <button onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
-                    <Info className="w-3 h-3" />
-                  </button>
                 </div>
                 <span className={`text-lg font-bold ${tauxMaitrise !== null && tauxMaitrise <= 100 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {tauxMaitrise !== null ? `${tauxMaitrise}%` : '—'}
                 </span>
+                <button onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
+                  <Info className="w-3 h-3" />
+                </button>
               </div>
 
               {/* Capacité d'épargne */}
@@ -633,13 +633,13 @@ export default function DashboardPage() {
                       </p>
                     )}
                   </div>
-                  <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
-                    <Info className="w-3 h-3" />
-                  </button>
                 </div>
                 <span className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
                 </span>
+                <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
+                  <Info className="w-3 h-3" />
+                </button>
               </div>
             </div>
 
