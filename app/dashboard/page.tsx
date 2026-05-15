@@ -179,7 +179,9 @@ export default function DashboardPage() {
       const reste = prevu - depense
       return { id: cat.id, nom: cat.nom, icone: cat.icone, couleur: cat.couleur, prevu, depense, reste }
     })
-    .filter((cat: any) => cat.prevu > 0 || cat.depense > 0)
+  
+  // Version filtrée pour le tableau mensuel uniquement
+  const catStatsMonth = catStats.filter((cat: any) => cat.prevu > 0 || cat.depense > 0)
 
   // Construire les données du donut Répartition Catégories
   const repartitionChartData = [
@@ -189,7 +191,7 @@ export default function DashboardPage() {
     ...(totalEpargnes > 0
       ? [{ name: 'Épargne', value: totalEpargnes, color: '#881337', icon: '🐷' }]
       : []),
-    ...catStats.map((cat: any, i: number) => ({
+    ...catStatsMonth.map((cat: any, i: number) => ({
       name: cat.nom,
       value: cat.depense,
       color: getCategoryColor(i),
@@ -552,7 +554,7 @@ export default function DashboardPage() {
                       </td>
                     </tr>
                   )}
-                  {catStats.map((cat: any, i: number) => (
+                  {catStatsMonth.map((cat: any, i: number) => (
                     <tr key={cat.id} className="border-b border-purple-900">
                       <td className="py-1.5">
                         <div className="flex items-center gap-1.5">
@@ -795,7 +797,7 @@ export default function DashboardPage() {
                       <th className="text-left py-2 font-medium">Catégorie</th>
                       <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Total</th>
                       <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Moy/mois</th>
-                      <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Min — Max</th>
+                      <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Min/Max</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -820,7 +822,8 @@ export default function DashboardPage() {
                           <td className="text-right text-amber-200">{formatEuro(annual.total)}</td>
                           <td className="text-right text-amber-200">{formatEuro(annual.avg)}</td>
                           <td className="text-right text-amber-400 whitespace-nowrap">
-                            {formatEuro(annual.min)} — {formatEuro(annual.max)}
+                            <div className="text-xs">{formatEuro(annual.min)}</div>
+                            <div className="text-xs">{formatEuro(annual.max)}</div>
                           </td>
                         </tr>
                       )
