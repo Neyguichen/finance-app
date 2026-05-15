@@ -234,7 +234,7 @@ export default function DashboardPage() {
     for (const m of months) {
       monthlyResteM1[m] = carry
       const d: any = yearData.monthlyData[m]
-      carry = carry + d.effectiveRevenus + d.reprises - d.effectiveCharges - d.depenses - d.epargne
+      carry = carry + d.revenus + d.reprises - d.charges - d.depenses - d.epargne
     }
   }
 
@@ -246,9 +246,9 @@ export default function DashboardPage() {
           const rm1 = monthlyResteM1[mois] ?? 0
           return {
             mois: moisNomFr(mois),
-            revenus: Math.round(rm1 + data.effectiveRevenus + data.reprises),
-            sortants: Math.round(data.effectiveCharges + data.depenses + data.epargne),
-            reste: Math.round(rm1 + data.effectiveRevenus + data.reprises - data.effectiveCharges - data.depenses - data.epargne),
+            revenus: Math.round(rm1 + data.revenus + data.reprises),
+            sortants: Math.round(data.charges + data.depenses + data.epargne),
+            reste: Math.round(rm1 + data.revenus + data.reprises - data.charges - data.depenses - data.epargne),
           }
         })
     : []
@@ -533,7 +533,7 @@ export default function DashboardPage() {
                     <td className="text-right text-purple-200">{fmtOrDash(totalChargesPayees)}</td>
                     <td className={`text-right ${chargesFixesNonPayees === 0 ? 'text-purple-600' : chargesFixesNonPayees > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtOrDash(chargesFixesNonPayees)}</td>
                     <td className="text-right">
-                      <EvoBadge current={totalChargesFixes} previous={prevMonthData?.effectiveCharges} invertColors />
+                      <EvoBadge current={totalChargesFixes} previous={prevMonthData?.charges} invertColors />
                     </td>
                   </tr>
                   <tr className="border-b border-purple-900">
@@ -692,7 +692,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Card Annuelle */}
-        {yearData && yearData.nbMonths > 1 && (
+        {!isAdminViewing && yearData && yearData.nbMonths > 1 && (
           <Card className="bg-amber-950 border-amber-800">
             <CardHeader>
               <CardTitle className="text-sm text-amber-400 flex items-center gap-2">
@@ -704,12 +704,12 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-amber-900/30 rounded-lg p-3">
                   <p className="text-xs text-amber-500">Total Revenus</p>
-                  <p className="text-sm font-bold text-emerald-400">{formatEuro(yearData.annualTotals.effectiveRevenus)}</p>
+                  <p className="text-sm font-bold text-emerald-400">{formatEuro(yearData.annualTotals.revenus)}</p>
                 </div>
                 <div className="bg-amber-900/30 rounded-lg p-3">
                   <p className="text-xs text-amber-500">Total Dépenses</p>
                   <p className="text-sm font-bold text-rose-400">
-                    {formatEuro(yearData.annualTotals.effectiveCharges + yearData.annualTotals.depenses + yearData.annualTotals.epargne)}
+                    {formatEuro(yearData.annualTotals.charges + yearData.annualTotals.depenses + yearData.annualTotals.epargne)}
                   </p>
                 </div>
                 <div className="bg-amber-900/30 rounded-lg p-3">
