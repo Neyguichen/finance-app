@@ -486,7 +486,8 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Répartition Catégories */}
+        {/* Répartition Catégories + Indicateurs côte à côte sur desktop */}
+        <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
         <Card className="bg-purple-950 border-purple-800">
           <CardHeader>
             <CardTitle className="text-sm text-purple-400">Répartition Catégories</CardTitle>
@@ -513,7 +514,7 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             )}
-            <div className="overflow-x-auto sm:max-w-xl sm:mx-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-purple-600 border-b border-purple-800">
@@ -526,7 +527,7 @@ export default function DashboardPage() {
                   <tr className="border-b border-purple-900">
                     <td className="py-1.5">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style= {{backgroundColor: '#E11D48'}}  />
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{color: '#E11D48'}} />
                         <span className="text-purple-200 truncate text-xs">📌 Fixes</span>
                       </div>
                     </td>
@@ -542,7 +543,7 @@ export default function DashboardPage() {
                     <tr className="border-b border-purple-900">
                       <td className="py-1.5">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style= {{backgroundColor: '#881337'}}  />
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{color: '#881337'}} />
                           <span className="text-purple-200 truncate text-xs">💰 Épargne</span>
                         </div>
                       </td>
@@ -558,7 +559,7 @@ export default function DashboardPage() {
                     <tr key={cat.id} className="border-b border-purple-900">
                       <td className="py-1.5">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style= {{backgroundColor: getCategoryColor(i)}}  />
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{backgroundColor: getCategoryColor(i)}} />
                           <span className="text-purple-200 truncate text-xs">{cat.icone || '📂'} {cat.nom}</span>
                         </div>
                       </td>
@@ -585,13 +586,13 @@ export default function DashboardPage() {
             <CardTitle className="text-sm text-slate-400">Indicateurs du mois</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="space-y-2 sm:grid sm:grid-cols-3 sm:gap-3 sm:space-y-0">
+            <div className="space-y-2">
               {/* Fixes / Revenus */}
-              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1 sm:relative">
-                <div className="flex items-center gap-2 sm:justify-center">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <span className="text-sm">💶</span>
                   <span className="text-xs text-slate-400">Fixes / Revenus</span>
-                  <button onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2">
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
                   </button>
                 </div>
@@ -601,16 +602,16 @@ export default function DashboardPage() {
               </div>
 
               {/* Maîtrise */}
-              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1 sm:relative">
-                <div className="flex items-center gap-2 sm:justify-center">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <span className="text-sm">🎯</span>
                   <div>
                     <span className="text-xs text-slate-400">Maîtrise</span>
                     <p className="text-[10px] text-slate-600">{formatEuro(totalDepenses)} / {formatEuro(totalVariablesBudget)}</p>
-                    <button onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
-                      <Info className="w-3 h-3" />
-                    </button>
                   </div>
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
+                    <Info className="w-3 h-3" />
+                  </button>
                 </div>
                 <span className={`text-lg font-bold ${tauxMaitrise !== null && tauxMaitrise <= 100 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {tauxMaitrise !== null ? `${tauxMaitrise}%` : '—'}
@@ -618,8 +619,8 @@ export default function DashboardPage() {
               </div>
 
               {/* Capacité d'épargne */}
-              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between sm:flex-col sm:text-center sm:gap-1 sm:relative">
-                <div className="flex items-center gap-2 sm:justify-center">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <span className="text-sm">💰</span>
                   <div>
                     <span className="text-xs text-slate-400">Capacité épargne</span>
@@ -632,7 +633,7 @@ export default function DashboardPage() {
                       </p>
                     )}
                   </div>
-                  <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2">
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
                     <Info className="w-3 h-3" />
                   </button>
                 </div>
@@ -704,6 +705,7 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
+        </div>
 
         {/* Card Annuelle */}
         {!isAdminViewing && yearData && yearData.nbMonths > 1 && (
