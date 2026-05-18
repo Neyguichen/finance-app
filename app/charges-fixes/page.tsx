@@ -141,7 +141,7 @@ export default function ChargesFixesPage() {
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 pb-24">
         <h1 className="text-xl font-bold">Charges Fixes</h1>
 
         {/* DIALOG AJOUT (ouvert par le FAB) */}

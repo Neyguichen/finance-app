@@ -117,7 +117,7 @@ export default function VariablesPage() {
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 pb-24">
         {/* Titre simple sans boutons (les boutons sont dans le FAB) */}
         <h1 className="text-xl font-bold">Variables</h1>
 

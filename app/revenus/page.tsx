@@ -163,7 +163,7 @@ export default function RevenusPage() {
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 pb-24">
         {/* Header sans bouton — le FAB remplace */}
         <h1 className="text-xl font-bold">Revenus</h1>
 

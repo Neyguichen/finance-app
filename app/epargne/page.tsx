@@ -245,7 +245,7 @@ export default function EpargnePage() {
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 pb-24">
         <h1 className="text-xl font-bold">Épargne</h1>
 
         {/* DIALOG CRÉATION ENVELOPPE */}
