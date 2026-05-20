@@ -43,6 +43,8 @@ export default function VariablesPage() {
   const [editTxDate, setEditTxDate] = useState('')
   const [editTxCat, setEditTxCat] = useState('')
 
+  const [deleteTxTarget, setDeleteTxTarget] = useState<any>(null)
+
   // Remboursements
   const [rembTx, setRembTx] = useState<any>(null)
   const [newRembMontant, setNewRembMontant] = useState(0)
@@ -335,7 +337,7 @@ export default function VariablesPage() {
                             <ReceiptText className="w-3 h-3" />
                           </Button>
                           <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                            onClick={() => { if (!isAdminViewing) removeTx.mutate(tx.id) }}>
+                            onClick={() => setDeleteTxTarget(tx)}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </>
@@ -496,6 +498,34 @@ export default function VariablesPage() {
               setEditTx(null)
             }}>Enregistrer</Button>
             <Button className="w-full" variant="ghost" onClick={() => setEditTx(null)}>Annuler</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======================== */}
+      {/* DIALOG SUPPRESSION DÉPENSE */}
+      {/* ======================== */}
+      <Dialog open={!!deleteTxTarget} onOpenChange={(v) => { if (!v) setDeleteTxTarget(null) }}>
+        <DialogContent className="bg-slate-900 border-slate-700">
+          <DialogHeader>
+            <DialogTitle>Supprimer cette dépense ?</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-slate-400 space-y-1">
+            <p>{deleteTxTarget?.categorie?.icone} {deleteTxTarget?.categorie?.nom || 'Sans catégorie'}</p>
+            {deleteTxTarget?.infos && <p className="text-xs">{deleteTxTarget.infos}</p>}
+            <p className="text-pink-400 font-bold">{formatEuro(Number(deleteTxTarget?.montant || 0))}</p>
+          </div>
+          <div className="space-y-3 mt-2">
+            <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => {
+              if (!deleteTxTarget) return
+              removeTx.mutate(deleteTxTarget.id)
+              setDeleteTxTarget(null)
+            }}>
+              Supprimer
+            </Button>
+            <Button className="w-full" variant="ghost" onClick={() => setDeleteTxTarget(null)}>
+              Annuler
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
