@@ -126,7 +126,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       }
 
       const catAnnualStats: Record<string, {
-        total: number; avg: number; min: number; max: number
+        total: number; avg: number; min: number; max: number; nbMois: number
       }> = {}
 
       for (const catId of Array.from(allCatIds)) {
