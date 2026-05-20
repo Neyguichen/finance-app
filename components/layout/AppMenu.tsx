@@ -16,6 +16,7 @@ export default function AppMenu() {
   const { data: dbUsage } = useDbUsage()
 
   const handleLogout = async () => {
+    setOpen(false)
     await supabase.auth.signOut()
     router.push('/login')
   }
