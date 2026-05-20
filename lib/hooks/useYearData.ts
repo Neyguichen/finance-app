@@ -97,6 +97,13 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         epargne: months.reduce((s, m) => s + monthlyData[m].epargne, 0),
       }
 
+      const nbMonthsCharges = months.filter(m => monthlyData[m].charges > 0).length
+      const nbMonthsEpargne = months.filter(m => monthlyData[m].epargne > 0).length
+      const nbActiveMonths = months.filter(m => {
+        const md = monthlyData[m]
+        return md.revenus > 0 || md.charges > 0 || md.depenses > 0 || md.epargne > 0
+      }).length
+
       const tauxEpargne = annualTotals.revenus > 0
       ? Math.round((annualTotals.epargne / annualTotals.revenus) * 100)
       : 0
@@ -128,9 +135,10 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         const total = values.reduce((s, v) => s + v, 0)
         catAnnualStats[catId] = {
           total,
-          avg: nbMonths > 0 ? Math.round((total / nbMonths) * 100) / 100 : 0,
+          avg: nonZero.length > 0 ? Math.round((total / nonZero.length) * 100) / 100 : 0,
           min: nonZero.length > 0 ? Math.min(...nonZero) : 0,
           max: nonZero.length > 0 ? Math.max(...nonZero) : 0,
+          nbMois: nonZero.length,
         }
       }
 
@@ -147,6 +155,9 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         prevMonth: prevData,
         prevMonthKey: prevMonth,
         nbMonths,
+        nbActiveMonths,
+        nbMonthsCharges,
+        nbMonthsEpargne,
       }
     },
   })

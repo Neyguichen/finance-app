@@ -859,13 +859,13 @@ export default function DashboardPage() {
                     <tr className="border-b border-amber-900">
                       <td className="py-2 text-amber-200">📌 Charges fixes</td>
                       <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.charges)}</td>
-                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.charges / yearData.nbMonths))}</td>
+                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.charges / (yearData.nbMonthsCharges || 1)))}</td>
                       <td className="text-right text-amber-500">—</td>
                     </tr>
                     <tr className="border-b border-amber-900">
                       <td className="py-2 text-amber-200">💰 Épargne</td>
                       <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.epargne)}</td>
-                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.epargne / yearData.nbMonths))}</td>
+                      <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.epargne / (yearData.nbMonthsEpargne || 1)))}</td>
                       <td className="text-right text-amber-500">—</td>
                     </tr>
                     {catStats.map((cat: any) => {
