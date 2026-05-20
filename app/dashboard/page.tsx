@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const totalChargesFixes = effectiveCharges.reduce((s: number, c: any) => s + Number(c.montant), 0)
   const totalChargesPayees = effectiveCharges.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
   const totalDepenses = effectiveTransactions.reduce((s: number, t: any) => s + getMontantNet(t), 0)
-  const totalSortantsAll = totalChargesFixes + totalDepenses + totalEpargnes
+  const totalSortantsAll = totalChargesFixes + totalDepenses + totalEpargnes + resteM1Sortant
 
   // Reste à vivre — PRÉVU
   // Pour chaque catégorie : max(budget prévu, dépenses réelles)
@@ -104,14 +104,16 @@ export default function DashboardPage() {
   }, 0)
 
   const resteM1Value = resteM1 ?? 0
-  const totalEntrants = resteM1Value + totalRevenus
-  const restePrevu = totalEntrants - totalChargesFixes - totalVariablesPrevu - totalEpargnes
+  const resteM1Entrant = resteM1Value > 0 ? resteM1Value : 0
+  const resteM1Sortant = resteM1Value < 0 ? Math.abs(resteM1Value) : 0
+  const totalEntrants = resteM1Entrant + totalRevenus
+  const restePrevu = resteM1Value + totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
 
   // Reste à vivre — RÉEL
   const resteReel = resteM1Value + totalRevenusRecus - totalChargesPayees - totalDepenses - totalEpargnes
 
   const revenusChartData = [
-    { name: 'Reste M-1', value: Math.max(resteM1Value, 0), color: '#3B82F6' },
+    { name: 'Reste M-1', value: resteM1Entrant, color: '#3B82F6' },
     { name: 'Actif', value: totalActif, color: '#10B981' },
     { name: 'Passif', value: totalPassif, color: '#6EE7B7' },
     { name: 'Reprises épargne', value: totalReprises, color: '#064E3B' },
@@ -162,6 +164,7 @@ export default function DashboardPage() {
     { name: 'Fixes', value: totalChargesFixes, color: '#E11D48' },
     { name: 'Variables', value: totalDepenses, color: '#FDA4AF' },
     { name: 'Épargne', value: totalEpargnes, color: '#881337' },
+    ...(resteM1Sortant > 0 ? [{ name: 'Déficit M-1', value: resteM1Sortant, color: '#7C3AED' }] : []),
   ].filter((d: any) => d.value > 0)
 
   // --- Répartition Catégories ---
@@ -249,8 +252,8 @@ export default function DashboardPage() {
           const rm1 = monthlyResteM1[mois] ?? 0
           return {
             mois: moisNomFr(mois),
-            revenus: Math.round(rm1 + data.revenus + data.reprises),
-            sortants: Math.round(data.charges + data.depenses + data.epargne),
+            revenus: Math.round((rm1 > 0 ? rm1 : 0) + data.revenus + data.reprises),
+            sortants: Math.round(data.charges + data.depenses + data.epargne + (rm1 < 0 ? Math.abs(rm1) : 0)),
             reste: Math.round(rm1 + data.revenus + data.reprises - data.charges - data.depenses - data.epargne),
           }
         })
@@ -490,6 +493,20 @@ export default function DashboardPage() {
                         </span>
                       </div>
                     </div>
+                    {resteM1Sortant > 0 && (
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style= {{backgroundColor: '#7C3AED'}}  />
+                          <span className="text-xs text-slate-300 truncate">Déficit M-1</span>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-xs font-semibold text-white">{formatEuro(resteM1Sortant)}</span>
+                          <span className="text-xs text-slate-500 ml-1">
+                            ({totalSortantsAll > 0 ? Math.round((resteM1Sortant / totalSortantsAll) * 100) : 0}%)
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
