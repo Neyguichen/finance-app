@@ -21,6 +21,7 @@ import { formatEuro, formatDate, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 import { useRemboursements } from '@/lib/hooks/useRemboursements'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
+import { useResteM1 } from '@/lib/hooks/useResteM1'
 
 export default function VariablesPage() {
   const { moisId, month, setMonth, espace } = useApp()
@@ -65,6 +66,7 @@ export default function VariablesPage() {
   const { data: chargesList = [] } = useChargesFixesData(moisId)
   const { data: mouvementsList = [] } = useMouvements(moisId)
   const { data: yearData } = useYearData(espaceId, month)
+  const { data: resteM1 } = useResteM1(espaceId, month, espace?.solde_initial ?? 0)
   
   const { isAdminViewing } = useApp()
   const { data: adminData } = useAdminMoisData(month)
@@ -82,7 +84,11 @@ export default function VariablesPage() {
   const totalEpargneVar = effectiveMouvementsList
     .filter((m: any) => m.type === 'epargne')
     .reduce((s: number, m: any) => s + Number(m.montant), 0)
-  const budgetDisponible = totalRevenusVar - totalChargesVar - totalEpargneVar
+  const totalReprisesVar = effectiveMouvementsList
+    .filter((m: any) => m.type === 'reprise')
+    .reduce((s: number, m: any) => s + Number(m.montant), 0)
+  const resteM1Value = resteM1 ?? 0
+  const budgetDisponible = resteM1Value + totalRevenusVar + totalReprisesVar - totalChargesVar - totalEpargneVar
 
   const [showBudgetInfo, setShowBudgetInfo] = useState(false)
 
@@ -139,8 +145,13 @@ export default function VariablesPage() {
               </span>
             </div>
             {showBudgetInfo && (
-              <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
-                Revenus ({formatEuro(totalRevenusVar)}) − Charges fixes ({formatEuro(totalChargesVar)}) − Épargne ({formatEuro(totalEpargneVar)}) = Montant à répartir dans vos budgets variables
+              <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2 space-y-0.5">
+                {resteM1Value !== 0 && <p>Reste M-1 : {formatEuro(resteM1Value)}</p>}
+                <p>Revenus : {formatEuro(totalRevenusVar)}</p>
+                {totalReprisesVar > 0 && <p>Reprises épargne : +{formatEuro(totalReprisesVar)}</p>}
+                <p>Charges fixes : −{formatEuro(totalChargesVar)}</p>
+                {totalEpargneVar > 0 && <p>Épargne : −{formatEuro(totalEpargneVar)}</p>}
+                <p className="border-t border-slate-700 pt-1 font-semibold">= {formatEuro(budgetDisponible)} à répartir en budgets variables</p>
               </div>
             )}
             <div className="border-t border-pink-900 pt-2" />
