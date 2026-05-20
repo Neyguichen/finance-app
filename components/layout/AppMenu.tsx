@@ -7,6 +7,7 @@ import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
 import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake, Users, Receipt, } from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
+import { APP_VERSION } from '@/lib/version'
 
 export default function AppMenu() {
   const [open, setOpen] = useState(false)
@@ -154,7 +155,7 @@ export default function AppMenu() {
           router.push('/parametres/delete-account')
           }} />
 
-          <span className="text-xs text-slate-600">Finance App v2.0</span>
+          <span className="text-xs text-slate-600">Finance App v{APP_VERSION}</span>
         </div>
       </div>
     </>

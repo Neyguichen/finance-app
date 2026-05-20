@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { ExternalLink, Mail, BookOpen, Code2 } from 'lucide-react'
+import { APP_VERSION } from '@/lib/version'
 
 export default function AProposPage() {
   return (
@@ -45,7 +46,7 @@ export default function AProposPage() {
           <p className="text-sm text-slate-300">
             Développé avec ❤️ par <span className="font-semibold text-white">Stéphane</span>
           </p>
-          <p className="text-xs text-slate-500 mt-1">v2.0 — Architecture Espaces</p>
+          <p className="text-xs text-slate-500 mt-1">Architecture Espaces - v{APP_VERSION}</p>
         </CardContent>
       </Card>
 
