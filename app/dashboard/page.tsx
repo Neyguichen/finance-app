@@ -794,7 +794,17 @@ export default function DashboardPage() {
 
               {lineChartData.length > 1 && (
                 <div>
-                  <p className="text-xs text-amber-500 mb-2">💰 Reste à vivre mensuel</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-xs text-amber-500">💰 Reste à vivre mensuel</p>
+                  <button onClick={() => setActiveTooltip(activeTooltip === 'courbeReste' ? null : 'courbeReste')} className="text-amber-600 hover:text-amber-400">
+                    <Info className="w-3 h-3" />
+                  </button>
+                </div>
+                {activeTooltip === 'courbeReste' && (
+                  <div className="text-xs text-amber-400/70 bg-amber-900/30 rounded-lg p-2 mb-2">
+                    Pour chaque mois : Reste M-1 + Revenus + Reprises d&apos;épargne − Charges fixes − Dépenses variables − Épargne. Représente le solde disponible en fin de mois.
+                  </div>
+                )}
                   <ResponsiveContainer width="100%" height={150}>
                     <LineChart data={lineChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#78350f" />
