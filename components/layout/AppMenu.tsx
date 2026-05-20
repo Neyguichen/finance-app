@@ -79,14 +79,9 @@ export default function AppMenu() {
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2 text-center mt-4">Paramètres</p>
           <div className="border-t border-slate-700 my-2" />
 
-          <MenuLink icon={Settings} label="Gérer les espaces" onClick={() => {
+          <MenuLink icon={Settings} label="Paramètres" onClick={() => {
             setOpen(false)
-            router.push('/parametres/espaces')
-          }} />
-
-          <MenuLink icon={Settings} label="Gérer les catégories" onClick={() => {
-            setOpen(false)
-            router.push('/parametres/categories')
+            router.push('/parametres')
           }} />
 
           {/* Section Compte */}
@@ -108,16 +103,6 @@ export default function AppMenu() {
           {/* Section Données */}
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Données</p>
           <div className="border-t border-slate-700 my-2" />
-
-          <MenuLink icon={Trash2} label="Purger les anciens mois" onClick={() => {
-            setOpen(false)
-            router.push('/parametres/purge')
-          }} />
-
-          <MenuLink icon={RotateCcw} label="Réinitialiser les données" onClick={() => {
-            setOpen(false)
-            router.push('/parametres/reset')
-          }} />
 
           {/* Jauge BDD */}
           {dbUsage && (
@@ -149,11 +134,6 @@ export default function AppMenu() {
               />
             </div>
           )}
-
-          <MenuLink icon={UserX} label="Supprimer mon compte" danger onClick={() => {
-          setOpen(false)
-          router.push('/parametres/delete-account')
-          }} />
 
           <span className="text-xs text-slate-600">Finance App v{APP_VERSION}</span>
         </div>
