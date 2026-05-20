@@ -87,11 +87,6 @@ export default function DashboardPage() {
   const totalPassifRecu = effectiveRevenus.filter((r: any) => r.type === 'passif' && r.recu).reduce((s: number, r: any) => s + Number(r.montant), 0)
   const totalRevenusRecus = totalActifRecu + totalPassifRecu + totalReprises
 
-  const totalChargesFixes = effectiveCharges.reduce((s: number, c: any) => s + Number(c.montant), 0)
-  const totalChargesPayees = effectiveCharges.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
-  const totalDepenses = effectiveTransactions.reduce((s: number, t: any) => s + getMontantNet(t), 0)
-  const totalSortantsAll = totalChargesFixes + totalDepenses + totalEpargnes + resteM1Sortant
-
   // Reste à vivre — PRÉVU
   // Pour chaque catégorie : max(budget prévu, dépenses réelles)
   const totalVariablesPrevu = effectiveCategories.reduce((sum: number, cat: any) => {
@@ -111,6 +106,11 @@ export default function DashboardPage() {
 
   // Reste à vivre — RÉEL
   const resteReel = resteM1Value + totalRevenusRecus - totalChargesPayees - totalDepenses - totalEpargnes
+
+  const totalChargesFixes = effectiveCharges.reduce((s: number, c: any) => s + Number(c.montant), 0)
+  const totalChargesPayees = effectiveCharges.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
+  const totalDepenses = effectiveTransactions.reduce((s: number, t: any) => s + getMontantNet(t), 0)
+  const totalSortantsAll = totalChargesFixes + totalDepenses + totalEpargnes + resteM1Sortant
 
   const revenusChartData = [
     { name: 'Reste M-1', value: resteM1Entrant, color: '#3B82F6' },
