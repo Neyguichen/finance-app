@@ -227,11 +227,11 @@ export default function DashboardPage() {
     ? Math.round((totalChargesFixes / totalActif) * 100)
     : null
 
-  // Capacité d'épargne
-  const capaciteEpargne = totalEntrants > 0
-    ? Math.round(((totalEntrants - totalChargesFixes - totalDepenses) / totalEntrants) * 100)
+  // Capacité d'épargne — règle des 20%
+  const objectifEpargne = (totalActif + totalPassif + resteM1Value - totalChargesFixes) * 0.20
+  const capaciteEpargne = objectifEpargne > 0
+    ? Math.round((totalEpargnes / objectifEpargne) * 100)
     : null
-  const montantCapacite = totalEntrants - totalChargesFixes - totalDepenses
 
   // Calculer le Reste M-1 rolling pour chaque mois de l'année
   const monthlyResteM1: Record<string, number> = {}
@@ -651,24 +651,22 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Capacité d'épargne */}
+              {/* Capacité d'épargne — règle 20% */}
               <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm">💰</span>
                   <div>
-                    <span className="text-xs text-slate-400">Capacité épargne</span>
-                    <p className={`text-[10px] ${montantCapacite >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
-                      {formatEuro(montantCapacite)} disponibles
+                    <span className="text-xs text-slate-400">Épargne (règle 20%)</span>
+                    <p className="text-[10px] text-slate-600">
+                      Objectif : {formatEuro(objectifEpargne)}
                     </p>
-                    {totalEpargnes > 0 && (
-                      <p className="text-[10px] text-teal-400">
-                        {formatEuro(totalEpargnes)} réellement épargnés
-                      </p>
-                    )}
+                    <p className={`text-[10px] ${totalEpargnes >= objectifEpargne && objectifEpargne > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      Épargné : {formatEuro(totalEpargnes)}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
-                  <span className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <span className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
                   </span>
                   <button onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
@@ -690,7 +688,7 @@ export default function DashboardPage() {
             )}
             {activeTooltip === 'surplus' && (
               <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
-                Ce que vous pourriez épargner : Entrants − Charges fixes − Dépenses variables (sans compter l&apos;épargne déjà faite). Le montant en dessous montre ce que vous avez réellement épargné ce mois.
+                Objectif d&apos;épargne mensuel = (Revenus actifs + passifs − Charges fixes) × 20%. Atteindre 100% signifie que vous épargnez au moins ce que la règle recommande.
               </div>
             )}
 
