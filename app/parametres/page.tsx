@@ -341,7 +341,7 @@ export default function ParametresPage() {
       {/* EXPORT */}
       <Section id="export" icon={Download} title="Exporter les données" color="text-teal-400">
         <div className="space-y-2">
-          <p className="text-sm text-slate-400">Exporte toutes les données de l'espace <strong>{espace?.nom}</strong> au format CSV.</p>
+          <p className="text-sm text-slate-400">Exporte toutes les données de l&apos;espace <strong>{espace?.nom}</strong> au format CSV.</p>
           <Button onClick={handleExportCSV} className="w-full">
             <Download className="w-4 h-4 mr-2" /> Exporter en CSV
           </Button>
@@ -382,7 +382,7 @@ export default function ParametresPage() {
               <RotateCcw className="w-4 h-4 text-red-400" />
               <span className="text-sm font-semibold text-red-400">Réinitialiser les données</span>
             </div>
-            <p className="text-xs text-slate-500">Supprime toutes les données de l'espace <strong>{espace?.nom}</strong> (mois, revenus, charges, dépenses, catégories). Cette action est irréversible.</p>
+            <p className="text-xs text-slate-500">Supprime toutes les données de l&apos;espace <strong>{espace?.nom}</strong> (mois, revenus, charges, dépenses, catégories). Cette action est irréversible.</p>
             <Button size="sm" variant="outline" className="text-red-400 border-red-800" onClick={() => setResetConfirm(true)}>
               Réinitialiser
             </Button>
@@ -409,7 +409,7 @@ export default function ParametresPage() {
       {/* Dialog édition espace */}
       <Dialog open={!!editEspace} onOpenChange={v => { if (!v) setEditEspace(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
-          <DialogHeader><DialogTitle>Modifier l'espace</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Modifier l&apos;espace</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
             <EmojiPicker value={editIcone} onChange={setEditIcone} />
@@ -433,7 +433,7 @@ export default function ParametresPage() {
       {/* Dialog suppression espace */}
       <Dialog open={!!deleteEspaceTarget} onOpenChange={v => { if (!v) setDeleteEspaceTarget(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
-          <DialogHeader><DialogTitle>Supprimer l'espace « {deleteEspaceTarget?.nom} » ?</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Supprimer l&apos;espace « {deleteEspaceTarget?.nom} » ?</DialogTitle></DialogHeader>
           <p className="text-sm text-slate-400">Toutes les données de cet espace seront supprimées définitivement.</p>
           <div className="space-y-3 mt-2">
             <Button className="w-full bg-red-600 hover:bg-red-700" onClick={async () => {
