@@ -219,8 +219,8 @@ export default function DashboardPage() {
     : null
 
   // Ratio charges fixes / revenus
-  const ratioChargesRevenus = totalEntrants > 0
-    ? Math.round((totalChargesFixes / totalEntrants) * 100)
+  const ratioChargesRevenus = totalActif > 0
+    ? Math.round((totalChargesFixes / totalActif) * 100)
     : null
 
   // Capacité d'épargne
@@ -651,7 +651,7 @@ export default function DashboardPage() {
 
             {activeTooltip === 'ratio' && (
               <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
-                Part des charges fixes dans vos revenus. Idéalement en dessous de 50%.
+                Part des charges fixes dans vos revenus actifs uniquement. Idéalement en dessous de 50%.
               </div>
             )}
             {activeTooltip === 'maitrise' && (
