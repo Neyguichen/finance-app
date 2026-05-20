@@ -66,28 +66,15 @@ export default function AppMenu() {
             </>
           )}
 
-          {/* Autres fonctionnalités */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2 text-center mt-4">Autres fonctionnalités</p>
-          <div className="border-t border-slate-700 my-2" />
           <MenuLink icon={Handshake} label="Dettes" onClick={() => {
             setOpen(false)
             router.push('/dette')
           }} />
 
-          {/* Section Paramètres */}
-          <div></div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-2 text-center mt-4">Paramètres</p>
-          <div className="border-t border-slate-700 my-2" />
-
           <MenuLink icon={Settings} label="Paramètres" onClick={() => {
             setOpen(false)
             router.push('/parametres')
           }} />
-
-          {/* Section Compte */}
-          <div></div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6 text-center mt-4">Compte</p>
-          <div className="border-t border-slate-700 my-2" />
 
           <MenuLink icon={Info} label="À propos" onClick={() => {
             setOpen(false)
@@ -99,10 +86,6 @@ export default function AppMenu() {
 
         {/* Version en bas */}
         <div className="absolute bottom-6 left-0 right-0 text-center">
-
-          {/* Section Données */}
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 mt-6">Données</p>
-          <div className="border-t border-slate-700 my-2" />
 
           {/* Jauge BDD */}
           {dbUsage && (
