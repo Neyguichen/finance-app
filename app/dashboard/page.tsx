@@ -556,7 +556,7 @@ export default function DashboardPage() {
                   <tr className="border-b border-purple-900">
                     <td className="py-1.5">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{color: '#E11D48'}} />
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{backgroundColor: '#E11D48'}} />
                         <span className="text-purple-200 truncate text-xs">📌 Fixes</span>
                       </div>
                     </td>
@@ -572,7 +572,7 @@ export default function DashboardPage() {
                     <tr className="border-b border-purple-900">
                       <td className="py-1.5">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{color: '#881337'}} />
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{backgroundColor: '#881337'}} />
                           <span className="text-purple-200 truncate text-xs">💰 Épargne</span>
                         </div>
                       </td>
