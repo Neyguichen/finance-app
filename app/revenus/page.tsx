@@ -174,14 +174,18 @@ export default function RevenusPage() {
               <span className="font-semibold">Total Entrants</span>
               <span className="font-bold text-lg">{formatEuro(totalEntrants)}</span>
             </div>
-            <div className="flex justify-between text-sm text-slate-400">
-              <span>Actif</span>
-              <span>{formatEuro(totalActif)} ({pct(totalActif, totalEntrants)}%)</span>
-            </div>
-            <div className="flex justify-between text-sm text-slate-400">
-              <span>Passif</span>
-              <span>{formatEuro(totalPassif)} ({pct(totalPassif, totalEntrants)}%)</span>
-            </div>
+            {totalActif > 0 && (
+              <div className="flex justify-between text-sm text-slate-400">
+                <span>Actif</span>
+                <span>{formatEuro(totalActif)} ({pct(totalActif, totalEntrants)}%)</span>
+              </div>
+            )}
+            {totalPassif > 0 && (
+              <div className="flex justify-between text-sm text-slate-400">
+                <span>Passif</span>
+                <span>{formatEuro(totalPassif)} ({pct(totalPassif, totalEntrants)}%)</span>
+              </div>
+            )}
             {totalReprises > 0 && (
               <div className="flex justify-between text-sm text-slate-400">
                 <span>Reprises épargne</span>
