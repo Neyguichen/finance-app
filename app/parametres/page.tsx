@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -68,6 +68,15 @@ export default function ParametresPage() {
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
   const [deleting, setDeleting] = useState(false)
+
+  // --- Données Profil ---
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+    useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+        setUserEmail(data.user?.email || null)
+    })
+    }, [])
 
   // --- Fonctions ---
   const activeCategories = categories.filter((c: any) => c.actif !== false)
@@ -239,7 +248,7 @@ export default function ParametresPage() {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between bg-slate-800 rounded-lg p-3">
             <span className="text-slate-400">Email</span>
-            <span className="text-white">{userId ? '—' : '—'}</span>
+            <span className="text-white">{userEmail || '—'}</span>
           </div>
         </div>
       </Section>
