@@ -1,13 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ArrowLeft, Eye, Receipt } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { useApp } from '@/components/AppContext'
+
 import { isAdmin } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+
+import { useApp } from '@/components/AppContext'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Eye, Receipt } from 'lucide-react'
 
 type UserRow = {
   id: string
@@ -21,7 +23,27 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Protection admin
+  useEffect(() => {
+    if (!isAdmin(userId)) return
+    const supabase = createClient()
+    supabase.rpc('get_all_users').then(({ data, error }) => {
+      if (error) {
+        console.error('Erreur get_all_users:', error)
+        setUsers([])
+      } else {
+        setUsers(
+          (data || []).map((u: Record<string, string>) => ({
+            id: u.id,
+            email: u.email || u.id,
+            created_at: u.created_at || '',
+          }))
+        )
+      }
+      setLoading(false)
+    })
+  }, [userId])
+
+  // Protection admin — APRÈS les hooks (règle React)
   if (!isAdmin(userId)) {
     return (
       <div className="p-6 text-center">
@@ -32,26 +54,6 @@ export default function AdminPage() {
       </div>
     )
   }
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    const supabase = createClient()
-    supabase
-      .rpc('get_all_users')
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('Erreur get_all_users:', error)
-          setUsers([])
-        } else {
-          setUsers((data || []).map((u: any) => ({
-            id: u.id,
-            email: u.email || u.id,
-            created_at: u.created_at || '',
-          })))
-        }
-        setLoading(false)
-      })
-  }, [])
 
   const handleViewAs = (targetUserId: string) => {
     setAdminViewUserId(targetUserId)
@@ -68,11 +70,13 @@ export default function AdminPage() {
         <h1 className="text-xl font-bold">🔒 Administration</h1>
       </div>
 
-      {/* Liens admin */}
+      {/* Outils admin */}
       <div>
         <h2 className="text-sm font-semibold text-slate-400 mb-2">Outils admin</h2>
-        <Card className="bg-slate-900 border-slate-800 cursor-pointer hover:bg-slate-800 transition"
-          onClick={() => router.push('/admin/remboursements-alsh')}>
+        <Card
+          className="bg-slate-900 border-slate-800 cursor-pointer hover:bg-slate-800 transition"
+          onClick={() => router.push('/admin/remboursements-alsh')}
+        >
           <CardContent className="p-3 flex items-center gap-3">
             <Receipt className="w-5 h-5 text-emerald-400" />
             <div>
@@ -83,7 +87,7 @@ export default function AdminPage() {
         </Card>
       </div>
 
-      {/* Liste des utilisateurs */}
+      {/* Utilisateurs */}
       <div>
         <h2 className="text-sm font-semibold text-slate-400 mb-2">Utilisateurs</h2>
         {loading ? (
@@ -96,15 +100,19 @@ export default function AdminPage() {
               <Card key={u.id} className="bg-slate-900 border-slate-800">
                 <CardContent className="p-3 flex items-center justify-between">
                   <div>
-                  <p className="text-sm font-medium">{u.email}</p>
-                  <p className="text-xs text-slate-500 font-mono">{u.id.slice(0, 8)}...</p>
+                    <p className="text-sm font-medium">{u.email}</p>
+                    <p className="text-xs text-slate-500 font-mono">{u.id.slice(0, 8)}...</p>
                     <p className="text-xs text-slate-500">
                       {u.id === userId ? '(Toi)' : 'Utilisateur'}
                     </p>
                   </div>
                   {u.id !== userId && (
-                    <Button size="sm" variant="outline" className="gap-1.5"
-                      onClick={() => handleViewAs(u.id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      onClick={() => handleViewAs(u.id)}
+                    >
                       <Eye className="w-3.5 h-3.5" />
                       Voir comme
                     </Button>
