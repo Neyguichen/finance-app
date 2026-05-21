@@ -410,7 +410,10 @@ export default function ParametresPage() {
         </Section>
 
       {/* APPARENCE */}
-      <Section id="apparence" icon={Palette} title="Apparence" color="text-amber-400">
+        <Section id="apparence" icon={Palette} title="Apparence" color="text-amber-400">
+            <p className="text-sm text-slate-500">🚧 Le thème clair sera disponible dans une future version. L&apos;app utilise actuellement des couleurs en dur qui nécessitent un refactoring pour supporter les thèmes.</p>
+        </Section>
+      {/*<Section id="apparence" icon={Palette} title="Apparence" color="text-amber-400">
         <div className="flex gap-3">
           <button
             onClick={() => toggleTheme('dark')}
@@ -431,7 +434,7 @@ export default function ParametresPage() {
             <span className="text-sm">Clair</span>
           </button>
         </div>
-      </Section>
+        </Section>*/}
 
       {/* EXPORT */}
       <Section id="export" icon={Download} title="Exporter les données" color="text-teal-400">
