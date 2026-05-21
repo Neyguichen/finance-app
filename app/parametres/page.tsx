@@ -57,6 +57,14 @@ export default function ParametresPage() {
   // --- État Catégories ---
   const [showArchived, setShowArchived] = useState(false)
 
+  // --- État ajout/édition catégorie ---
+    const [newCatOpen, setNewCatOpen] = useState(false)
+    const [newCatNom, setNewCatNom] = useState('')
+    const [newCatIcone, setNewCatIcone] = useState('🛒')
+    const [editCat, setEditCat] = useState<any>(null)
+    const [editCatNom, setEditCatNom] = useState('')
+    const [editCatIcone, setEditCatIcone] = useState('')
+
   // --- État Thème ---
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('app-theme') || 'dark'
@@ -354,38 +362,52 @@ export default function ParametresPage() {
       </Section>
 
       {/* CATÉGORIES */}
-      <Section id="categories" icon={FolderOpen} title="Catégories" color="text-purple-400">
-        <div className="space-y-2">
-          <p className="text-xs text-slate-500">Catégories actives ({activeCategories.length})</p>
-          {activeCategories.sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((cat: any) => (
-            <div key={cat.id} className="bg-slate-800 rounded-lg p-2 flex items-center justify-between">
-              <span className="text-sm">{cat.icone} {cat.nom}</span>
-              <Button variant="ghost" size="sm" className="text-amber-400 text-xs h-7" onClick={() => removeCat.mutate(cat.id)}>
-                <Archive className="w-3 h-3 mr-1" /> Archiver
-              </Button>
-            </div>
-          ))}
-
-          {archivedCategories.length > 0 && (
-            <>
-              <button onClick={() => setShowArchived(!showArchived)} className="text-xs text-slate-500 hover:text-slate-300 mt-2">
-                {showArchived ? '▼' : '▶'} Archivées ({archivedCategories.length})
-              </button>
-              {showArchived && archivedCategories.map((cat: any) => (
-                <div key={cat.id} className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between opacity-60">
-                  <span className="text-sm">{cat.icone} {cat.nom}</span>
-                  <Button variant="ghost" size="sm" className="text-emerald-400 text-xs h-7" onClick={async () => {
-                    await supabase.from('categories').update({ actif: true }).eq('id', cat.id)
-                    window.location.reload()
-                  }}>
-                    <ArchiveRestore className="w-3 h-3 mr-1" /> Restaurer
-                  </Button>
+        <Section id="categories" icon={FolderOpen} title="Catégories" color="text-purple-400">
+            <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                    <p className="text-xs text-slate-500">Actives ({activeCategories.length})</p>
+                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { setNewCatOpen(true); setNewCatNom(''); setNewCatIcone('🛒') }}>
+                    + Ajouter
+                    </Button>
                 </div>
-              ))}
-            </>
-          )}
-        </div>
-      </Section>
+                {activeCategories.sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((cat: any) => (
+                    <div key={cat.id} className="bg-slate-800 rounded-lg p-2 flex items-center justify-between">
+                    <span className="text-sm">{cat.icone} {cat.nom}</span>
+                    <div className="flex gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400" onClick={() => {
+                        setEditCat(cat)
+                        setEditCatNom(cat.nom)
+                        setEditCatIcone(cat.icone)
+                        }}>
+                        <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-amber-400" onClick={() => removeCat.mutate(cat.id)}>
+                        <Archive className="w-3 h-3" />
+                        </Button>
+                    </div>
+                    </div>
+                ))}
+
+                {archivedCategories.length > 0 && (
+                    <>
+                    <button type="button" onClick={() => setShowArchived(!showArchived)} className="text-xs text-slate-500 hover:text-slate-300 mt-2">
+                        {showArchived ? '▼' : '▶'} Archivées ({archivedCategories.length})
+                    </button>
+                    {showArchived && archivedCategories.map((cat: any) => (
+                        <div key={cat.id} className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between opacity-60">
+                        <span className="text-sm">{cat.icone} {cat.nom}</span>
+                        <Button variant="ghost" size="sm" className="text-emerald-400 text-xs h-7" onClick={async () => {
+                            await supabase.from('categories').update({ actif: true }).eq('id', cat.id)
+                            window.location.reload()
+                        }}>
+                            <ArchiveRestore className="w-3 h-3 mr-1" /> Restaurer
+                        </Button>
+                        </div>
+                    ))}
+                    </>
+                )}
+            </div>
+        </Section>
 
       {/* APPARENCE */}
       <Section id="apparence" icon={Palette} title="Apparence" color="text-amber-400">
@@ -588,6 +610,39 @@ export default function ParametresPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog nouvelle catégorie */}
+        <Dialog open={newCatOpen} onOpenChange={setNewCatOpen}>
+            <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
+                <DialogHeader><DialogTitle>Nouvelle catégorie</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                <Input placeholder="Nom (ex: Courses)" value={newCatNom} onChange={e => setNewCatNom(e.target.value)} />
+                <EmojiPicker value={newCatIcone} onChange={setNewCatIcone} />
+                <Button className="w-full" onClick={async () => {
+                    if (!newCatNom.trim() || !espaceId) return
+                    await createCat.mutateAsync({ espace_id: espaceId, nom: newCatNom.trim(), icone: newCatIcone, couleur: '#8B5CF6', ordre: categories.length })
+                    setNewCatOpen(false)
+                }}>Créer</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+
+        {/* Dialog édition catégorie */}
+        <Dialog open={!!editCat} onOpenChange={v => { if (!v) setEditCat(null) }}>
+            <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
+                <DialogHeader><DialogTitle>Modifier la catégorie</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                <Input placeholder="Nom" value={editCatNom} onChange={e => setEditCatNom(e.target.value)} />
+                <EmojiPicker value={editCatIcone} onChange={setEditCatIcone} />
+                <Button className="w-full" onClick={async () => {
+                    if (!editCat || !editCatNom.trim()) return
+                    await supabase.from('categories').update({ nom: editCatNom.trim(), icone: editCatIcone }).eq('id', editCat.id)
+                    setEditCat(null)
+                    window.location.reload()
+                }}>Enregistrer</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
   )
 }
