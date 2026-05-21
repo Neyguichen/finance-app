@@ -8,7 +8,7 @@ import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useCategories } from '@/lib/hooks/useCategories'
-import { usePrevMonth } from '@/lib/hooks/usePrevMonth'
+import { useResteM1 } from '@/lib/hooks/useResteM1'
 import { useYearData } from '@/lib/hooks/useYearData'
 import { useIsAdmin } from '@/lib/hooks/useIsAdmin'
 
@@ -21,7 +21,7 @@ import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
 import BilanAnnuel from '@/components/pages/dashboard/BilanAnnuel'
 
 export default function DashboardPage() {
-  const { espaces, espace, moisId, addEspace } = useApp()
+  const { espaces, espace, moisId, month, addEspace } = useApp()
   const espaceId = espace?.id
   const isAdmin = useIsAdmin()
 
@@ -31,7 +31,7 @@ export default function DashboardPage() {
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: budgets = [] } = useBudgets(moisId)
   const { data: categories = [] } = useCategories(espaceId)
-  const prevMonthData = usePrevMonth(espaceId, moisId)
+  const { data: resteM1Value } = useResteM1(espaceId, month, espace?.solde_initial || 0)
   const yearData = useYearData(espaceId)
 
   // --- Calculs ---
@@ -57,8 +57,8 @@ export default function DashboardPage() {
     const totalVariablesBudget = budgets.reduce((s: number, b: any) => s + Number(b.montant), 0)
 
     // Reste M-1
-    const resteM1Entrant = prevMonthData?.resteAVivre !== undefined && prevMonthData.resteAVivre > 0 ? prevMonthData.resteAVivre : 0
-    const resteM1Sortant = prevMonthData?.resteAVivre !== undefined && prevMonthData.resteAVivre < 0 ? Math.abs(prevMonthData.resteAVivre) : 0
+    const resteM1Entrant = resteM1Value !== undefined && resteM1Value !== null && resteM1Value > 0 ? resteM1Value : 0
+    const resteM1Sortant = resteM1Value !== undefined && resteM1Value !== null && resteM1Value < 0 ? Math.abs(resteM1Value) : 0
 
     // Entrants / Sortants
     const totalEntrants = totalRevenus + totalReprises + resteM1Entrant
@@ -108,7 +108,7 @@ export default function DashboardPage() {
       ratioChargesRevenus, tauxMaitrise, objectifEpargne, capaciteEpargne,
       entrantsChart, sortantsChart, catStatsMonth, top3Depenses, top3Categories,
     }
-  }, [revenus, charges, transactions, mouvements, budgets, categories, prevMonthData])
+  }, [revenus, charges, transactions, mouvements, budgets, categories, resteM1Value])
 
   // --- Pas d'espace ---
   if (!espaces.length) {
@@ -143,7 +143,7 @@ export default function DashboardPage() {
         totalChargesPayees={computed.totalChargesPayees}
         totalEpargnes={computed.totalEpargnes}
         catStatsMonth={computed.catStatsMonth}
-        prevMonthData={prevMonthData}
+        prevMonthData={null}
       />
 
       <IndicateursMois

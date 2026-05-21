@@ -101,7 +101,7 @@ export default function RepartitionCategories({
                     {cat.prevu > 0 && <span className="text-purple-400"> / {fmtOrDash(cat.prevu)}</span>}
                   </td>
                   <td className="text-right pl-2">
-                    <EvoBadge current={cat.depense} previous={prevMonthData?.catDepenses[cat.id]} invertColors />
+                    <EvoBadge current={cat.depense} previous={prevMonthData?.catDepenses?.[cat.id]} invertColors />
                   </td>
                 </tr>
               ))}
