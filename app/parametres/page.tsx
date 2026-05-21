@@ -10,13 +10,17 @@ import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
+import { useRevenus } from '@/lib/hooks/useRevenus'
+import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
+import { useTransactions } from '@/lib/hooks/useTransactions'
+import { useMouvements } from '@/lib/hooks/useEpargne'
 import { createClient } from '@/lib/supabase/client'
 import { formatEuro } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 import {
   User, Wallet, FolderOpen, Palette, Download, Trash2, RotateCcw, UserX,
   ChevronDown, ChevronUp, Pencil, Archive, ArchiveRestore, Sun, Moon,
-  AlertTriangle, Check
+  AlertTriangle, Check, ArrowUp, ArrowDown
 } from 'lucide-react'
 
 export default function ParametresPage() {
@@ -39,6 +43,16 @@ export default function ParametresPage() {
   const [editIcone, setEditIcone] = useState('')
   const [editSolde, setEditSolde] = useState(0)
   const [deleteEspaceTarget, setDeleteEspaceTarget] = useState<any>(null)
+
+    // --- État Calibration ---
+    const [calibEspace, setCalibEspace] = useState<any>(null)
+    const [soldeReel, setSoldeReel] = useState(0)
+
+    // Données pour calibration (espace actif)
+    const { data: calRevenusList = [] } = useRevenus(moisId)
+    const { data: calChargesList = [] } = useChargesFixes(moisId)
+    const { data: calTransactionsList = [] } = useTransactions(moisId)
+    const { data: calMouvementsList = [] } = useMouvements(moisId)
 
   // --- État Catégories ---
   const [showArchived, setShowArchived] = useState(false)
@@ -79,6 +93,50 @@ export default function ParametresPage() {
     }, [])
 
   // --- Fonctions ---
+
+    // Réordonnement des espaces
+    const moveEspace = async (index: number, direction: 'up' | 'down') => {
+        const newList = [...espaces]
+        const swapIndex = direction === 'up' ? index - 1 : index + 1
+        if (swapIndex < 0 || swapIndex >= newList.length) return
+        ;[newList[index], newList[swapIndex]] = [newList[swapIndex], newList[index]]
+        // Mettre à jour les ordres en BDD
+        for (let i = 0; i < newList.length; i++) {
+        await supabase.from('espaces').update({ ordre: i }).eq('id', newList[i].id)
+        }
+        await refreshEspaces()
+    }
+    
+    // Calibration du solde
+    const getSoldeCalcule = () => {
+        if (!calibEspace) return 0
+        const soldeInitial = calibEspace.solde_initial || 0
+        const totalRev = calRevenusList.reduce((s: number, r: any) => s + Number(r.montant), 0)
+        const totalCharges = calChargesList.reduce((s: number, c: any) => s + Number(c.montant), 0)
+        const totalTx = calTransactionsList.reduce((s: number, t: any) => {
+        const rembs = (t as any).remboursements || []
+        const totalRemb = rembs.reduce((s2: number, r: any) => s2 + Number(r.montant), 0)
+        return s + Number(t.montant) - totalRemb
+        }, 0)
+        const totalEpargne = calMouvementsList
+        .filter((m: any) => m.type === 'epargne')
+        .reduce((s: number, m: any) => s + Number(m.montant), 0)
+        const totalReprises = calMouvementsList
+        .filter((m: any) => m.type === 'reprise')
+        .reduce((s: number, m: any) => s + Number(m.montant), 0)
+        return soldeInitial + totalRev + totalReprises - totalCharges - totalTx - totalEpargne
+    }
+    
+    const handleCalibration = async () => {
+        if (!calibEspace) return
+        const soldeCalcule = getSoldeCalcule()
+        const soldeInitial = calibEspace.solde_initial || 0
+        const nouveauSoldeInitial = soldeInitial + (soldeReel - soldeCalcule)
+        await updateEspace(calibEspace.id, { solde_initial: nouveauSoldeInitial })
+        await refreshEspaces()
+        setCalibEspace(null)
+    }
+
   const activeCategories = categories.filter((c: any) => c.actif !== false)
   const archivedCategories = categories.filter((c: any) => c.actif === false)
 
@@ -256,28 +314,42 @@ export default function ParametresPage() {
       {/* ESPACES */}
       <Section id="espaces" icon={Wallet} title="Espaces" color="text-emerald-400">
         <div className="space-y-2">
-          {espaces.map((esp: any) => (
-            <div key={esp.id} className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
-              <div>
-                <span className="text-lg mr-2">{esp.icone}</span>
-                <span className="font-medium">{esp.nom}</span>
-                <span className="text-xs text-slate-500 ml-2">Solde initial: {formatEuro(esp.solde_initial || 0)}</span>
-              </div>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400" onClick={() => {
-                  setEditEspace(esp)
-                  setEditNom(esp.nom)
-                  setEditIcone(esp.icone)
-                  setEditSolde(esp.solde_initial || 0)
-                }}>
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400" onClick={() => setDeleteEspaceTarget(esp)}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
-          ))}
+            {espaces.map((esp: any, index: number) => (
+                <div key={esp.id} className="bg-slate-800 rounded-lg p-3 flex items-center justify-between">
+                <div className="min-w-0">
+                    <span className="text-lg mr-2">{esp.icone}</span>
+                    <span className="font-medium">{esp.nom}</span>
+                    <span className="text-xs text-slate-500 ml-2">Solde initial: {formatEuro(esp.solde_initial || 0)}</span>
+                </div>
+                <div className="flex gap-0.5 flex-shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500" disabled={index === 0}
+                    onClick={() => moveEspace(index, 'up')}>
+                    <ArrowUp className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500" disabled={index === espaces.length - 1}
+                    onClick={() => moveEspace(index, 'down')}>
+                    <ArrowDown className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400" onClick={() => {
+                    setEditEspace(esp)
+                    setEditNom(esp.nom)
+                    setEditIcone(esp.icone)
+                    setEditSolde(esp.solde_initial || 0)
+                    }}>
+                    <Pencil className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-400" onClick={() => {
+                    setCalibEspace(esp)
+                    setSoldeReel(0)
+                    }}>
+                    <RotateCcw className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => setDeleteEspaceTarget(esp)}>
+                    <Trash2 className="w-3 h-3" />
+                    </Button>
+                </div>
+                </div>
+            ))}
         </div>
       </Section>
 
@@ -446,6 +518,30 @@ export default function ParametresPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog calibration */}
+        <Dialog open={!!calibEspace} onOpenChange={v => { if (!v) setCalibEspace(null) }}>
+            <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
+                <DialogHeader><DialogTitle>Calibrer le solde — {calibEspace?.icone} {calibEspace?.nom}</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                <div className="bg-slate-800 rounded-lg p-3 text-sm">
+                    <div className="flex justify-between">
+                    <span className="text-slate-400">Solde calculé</span>
+                    <span className="font-bold">{formatEuro(getSoldeCalcule())}</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Solde réel en banque</label>
+                    <CalculatorInput value={soldeReel} onChange={setSoldeReel} placeholder="Solde réel" />
+                </div>
+                <p className="text-xs text-slate-500">
+                    Le solde initial sera ajusté de {formatEuro(soldeReel - getSoldeCalcule())} pour correspondre à votre solde réel.
+                </p>
+                <Button className="w-full" onClick={handleCalibration}>Calibrer</Button>
+                <Button className="w-full" variant="ghost" onClick={() => setCalibEspace(null)}>Annuler</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
 
       {/* Dialog confirmation purge */}
       <Dialog open={purgeConfirm} onOpenChange={setPurgeConfirm}>
