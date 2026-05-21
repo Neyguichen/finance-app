@@ -194,7 +194,7 @@ export default function DashboardPage() {
             nbMonthsEpargne={ne}
             monthlyData={monthlyArray}
             catAnnualStats={yearData.catAnnualStats}
-            categories={categories}
+            categories={categories as any}
           />
         )
       })()}
