@@ -94,7 +94,7 @@ export default function DashboardPage() {
       const catTx = transactions.filter((t: any) => t.categorie_id === cat.id)
       const depense = catTx.reduce((s: number, t: any) => s + getMontantNet(t), 0)
       const budget = budgets.find((b: any) => b.categorie_id === cat.id)
-      return { id: cat.id, nom: cat.nom, icone: cat.icone, depense, prevu: budget ? Number(budget.montant) : 0 }
+      return { id: cat.id, nom: cat.nom, icone: cat.icone, depense, prevu: budget ? Number((budget as any).montant) : 0 }
     })
 
     // Top 3
