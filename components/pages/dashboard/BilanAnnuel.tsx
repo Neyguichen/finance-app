@@ -3,174 +3,169 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatEuro } from '@/lib/utils'
-import EvoBadge from '@/components/global/EvoBadge'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Calendar, Info } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts'
 
-interface YearCatStat {
-  total: number
-  avg: number
-  min: number
-  max: number
-  nbMois: number
+interface Props {
+  yearData: any
+  currentMonth: string
+  lineChartData: any[]
+  catPlusVariableInfo: any
+  catPlusVariable: any
+  catStats: any[]
 }
 
-interface BilanAnnuelProps {
-  annualRevenus: number
-  annualCharges: number
-  annualDepenses: number
-  annualEpargne: number
-  annualSolde: number
-  avgRevenus: number
-  avgCharges: number
-  avgDepenses: number
-  avgEpargne: number
-  nbMonthsRevenus: number
-  nbMonthsCharges: number
-  nbMonthsDepenses: number
-  nbMonthsEpargne: number
-  monthlyData: Array<{
-    mois: string
-    revenus: number
-    charges: number
-    depenses: number
-    epargne: number
-    solde: number
-  }>
-  catAnnualStats: Record<string, YearCatStat>
-  categories: Array<{ id: string; nom: string; icone: string }>
-  prevYearRevenus?: number
-  prevYearCharges?: number
-  prevYearDepenses?: number
-  prevYearEpargne?: number
+const tooltipStyle = { backgroundColor: '#344869', border: 'none' }
+
+const moisNomFr = (m: string) => {
+  const [, mo] = m.split('-').map(Number)
+  return ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][mo - 1] || ''
 }
 
-const moisLabels = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
-const tooltipStyle = { backgroundColor: '#344869', border: 'none', fontSize: '12px' }
-
-export default function BilanAnnuel({
-  annualRevenus, annualCharges, annualDepenses, annualEpargne, annualSolde,
-  avgRevenus, avgCharges, avgDepenses, avgEpargne,
-  nbMonthsRevenus, nbMonthsCharges, nbMonthsDepenses, nbMonthsEpargne,
-  monthlyData, catAnnualStats, categories,
-  prevYearRevenus, prevYearCharges, prevYearDepenses, prevYearEpargne
-}: BilanAnnuelProps) {
-  const [showDetails, setShowDetails] = useState(false)
-  const [showCatDetails, setShowCatDetails] = useState(false)
+export default function BilanAnnuel({ yearData, currentMonth, lineChartData, catPlusVariableInfo, catPlusVariable, catStats }: Props) {
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
 
   return (
-    <Card className="bg-indigo-950 border-indigo-800">
+    <Card className="bg-amber-950 border-amber-800">
       <CardHeader>
-        <CardTitle className="text-sm text-indigo-400">📊 Bilan Annuel</CardTitle>
+        <CardTitle className="text-sm text-amber-400 flex items-center gap-2">
+          <Calendar className="w-4 h-4" />
+          Bilan Annuel {currentMonth?.slice(0, 4)}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Résumé */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <SummaryItem label="Revenus" value={annualRevenus} avg={avgRevenus} nbMois={nbMonthsRevenus} color="text-emerald-400" prev={prevYearRevenus} />
-          <SummaryItem label="Charges" value={annualCharges} avg={avgCharges} nbMois={nbMonthsCharges} color="text-rose-400" prev={prevYearCharges} invertEvo />
-          <SummaryItem label="Variables" value={annualDepenses} avg={avgDepenses} nbMois={nbMonthsDepenses} color="text-pink-400" prev={prevYearDepenses} invertEvo />
-          <SummaryItem label="Épargne" value={annualEpargne} avg={avgEpargne} nbMois={nbMonthsEpargne} color="text-amber-400" prev={prevYearEpargne} />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-amber-900/30 rounded-lg p-3">
+            <p className="text-xs text-amber-500">Total Revenus</p>
+            <p className="text-sm font-bold text-emerald-400">{formatEuro(yearData.annualTotals.revenus)}</p>
+          </div>
+          <div className="bg-amber-900/30 rounded-lg p-3">
+            <p className="text-xs text-amber-500">Total Dépenses</p>
+            <p className="text-sm font-bold text-rose-400">
+              {formatEuro(yearData.annualTotals.charges + yearData.annualTotals.depenses + yearData.annualTotals.epargne)}
+            </p>
+          </div>
+          <div className="bg-amber-900/30 rounded-lg p-3">
+            <p className="text-xs text-amber-500">Taux d&apos;épargne</p>
+            <p className={`text-sm font-bold ${yearData.tauxEpargne >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {yearData.tauxEpargne}%
+            </p>
+          </div>
+          <div className="bg-amber-900/30 rounded-lg p-3">
+            <p className="text-xs text-amber-500">Épargne nette</p>
+            <p className="text-sm font-bold text-teal-400">{formatEuro(yearData.annualTotals.epargne)}</p>
+          </div>
         </div>
-
-        <div className="bg-indigo-900/50 rounded-lg p-3 flex justify-between items-center">
-          <span className="text-xs text-indigo-300">Solde annuel</span>
-          <span className={`text-lg font-bold ${annualSolde >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {formatEuro(annualSolde)}
-          </span>
+        <div className="flex gap-3">
+          {yearData.moisMaxDepense.mois && (
+            <div className="flex-1 bg-red-900/20 rounded-lg p-2">
+              <p className="text-xs text-red-400">📈 Plus dépensier</p>
+              <p className="text-xs font-bold text-white">
+                {moisNomFr(yearData.moisMaxDepense.mois)} — {formatEuro(yearData.moisMaxDepense.total)}
+              </p>
+            </div>
+          )}
+          {yearData.moisMinDepense.mois && (
+            <div className="flex-1 bg-emerald-900/20 rounded-lg p-2">
+              <p className="text-xs text-emerald-400">📉 Plus économe</p>
+              <p className="text-xs font-bold text-white">
+                {moisNomFr(yearData.moisMinDepense.mois)} — {formatEuro(yearData.moisMinDepense.total)}
+              </p>
+            </div>
+          )}
         </div>
-
-        {/* Graphique mensuel */}
-        <button type="button" onClick={() => setShowDetails(!showDetails)} className="text-xs text-indigo-400 flex items-center gap-1">
-          {showDetails ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          Détail mensuel
-        </button>
-
-        {showDetails && monthlyData.length > 0 && (
+        {lineChartData.length > 1 && (
           <div>
+            <p className="text-xs text-amber-500 mb-2">📈 Revenus vs Sortants</p>
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={monthlyData.map((d, i) => ({ ...d, label: moisLabels[i] || d.mois }))}>
-                <XAxis dataKey="label" tick= {{fontSize: 10, fill: '#94a3b8'}}  />
-                <YAxis tick= {{fontSize: 9, fill: '#64748b'}}  width={45} tickFormatter={v => `${Math.round(v / 1000)}k`} />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value: number, name: string) => [formatEuro(value), name]}
-                  labelFormatter={(label) => `Mois : ${label}`}
-                />
-                <Bar dataKey="revenus" name="Revenus" fill="#34d399" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="charges" name="Charges" fill="#fb7185" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="depenses" name="Variables" fill="#f9a8d4" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="epargne" name="Épargne" fill="#fbbf24" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-
-            {/* Solde mensuel */}
-            <ResponsiveContainer width="100%" height={100}>
-              <BarChart data={monthlyData.map((d, i) => ({ label: moisLabels[i] || d.mois, solde: d.solde }))}>
-                <XAxis dataKey="label" tick= {{fontSize: 10, fill: '#94a3b8'}}  />
-                <YAxis tick= {{fontSize: 9, fill: '#64748b'}}  width={45} tickFormatter={v => `${Math.round(v / 1000)}k`} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatEuro(v), 'Solde']} />
-                <Bar dataKey="solde" name="Solde" radius={[2, 2, 0, 0]}>
-                  {monthlyData.map((d, i) => (
-                    <Cell key={i} fill={d.solde >= 0 ? '#34d399' : '#ef4444'} />
-                  ))}
-                </Bar>
-              </BarChart>
+              <LineChart data={lineChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#78350f" />
+                <XAxis dataKey="mois" tick={{fontSize: 10, fill: '#d97706'}} />
+                <YAxis tick={{fontSize: 10, fill: '#d97706'}} width={45} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatEuro(v)} />
+                <Line type="monotone" dataKey="revenus" stroke="#10B981" strokeWidth={2} dot={{r: 3}} name="Revenus" />
+                <Line type="monotone" dataKey="sortants" stroke="#E11D48" strokeWidth={2} dot={{r: 3}} name="Sortants" />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         )}
-
-        {/* Catégories annuelles */}
-        <button type="button" onClick={() => setShowCatDetails(!showCatDetails)} className="text-xs text-indigo-400 flex items-center gap-1">
-          {showCatDetails ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          Détail par catégorie
-        </button>
-
-        {showCatDetails && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-indigo-500 border-b border-indigo-800">
-                  <th className="text-left py-1 font-medium">Catégorie</th>
-                  <th className="text-right py-1 font-medium">Total</th>
-                  <th className="text-right py-1 font-medium">Moy.</th>
-                  <th className="text-right py-1 font-medium">Min</th>
-                  <th className="text-right py-1 font-medium">Max</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map(cat => {
-                  const stats = catAnnualStats[cat.id]
-                  if (!stats || stats.total === 0) return null
-                  return (
-                    <tr key={cat.id} className="border-b border-indigo-900">
-                      <td className="py-1.5 text-indigo-200">{cat.icone} {cat.nom}</td>
-                      <td className="text-right text-white font-semibold">{formatEuro(stats.total)}</td>
-                      <td className="text-right text-slate-400">{formatEuro(stats.avg)}</td>
-                      <td className="text-right text-slate-500">{formatEuro(stats.min)}</td>
-                      <td className="text-right text-slate-500">{formatEuro(stats.max)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+        {lineChartData.length > 1 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-xs text-amber-500">💰 Reste à vivre mensuel</p>
+              <button type="button" onClick={() => setActiveTooltip(activeTooltip === 'courbeReste' ? null : 'courbeReste')} className="text-amber-600 hover:text-amber-400">
+                <Info className="w-3 h-3" />
+              </button>
+            </div>
+            {activeTooltip === 'courbeReste' && (
+              <div className="text-xs text-amber-400/70 bg-amber-900/30 rounded-lg p-2 mb-2">
+                Pour chaque mois : Reste M-1 + Revenus + Reprises d&apos;épargne − Charges fixes − Dépenses variables − Épargne. Représente le solde disponible en fin de mois.
+              </div>
+            )}
+            <ResponsiveContainer width="100%" height={150}>
+              <LineChart data={lineChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#78350f" />
+                <XAxis dataKey="mois" tick={{fontSize: 10, fill: '#d97706'}} />
+                <YAxis tick={{fontSize: 10, fill: '#d97706'}} width={45} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatEuro(v)} />
+                <Line type="monotone" dataKey="reste" stroke="#3B82F6" strokeWidth={2} dot={{r: 3}} name="Reste" />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         )}
+        {catPlusVariableInfo && catPlusVariable && (
+          <div className="bg-amber-900/20 rounded-lg p-2">
+            <p className="text-xs text-amber-500">📊 Catégorie la plus variable</p>
+            <p className="text-xs font-bold text-white">
+              {catPlusVariableInfo.icone} {catPlusVariableInfo.nom} — écart de {formatEuro((catPlusVariable[1] as any).max - (catPlusVariable[1] as any).min)}
+            </p>
+            <p className="text-xs text-amber-400">
+              Min {formatEuro((catPlusVariable[1] as any).min)} — Max {formatEuro((catPlusVariable[1] as any).max)}
+            </p>
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-amber-600 border-b border-amber-800">
+                <th className="text-left py-2 font-medium">Catégorie</th>
+                <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Total</th>
+                <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Moy/mois</th>
+                <th className="text-right py-2 font-medium whitespace-nowrap pl-2">Min/Max</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-amber-900">
+                <td className="py-2 text-amber-200">📌 Charges fixes</td>
+                <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.charges)}</td>
+                <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.charges / (yearData.nbMonthsCharges || 1)))}</td>
+                <td className="text-right text-amber-500">—</td>
+              </tr>
+              <tr className="border-b border-amber-900">
+                <td className="py-2 text-amber-200">💰 Épargne</td>
+                <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.epargne)}</td>
+                <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.epargne / (yearData.nbMonthsEpargne || 1)))}</td>
+                <td className="text-right text-amber-500">—</td>
+              </tr>
+              {catStats.map((cat: any) => {
+                const annual = yearData.catAnnualStats[cat.id]
+                if (!annual || annual.total === 0) return null
+                return (
+                  <tr key={cat.id} className="border-b border-amber-900">
+                    <td className="py-2 text-amber-200 truncate">{cat.icone} {cat.nom}</td>
+                    <td className="text-right text-amber-200">{formatEuro(annual.total)}</td>
+                    <td className="text-right text-amber-200">{formatEuro(annual.avg)}</td>
+                    <td className="text-right text-amber-400 whitespace-nowrap">
+                      <div className="text-xs">{formatEuro(annual.min)}</div>
+                      <div className="text-xs">{formatEuro(annual.max)}</div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
-  )
-}
-
-function SummaryItem({ label, value, avg, nbMois, color, prev, invertEvo }: {
-  label: string; value: number; avg: number; nbMois: number; color: string; prev?: number; invertEvo?: boolean
-}) {
-  return (
-    <div className="bg-indigo-900/50 rounded-lg p-2">
-      <p className="text-indigo-400">{label}</p>
-      <p className={`text-base font-bold ${color}`}>{formatEuro(value)}</p>
-      <p className="text-indigo-600 text-[10px]">
-        Moy : {formatEuro(avg)} ({nbMois} mois)
-      </p>
-      {prev !== undefined && <EvoBadge current={value} previous={prev} invertColors={invertEvo} />}
-    </div>
   )
 }

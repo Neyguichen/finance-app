@@ -5,12 +5,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Info } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
 
-interface ResteAVivreCardProps {
+interface Props {
   restePrevu: number
   resteReel: number
 }
 
-export default function ResteAVivreCard({ restePrevu, resteReel }: ResteAVivreCardProps) {
+export default function ResteAVivreCard({ restePrevu, resteReel }: Props) {
   const [showInfo, setShowInfo] = useState(false)
 
   return (
@@ -24,8 +24,8 @@ export default function ResteAVivreCard({ restePrevu, resteReel }: ResteAVivreCa
         </div>
         {showInfo && (
           <div className="text-xs text-blue-300/70 bg-blue-900/50 rounded-lg p-2 space-y-1">
-            <p><strong>Prévu</strong> : Entrants − Charges fixes − Variables budgétisées − Épargne.</p>
-            <p><strong>Réel</strong> : Entrants reçus − Charges payées − Dépenses réelles − Épargne.</p>
+            <p><strong>Prévu</strong> : Entrants − Charges fixes (cochées ou non) − Charges Variables dépensées / budgétisées − Épargne. C&apos;est ce qu&apos;il vous restera si vous respectez vos budgets.</p>
+            <p><strong>Réel</strong> : Entrants reçus − Charges payées − Dépenses réelles − Épargne. C&apos;est ce qu&apos;il vous reste vraiment aujourd&apos;hui.</p>
           </div>
         )}
         <div className="flex justify-between text-sm">

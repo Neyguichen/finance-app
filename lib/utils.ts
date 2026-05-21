@@ -66,3 +66,10 @@ export function getCategoryColor(index: number): string {
 export function isAdmin(userId: string | null): boolean {
   return !!userId && userId === process.env.NEXT_PUBLIC_ADMIN_UID
 }
+
+/* Dashboard - Montant net d'une transaction (montant - remboursements) */
+export const getMontantNet = (tx: any) => {
+  const rembs = tx.remboursements || []
+  const totalRemb = rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
+  return Number(tx.montant) - totalRemb
+}

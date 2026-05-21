@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatEuro } from '@/lib/utils'
 import { Info } from 'lucide-react'
 
-interface IndicateursProps {
+interface Props {
   ratioChargesRevenus: number | null
   tauxMaitrise: number | null
   totalDepenses: number
@@ -22,7 +22,7 @@ export default function IndicateursMois({
   ratioChargesRevenus, tauxMaitrise, totalDepenses, totalVariablesBudget,
   objectifEpargne, capaciteEpargne, totalEpargnes,
   top3Depenses, top3Categories, getMontantNet
-}: IndicateursProps) {
+}: Props) {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
 
   return (
@@ -33,10 +33,20 @@ export default function IndicateursMois({
       <CardContent className="space-y-3">
         <div className="space-y-2">
           {/* Fixes / Revenus */}
-          <IndicatorRow icon="💶" label="Fixes / Revenus" value={ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
-            color={ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}
-            tooltipKey="ratio" activeTooltip={activeTooltip} setActiveTooltip={setActiveTooltip} />
-
+          <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">💶</span>
+              <span className="text-xs text-slate-400">Fixes / Revenus</span>
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className={`text-lg font-bold ${ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
+              </span>
+              <button type="button" onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
+                <Info className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
           {/* Maîtrise */}
           <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -55,14 +65,15 @@ export default function IndicateursMois({
               </button>
             </div>
           </div>
-
-          {/* Capacité épargne */}
+          {/* Capacité d'épargne — règle 20% */}
           <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-sm">💰</span>
               <div>
                 <span className="text-xs text-slate-400">Épargne (règle 20%)</span>
-                <p className="text-[10px] text-slate-600">Objectif : {formatEuro(objectifEpargne)}</p>
+                <p className="text-[10px] text-slate-600">
+                  Objectif : {formatEuro(objectifEpargne)}
+                </p>
                 <p className={`text-[10px] ${totalEpargnes >= objectifEpargne && objectifEpargne > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
                   Épargné : {formatEuro(totalEpargnes)}
                 </p>
@@ -78,7 +89,6 @@ export default function IndicateursMois({
             </div>
           </div>
         </div>
-
         {activeTooltip === 'ratio' && (
           <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
             Part des charges fixes dans vos revenus actifs uniquement. Idéalement en dessous de 50%.
@@ -91,10 +101,9 @@ export default function IndicateursMois({
         )}
         {activeTooltip === 'surplus' && (
           <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
-            Objectif = (Revenus actifs + passifs + Reste M-1 − Charges fixes) × 20%. Atteindre 100% = objectif atteint.
+            Objectif d&apos;épargne mensuel = (Revenus actifs + passifs − Charges fixes) × 20%. Atteindre 100% signifie que vous épargnez au moins ce que la règle recommande.
           </div>
         )}
-
         {top3Depenses.length > 0 && (
           <div>
             <p className="text-xs text-slate-500 mb-1.5">🏆 Top 3 dépenses du mois</p>
@@ -104,7 +113,9 @@ export default function IndicateursMois({
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-xs font-bold text-slate-600">{i + 1}.</span>
                     <span className="text-xs">{tx.categorie?.icone || '📦'}</span>
-                    <span className="text-xs text-slate-300 truncate">{tx.infos || tx.categorie?.nom || 'Dépense'}</span>
+                    <span className="text-xs text-slate-300 truncate">
+                      {tx.infos || tx.categorie?.nom || 'Dépense'}
+                    </span>
                   </div>
                   <span className="text-xs font-bold text-pink-400 flex-shrink-0">{formatEuro(getMontantNet(tx))}</span>
                 </div>
@@ -112,7 +123,6 @@ export default function IndicateursMois({
             </div>
           </div>
         )}
-
         {top3Categories.length > 0 && (
           <div>
             <p className="text-xs text-slate-500 mb-1.5">📊 Top 3 catégories du mois</p>
@@ -139,22 +149,5 @@ export default function IndicateursMois({
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function IndicatorRow({ icon, label, value, color, tooltipKey, activeTooltip, setActiveTooltip }: any) {
-  return (
-    <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
-      <div className="flex items-center gap-2">
-        <span className="text-sm">{icon}</span>
-        <span className="text-xs text-slate-400">{label}</span>
-      </div>
-      <div className="flex items-center gap-2 ml-auto">
-        <span className={`text-lg font-bold ${color}`}>{value}</span>
-        <button type="button" onClick={() => setActiveTooltip(activeTooltip === tooltipKey ? null : tooltipKey)} className="text-slate-600 hover:text-slate-400">
-          <Info className="w-3 h-3" />
-        </button>
-      </div>
-    </div>
   )
 }

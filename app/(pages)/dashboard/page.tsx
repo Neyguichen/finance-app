@@ -1,17 +1,14 @@
 'use client'
 
-import { useMemo } from 'react'
-import { useApp } from '@/components/AppContext'
-import { useRevenus } from '@/lib/hooks/useRevenus'
-import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
-import { useTransactions } from '@/lib/hooks/useTransactions'
-import { useMouvements } from '@/lib/hooks/useEpargne'
-import { useBudgets } from '@/lib/hooks/useBudgets'
-import { useCategories } from '@/lib/hooks/useCategories'
-import { useResteM1 } from '@/lib/hooks/useResteM1'
-import { useYearData } from '@/lib/hooks/useYearData'
-import { useIsAdmin } from '@/lib/hooks/useIsAdmin'
+import { useState } from 'react'
+import { Plus } from 'lucide-react'
 
+import { useApp } from '@/components/AppContext'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
+import MonthSelector from '@/components/layout/MonthSelector'
 import WelcomeScreen from '@/components/pages/dashboard/WelcomeScreen'
 import ResteAVivreCard from '@/components/pages/dashboard/ResteAVivreCard'
 import EntrantsCard from '@/components/pages/dashboard/EntrantsCard'
@@ -20,184 +17,106 @@ import RepartitionCategories from '@/components/pages/dashboard/RepartitionCateg
 import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
 import BilanAnnuel from '@/components/pages/dashboard/BilanAnnuel'
 
+import { getMontantNet } from '@/lib/utils'
+import { useDashboardData } from '@/lib/hooks/useDashboardData'
+
 export default function DashboardPage() {
-  const { espaces, espace, moisId, month, addEspace } = useApp()
-  const espaceId = espace?.id
-  const isAdmin = useIsAdmin()
+  const { month, setMonth, espaces, espace, loading, addEspace, isAdminViewing } = useApp()
+  const [openEspace, setOpenEspace] = useState(false)
+  const [newNom, setNewNom] = useState('')
+  const [newIcone, setNewIcone] = useState('🏠')
 
-  const { data: revenus = [] } = useRevenus(moisId)
-  const { data: charges = [] } = useChargesFixes(moisId)
-  const { data: transactions = [] } = useTransactions(moisId)
-  const { data: mouvements = [] } = useMouvements(moisId)
-  const { data: budgets = [] } = useBudgets(moisId)
-  const { data: categories = [] } = useCategories(espaceId)
-  const { data: resteM1Value } = useResteM1(espaceId, month, espace?.solde_initial || 0)
-  const { data: yearData } = useYearData(espaceId, month)
+  const data = useDashboardData()
 
-  // --- Calculs ---
-  const getMontantNet = (tx: any) => {
-    const rembs = tx.remboursements || []
-    return Number(tx.montant) - rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen"><span className="loading loading-spinner loading-lg" /></div>
   }
 
-  const computed = useMemo(() => {
-    const totalActif = revenus.filter((r: any) => r.type === 'actif').reduce((s: number, r: any) => s + Number(r.montant), 0)
-    const totalPassif = revenus.filter((r: any) => r.type === 'passif').reduce((s: number, r: any) => s + Number(r.montant), 0)
-    const totalRevenus = totalActif + totalPassif
-    const totalRevenusRecus = revenus.filter((r: any) => r.recu).reduce((s: number, r: any) => s + Number(r.montant), 0)
-
-    const totalChargesFixes = charges.reduce((s: number, c: any) => s + Number(c.montant), 0)
-    const totalChargesPayees = charges.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
-
-    const totalDepenses = transactions.reduce((s: number, t: any) => s + getMontantNet(t), 0)
-
-    const totalEpargnes = mouvements.filter((m: any) => m.type === 'epargne').reduce((s: number, m: any) => s + Number(m.montant), 0)
-    const totalReprises = mouvements.filter((m: any) => m.type === 'reprise').reduce((s: number, m: any) => s + Number(m.montant), 0)
-
-    const totalVariablesBudget = budgets.reduce((s: number, b: any) => s + Number(b.montant), 0)
-
-    // Reste M-1
-    const resteM1Entrant = resteM1Value !== undefined && resteM1Value !== null && resteM1Value > 0 ? resteM1Value : 0
-    const resteM1Sortant = resteM1Value !== undefined && resteM1Value !== null && resteM1Value < 0 ? Math.abs(resteM1Value) : 0
-
-    // Entrants / Sortants
-    const totalEntrants = totalRevenus + totalReprises + resteM1Entrant
-    const totalSortants = totalChargesFixes + totalDepenses + totalEpargnes + resteM1Sortant
-
-    // Reste à vivre
-    const restePrevu = totalEntrants - totalChargesFixes - totalVariablesBudget - totalEpargnes
-    const resteReel = totalRevenusRecus + totalReprises + resteM1Entrant - totalChargesPayees - totalDepenses - totalEpargnes
-
-    // Indicateurs
-    const ratioChargesRevenus = totalActif > 0 ? Math.round((totalChargesFixes / totalActif) * 100) : null
-    const tauxMaitrise = totalVariablesBudget > 0 ? Math.round((totalDepenses / totalVariablesBudget) * 100) : null
-    const objectifEpargne = (totalActif + totalPassif + resteM1Entrant - totalChargesFixes - resteM1Sortant) * 0.20
-    const capaciteEpargne = objectifEpargne > 0 ? Math.round((totalEpargnes / objectifEpargne) * 100) : null
-
-    // Charts
-    const entrantsChart = [
-      ...(totalActif > 0 ? [{ name: 'Actifs', value: totalActif, color: '#34d399' }] : []),
-      ...(totalPassif > 0 ? [{ name: 'Passifs', value: totalPassif, color: '#6ee7b7' }] : []),
-      ...(totalReprises > 0 ? [{ name: 'Reprises', value: totalReprises, color: '#a7f3d0' }] : []),
-      ...(resteM1Entrant > 0 ? [{ name: 'Reste M-1', value: resteM1Entrant, color: '#d1fae5' }] : []),
-    ]
-
-    const sortantsChart = [
-      ...(totalChargesFixes > 0 ? [{ name: 'Fixes', value: totalChargesFixes, color: '#E11D48' }] : []),
-      ...(totalDepenses > 0 ? [{ name: 'Variables', value: totalDepenses, color: '#FDA4AF' }] : []),
-      ...(totalEpargnes > 0 ? [{ name: 'Épargne', value: totalEpargnes, color: '#881337' }] : []),
-      ...(resteM1Sortant > 0 ? [{ name: 'Déficit M-1', value: resteM1Sortant, color: '#7C3AED' }] : []),
-    ]
-
-    // Cat stats
-    const catStatsMonth = categories.map((cat: any) => {
-      const catTx = transactions.filter((t: any) => t.categorie_id === cat.id)
-      const depense = catTx.reduce((s: number, t: any) => s + getMontantNet(t), 0)
-      const budget = budgets.find((b: any) => b.categorie_id === cat.id)
-      return { id: cat.id, nom: cat.nom, icone: cat.icone, depense, prevu: budget ? Number((budget as any).montant) : 0 }
-    })
-
-    // Top 3
-    const top3Depenses = [...transactions].sort((a: any, b: any) => getMontantNet(b) - getMontantNet(a)).slice(0, 3)
-    const top3Categories = [...catStatsMonth].filter(c => c.depense > 0).sort((a, b) => b.depense - a.depense).slice(0, 3)
-
-    return {
-      totalEntrants, totalSortants, totalChargesFixes, totalChargesPayees,
-      totalDepenses, totalEpargnes, totalVariablesBudget, totalRevenus,
-      restePrevu, resteReel, resteM1Sortant,
-      ratioChargesRevenus, tauxMaitrise, objectifEpargne, capaciteEpargne,
-      entrantsChart, sortantsChart, catStatsMonth, top3Depenses, top3Categories,
-    }
-  }, [revenus, charges, transactions, mouvements, budgets, categories, resteM1Value])
-
-  // --- Pas d'espace ---
-  if (!espaces.length) {
+  if (espaces.length === 0) {
     return <WelcomeScreen onCreateEspace={async (nom, icone) => { await addEspace(nom, icone) }} />
   }
 
-  if (!espace || !moisId) {
-    return <div className="p-6 text-center text-slate-500">Sélectionnez un mois</div>
-  }
-
   return (
-    <div className="p-4 space-y-4 pb-24">
-      <ResteAVivreCard restePrevu={computed.restePrevu} resteReel={computed.resteReel} />
+    <div>
+      <MonthSelector currentMonth={month} onChange={setMonth} />
+      <div className="p-4 space-y-4">
+        {/* Bouton ajouter espace */}
+        <div className="flex items-center justify-between">
+          {!isAdminViewing && (
+            <Dialog open={openEspace} onOpenChange={setOpenEspace}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Espace</Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
+                <DialogHeader><DialogTitle>Nouvel espace</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                  <Input placeholder="Nom (ex: Joint)" value={newNom} onChange={e => setNewNom(e.target.value)} />
+                  <EmojiPicker value={newIcone} onChange={setNewIcone} />
+                  <Button className="w-full" onClick={async () => {
+                    if (!newNom.trim()) return
+                    await addEspace(newNom.trim(), newIcone || undefined)
+                    setNewNom('')
+                    setNewIcone('🏠')
+                    setOpenEspace(false)
+                  }}>Créer l&apos;espace</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <EntrantsCard totalEntrants={computed.totalEntrants} chartData={computed.entrantsChart} />
-        <SortantsCard
-          totalSortants={computed.totalSortants}
-          totalEntrants={computed.totalEntrants}
-          totalChargesFixes={computed.totalChargesFixes}
-          totalChargesPayees={computed.totalChargesPayees}
-          totalDepenses={computed.totalDepenses}
-          totalVariablesBudget={computed.totalVariablesBudget}
-          totalEpargnes={computed.totalEpargnes}
-          resteM1Sortant={computed.resteM1Sortant}
-          chartData={computed.sortantsChart}
-        />
-      </div>
+        <ResteAVivreCard restePrevu={data.restePrevu} resteReel={data.resteReel} />
 
-      <RepartitionCategories
-        totalChargesFixes={computed.totalChargesFixes}
-        totalChargesPayees={computed.totalChargesPayees}
-        totalEpargnes={computed.totalEpargnes}
-        catStatsMonth={computed.catStatsMonth}
-        prevMonthData={null}
-      />
-
-      <IndicateursMois
-        ratioChargesRevenus={computed.ratioChargesRevenus}
-        tauxMaitrise={computed.tauxMaitrise}
-        totalDepenses={computed.totalDepenses}
-        totalVariablesBudget={computed.totalVariablesBudget}
-        objectifEpargne={computed.objectifEpargne}
-        capaciteEpargne={computed.capaciteEpargne}
-        totalEpargnes={computed.totalEpargnes}
-        top3Depenses={computed.top3Depenses}
-        top3Categories={computed.top3Categories}
-        getMontantNet={getMontantNet}
-      />
-
-      {yearData && (() => {
-        const at = yearData.annualTotals
-        const na = yearData.nbActiveMonths || 1
-        const nc = yearData.nbMonthsCharges || na
-        const ne = yearData.nbMonthsEpargne || na
-        const solde = at.revenus - at.charges - at.depenses - at.epargne
-        const months = Object.keys(yearData.monthlyData).sort()
-        const monthlyArray = months.map(m => {
-          const md = yearData.monthlyData[m]
-          return {
-            mois: m,
-            revenus: md.revenus,
-            charges: md.charges,
-            depenses: md.depenses,
-            epargne: md.epargne,
-            solde: md.revenus + md.reprises - md.charges - md.depenses - md.epargne,
-          }
-        })
-        return (
-          <BilanAnnuel
-            annualRevenus={at.revenus}
-            annualCharges={at.charges}
-            annualDepenses={at.depenses}
-            annualEpargne={at.epargne}
-            annualSolde={solde}
-            avgRevenus={Math.round(at.revenus / na)}
-            avgCharges={Math.round(at.charges / nc)}
-            avgDepenses={Math.round(at.depenses / na)}
-            avgEpargne={Math.round(at.epargne / ne)}
-            nbMonthsRevenus={na}
-            nbMonthsCharges={nc}
-            nbMonthsDepenses={na}
-            nbMonthsEpargne={ne}
-            monthlyData={monthlyArray}
-            catAnnualStats={yearData.catAnnualStats}
-            categories={categories as any}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <EntrantsCard totalEntrants={data.totalEntrants} chartData={data.revenusChartData} />
+          <SortantsCard
+            totalSortantsAll={data.totalSortantsAll}
+            sortantsChartData={data.sortantsChartData}
+            chargesFixesNonPayees={data.chargesFixesNonPayees}
+            totalChargesPayees={data.totalChargesPayees}
+            totalChargesFixes={data.totalChargesFixes}
+            totalDepenses={data.totalDepenses}
+            totalVariablesBudget={data.totalVariablesBudget}
+            totalEpargnes={data.totalEpargnes}
+            resteM1Sortant={data.resteM1Sortant}
+            totalEntrants={data.totalEntrants}
           />
-        )
-      })()}
+        </div>
+
+        <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
+          <RepartitionCategories
+            repartitionChartData={data.repartitionChartData}
+            totalChargesPayees={data.totalChargesPayees}
+            totalChargesFixes={data.totalChargesFixes}
+            totalEpargnes={data.totalEpargnes}
+            catStatsMonth={data.catStatsMonth}
+            prevMonthData={data.prevMonthData}
+          />
+          <IndicateursMois
+            ratioChargesRevenus={data.ratioChargesRevenus}
+            tauxMaitrise={data.tauxMaitrise}
+            totalDepenses={data.totalDepenses}
+            totalVariablesBudget={data.totalVariablesBudget}
+            objectifEpargne={data.objectifEpargne}
+            capaciteEpargne={data.capaciteEpargne}
+            totalEpargnes={data.totalEpargnes}
+            top3Depenses={data.top3Depenses}
+            top3Categories={data.top3Categories}
+            getMontantNet={getMontantNet}
+          />
+        </div>
+
+        {!isAdminViewing && data.yearData && data.yearData.nbMonths > 1 && (
+          <BilanAnnuel
+            yearData={data.yearData}
+            currentMonth={month}
+            lineChartData={data.lineChartData}
+            catPlusVariableInfo={data.catPlusVariableInfo}
+            catPlusVariable={data.catPlusVariable}
+            catStats={data.catStats}
+          />
+        )}
+      </div>
     </div>
   )
 }
