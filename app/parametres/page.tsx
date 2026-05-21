@@ -219,7 +219,7 @@ export default function ParametresPage() {
   // Composant Section
   const Section = ({ id, icon: Icon, title, color, children }: any) => (
     <Card className={`border-slate-800 ${openSections[id] ? 'bg-slate-900' : 'bg-slate-900/50'}`}>
-      <button onClick={() => toggle(id)} className="w-full flex items-center justify-between p-4">
+      <button type="button" onClick={() => toggle(id)} className="w-full flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
           <Icon className={`w-5 h-5 ${color}`} />
           <span className="font-semibold">{title}</span>
@@ -240,14 +240,6 @@ export default function ParametresPage() {
           <div className="flex justify-between bg-slate-800 rounded-lg p-3">
             <span className="text-slate-400">Email</span>
             <span className="text-white">{userId ? '—' : '—'}</span>
-          </div>
-          <div className="flex justify-between bg-slate-800 rounded-lg p-3">
-            <span className="text-slate-400">Espace actif</span>
-            <span className="text-white">{espace ? `${espace.icone} ${espace.nom}` : 'Aucun'}</span>
-          </div>
-          <div className="flex justify-between bg-slate-800 rounded-lg p-3">
-            <span className="text-slate-400">Version</span>
-            <span className="text-white">v{APP_VERSION}</span>
           </div>
         </div>
       </Section>
