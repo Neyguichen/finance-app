@@ -32,7 +32,7 @@ export default function DashboardPage() {
   const { data: budgets = [] } = useBudgets(moisId)
   const { data: categories = [] } = useCategories(espaceId)
   const { data: resteM1Value } = useResteM1(espaceId, month, espace?.solde_initial || 0)
-  const yearData = useYearData(espaceId)
+  const { data: yearData } = useYearData(espaceId, month)
 
   // --- Calculs ---
   const getMontantNet = (tx: any) => {
@@ -159,30 +159,45 @@ export default function DashboardPage() {
         getMontantNet={getMontantNet}
       />
 
-      {yearData && (
-        <BilanAnnuel
-          annualRevenus={yearData.revenus}
-          annualCharges={yearData.charges}
-          annualDepenses={yearData.depenses}
-          annualEpargne={yearData.epargne}
-          annualSolde={yearData.solde}
-          avgRevenus={yearData.avgRevenus}
-          avgCharges={yearData.avgCharges}
-          avgDepenses={yearData.avgDepenses}
-          avgEpargne={yearData.avgEpargne}
-          nbMonthsRevenus={yearData.nbMonthsRevenus || yearData.nbActiveMonths}
-          nbMonthsCharges={yearData.nbMonthsCharges || yearData.nbActiveMonths}
-          nbMonthsDepenses={yearData.nbActiveMonths}
-          nbMonthsEpargne={yearData.nbMonthsEpargne || yearData.nbActiveMonths}
-          monthlyData={yearData.monthlyData}
-          catAnnualStats={yearData.catAnnualStats}
-          categories={categories}
-          prevYearRevenus={yearData.prevYearRevenus}
-          prevYearCharges={yearData.prevYearCharges}
-          prevYearDepenses={yearData.prevYearDepenses}
-          prevYearEpargne={yearData.prevYearEpargne}
-        />
-      )}
+      {yearData && (() => {
+        const at = yearData.annualTotals
+        const na = yearData.nbActiveMonths || 1
+        const nc = yearData.nbMonthsCharges || na
+        const ne = yearData.nbMonthsEpargne || na
+        const solde = at.revenus - at.charges - at.depenses - at.epargne
+        const months = Object.keys(yearData.monthlyData).sort()
+        const monthlyArray = months.map(m => {
+          const md = yearData.monthlyData[m]
+          return {
+            mois: m,
+            revenus: md.revenus,
+            charges: md.charges,
+            depenses: md.depenses,
+            epargne: md.epargne,
+            solde: md.revenus + md.reprises - md.charges - md.depenses - md.epargne,
+          }
+        })
+        return (
+          <BilanAnnuel
+            annualRevenus={at.revenus}
+            annualCharges={at.charges}
+            annualDepenses={at.depenses}
+            annualEpargne={at.epargne}
+            annualSolde={solde}
+            avgRevenus={Math.round(at.revenus / na)}
+            avgCharges={Math.round(at.charges / nc)}
+            avgDepenses={Math.round(at.depenses / na)}
+            avgEpargne={Math.round(at.epargne / ne)}
+            nbMonthsRevenus={na}
+            nbMonthsCharges={nc}
+            nbMonthsDepenses={na}
+            nbMonthsEpargne={ne}
+            monthlyData={monthlyArray}
+            catAnnualStats={yearData.catAnnualStats}
+            categories={categories}
+          />
+        )
+      })()}
     </div>
   )
 }
