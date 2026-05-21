@@ -20,7 +20,7 @@ import { APP_VERSION } from '@/lib/version'
 import {
   User, Wallet, FolderOpen, Palette, Download, Trash2, RotateCcw, UserX,
   ChevronDown, ChevronUp, Pencil, Archive, ArchiveRestore, Sun, Moon,
-  AlertTriangle, Check, ArrowUp, ArrowDown
+  AlertTriangle, Check, ArrowUp, ArrowDown, Calculatrice
 } from 'lucide-react'
 
 export default function ParametresPage() {
@@ -342,7 +342,7 @@ export default function ParametresPage() {
                     setCalibEspace(esp)
                     setSoldeReel(0)
                     }}>
-                    <RotateCcw className="w-3 h-3" />
+                    <Calculatrice className="w-3 h-3" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => setDeleteEspaceTarget(esp)}>
                     <Trash2 className="w-3 h-3" />
