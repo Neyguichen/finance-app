@@ -182,7 +182,8 @@ export default function ParametresPage() {
       csv += `${m.type === 'epargne' ? 'Épargne' : m.type === 'reprise' ? 'Reprise' : 'Transfert'};${moisMap.get(m.mois_id)};${m.note || ''};${m.montant};;\n`
     }
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
