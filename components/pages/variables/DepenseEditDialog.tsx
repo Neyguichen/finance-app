@@ -1,0 +1,77 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { CalculatorInput } from '@/components/ui/calculator-input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import InlineCatCreator from './InlineCatCreator'
+
+type Props = {
+  editTx: any
+  onClose: () => void
+  categories: any[]
+  espaceId: string | undefined
+  createCat: any
+  onSave: (data: { id: string; montant: number; date: string; infos: string | null; categorie_id: string }) => Promise<void>
+}
+
+export default function DepenseEditDialog({ editTx, onClose, categories, espaceId, createCat, onSave }: Props) {
+  const [montant, setMontant] = useState(0)
+  const [infos, setInfos] = useState('')
+  const [date, setDate] = useState('')
+  const [catId, setCatId] = useState('')
+  const [inlineCatOpen, setInlineCatOpen] = useState(false)
+
+  useEffect(() => {
+    if (editTx) {
+      setMontant(Number(editTx.montant))
+      setInfos(editTx.infos || '')
+      setDate(editTx.date)
+      setCatId(editTx.categorie_id)
+    }
+  }, [editTx])
+
+  const handleClose = () => { onClose(); setInlineCatOpen(false) }
+
+  return (
+    <Dialog open={!!editTx} onOpenChange={v => { if (!v) handleClose() }}>
+      <DialogContent className="bg-slate-900 border-slate-700">
+        <DialogHeader><DialogTitle>Modifier la dépense</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <div className="space-y-2">
+            <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+              value={catId} onChange={e => {
+                if (e.target.value === '__NEW__') setInlineCatOpen(true)
+                else setCatId(e.target.value)
+              }}>
+              <option value="">Budget...</option>
+              {[...categories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
+                <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
+              ))}
+              <option value="__NEW__">➕ Nouveau budget...</option>
+            </select>
+            {inlineCatOpen && espaceId && (
+              <InlineCatCreator
+                espaceId={espaceId}
+                categoriesCount={categories.length}
+                createCat={(data) => createCat.mutateAsync(data)}
+                onCreated={(id) => { setCatId(id); setInlineCatOpen(false) }}
+                onCancel={() => setInlineCatOpen(false)}
+              />
+            )}
+          </div>
+          <CalculatorInput value={montant} onChange={setMontant} placeholder="Montant" />
+          <Input placeholder="Infos" value={infos} onChange={e => setInfos(e.target.value)} />
+          <Button className="w-full" onClick={async () => {
+            if (!editTx) return
+            await onSave({ id: editTx.id, montant, date, infos: infos || null, categorie_id: catId })
+            onClose()
+          }}>Enregistrer</Button>
+          <Button className="w-full" variant="ghost" onClick={handleClose}>Annuler</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
