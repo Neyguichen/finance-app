@@ -11,23 +11,38 @@ export function useAdminMoisData(month: string) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // Ce hook ne fait RIEN si on n'est PAS en mode admin
+    console.log('🔍 useAdminMoisData DEBUG:', {
+      isAdminViewing,
+      adminViewEspaceId,
+      month,
+    })
+
     if (!isAdminViewing || !adminViewEspaceId || !month) {
+      console.log('⛔ Skipped — missing:', {
+        isAdminViewing,
+        adminViewEspaceId: !!adminViewEspaceId,
+        month: !!month,
+      })
       setData(null)
       return
     }
 
     setLoading(true)
+    console.log('📡 Calling admin_get_mois with:', {
+      target_espace_id: adminViewEspaceId,
+      target_mois: month,
+    })
+
     supabase.rpc('admin_get_mois', {
       target_espace_id: adminViewEspaceId,
-      target_mois: month  // format DATE attendu par Supabase YYYY-MM-DD
+      target_mois: month,
     })
     .then(({ data: d, error }) => {
+      console.log('📦 RPC response:', { data: d, error })
       if (error) console.error('Admin RPC error:', error)
       setData(d)
     })
     .then(() => setLoading(false), () => setLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdminViewing, adminViewEspaceId, month])
 
   return { data, loading }
