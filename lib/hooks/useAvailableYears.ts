@@ -19,7 +19,7 @@ export function useAvailableYears(espaceId: string | undefined) {
       if (!data || data.length === 0) return []
 
       // Extraire les années uniques et trier décroissant
-      const years = [...new Set(data.map((m: any) => m.mois.slice(0, 4)))]
+      const years = Array.from(new Set(data.map((m: any) => m.mois.slice(0, 4))))
         .sort((a, b) => b.localeCompare(a))
 
       return years
