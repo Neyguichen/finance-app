@@ -62,11 +62,9 @@ export default function AdminPage() {
     setSelectedUser(user)
     setLoadingEspaces(true)
     const supabase = createClient()
-    const { data } = await supabase
-      .from('espaces')
-      .select('id, nom, icone')
-      .eq('user_id', user.id)
-      .order('ordre')
+    const { data } = await supabase.rpc('admin_get_espaces', {
+      target_user_id: user.id,
+    })
     setEspaces(data || [])
     setLoadingEspaces(false)
   }
