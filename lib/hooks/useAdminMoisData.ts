@@ -34,8 +34,8 @@ export function useAdminMoisData(month: string) {
     })
 
     supabase.rpc('admin_get_mois', {
-      target_espace_id: adminViewEspaceId,
-      target_mois: month,
+      p_espace_id: adminViewEspaceId,
+      p_mois: month,
     })
     .then(({ data: d, error }) => {
       console.log('📦 RPC response:', { data: d, error })
