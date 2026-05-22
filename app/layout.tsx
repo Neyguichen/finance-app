@@ -31,6 +31,7 @@ export default function RootLayout({
     <html lang="fr">
       <body className={`${inter.className} bg-slate-950 text-white`}>
       <Providers>
+        <AdminBanner />
         {/* Header global avec menu hamburger */}
         <header className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800">
           <EspaceSelector />

@@ -4,11 +4,20 @@ import { useApp } from '@/components/AppContext'
 import { usePathname } from 'next/navigation'
 
 export default function EspaceSelector() {
-  const { espaces, espace, setEspaceId } = useApp()
+  const { espaces, espace, setEspaceId, isAdminViewing } = useApp()
   const pathname = usePathname()
 
   // Masquer sur la page login
   if (pathname === '/login') return null
+
+  // En mode admin, afficher un indicateur lecture seule
+  if (isAdminViewing) {
+    return (
+      <div className="flex items-center gap-2 px-4 py-2">
+        <span className="text-sm text-red-300 font-medium">👁️ Vue admin</span>
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-center gap-2 px-4 py-2">
