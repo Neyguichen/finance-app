@@ -8,7 +8,7 @@ import { AlertTriangle, UserX } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Props = {
-  userId: string | undefined
+  userId: string | null
 }
 
 export default function CompteSection({ userId }: Props) {
