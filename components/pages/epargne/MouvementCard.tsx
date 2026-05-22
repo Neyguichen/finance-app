@@ -12,11 +12,12 @@ type Props = {
 }
 
 export default function MouvementCard({ mvt, readOnly, getEnvNom, onEdit, onDelete }: Props) {
-  const typeConfig: Record<string, { badge: string; label: string; color: string }> = {
+  const configs: Record<string, { badge: string; label: string; color: string }> = {
     epargne: { badge: 'bg-teal-900 text-teal-400', label: '↓ Épargner', color: 'text-teal-400' },
     reprise: { badge: 'bg-orange-900 text-orange-400', label: '↑ Reprendre', color: 'text-orange-400' },
     transfert: { badge: 'bg-blue-900 text-blue-400', label: '↔ Transfert', color: 'text-blue-400' },
-  }[mvt.type] || { badge: 'bg-slate-800 text-slate-400', label: mvt.type, color: 'text-slate-400' }
+  }
+  const typeConfig = configs[mvt.type] || { badge: 'bg-slate-800 text-slate-400', label: mvt.type, color: 'text-slate-400' }
 
   const direction =
     mvt.type === 'epargne' ? `→ ${getEnvNom(mvt.enveloppe_dest_id ?? null)}` :
