@@ -8,8 +8,8 @@ import { Trash2, RotateCcw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Props = {
+  espaceId: string | undefined
   espaceNom: string | undefined
-  userId: string | null
 }
 
 export default function DonneesSection({ espaceId, espaceNom }: Props) {

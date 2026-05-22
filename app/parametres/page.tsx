@@ -69,7 +69,7 @@ export default function ParametresPage() {
       </Section>
 
       <Section open={openSections.donnees} onToggle={() => toggle('donnees')} icon={Trash2} title="Gestion des données" color="text-orange-400">
-        <DonneesSection espaceNom={espace?.nom} userId={userId} />
+        <DonneesSection espaceId={espaceId} espaceNom={espace?.nom} />
       </Section>
 
       <Section open={openSections.compte} onToggle={() => toggle('compte')} icon={UserX} title="Supprimer mon compte" color="text-red-400">
