@@ -4,7 +4,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
 
 type Props = {
-  mvt: any
+  mvt: { id: string; type: string; montant: number; note?: string | null; enveloppe_source_id?: string | null; enveloppe_dest_id?: string | null; recurrent_id?: string | null; [key: string]: any }
   readOnly: boolean
   getEnvNom: (id: string | null) => string
   onEdit: (mvt: { id: string; montant: number; note: string | null; recurrentId: string | null }) => void
@@ -19,9 +19,9 @@ export default function MouvementCard({ mvt, readOnly, getEnvNom, onEdit, onDele
   }[mvt.type] || { badge: 'bg-slate-800 text-slate-400', label: mvt.type, color: 'text-slate-400' }
 
   const direction =
-    mvt.type === 'epargne' ? `→ ${getEnvNom(mvt.enveloppe_dest_id)}` :
-    mvt.type === 'reprise' ? `← ${getEnvNom(mvt.enveloppe_source_id)}` :
-    `${getEnvNom(mvt.enveloppe_source_id)} → ${getEnvNom(mvt.enveloppe_dest_id)}`
+    mvt.type === 'epargne' ? `→ ${getEnvNom(mvt.enveloppe_dest_id ?? null)}` :
+    mvt.type === 'reprise' ? `← ${getEnvNom(mvt.enveloppe_source_id ?? null)}` :
+    `${getEnvNom(mvt.enveloppe_source_id ?? null)} → ${getEnvNom(mvt.enveloppe_dest_id ?? null)}`
 
   return (
     <Card className="bg-slate-900 border-slate-800">
@@ -41,11 +41,11 @@ export default function MouvementCard({ mvt, readOnly, getEnvNom, onEdit, onDele
           {!readOnly && (
             <>
               <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                onClick={() => onEdit({ id: mvt.id, montant: Number(mvt.montant), note: mvt.note, recurrentId: mvt.recurrent_id })}>
+                onClick={() => onEdit({ id: mvt.id, montant: Number(mvt.montant), note: mvt.note ?? null, recurrentId: mvt.recurrent_id ?? null })}>
                 <Pencil className="w-4 h-4" />
               </Button>
               <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                onClick={() => onDelete({ id: mvt.id, recurrentId: mvt.recurrent_id, note: mvt.note })}>
+                onClick={() => onDelete({ id: mvt.id, recurrentId: mvt.recurrent_id ?? null, note: mvt.note ?? null })}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </>
