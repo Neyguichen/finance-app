@@ -20,7 +20,7 @@ export function useAdminMoisData(month: string) {
     setLoading(true)
     supabase.rpc('admin_get_mois', {
       target_espace_id: adminViewEspaceId,
-      target_mois: month + '-01'  // format DATE attendu par Supabase
+      target_mois: month  // format DATE attendu par Supabase YYYY-MM-DD
     })
     .then(({ data: d, error }) => {
       if (error) console.error('Admin RPC error:', error)
