@@ -7,14 +7,10 @@ import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useResteM1 } from '@/lib/hooks/useResteM1'
 import { useBudgets } from '@/lib/hooks/useBudgets'
+import { useYearData } from '@/lib/hooks/useYearData'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 import { useApp } from '@/components/AppContext'
 import { getCategoryColor, getMontantNet } from '@/lib/utils'
-
-const moisNomFr = (m: string) => {
-  const [, mo] = m.split('-').map(Number)
-  return ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][mo - 1] || ''
-}
 
 export function useDashboardData() {
   const { moisId, month, espace, isAdminViewing } = useApp()
@@ -26,6 +22,7 @@ export function useDashboardData() {
   const { data: categories = [] } = useCategories(espace?.id)
   const { data: budgets = [] } = useBudgets(moisId)
   const { data: resteM1 } = useResteM1(espace?.id, month, espace?.solde_initial ?? 0)
+  const { data: yearData } = useYearData(espace?.id, month) as { data: any }
   const { data: adminData } = useAdminMoisData(month)
 
   // Override en mode admin
@@ -78,7 +75,7 @@ export function useDashboardData() {
   const restePrevu = resteM1Value + totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
   const resteReel = resteM1Value + totalRevenusRecus - totalChargesPayees - totalDepenses - totalEpargnes
 
-  // --- Données mois précédent ---
+  // --- Données mois précédent (pour comparatif répartition catégories) ---
   const prevMonthData: any = (() => {
     if (!yearData?.monthlyData) return null
     const [y, m] = month.split('-').map(Number)
