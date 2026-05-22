@@ -24,7 +24,12 @@ export default function ParametresPage() {
     profil: false, espaces: true, categories: false, apparence: false,
     export: false, donnees: false, compte: false,
   })
-  const toggle = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
+  const toggle = (key: string) => setOpenSections(prev => {
+    const allClosed: Record<string, boolean> = {}
+    for (const k in prev) allClosed[k] = false
+    allClosed[key] = !prev[key] // si déjà ouvert → ferme, sinon → ouvre (seul)
+    return allClosed
+  })
 
   const [userEmail, setUserEmail] = useState<string | null>(null)
   useEffect(() => {
