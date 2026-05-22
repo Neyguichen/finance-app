@@ -7,7 +7,6 @@ import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useResteM1 } from '@/lib/hooks/useResteM1'
 import { useBudgets } from '@/lib/hooks/useBudgets'
-import { useYearData } from '@/lib/hooks/useYearData'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 import { useApp } from '@/components/AppContext'
 import { getCategoryColor, getMontantNet } from '@/lib/utils'
@@ -27,7 +26,6 @@ export function useDashboardData() {
   const { data: categories = [] } = useCategories(espace?.id)
   const { data: budgets = [] } = useBudgets(moisId)
   const { data: resteM1 } = useResteM1(espace?.id, month, espace?.solde_initial ?? 0)
-  const { data: yearData } = useYearData(espace?.id, month) as { data: any }
   const { data: adminData } = useAdminMoisData(month)
 
   // Override en mode admin
@@ -130,40 +128,6 @@ export function useDashboardData() {
   const objectifEpargne = (totalActif + totalPassif + resteM1Value - totalChargesFixes) * 0.20
   const capaciteEpargne = objectifEpargne > 0 ? Math.round((totalEpargnes / objectifEpargne) * 100) : null
 
-  // --- Données annuelles ---
-  const monthlyResteM1: Record<string, number> = {}
-  if (yearData?.monthlyData) {
-    const months = Object.keys(yearData.monthlyData).sort()
-    let carry = espace?.solde_initial ?? 0
-    for (const m of months) {
-      monthlyResteM1[m] = carry
-      const d: any = yearData.monthlyData[m]
-      carry = carry + d.revenus + d.reprises - d.charges - d.depenses - d.epargne
-    }
-  }
-
-  const lineChartData = yearData?.monthlyData
-    ? Object.entries(yearData.monthlyData)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([mois, data]: [string, any]) => {
-          const rm1 = monthlyResteM1[mois] ?? 0
-          return {
-            mois: moisNomFr(mois),
-            revenus: Math.round((rm1 > 0 ? rm1 : 0) + data.revenus + data.reprises),
-            sortants: Math.round(data.charges + data.depenses + data.epargne + (rm1 < 0 ? Math.abs(rm1) : 0)),
-            reste: Math.round(rm1 + data.revenus + data.reprises - data.charges - data.depenses - data.epargne),
-          }
-        })
-    : []
-
-  const catPlusVariable = yearData?.catAnnualStats
-    ? Object.entries(yearData.catAnnualStats)
-        .filter(([, stats]: [string, any]) => stats.total > 0 && stats.max > stats.min)
-        .sort(([, a]: [string, any], [, b]: [string, any]) => (b.max - b.min) - (a.max - a.min))[0] ?? null
-    : null
-
-  const catPlusVariableInfo = catPlusVariable ? catStats.find(c => c.id === catPlusVariable[0]) : null
-
   return {
     // Soldes
     restePrevu, resteReel, totalEntrants, totalSortantsAll,
@@ -178,7 +142,5 @@ export function useDashboardData() {
     catStats, catStatsMonth, prevMonthData,
     // Top 3
     top3Depenses, top3Categories,
-    // Annuel
-    yearData, lineChartData, catPlusVariable, catPlusVariableInfo,
   }
 }

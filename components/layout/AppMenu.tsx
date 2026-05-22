@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake, Users, Receipt, } from 'lucide-react'
+import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake, Users, Receipt, Calendar} from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 
@@ -65,6 +65,11 @@ export default function AppMenu() {
               <MenuLink icon={Users} label="🔒 Admin" onClick={() => { setOpen(false); router.push('/admin') }} />
             </>
           )}
+
+          <MenuLink icon={Calendar} label="Bilan Annuel" onClick={() => {
+            setOpen(false)
+            router.push('/bilan-annuel')
+          }} />
 
           <MenuLink icon={Handshake} label="Dettes" onClick={() => {
             setOpen(false)

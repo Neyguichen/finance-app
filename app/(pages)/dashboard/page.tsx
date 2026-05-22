@@ -15,7 +15,6 @@ import EntrantsCard from '@/components/pages/dashboard/EntrantsCard'
 import SortantsCard from '@/components/pages/dashboard/SortantsCard'
 import RepartitionCategories from '@/components/pages/dashboard/RepartitionCategories'
 import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
-import BilanAnnuel from '@/components/pages/dashboard/BilanAnnuel'
 
 import { getMontantNet } from '@/lib/utils'
 import { useDashboardData } from '@/lib/hooks/useDashboardData'
@@ -105,17 +104,6 @@ export default function DashboardPage() {
             getMontantNet={getMontantNet}
           />
         </div>
-
-        {!isAdminViewing && data.yearData && data.yearData.nbMonths > 1 && (
-          <BilanAnnuel
-            yearData={data.yearData}
-            currentMonth={month}
-            lineChartData={data.lineChartData}
-            catPlusVariableInfo={data.catPlusVariableInfo}
-            catPlusVariable={data.catPlusVariable}
-            catStats={data.catStats}
-          />
-        )}
       </div>
     </div>
   )
