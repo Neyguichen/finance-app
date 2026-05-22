@@ -11,18 +11,40 @@ export function useAvailableYears(espaceId: string | undefined) {
     enabled: !!espaceId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data } = await supabase
+      // Récupérer tous les mois de l'espace
+      const { data: moisList } = await supabase
         .from('mois')
-        .select('mois')
+        .select('id, mois')
         .eq('espace_id', espaceId!)
 
-      if (!data || data.length === 0) return []
+      if (!moisList || moisList.length === 0) return []
 
-      // Extraire les années uniques et trier décroissant
-      const years = Array.from(new Set(data.map((m: any) => m.mois.slice(0, 4))))
-        .sort((a, b) => b.localeCompare(a))
+      const moisIds = moisList.map(m => m.id)
 
-      return years
+      // Vérifier quels mois ont au moins une donnée
+      const [rev, chg, txn, mvt] = await Promise.all([
+        supabase.from('revenus').select('mois_id').in('mois_id', moisIds),
+        supabase.from('charges_fixes').select('mois_id').in('mois_id', moisIds),
+        supabase.from('transactions').select('mois_id').in('mois_id', moisIds),
+        supabase.from('mouvements_epargne').select('mois_id').in('mois_id', moisIds),
+      ])
+
+      // Collecter les mois_id qui ont au moins 1 entrée
+      const activeMoisIds = new Set<string>()
+      for (const r of (rev.data || [])) activeMoisIds.add(r.mois_id)
+      for (const c of (chg.data || [])) activeMoisIds.add(c.mois_id)
+      for (const t of (txn.data || [])) activeMoisIds.add(t.mois_id)
+      for (const m of (mvt.data || [])) activeMoisIds.add(m.mois_id)
+
+      // Extraire les années avec données
+      const activeYears = new Set<string>()
+      for (const m of moisList) {
+        if (activeMoisIds.has(m.id)) {
+          activeYears.add(m.mois.slice(0, 4))
+        }
+      }
+
+      return Array.from(activeYears).sort((a, b) => b.localeCompare(a))
     },
   })
 }
