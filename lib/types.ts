@@ -7,6 +7,7 @@ export interface Espace {
   solde_initial: number
   created_at: string
   double_date?: boolean
+  dashboard_stats?: Record<string, boolean>
 }
 
 export interface Mois {
