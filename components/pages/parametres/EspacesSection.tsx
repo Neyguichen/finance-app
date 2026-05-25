@@ -21,22 +21,6 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
   const supabase = createClient()
   const calibrate = useCalibrateEspace()
 
-  {/* Toggle double date */}
-  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-700">
-    <div>
-      <p className="text-sm text-slate-300">Double date</p>
-      <p className="text-xs text-slate-500">Date d&apos;opération + date de validation bancaire</p>
-    </div>
-    <input
-      type="checkbox"
-      className="toggle toggle-sm toggle-primary"
-      checked={!!espace.double_date}
-      onChange={async (e) => {
-        await updateEspace(espace.id, { double_date: e.target.checked })
-      }}
-    />
-  </div>
-
   // Édition
   const [editTarget, setEditTarget] = useState<any>(null)
   const [editNom, setEditNom] = useState('')
@@ -210,6 +194,22 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
                 Solde initial : {formatEuro(esp.solde_initial ?? 0)}
               </span>
             </button>
+
+            {/* Toggle double date */}
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-700">
+              <div>
+                <p className="text-sm text-slate-300">Double date</p>
+                <p className="text-xs text-slate-500">Date d&apos;opération + date de validation bancaire</p>
+              </div>
+              <input
+                type="checkbox"
+                className="toggle toggle-sm toggle-primary"
+                checked={!!espace.double_date}
+                onChange={async (e) => {
+                  await updateEspace(espace.id, { double_date: e.target.checked })
+                }}
+              />
+            </div>
           </div>
         ))}
 
