@@ -13,13 +13,15 @@ type Props = {
   categories: any[]
   espaceId: string | undefined
   createCat: any
-  onSave: (data: { id: string; montant: number; date: string; infos: string | null; categorie_id: string }) => Promise<void>
+  doubleDate?: boolean
+  onSave: (data: { id: string; montant: number; date: string; date_validation: string | null; infos: string | null; categorie_id: string }) => Promise<void>
 }
 
-export default function DepenseEditDialog({ editTx, onClose, categories, espaceId, createCat, onSave }: Props) {
+export default function DepenseEditDialog({ editTx, onClose, categories, espaceId, createCat, doubleDate, onSave }: Props) {
   const [montant, setMontant] = useState(0)
   const [infos, setInfos] = useState('')
   const [date, setDate] = useState('')
+  const [dateValidation, setDateValidation] = useState('')
   const [catId, setCatId] = useState('')
   const [inlineCatOpen, setInlineCatOpen] = useState(false)
 
@@ -28,6 +30,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
       setMontant(Number(editTx.montant))
       setInfos(editTx.infos || '')
       setDate(editTx.date)
+      setDateValidation(editTx.date_validation || '')
       setCatId(editTx.categorie_id)
     }
   }, [editTx])
@@ -39,7 +42,20 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
       <DialogContent className="bg-slate-900 border-slate-700">
         <DialogHeader><DialogTitle>Modifier la dépense</DialogTitle></DialogHeader>
         <div className="space-y-4">
-          <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              {doubleDate ? "Date d'opération" : 'Date'}
+            </label>
+            <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          </div>
+          {doubleDate && (
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">
+                Date de validation bancaire <span className="text-slate-600">(optionnel)</span>
+              </label>
+              <Input type="date" value={dateValidation} onChange={e => setDateValidation(e.target.value)} />
+            </div>
+          )}
           <div className="space-y-2">
             <select className="select select-bordered w-full bg-slate-800 border-slate-700"
               value={catId} onChange={e => {
@@ -66,7 +82,14 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
           <Input placeholder="Infos" value={infos} onChange={e => setInfos(e.target.value)} />
           <Button className="w-full" onClick={async () => {
             if (!editTx) return
-            await onSave({ id: editTx.id, montant, date, infos: infos || null, categorie_id: catId })
+            await onSave({
+              id: editTx.id,
+              montant,
+              date,
+              date_validation: doubleDate && dateValidation ? dateValidation : null,
+              infos: infos || null,
+              categorie_id: catId,
+            })
             onClose()
           }}>Enregistrer</Button>
           <Button className="w-full" variant="ghost" onClick={handleClose}>Annuler</Button>

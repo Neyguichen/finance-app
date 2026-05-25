@@ -15,7 +15,7 @@ export function useTransactions(moisId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('*, categorie:categories(*), remboursements(*)')
+        .select('*, categorie:categories(*), remboursements(*), date_validation')
         .eq('mois_id', moisId!)
         .order('date', { ascending: false })
         .order('created_at',{ascending:false})

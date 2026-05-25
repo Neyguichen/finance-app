@@ -6,24 +6,31 @@ import { formatEuro, formatDate } from '@/lib/utils'
 type Props = {
   tx: any
   readOnly: boolean
+  doubleDate?: boolean
   getMontantNet: (tx: any) => number
   onEdit: (tx: any) => void
   onRemb: (tx: any) => void
   onDelete: (tx: any) => void
 }
 
-export default function DepenseCard({ tx, readOnly, getMontantNet, onEdit, onRemb, onDelete }: Props) {
+export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, onEdit, onRemb, onDelete }: Props) {
   const net = getMontantNet(tx)
   const hasRemb = tx.remboursements?.length > 0
+  const isAwaitingValidation = doubleDate && !tx.date_validation
 
   return (
-    <Card className="bg-slate-900 border-slate-800">
+    <Card className={`border-slate-800 ${isAwaitingValidation ? 'bg-amber-950/40 border-amber-800/50' : 'bg-slate-900'}`}>
       <CardContent className="p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span>{tx.categorie?.icone || '📦'}</span>
             <div>
-              <p className="text-sm font-medium">{tx.categorie?.nom || 'Sans catégorie'}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">{tx.categorie?.nom || 'Sans catégorie'}</p>
+                {isAwaitingValidation && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-900 text-amber-400">⏳ À valider</span>
+                )}
+              </div>
               {tx.infos && <p className="text-xs text-slate-500">{tx.infos}</p>}
             </div>
           </div>
@@ -33,7 +40,14 @@ export default function DepenseCard({ tx, readOnly, getMontantNet, onEdit, onRem
               {hasRemb && (
                 <p className="text-xs text-emerald-400 line-through">{formatEuro(Number(tx.montant))}</p>
               )}
-              <p className="text-xs text-slate-500">{formatDate(tx.date)}</p>
+              {doubleDate && tx.date_validation ? (
+                <div>
+                  <p className="text-xs text-slate-500">{formatDate(tx.date_validation)}</p>
+                  <p className="text-[10px] text-slate-600">op. {formatDate(tx.date)}</p>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">{formatDate(tx.date)}</p>
+              )}
             </div>
             {!readOnly && (
               <>

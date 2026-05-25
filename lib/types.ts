@@ -6,6 +6,7 @@ export interface Espace {
   ordre: number
   solde_initial: number
   created_at: string
+  double_date?: boolean
 }
 
 export interface Mois {

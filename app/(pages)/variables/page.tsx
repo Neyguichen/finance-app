@@ -27,6 +27,7 @@ import VariablesFab from '@/components/pages/variables/VariablesFab'
 export default function VariablesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const espaceId = espace?.id
+  const doubleDate = !!espace?.double_date
 
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
@@ -135,7 +136,7 @@ export default function VariablesPage() {
           )}
           <div className="space-y-2">
             {effectiveTransactions.map((tx: any) => (
-              <DepenseCard key={tx.id} tx={tx} readOnly={isAdminViewing} getMontantNet={getMontantNet}
+              <DepenseCard key={tx.id} tx={tx} readOnly={isAdminViewing} doubleDate={doubleDate} getMontantNet={getMontantNet}
                 onEdit={setEditTx} onRemb={setRembTx} onDelete={setDeleteTxTarget} />
             ))}
           </div>
@@ -148,7 +149,7 @@ export default function VariablesPage() {
           if (isAdminViewing || !espaceId) return
           await createCat.mutateAsync({ espace_id: espaceId, nom, icone, couleur: '#8B5CF6', ordre: effectiveCategories.length })
         }} />
-      <DepenseForm open={txOpen} onOpenChange={setTxOpen} categories={effectiveCategories} espaceId={espaceId} createCat={createCat}
+      <DepenseForm open={txOpen} onOpenChange={setTxOpen} doubleDate={doubleDate} categories={effectiveCategories} espaceId={espaceId} createCat={createCat}
         onSubmit={async (data) => {
           if (isAdminViewing || !moisId) return
           await createTx.mutateAsync({ mois_id: moisId, ...data })
@@ -157,7 +158,7 @@ export default function VariablesPage() {
         onSave={async (data) => {
           if (isAdminViewing) return
           await updateTx.mutateAsync(data)
-        }} />
+        }} doubleDate={doubleDate}/>
       <DepenseDeleteDialog target={deleteTxTarget} onClose={() => setDeleteTxTarget(null)}
         onDelete={(id) => removeTx.mutate(id)} />
       <RemboursementDialog tx={rembTx} onClose={() => setRembTx(null)} />
