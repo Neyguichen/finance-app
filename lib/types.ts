@@ -71,6 +71,7 @@ export interface Categorie {
   couleur: string
   ordre: number
   actif?: boolean
+  parent_id?: string | null
 }
 
 export interface Budget {
@@ -85,10 +86,12 @@ export interface Transaction {
   id: string
   mois_id: string
   categorie_id: string
+  sous_categorie_id?: string | null
   date: string
   montant: number
   infos: string | null
   categorie?: Categorie
+  sous_categorie?: Categorie | null
 }
 
 export interface Remboursement {

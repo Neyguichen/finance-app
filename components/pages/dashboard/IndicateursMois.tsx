@@ -15,20 +15,22 @@ interface Props {
   totalEpargnes: number
   top3Depenses: any[]
   top3Categories: any[]
+  top3SubCategories?: any[]
   getMontantNet: (tx: any) => number
   showRatioCharges?: boolean
   showMaitrise?: boolean
   showEpargne20?: boolean
   showTop3Depenses?: boolean
   showTop3Categories?: boolean
+  showTop3SubCategories?: boolean
 }
 
 export default function IndicateursMois({
   ratioChargesRevenus, tauxMaitrise, totalDepenses, totalVariablesBudget,
   objectifEpargne, capaciteEpargne, totalEpargnes,
-  top3Depenses, top3Categories, getMontantNet,
+  top3Depenses, top3Categories, top3SubCategories = [], getMontantNet,
   showRatioCharges = true, showMaitrise = true, showEpargne20 = true,
-  showTop3Depenses = true, showTop3Categories = true,
+  showTop3Depenses = true, showTop3Categories = true, showTop3SubCategories = true,
 }: Props) {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
 
@@ -117,6 +119,8 @@ export default function IndicateursMois({
             Objectif d&apos;épargne mensuel = (Revenus actifs + passifs − Charges fixes) × 20%. Atteindre 100% signifie que vous épargnez au moins ce que la règle recommande.
           </div>
         )}
+
+        {/* Top 3 dépenses */}
         {showTop3Depenses && top3Depenses.length > 0 && (
           <div>
             <p className="text-xs text-slate-500 mb-1.5">🏆 Top 3 dépenses du mois</p>
@@ -136,25 +140,71 @@ export default function IndicateursMois({
             </div>
           </div>
         )}
+
+        {/* Top 3 catégories avec détail sous-catégories */}
         {showTop3Categories && top3Categories.length > 0 && (
           <div>
             <p className="text-xs text-slate-500 mb-1.5">📊 Top 3 catégories du mois</p>
             <div className="space-y-1">
               {top3Categories.map((cat: any, i: number) => (
-                <div key={cat.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-2 py-1.5">
+                <div key={cat.id}>
+                  {/* Ligne catégorie parente */}
+                  <div className="flex items-center justify-between bg-slate-800/50 rounded-lg px-2 py-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-bold text-slate-600">{i + 1}.</span>
+                      <span className="text-xs">{cat.icone || '📂'}</span>
+                      <span className="text-xs text-slate-300 truncate">{cat.nom}</span>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className="text-xs font-bold text-pink-400">{formatEuro(cat.depense)}</span>
+                      {cat.prevu > 0 && (
+                        <span className={`text-xs ml-1 ${cat.depense <= cat.prevu ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
+                          / {formatEuro(cat.prevu)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Détail sous-catégories */}
+                  {cat.subCats && cat.subCats.length > 0 && (
+                    <div className="ml-5 mt-0.5 space-y-0.5">
+                      {cat.subCats.map((sc: any) => (
+                        <div key={sc.id} className="flex items-center justify-between px-2 py-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px]">{sc.icone || '📎'}</span>
+                            <span className="text-[10px] text-slate-400 truncate">{sc.nom}</span>
+                          </div>
+                          <span className="text-[10px] font-medium text-pink-400/80 flex-shrink-0">{formatEuro(sc.depense)}</span>
+                        </div>
+                      ))}
+                      {/* Dépenses sans sous-cat si il y en a */}
+                      {cat.depenseSansSousCat > 0 && cat.subCats.length > 0 && (
+                        <div className="flex items-center justify-between px-2 py-1">
+                          <span className="text-[10px] text-slate-500 italic">Sans sous-catégorie</span>
+                          <span className="text-[10px] font-medium text-pink-400/60 flex-shrink-0">{formatEuro(cat.depenseSansSousCat)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Top 3 sous-catégories (classement indépendant) */}
+        {showTop3SubCategories && top3SubCategories.length > 0 && (
+          <div>
+            <p className="text-xs text-slate-500 mb-1.5">🏷️ Top 3 sous-catégories du mois</p>
+            <div className="space-y-1">
+              {top3SubCategories.map((sc: any, i: number) => (
+                <div key={sc.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-2 py-1.5">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-xs font-bold text-slate-600">{i + 1}.</span>
-                    <span className="text-xs">{cat.icone || '📂'}</span>
-                    <span className="text-xs text-slate-300 truncate">{cat.nom}</span>
+                    <span className="text-xs">{sc.icone || '📎'}</span>
+                    <span className="text-xs text-slate-300 truncate">{sc.nom}</span>
+                    <span className="text-[10px] text-slate-600">({sc.parentIcone} {sc.parentNom})</span>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <span className="text-xs font-bold text-pink-400">{formatEuro(cat.depense)}</span>
-                    {cat.prevu > 0 && (
-                      <span className={`text-xs ml-1 ${cat.depense <= cat.prevu ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
-                        / {formatEuro(cat.prevu)}
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-xs font-bold text-pink-400 flex-shrink-0">{formatEuro(sc.depense)}</span>
                 </div>
               ))}
             </div>

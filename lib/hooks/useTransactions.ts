@@ -15,21 +15,21 @@ export function useTransactions(moisId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('*, categorie:categories(*), remboursements(*), date_validation')
+        .select('*, categorie:categories!categorie_id(*), sous_categorie:categories!sous_categorie_id(*), remboursements(*), date_validation')
         .eq('mois_id', moisId!)
         .order('date', { ascending: false })
-        .order('created_at',{ascending:false})
+        .order('created_at', { ascending: false })
       if (error) throw error
       return data as (Transaction & { remboursements?: Remboursement[] })[]
     },
   });
 
   const create = useMutation({
-    mutationFn: async (tx: Omit<Transaction, 'id' | 'categorie'>) => {
+    mutationFn: async (tx: Omit<Transaction, 'id' | 'categorie' | 'sous_categorie'>) => {
       const { data, error } = await supabase
         .from('transactions')
         .insert(tx)
-        .select('*, categorie:categories(*)')
+        .select('*, categorie:categories!categorie_id(*), sous_categorie:categories!sous_categorie_id(*)')
         .single();
       if (error) throw error;
       return data;

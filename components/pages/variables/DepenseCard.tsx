@@ -31,6 +31,10 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-900 text-amber-400">⏳ À valider</span>
                 )}
               </div>
+              {/* Sous-catégorie */}
+              {tx.sous_categorie && (
+                <p className="text-xs text-slate-400">{tx.sous_categorie.icone} {tx.sous_categorie.nom}</p>
+              )}
               {tx.infos && <p className="text-xs text-slate-500">{tx.infos}</p>}
             </div>
           </div>

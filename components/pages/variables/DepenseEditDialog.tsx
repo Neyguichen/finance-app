@@ -14,7 +14,7 @@ type Props = {
   espaceId: string | undefined
   createCat: any
   doubleDate?: boolean
-  onSave: (data: { id: string; montant: number; date: string; date_validation: string | null; infos: string | null; categorie_id: string }) => Promise<void>
+  onSave: (data: { id: string; montant: number; date: string; date_validation: string | null; infos: string | null; categorie_id: string; sous_categorie_id: string | null }) => Promise<void>
 }
 
 export default function DepenseEditDialog({ editTx, onClose, categories, espaceId, createCat, doubleDate, onSave }: Props) {
@@ -23,7 +23,16 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
   const [date, setDate] = useState('')
   const [dateValidation, setDateValidation] = useState('')
   const [catId, setCatId] = useState('')
+  const [subCatId, setSubCatId] = useState('')
   const [inlineCatOpen, setInlineCatOpen] = useState(false)
+
+  // Séparer parents et enfants
+  const parentCategories = categories.filter((c: any) => !c.parent_id && c.actif !== false)
+  const getSubCats = (parentId: string) =>
+    categories.filter((c: any) => c.parent_id === parentId && c.actif !== false)
+      .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
+
+  const subCats = catId ? getSubCats(catId) : []
 
   useEffect(() => {
     if (editTx) {
@@ -32,8 +41,18 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
       setDate(editTx.date)
       setDateValidation(editTx.date_validation || '')
       setCatId(editTx.categorie_id)
+      setSubCatId(editTx.sous_categorie_id || '')
     }
   }, [editTx])
+
+  const handleCatChange = (value: string) => {
+    if (value === '__NEW__') {
+      setInlineCatOpen(true)
+    } else {
+      setCatId(value)
+      setSubCatId('') // Reset sous-catégorie quand on change de catégorie
+    }
+  }
 
   const handleClose = () => { onClose(); setInlineCatOpen(false) }
 
@@ -56,14 +75,12 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
               <Input type="date" value={dateValidation} onChange={e => setDateValidation(e.target.value)} />
             </div>
           )}
+          {/* Sélecteur catégorie (parents uniquement) */}
           <div className="space-y-2">
             <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-              value={catId} onChange={e => {
-                if (e.target.value === '__NEW__') setInlineCatOpen(true)
-                else setCatId(e.target.value)
-              }}>
+              value={catId} onChange={e => handleCatChange(e.target.value)}>
               <option value="">Budget...</option>
-              {[...categories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
+              {[...parentCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                 <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
               ))}
               <option value="__NEW__">➕ Nouveau budget...</option>
@@ -78,6 +95,21 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
               />
             )}
           </div>
+          {/* Sélecteur sous-catégorie (si la catégorie en a) */}
+          {subCats.length > 0 && (
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">
+                Sous-catégorie <span className="text-slate-600">(optionnel)</span>
+              </label>
+              <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                value={subCatId} onChange={e => setSubCatId(e.target.value)}>
+                <option value="">Aucune</option>
+                {subCats.map((sc: any) => (
+                  <option key={sc.id} value={sc.id}>{sc.icone} {sc.nom}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <CalculatorInput value={montant} onChange={setMontant} placeholder="Montant" />
           <Input placeholder="Infos" value={infos} onChange={e => setInfos(e.target.value)} />
           <Button className="w-full" onClick={async () => {
@@ -89,6 +121,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
               date_validation: doubleDate && dateValidation ? dateValidation : null,
               infos: infos || null,
               categorie_id: catId,
+              sous_categorie_id: subCatId || null,
             })
             onClose()
           }}>Enregistrer</Button>

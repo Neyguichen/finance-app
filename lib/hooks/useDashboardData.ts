@@ -33,6 +33,9 @@ export function useDashboardData() {
   const cat = isAdminViewing ? (adminData?.categories || []) : categories
   const bgt = isAdminViewing ? (adminData?.budgets || []) : budgets
 
+  // --- Catégories parentes uniquement ---
+  const parentCats = cat.filter((c: any) => !c.parent_id && c.actif !== false)
+
   // --- Totaux de base ---
   const totalEpargnes = mvt.filter((m: any) => m.type === 'epargne').reduce((s: number, m: any) => s + Number(m.montant), 0)
   const totalReprises = mvt.filter((m: any) => m.type === 'reprise').reduce((s: number, m: any) => s + Number(m.montant), 0)
@@ -50,16 +53,16 @@ export function useDashboardData() {
   const chargesFixesNonPayees = totalChargesFixes - totalChargesPayees
   const totalDepenses = txn.reduce((s: number, t: any) => s + getMontantNet(t), 0)
 
-  // Variables prévisionnelles (max entre budget et dépenses réelles)
-  const totalVariablesPrevu = cat.reduce((sum: number, c: any) => {
+  // Variables prévisionnelles — parents uniquement
+  const totalVariablesPrevu = parentCats.reduce((sum: number, c: any) => {
     const budget = bgt.find((b: any) => b.categorie_id === c.id)
     const prevu = budget ? Number(budget.prevu) : 0
     const depense = txn.filter((t: any) => t.categorie_id === c.id).reduce((s: number, t: any) => s + getMontantNet(t), 0)
     return sum + Math.max(prevu, depense)
   }, 0)
 
-  // Somme brute des budgets prévisionnels
-  const totalVariablesBudget = cat.reduce((sum: number, c: any) => {
+  // Somme brute des budgets prévisionnels — parents uniquement
+  const totalVariablesBudget = parentCats.reduce((sum: number, c: any) => {
     const budget = bgt.find((b: any) => b.categorie_id === c.id)
     return sum + (budget ? Number(budget.prevu) : 0)
   }, 0)
@@ -99,14 +102,36 @@ export function useDashboardData() {
     ...(resteM1Sortant > 0 ? [{ name: 'Déficit M-1', value: resteM1Sortant, color: '#7C3AED' }] : []),
   ].filter(d => d.value > 0)
 
-  // --- Catégories ---
-  const catStats = [...cat]
+  // --- Catégories stats (parents uniquement + sous-catégories) ---
+  const catStats = [...parentCats]
     .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
     .map((c: any) => {
       const budget = bgt.find((b: any) => b.categorie_id === c.id)
       const prevu = budget ? Number(budget.prevu) : 0
       const depense = txn.filter((t: any) => t.categorie_id === c.id).reduce((s: number, t: any) => s + getMontantNet(t), 0)
-      return { id: c.id, nom: c.nom, icone: c.icone, couleur: c.couleur, prevu, depense, reste: prevu - depense }
+
+      // Sous-catégories avec dépenses
+      const subCats = cat
+        .filter((sc: any) => sc.parent_id === c.id && sc.actif !== false)
+        .map((sc: any) => {
+          const subDep = txn
+            .filter((t: any) => t.sous_categorie_id === sc.id)
+            .reduce((s: number, t: any) => s + getMontantNet(t), 0)
+          return { id: sc.id, nom: sc.nom, icone: sc.icone, depense: subDep }
+        })
+        .filter((s: any) => s.depense > 0)
+        .sort((a: any, b: any) => b.depense - a.depense)
+
+      // Montant sans sous-catégorie (dépenses parentes directes)
+      const depenseSansSousCat = txn
+        .filter((t: any) => t.categorie_id === c.id && !t.sous_categorie_id)
+        .reduce((s: number, t: any) => s + getMontantNet(t), 0)
+
+      return {
+        id: c.id, nom: c.nom, icone: c.icone, couleur: c.couleur,
+        prevu, depense, reste: prevu - depense,
+        subCats, depenseSansSousCat,
+      }
     })
 
   const catStatsMonth = catStats.filter(c => c.prevu > 0 || c.depense > 0)
@@ -116,6 +141,26 @@ export function useDashboardData() {
     ...(totalEpargnes > 0 ? [{ name: 'Épargne', value: totalEpargnes, color: '#881337', icon: '🐷' }] : []),
     ...catStatsMonth.map((c, i) => ({ name: c.nom, value: c.depense, color: getCategoryColor(i), icon: c.icone || '📂' })).filter(d => d.value > 0),
   ]
+
+  // --- Top 3 sous-catégories (classement indépendant) ---
+  const allSubCatStats = cat
+    .filter((c: any) => c.parent_id && c.actif !== false)
+    .map((sc: any) => {
+      const parentCat = cat.find((c: any) => c.id === sc.parent_id)
+      const depense = txn
+        .filter((t: any) => t.sous_categorie_id === sc.id)
+        .reduce((s: number, t: any) => s + getMontantNet(t), 0)
+      return {
+        id: sc.id, nom: sc.nom, icone: sc.icone,
+        parentNom: parentCat?.nom || '', parentIcone: parentCat?.icone || '📂',
+        depense,
+      }
+    })
+    .filter((s: any) => s.depense > 0)
+
+  const top3SubCategories = [...allSubCatStats]
+    .sort((a, b) => b.depense - a.depense)
+    .slice(0, 3)
 
   // --- Indicateurs ---
   const top3Depenses = [...txn].sort((a: any, b: any) => getMontantNet(b) - getMontantNet(a)).slice(0, 3)
@@ -138,6 +183,6 @@ export function useDashboardData() {
     // Catégories
     catStats, catStatsMonth, prevMonthData,
     // Top 3
-    top3Depenses, top3Categories,
+    top3Depenses, top3Categories, top3SubCategories,
   }
 }

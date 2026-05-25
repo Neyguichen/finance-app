@@ -124,6 +124,7 @@ export default function DashboardPage() {
                 showEpargne20={ds.epargne20}
                 showTop3Depenses={ds.top3Depenses}
                 showTop3Categories={ds.top3Categories}
+                top3SubCategories={data.top3SubCategories}
               />
             )}
           </div>

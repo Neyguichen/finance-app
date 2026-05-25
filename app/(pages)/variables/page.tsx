@@ -46,14 +46,45 @@ export default function VariablesPage() {
   const effectiveChargesList = isAdminViewing ? (adminData?.charges_fixes || []) : chargesList
   const effectiveMouvementsList = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvementsList
 
-  const activeCategories = effectiveCategories.filter((c: any) => c.actif !== false)
-  const getBudget = (catId: string) => effectiveBudgets.find((b: any) => b.categorie_id === catId)
+  const activeCategories = effectiveCategories.filter((c: any) => c.actif !== false && !c.parent_id)
+  const getBudget = (catId: string) => {
+    const subs = effectiveCategories.filter((c: any) => c.parent_id === catId && c.actif !== false)
+    if (subs.length > 0) {
+      // Catégorie avec sous-cat : budget = somme des budgets sous-cat
+      const total = subs.reduce((s: number, sc: any) => {
+        const b = effectiveBudgets.find((b: any) => b.categorie_id === sc.id)
+        return s + (b ? Number(b.prevu) : 0)
+      }, 0)
+      return total > 0 ? { prevu: total } : null
+    }
+    return effectiveBudgets.find((b: any) => b.categorie_id === catId)
+  }
   const getDepenses = (catId: string) => effectiveTransactions
     .filter((t: any) => t.categorie_id === catId)
     .reduce((s: number, t: any) => s + getMontantNet(t), 0)
   const getMontantNet = (tx: any) => {
     const rembs = tx.remboursements || []
     return Number(tx.montant) - rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
+  }
+
+  const getSubCatBudgets = (parentId: string) => {
+    const subs = effectiveCategories.filter((c: any) => c.parent_id === parentId && c.actif !== false)
+    if (subs.length === 0) return []
+    return subs
+      .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
+      .map((sc: any) => {
+        const budget = effectiveBudgets.find((b: any) => b.categorie_id === sc.id)
+        const dep = effectiveTransactions
+          .filter((t: any) => t.sous_categorie_id === sc.id)
+          .reduce((s: number, t: any) => s + getMontantNet(t), 0)
+        return {
+          id: sc.id,
+          nom: sc.nom,
+          icone: sc.icone,
+          prevu: budget ? Number(budget.prevu) : 0,
+          depense: dep,
+        }
+      })
   }
 
   const categoriesAvecActivite = activeCategories.filter((cat: any) => {
@@ -71,7 +102,18 @@ export default function VariablesPage() {
   const totalReprisesVar = effectiveMouvementsList.filter((m: any) => m.type === 'reprise').reduce((s: number, m: any) => s + Number(m.montant), 0)
   const resteM1Value = resteM1 ?? 0
   const budgetDisponible = resteM1Value + totalRevenusVar + totalReprisesVar - totalChargesVar - totalEpargneVar
-  const totalPrevu = effectiveBudgets.reduce((s: number, b: any) => s + Number(b.prevu), 0)
+  const totalPrevu = activeCategories.reduce((s: number, cat: any) => {
+    const subs = effectiveCategories.filter((c: any) => c.parent_id === cat.id && c.actif !== false)
+    if (subs.length > 0) {
+      // Somme des budgets sous-cat
+      return s + subs.reduce((ss: number, sc: any) => {
+        const b = effectiveBudgets.find((b: any) => b.categorie_id === sc.id)
+        return ss + (b ? Number(b.prevu) : 0)
+      }, 0)
+    }
+    const b = effectiveBudgets.find((b: any) => b.categorie_id === cat.id)
+    return s + (b ? Number(b.prevu) : 0)
+  }, 0)
   const totalReel = effectiveTransactions.reduce((s: number, t: any) => s + getMontantNet(t), 0)
 
   const [fabOpen, setFabOpen] = useState(false)
@@ -102,6 +144,7 @@ export default function VariablesPage() {
                 <BudgetCard key={cat.id} cat={cat} prevu={getBudget(cat.id) ? Number(getBudget(cat.id).prevu) : 0}
                   depense={getDepenses(cat.id)} avgMois={yearData?.catAnnualStats[cat.id]?.avg}
                   readOnly={isAdminViewing}
+                  subCats={getSubCatBudgets(cat.id)}
                   onUpsertBudget={(catId, prevu) => { if (moisId) upsertBudget.mutate({ mois_id: moisId, categorie_id: catId, prevu }) }}
                   onArchive={setArchiveTarget} />
               ))}
@@ -118,6 +161,7 @@ export default function VariablesPage() {
                       <BudgetCard key={cat.id} cat={cat} prevu={getBudget(cat.id) ? Number(getBudget(cat.id).prevu) : 0}
                         depense={0} avgMois={yearData?.catAnnualStats[cat.id]?.avg} inactive
                         readOnly={isAdminViewing}
+                        subCats={getSubCatBudgets(cat.id)}
                         onUpsertBudget={(catId, prevu) => { if (moisId) upsertBudget.mutate({ mois_id: moisId, categorie_id: catId, prevu }) }}
                         onArchive={setArchiveTarget} />
                     ))}
