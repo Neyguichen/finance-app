@@ -199,7 +199,7 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-700">
               <div>
                 <p className="text-sm text-slate-300">Double date</p>
-                <p className="text-xs text-slate-500">Active la saisie d'une date d&apos;opération + date de validation bancaire dans les charges variables. Sinon, une seule date.</p>
+                <p className="text-xs text-slate-500">Active la saisie d&apos;une date d&apos;opération + date de validation bancaire dans les charges variables. Sinon, une seule date.</p>
               </div>
               <input
                 type="checkbox"
