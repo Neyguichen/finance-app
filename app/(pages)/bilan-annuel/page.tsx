@@ -21,25 +21,27 @@ export default function BilanAnnuelPage() {
   const currentYear = new Date().getFullYear().toString()
   const [selectedYear, setSelectedYear] = useState(currentYear)
 
-  // S'assurer que l'année sélectionnée existe dans les données
   const effectiveYear = availableYears.includes(selectedYear)
     ? selectedYear
     : availableYears[0] || currentYear
 
-  // Charger les données de l'année
   const { data: yearData } = useYearData(espaceId, `${effectiveYear}-12-01`) as { data: any }
   const { data: categories = [] } = useCategories(espaceId)
 
-  // Navigation année
   const yearIndex = availableYears.indexOf(effectiveYear)
   const canPrev = yearIndex < availableYears.length - 1
   const canNext = yearIndex > 0
 
-  // Calculs pour BilanAnnuel
+  // Stats visibles (tout activé par défaut)
+  const ds = {
+    bilanEpargne: true, bilanMoisExtremes: true, bilanGraphRevSortants: true,
+    bilanGraphReste: true, bilanCatVariable: true, bilanTableau: true,
+    ...(espace?.dashboard_stats as Record<string, boolean> | undefined),
+  }
+
   const { lineChartData, catStats, catPlusVariable, catPlusVariableInfo } = useMemo(() => {
     if (!yearData?.monthlyData) return { lineChartData: [], catStats: [], catPlusVariable: null, catPlusVariableInfo: null }
 
-    // lineChartData
     const monthlyResteM1: Record<string, number> = {}
     const months = Object.keys(yearData.monthlyData).sort()
     let carry = espace?.solde_initial ?? 0
@@ -60,12 +62,10 @@ export default function BilanAnnuelPage() {
       }
     })
 
-    // catStats
     const stats = [...categories]
       .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
       .map((c: any) => ({ id: c.id, nom: c.nom, icone: c.icone }))
 
-    // catPlusVariable
     const cpv = yearData.catAnnualStats
       ? Object.entries(yearData.catAnnualStats)
           .filter(([, s]: [string, any]) => s.total > 0 && s.max > s.min)
@@ -138,6 +138,12 @@ export default function BilanAnnuelPage() {
           catPlusVariableInfo={catPlusVariableInfo}
           catPlusVariable={catPlusVariable}
           catStats={catStats}
+          showEpargne={ds.bilanEpargne}
+          showMoisExtremes={ds.bilanMoisExtremes}
+          showGraphRevSortants={ds.bilanGraphRevSortants}
+          showGraphReste={ds.bilanGraphReste}
+          showCatVariable={ds.bilanCatVariable}
+          showTableau={ds.bilanTableau}
         />
       ) : (
         <div className="text-center text-slate-500 py-8">

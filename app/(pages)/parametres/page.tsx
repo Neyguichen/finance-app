@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX } from 'lucide-react'
+import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX, BarChart3 } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { createClient } from '@/lib/supabase/client'
@@ -10,6 +10,7 @@ import Section from '@/components/pages/parametres/Section'
 import ProfilSection from '@/components/pages/parametres/ProfilSection'
 import EspacesSection from '@/components/pages/parametres/EspacesSection'
 import CategoriesSection from '@/components/pages/parametres/CategoriesSection'
+import StatsSection from '@/components/pages/parametres/StatsSection'
 import ExportSection from '@/components/pages/parametres/ExportSection'
 import DonneesSection from '@/components/pages/parametres/DonneesSection'
 import CompteSection from '@/components/pages/parametres/CompteSection'
@@ -21,13 +22,13 @@ export default function ParametresPage() {
   const { data: categories = [], create: createCat, update: updateCat, remove: removeCat } = useCategories(espaceId)
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    profil: false, espaces: true, categories: false, apparence: false,
+    profil: false, espaces: true, categories: false, stats: false, apparence: false,
     export: false, donnees: false, compte: false,
   })
   const toggle = (key: string) => setOpenSections(prev => {
     const allClosed: Record<string, boolean> = {}
     for (const k in prev) allClosed[k] = false
-    allClosed[key] = !prev[key] // si déjà ouvert → ferme, sinon → ouvre (seul)
+    allClosed[key] = !prev[key]
     return allClosed
   })
 
@@ -62,6 +63,16 @@ export default function ParametresPage() {
           createCat={createCat}
           updateCat={updateCat}
           removeCat={removeCat}
+        />
+      </Section>
+
+      <Section open={openSections.stats} onToggle={() => toggle('stats')} icon={BarChart3} title="Statistiques" color="text-cyan-400">
+        <StatsSection
+          dashboardStats={espace?.dashboard_stats ?? null}
+          onUpdate={async (stats) => {
+            if (!espace) return
+            await updateEspace(espace.id, { dashboard_stats: stats })
+          }}
         />
       </Section>
 

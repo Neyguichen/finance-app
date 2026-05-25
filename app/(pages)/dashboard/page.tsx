@@ -27,6 +27,15 @@ export default function DashboardPage() {
 
   const data = useDashboardData()
 
+  // Stats visibles (tout activé par défaut)
+  const ds = {
+    repartition: true, ratioCharges: true, maitrise: true, epargne20: true,
+    top3Depenses: true, top3Categories: true,
+    bilanEpargne: true, bilanMoisExtremes: true, bilanGraphRevSortants: true,
+    bilanGraphReste: true, bilanCatVariable: true, bilanTableau: true,
+    ...(espace?.dashboard_stats as Record<string, boolean> | undefined),
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><span className="loading loading-spinner loading-lg" /></div>
   }
@@ -34,6 +43,8 @@ export default function DashboardPage() {
   if (espaces.length === 0) {
     return <WelcomeScreen onCreateEspace={async (nom, icone) => { await addEspace(nom, icone) }} />
   }
+
+  const showIndicateurs = ds.ratioCharges || ds.maitrise || ds.epargne20 || ds.top3Depenses || ds.top3Categories
 
   return (
     <div>
@@ -64,6 +75,7 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* Toujours visible */}
         <ResteAVivreCard restePrevu={data.restePrevu} resteReel={data.resteReel} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -82,28 +94,40 @@ export default function DashboardPage() {
           />
         </div>
 
-        <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
-          <RepartitionCategories
-            repartitionChartData={data.repartitionChartData}
-            totalChargesPayees={data.totalChargesPayees}
-            totalChargesFixes={data.totalChargesFixes}
-            totalEpargnes={data.totalEpargnes}
-            catStatsMonth={data.catStatsMonth}
-            prevMonthData={data.prevMonthData}
-          />
-          <IndicateursMois
-            ratioChargesRevenus={data.ratioChargesRevenus}
-            tauxMaitrise={data.tauxMaitrise}
-            totalDepenses={data.totalDepenses}
-            totalVariablesBudget={data.totalVariablesBudget}
-            objectifEpargne={data.objectifEpargne}
-            capaciteEpargne={data.capaciteEpargne}
-            totalEpargnes={data.totalEpargnes}
-            top3Depenses={data.top3Depenses}
-            top3Categories={data.top3Categories}
-            getMontantNet={getMontantNet}
-          />
-        </div>
+        {/* Optionnel : Répartition + Indicateurs */}
+        {(ds.repartition || showIndicateurs) && (
+          <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
+            {ds.repartition && (
+              <RepartitionCategories
+                repartitionChartData={data.repartitionChartData}
+                totalChargesPayees={data.totalChargesPayees}
+                totalChargesFixes={data.totalChargesFixes}
+                totalEpargnes={data.totalEpargnes}
+                catStatsMonth={data.catStatsMonth}
+                prevMonthData={data.prevMonthData}
+              />
+            )}
+            {showIndicateurs && (
+              <IndicateursMois
+                ratioChargesRevenus={data.ratioChargesRevenus}
+                tauxMaitrise={data.tauxMaitrise}
+                totalDepenses={data.totalDepenses}
+                totalVariablesBudget={data.totalVariablesBudget}
+                objectifEpargne={data.objectifEpargne}
+                capaciteEpargne={data.capaciteEpargne}
+                totalEpargnes={data.totalEpargnes}
+                top3Depenses={data.top3Depenses}
+                top3Categories={data.top3Categories}
+                getMontantNet={getMontantNet}
+                showRatioCharges={ds.ratioCharges}
+                showMaitrise={ds.maitrise}
+                showEpargne20={ds.epargne20}
+                showTop3Depenses={ds.top3Depenses}
+                showTop3Categories={ds.top3Categories}
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

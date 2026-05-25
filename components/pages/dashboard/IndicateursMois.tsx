@@ -16,12 +16,19 @@ interface Props {
   top3Depenses: any[]
   top3Categories: any[]
   getMontantNet: (tx: any) => number
+  showRatioCharges?: boolean
+  showMaitrise?: boolean
+  showEpargne20?: boolean
+  showTop3Depenses?: boolean
+  showTop3Categories?: boolean
 }
 
 export default function IndicateursMois({
   ratioChargesRevenus, tauxMaitrise, totalDepenses, totalVariablesBudget,
   objectifEpargne, capaciteEpargne, totalEpargnes,
-  top3Depenses, top3Categories, getMontantNet
+  top3Depenses, top3Categories, getMontantNet,
+  showRatioCharges = true, showMaitrise = true, showEpargne20 = true,
+  showTop3Depenses = true, showTop3Categories = true,
 }: Props) {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
 
@@ -33,78 +40,84 @@ export default function IndicateursMois({
       <CardContent className="space-y-3">
         <div className="space-y-2">
           {/* Fixes / Revenus */}
-          <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">💶</span>
-              <span className="text-xs text-slate-400">Fixes / Revenus</span>
+          {showRatioCharges && (
+            <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">💶</span>
+                <span className="text-xs text-slate-400">Fixes / Revenus</span>
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <span className={`text-lg font-bold ${ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
+                </span>
+                <button type="button" onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
+                  <Info className="w-3 h-3" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <span className={`text-lg font-bold ${ratioChargesRevenus !== null && ratioChargesRevenus <= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {ratioChargesRevenus !== null ? `${ratioChargesRevenus}%` : '—'}
-              </span>
-              <button type="button" onClick={() => setActiveTooltip(activeTooltip === 'ratio' ? null : 'ratio')} className="text-slate-600 hover:text-slate-400">
-                <Info className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
+          )}
           {/* Maîtrise */}
-          <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">🎯</span>
-              <div>
-                <span className="text-xs text-slate-400">Maîtrise</span>
-                <p className="text-[10px] text-slate-600">{formatEuro(totalDepenses)} / {formatEuro(totalVariablesBudget)}</p>
+          {showMaitrise && (
+            <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🎯</span>
+                <div>
+                  <span className="text-xs text-slate-400">Maîtrise</span>
+                  <p className="text-[10px] text-slate-600">{formatEuro(totalDepenses)} / {formatEuro(totalVariablesBudget)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <span className={`text-lg font-bold ${tauxMaitrise !== null && tauxMaitrise <= 100 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {tauxMaitrise !== null ? `${tauxMaitrise}%` : '—'}
+                </span>
+                <button type="button" onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
+                  <Info className="w-3 h-3" />
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <span className={`text-lg font-bold ${tauxMaitrise !== null && tauxMaitrise <= 100 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {tauxMaitrise !== null ? `${tauxMaitrise}%` : '—'}
-              </span>
-              <button type="button" onClick={() => setActiveTooltip(activeTooltip === 'maitrise' ? null : 'maitrise')} className="text-slate-600 hover:text-slate-400">
-                <Info className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
+          )}
           {/* Capacité d'épargne — règle 20% */}
-          <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">💰</span>
-              <div>
-                <span className="text-xs text-slate-400">Épargne (règle 20%)</span>
-                <p className="text-[10px] text-slate-600">
-                  Objectif : {formatEuro(objectifEpargne)}
-                </p>
-                <p className={`text-[10px] ${totalEpargnes >= objectifEpargne && objectifEpargne > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  Épargné : {formatEuro(totalEpargnes)}
-                </p>
+          {showEpargne20 && (
+            <div className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">💰</span>
+                <div>
+                  <span className="text-xs text-slate-400">Épargne (règle 20%)</span>
+                  <p className="text-[10px] text-slate-600">
+                    Objectif : {formatEuro(objectifEpargne)}
+                  </p>
+                  <p className={`text-[10px] ${totalEpargnes >= objectifEpargne && objectifEpargne > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    Épargné : {formatEuro(totalEpargnes)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <span className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
+                </span>
+                <button type="button" onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
+                  <Info className="w-3 h-3" />
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <span className={`text-lg font-bold ${capaciteEpargne !== null && capaciteEpargne >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {capaciteEpargne !== null ? `${capaciteEpargne}%` : '—'}
-              </span>
-              <button type="button" onClick={() => setActiveTooltip(activeTooltip === 'surplus' ? null : 'surplus')} className="text-slate-600 hover:text-slate-400">
-                <Info className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
+          )}
         </div>
-        {activeTooltip === 'ratio' && (
+        {showRatioCharges && activeTooltip === 'ratio' && (
           <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
             Part des charges fixes dans vos revenus actifs uniquement. Idéalement en dessous de 50%.
           </div>
         )}
-        {activeTooltip === 'maitrise' && (
+        {showMaitrise && activeTooltip === 'maitrise' && (
           <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
             Dépenses réelles par rapport au budget total prévu. En dessous de 100% = vous êtes dans les clous.
           </div>
         )}
-        {activeTooltip === 'surplus' && (
+        {showEpargne20 && activeTooltip === 'surplus' && (
           <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
             Objectif d&apos;épargne mensuel = (Revenus actifs + passifs − Charges fixes) × 20%. Atteindre 100% signifie que vous épargnez au moins ce que la règle recommande.
           </div>
         )}
-        {top3Depenses.length > 0 && (
+        {showTop3Depenses && top3Depenses.length > 0 && (
           <div>
             <p className="text-xs text-slate-500 mb-1.5">🏆 Top 3 dépenses du mois</p>
             <div className="space-y-1">
@@ -123,7 +136,7 @@ export default function IndicateursMois({
             </div>
           </div>
         )}
-        {top3Categories.length > 0 && (
+        {showTop3Categories && top3Categories.length > 0 && (
           <div>
             <p className="text-xs text-slate-500 mb-1.5">📊 Top 3 catégories du mois</p>
             <div className="space-y-1">
