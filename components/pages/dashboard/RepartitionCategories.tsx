@@ -79,7 +79,7 @@ export default function RepartitionCategories({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {activeChartData.length > 1 && (
+        {((!drillCatId && activeChartData.length > 1) || (drillCatId && activeChartData.length > 0)) && (
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
@@ -189,6 +189,9 @@ export default function RepartitionCategories({
                       </td>
                       <td className="text-right whitespace-nowrap pl-2">
                         <span className="text-white font-semibold">{fmtOrDash(sc.depense)}</span>
+                        {sc.prevu > 0 && (
+                          <span className="text-purple-400"> / {fmtOrDash(sc.prevu)}</span>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -110,17 +110,24 @@ export function useDashboardData() {
       const prevu = budget ? Number(budget.prevu) : 0
       const depense = txn.filter((t: any) => t.categorie_id === c.id).reduce((s: number, t: any) => s + getMontantNet(t), 0)
 
-      // Sous-catégories avec dépenses
+      // Sous-catégories avec dépenses ou budget
       const subCats = cat
-        .filter((sc: any) => sc.parent_id === c.id && sc.actif !== false)
-        .map((sc: any) => {
-          const subDep = txn
-            .filter((t: any) => t.sous_categorie_id === sc.id)
-            .reduce((s: number, t: any) => s + getMontantNet(t), 0)
-          return { id: sc.id, nom: sc.nom, icone: sc.icone, depense: subDep }
-        })
-        .filter((s: any) => s.depense > 0)
-        .sort((a: any, b: any) => b.depense - a.depense)
+      .filter((sc: any) => sc.parent_id === c.id && sc.actif !== false)
+      .map((sc: any) => {
+        const subDep = txn
+          .filter((t: any) => t.sous_categorie_id === sc.id)
+          .reduce((s: number, t: any) => s + getMontantNet(t), 0)
+        const subBudget = bgt.find((b: any) => b.categorie_id === sc.id)
+        const subPrevu = subBudget ? Number(subBudget.prevu) : 0
+        return { id: sc.id, nom: sc.nom, icone: sc.icone, depense: subDep, prevu: subPrevu }
+      })
+      .filter((s: any) => s.depense > 0 || s.prevu > 0)
+      .sort((a: any, b: any) => b.depense - a.depense)
+
+      // Si sous-cat existent : prevu = somme des budgets sous-cat
+      const effectivePrevu = subCats.length > 0
+      ? subCats.reduce((s: number, sc: any) => s + sc.prevu, 0)
+      : prevu
 
       // Montant sans sous-catégorie (dépenses parentes directes)
       const depenseSansSousCat = txn
@@ -129,7 +136,7 @@ export function useDashboardData() {
 
       return {
         id: c.id, nom: c.nom, icone: c.icone, couleur: c.couleur,
-        prevu, depense, reste: prevu - depense,
+        prevu: effectivePrevu, depense, reste: effectivePrevu - depense,
         subCats, depenseSansSousCat,
       }
     })
