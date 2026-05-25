@@ -42,14 +42,43 @@ export default function ProfilSection({ userEmail }: Props) {
     }
   }
 
-  // --- Mot de passe ---
-  const [editingPassword, setEditingPassword] = useState(false)
+  // --- Mot de passe (2 étapes) ---
+  const [pwStep, setPwStep] = useState<'closed' | 'verify' | 'change'>('closed')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  const resetPasswordForm = () => {
+    setPwStep('closed')
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setShowPassword(false)
+    setPasswordMsg(null)
+  }
+
+  // Étape 1 : vérifier le mot de passe actuel
+  const handleVerifyCurrentPassword = async () => {
+    if (!currentPassword || !userEmail) return
+    setPasswordLoading(true)
+    setPasswordMsg(null)
+    const { error } = await supabase.auth.signInWithPassword({
+      email: userEmail,
+      password: currentPassword,
+    })
+    setPasswordLoading(false)
+    if (error) {
+      setPasswordMsg({ type: 'error', text: 'Mot de passe actuel incorrect.' })
+    } else {
+      setPwStep('change')
+      setPasswordMsg(null)
+    }
+  }
+
+  // Étape 2 : enregistrer le nouveau mot de passe
   const handleSavePassword = async () => {
     setPasswordMsg(null)
     if (newPassword.length < 6) {
@@ -67,9 +96,7 @@ export default function ProfilSection({ userEmail }: Props) {
       setPasswordMsg({ type: 'error', text: error.message })
     } else {
       setPasswordMsg({ type: 'success', text: 'Mot de passe modifié avec succès.' })
-      setEditingPassword(false)
-      setNewPassword('')
-      setConfirmPassword('')
+      setTimeout(resetPasswordForm, 2000)
     }
   }
 
@@ -115,18 +142,53 @@ export default function ProfilSection({ userEmail }: Props) {
       <div className="bg-slate-800 rounded-lg p-3">
         <div className="flex items-center justify-between">
           <span className="text-slate-400">Mot de passe</span>
-          {!editingPassword ? (
-            <Button variant="ghost" size="sm" className="text-slate-400 text-xs h-7" onClick={() => { setEditingPassword(true); setPasswordMsg(null) }}>
+          {pwStep === 'closed' ? (
+            <Button variant="ghost" size="sm" className="text-slate-400 text-xs h-7" onClick={() => { setPwStep('verify'); setPasswordMsg(null) }}>
               Modifier
             </Button>
           ) : (
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500" onClick={() => { setEditingPassword(false); setPasswordMsg(null); setNewPassword(''); setConfirmPassword('') }}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500" onClick={resetPasswordForm}>
               <X className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>
-        {editingPassword && (
+
+        {/* Étape 1 : vérification mot de passe actuel */}
+        {pwStep === 'verify' && (
           <div className="mt-3 space-y-2">
+            <p className="text-xs text-slate-500">Entrez votre mot de passe actuel pour continuer</p>
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                placeholder="Mot de passe actuel"
+                className="h-9 text-sm bg-slate-700 border-slate-600 pr-10"
+                onKeyDown={e => e.key === 'Enter' && handleVerifyCurrentPassword()}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <Button
+              size="sm"
+              className="w-full h-8 text-xs"
+              onClick={handleVerifyCurrentPassword}
+              disabled={passwordLoading || !currentPassword}
+            >
+              {passwordLoading ? 'Vérification...' : 'Vérifier'}
+            </Button>
+          </div>
+        )}
+
+        {/* Étape 2 : nouveau mot de passe */}
+        {pwStep === 'change' && (
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-emerald-400">✓ Mot de passe vérifié</p>
             <div className="relative">
               <Input
                 type={showPassword ? 'text' : 'password'}
@@ -147,7 +209,7 @@ export default function ProfilSection({ userEmail }: Props) {
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="Confirmer le mot de passe"
+              placeholder="Confirmer le nouveau mot de passe"
               className="h-9 text-sm bg-slate-700 border-slate-600"
             />
             <Button
@@ -160,6 +222,7 @@ export default function ProfilSection({ userEmail }: Props) {
             </Button>
           </div>
         )}
+
         {passwordMsg && (
           <p className={`text-xs mt-2 ${passwordMsg.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
             {passwordMsg.text}
