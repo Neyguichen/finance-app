@@ -189,20 +189,28 @@ export default function VariablesPage() {
 
       {/* Dialogs */}
       <CategorieDialog open={catOpen} onOpenChange={setCatOpen}
-        onCreate={async ({ nom, icone }) => {
+        categories={effectiveCategories}
+        onCreate={async ({ nom, icone, parent_id }) => {
           if (isAdminViewing || !espaceId) return
-          await createCat.mutateAsync({ espace_id: espaceId, nom, icone, couleur: '#8B5CF6', ordre: effectiveCategories.length })
-        }} />
+          await createCat.mutateAsync({
+            espace_id: espaceId, nom, icone, couleur: '#8B5CF6',
+            ordre: effectiveCategories.length,
+            ...(parent_id ? { parent_id } : {}),
+          })
+        }} 
+      />
       <DepenseForm open={txOpen} onOpenChange={setTxOpen} doubleDate={doubleDate} categories={effectiveCategories} espaceId={espaceId} createCat={createCat}
         onSubmit={async (data) => {
           if (isAdminViewing || !moisId) return
           await createTx.mutateAsync({ mois_id: moisId, ...data })
-        }} />
+        }} 
+      />
       <DepenseEditDialog editTx={editTx} onClose={() => setEditTx(null)} categories={effectiveCategories} espaceId={espaceId} createCat={createCat}
         onSave={async (data) => {
           if (isAdminViewing) return
           await updateTx.mutateAsync(data)
-        }} doubleDate={doubleDate}/>
+        }} doubleDate={doubleDate}
+      />
       <DepenseDeleteDialog target={deleteTxTarget} onClose={() => setDeleteTxTarget(null)}
         onDelete={(id) => removeTx.mutate(id)} />
       <RemboursementDialog tx={rembTx} onClose={() => setRembTx(null)} />

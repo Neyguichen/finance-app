@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
 import InlineCatCreator from './InlineCatCreator'
 
 type Props = {
@@ -25,6 +26,9 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
   const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0])
   const [txDateValidation, setTxDateValidation] = useState('')
   const [inlineCatOpen, setInlineCatOpen] = useState(false)
+  const [inlineSubOpen, setInlineSubOpen] = useState(false)
+  const [newSubNom, setNewSubNom] = useState('')
+  const [newSubIcone, setNewSubIcone] = useState('📎')
 
   // Séparer parents et enfants
   const parentCategories = categories.filter((c: any) => !c.parent_id && c.actif !== false)
@@ -88,18 +92,51 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
             )}
           </div>
           {/* Sélecteur sous-catégorie (si la catégorie en a) */}
-          {subCats.length > 0 && (
+          {txCat && (
             <div>
               <label className="text-xs text-slate-400 mb-1 block">
                 Sous-catégorie <span className="text-slate-600">(optionnel)</span>
               </label>
-              <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                value={txSubCat} onChange={e => setTxSubCat(e.target.value)}>
-                <option value="">Aucune</option>
-                {subCats.map((sc: any) => (
-                  <option key={sc.id} value={sc.id}>{sc.icone} {sc.nom}</option>
-                ))}
-              </select>
+              {subCats.length > 0 && (
+                <select className="select select-bordered w-full bg-slate-800 border-slate-700"
+                  value={txSubCat} onChange={e => {
+                    if (e.target.value === '__NEW_SUB__') { setInlineSubOpen(true); setTxSubCat('') }
+                    else { setTxSubCat(e.target.value); setInlineSubOpen(false) }
+                  }}>
+                  <option value="">Aucune</option>
+                  {subCats.map((sc: any) => (
+                    <option key={sc.id} value={sc.id}>{sc.icone} {sc.nom}</option>
+                  ))}
+                  <option value="__NEW_SUB__">➕ Nouvelle sous-catégorie...</option>
+                </select>
+              )}
+              {subCats.length === 0 && !inlineSubOpen && (
+                <button type="button" onClick={() => setInlineSubOpen(true)}
+                  className="text-xs text-slate-500 hover:text-slate-300 py-1">
+                  ➕ Ajouter une sous-catégorie
+                </button>
+              )}
+              {inlineSubOpen && (
+                <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-2 mt-2">
+                  <p className="text-xs text-slate-400 font-semibold">Nouvelle sous-catégorie</p>
+                  <Input placeholder="Nom (ex: Alimentation)" value={newSubNom} onChange={e => setNewSubNom(e.target.value)} />
+                  <EmojiPicker value={newSubIcone} onChange={setNewSubIcone} />
+                  <div className="flex gap-2">
+                    <Button className="flex-1" size="sm" onClick={async () => {
+                      if (!newSubNom.trim() || !espaceId) return
+                      const parent = categories.find((c: any) => c.id === txCat)
+                      const newSub = await createCat.mutateAsync({
+                        espace_id: espaceId, nom: newSubNom.trim(), icone: newSubIcone,
+                        couleur: parent?.couleur || '#8B5CF6',
+                        ordre: categories.length, parent_id: txCat,
+                      })
+                      setTxSubCat(newSub.id)
+                      setNewSubNom(''); setNewSubIcone('📎'); setInlineSubOpen(false)
+                    }}>Créer</Button>
+                    <Button className="flex-1" size="sm" variant="ghost" onClick={() => { setInlineSubOpen(false); setNewSubNom('') }}>Annuler</Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant" />
