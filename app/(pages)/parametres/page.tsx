@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX, BarChart3 } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
+import { useBudgets } from '@/lib/hooks/useBudgets'
 import { createClient } from '@/lib/supabase/client'
 
 import Section from '@/components/pages/parametres/Section'
@@ -39,6 +40,9 @@ export default function ParametresPage() {
     })
   }, [])
 
+  const { moisId } = useApp()
+  const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
+
   return (
     <div className="p-4 space-y-3 pb-24">
       <h1 className="text-xl font-bold">⚙️ Paramètres</h1>
@@ -60,9 +64,12 @@ export default function ParametresPage() {
         <CategoriesSection
           categories={categories}
           espaceId={espaceId}
+          moisId={moisId}
+          budgets={budgets}
           createCat={createCat}
           updateCat={updateCat}
           removeCat={removeCat}
+          onUpsertBudget={(catId, prevu) => { if (moisId) upsertBudget.mutate({ mois_id: moisId, categorie_id: catId, prevu }) }}
         />
       </Section>
 

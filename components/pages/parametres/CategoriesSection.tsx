@@ -11,14 +11,19 @@ import { getCategoryColor } from '@/lib/utils'
 type Props = {
   categories: any[]
   espaceId: string | undefined
+  moisId: string | undefined
+  budgets: any[]
   createCat: any
   updateCat: any
   removeCat: any
+  onUpsertBudget?: (catId: string, prevu: number) => void
+  readOnly?: boolean
 }
 
-export default function CategoriesSection({ categories, espaceId, createCat, updateCat, removeCat }: Props) {
+export default function CategoriesSection({ categories, espaceId, moisId, budgets, createCat, updateCat, removeCat, onUpsertBudget, readOnly }: Props) {
   const [showArchived, setShowArchived] = useState(false)
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
+  const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>({})
 
   // Nouvelle catégorie
   const [newCatOpen, setNewCatOpen] = useState(false)
@@ -91,6 +96,12 @@ export default function CategoriesSection({ categories, espaceId, createCat, upd
     setExpandedCats(prev => new Set(prev).add(newSubCatParentId!))
   }
 
+  const getBudgetPrevu = (catId: string) => {
+    const b = budgets.find((b: any) => b.categorie_id === catId)
+    return b ? Number(b.prevu) : 0
+  }
+  const getBudgetInput = (catId: string) => budgetInputs[catId] ?? (getBudgetPrevu(catId) || '')
+
   return (
     <>
       <div className="space-y-2">
@@ -140,24 +151,46 @@ export default function CategoriesSection({ categories, espaceId, createCat, upd
                 <div className="ml-6 mt-1 space-y-1">
                   {subCats.map((sub: any) => (
                     <div key={sub.id} className="bg-slate-800/60 rounded-lg p-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sub.couleur || cat.couleur || getCategoryColor(0) }} />
-                        <span className="text-sm text-slate-300">{sub.icone} {sub.nom}</span>
-                      </div>
-                      <div className="flex gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400" onClick={() => {
-                          setEditCat(sub)
-                          setEditCatNom(sub.nom)
-                          setEditCatIcone(sub.icone || '📎')
-                          setEditCatCouleur(sub.couleur || cat.couleur || '#8B5CF6')
-                        }}>
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400" onClick={() => setDeleteTarget(sub)}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sub.couleur || cat.couleur || '#8B5CF6' }} />
+                      <span className="text-sm text-slate-300 truncate">{sub.icone} {sub.nom}</span>
                     </div>
+                    <div className="flex items-center gap-1">
+                      {/* Budget input */}
+                      {onUpsertBudget && !readOnly && moisId && (
+                        <div className="flex items-center gap-0.5">
+                          <input
+                            type="number" step="0.01"
+                            className="h-6 w-16 text-[10px] bg-slate-700 border border-slate-600 rounded px-1 text-right text-slate-300"
+                            placeholder="Budget"
+                            value={getBudgetInput(sub.id)}
+                            onChange={e => setBudgetInputs(prev => ({ ...prev, [sub.id]: e.target.value }))}
+                          />
+                          <button
+                            className="h-6 px-1.5 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
+                            onClick={() => {
+                              onUpsertBudget(sub.id, parseFloat(String(getBudgetInput(sub.id))) || 0)
+                              setBudgetInputs(prev => { const next = { ...prev }; delete next[sub.id]; return next })
+                            }}
+                          >✓</button>
+                        </div>
+                      )}
+                      {getBudgetPrevu(sub.id) > 0 && (!onUpsertBudget || readOnly) && (
+                        <span className="text-[10px] text-slate-500">{getBudgetPrevu(sub.id)}€</span>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400" onClick={() => {
+                        setEditCat(sub)
+                        setEditCatNom(sub.nom)
+                        setEditCatIcone(sub.icone || '📎')
+                        setEditCatCouleur(sub.couleur || cat.couleur || '#8B5CF6')
+                      }}>
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400" onClick={() => setDeleteTarget(sub)}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
                   ))}
                   {/* Bouton ajouter sous-catégorie */}
                   <button

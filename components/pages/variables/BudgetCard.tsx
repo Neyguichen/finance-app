@@ -46,7 +46,7 @@ export default function BudgetCard({ cat, prevu, depense, avgMois, inactive, rea
     <div className={`bg-slate-900${inactive ? '/50' : ''} border border-slate-800 rounded-xl p-3 space-y-1.5${inactive ? ' opacity-60' : ''}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 min-w-0">
-          {hasSubCats && !inactive && (
+          {hasSubCats && (
             <button type="button" onClick={() => setExpanded(!expanded)} className="text-slate-500 hover:text-slate-300 flex-shrink-0">
               {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             </button>
@@ -105,7 +105,7 @@ export default function BudgetCard({ cat, prevu, depense, avgMois, inactive, rea
       )}
 
       {/* Avec sous-catégories : détail expandable */}
-      {hasSubCats && expanded && !inactive && (
+      {hasSubCats && expanded && (
         <div className="mt-2 space-y-1.5 border-t border-slate-800 pt-2">
           {subCats.map(sc => {
             const scRatio = sc.prevu > 0 ? pct(sc.depense, sc.prevu) : 0
