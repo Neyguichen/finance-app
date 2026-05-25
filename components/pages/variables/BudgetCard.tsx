@@ -40,7 +40,7 @@ export default function BudgetCard({ cat, prevu, depense, avgMois, inactive, rea
   const effectivePrevu = hasSubCats ? totalPrevuSubCats : prevu
   const effectiveRatio = effectivePrevu > 0 ? pct(depense, effectivePrevu) : 0
 
-  const getSubInput = (sc: SubCatBudget) => subInputs[sc.id] ?? sc.prevu || ''
+  const getSubInput = (sc: SubCatBudget) => subInputs[sc.id] ?? (sc.prevu || '')
 
   return (
     <div className={`bg-slate-900${inactive ? '/50' : ''} border border-slate-800 rounded-xl p-3 space-y-1.5${inactive ? ' opacity-60' : ''}`}>
