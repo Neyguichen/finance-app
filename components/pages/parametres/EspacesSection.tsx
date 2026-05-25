@@ -204,9 +204,9 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
               <input
                 type="checkbox"
                 className="toggle toggle-sm toggle-primary"
-                checked={!!espace.double_date}
+                checked={!!esp.double_date}
                 onChange={async (e) => {
-                  await updateEspace(espace.id, { double_date: e.target.checked })
+                  await updateEspace(esp.id, { double_date: e.target.checked })
                 }}
               />
             </div>
