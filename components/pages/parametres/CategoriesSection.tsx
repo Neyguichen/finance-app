@@ -121,7 +121,6 @@ export default function CategoriesSection({ categories, espaceId, moisId, budget
               {/* Catégorie parente */}
               <div className="bg-slate-800 rounded-lg p-2 flex items-center justify-between">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {/* Chevron expand si sous-catégories ou pour en ajouter */}
                   <button type="button" onClick={() => toggleExpand(cat.id)} className="text-slate-500 hover:text-slate-300 flex-shrink-0">
                     {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </button>
@@ -131,7 +130,32 @@ export default function CategoriesSection({ categories, espaceId, moisId, budget
                     <span className="text-[10px] text-slate-500 flex-shrink-0">({subCats.length})</span>
                   )}
                 </div>
-                <div className="flex gap-0.5 flex-shrink-0">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* Budget input — uniquement si PAS de sous-cat */}
+                  {onUpsertBudget && !readOnly && moisId && subCats.length === 0 && (
+                    <div className="flex items-center gap-0.5">
+                      <input
+                        type="number" step="0.01"
+                        className="h-6 w-16 text-[10px] bg-slate-700 border border-slate-600 rounded px-1 text-right text-slate-300"
+                        placeholder="Budget"
+                        value={getBudgetInput(cat.id)}
+                        onChange={e => setBudgetInputs(prev => ({ ...prev, [cat.id]: e.target.value }))}
+                      />
+                      <button
+                        className="h-6 px-1.5 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
+                        onClick={() => {
+                          onUpsertBudget(cat.id, parseFloat(String(getBudgetInput(cat.id))) || 0)
+                          setBudgetInputs(prev => { const next = { ...prev }; delete next[cat.id]; return next })
+                        }}
+                      >✓</button>
+                    </div>
+                  )}
+                  {/* Si sous-cat : afficher le total budget calculé */}
+                  {subCats.length > 0 && (
+                    <span className="text-[10px] text-slate-500 mr-1">
+                      {subCats.reduce((s: number, sc: any) => s + getBudgetPrevu(sc.id), 0)}€
+                    </span>
+                  )}
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400" onClick={() => {
                     setEditCat(cat)
                     setEditCatNom(cat.nom)
