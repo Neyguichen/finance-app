@@ -17,7 +17,7 @@ interface AppContextType {
   setMonth: (m: string) => void
   loading: boolean
   addEspace: (nom: string, icone?: string, soldeInitial?: number) => Promise<void>
-  updateEspace: (id: string, updates: { nom?: string; icone?: string; solde_initial?: number }) => Promise<void>
+  updateEspace: (id: string, updates: { nom?: string; icone?: string; solde_initial?: number; double_date?: boolean; dashboard_stats?: Record<string, boolean> }) => Promise<void>
   removeEspace: (id: string) => Promise<void>
   refreshEspaces: () => Promise<void>
   syncing: boolean
@@ -182,7 +182,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Mettre à jour un espace (nom, icone, solde_initial)
-  const updateEspace = async (id: string, updates: { nom?: string; icone?: string; solde_initial?: number }) => {
+  const updateEspace = async (id: string, updates: { nom?: string; icone?: string; solde_initial?: number; double_date?: boolean; dashboard_stats?: Record<string, boolean> }) => {
     const { error } = await supabase.from('espaces').update(updates).eq('id', id)
     if (error) { console.error('Erreur update espace:', error); return }
     setEspaces(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e))
