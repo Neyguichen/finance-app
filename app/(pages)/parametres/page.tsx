@@ -22,7 +22,7 @@ export default function ParametresPage() {
   const { data: categories = [], create: createCat, update: updateCat, remove: removeCat } = useCategories(espaceId)
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    profil: false, espaces: true, categories: false, stats: false, apparence: false,
+    profil: false, espaces: false, categories: false, stats: false, apparence: false,
     export: false, donnees: false, compte: false,
   })
   const toggle = (key: string) => setOpenSections(prev => {
