@@ -100,8 +100,8 @@ export default function SplitDialog({ tx, onClose, categories, onSave }: Props) 
     <Dialog open={!!tx} onOpenChange={v => { if (!v) onClose() }}>
       <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            ✂️ Splitter la dépense
+          <DialogTitle>
+            <span className="flex items-center gap-2">✂️ Splitter la dépense</span>
           </DialogTitle>
           {tx && (
             <div className="text-sm text-slate-400 mt-1">
