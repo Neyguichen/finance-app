@@ -70,33 +70,29 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
                 )}
               </div>
               {!readOnly && (
-                <div className="flex flex-col gap-0.5">
-                  {/* Éditer (seulement si pas splitté) */}
+                <div className="grid grid-cols-2 gap-0.5">
                   {!isSplit && (
-                    <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7" onClick={() => onEdit(tx)}>
+                    <Button variant="ghost" size="icon" className="text-slate-500 h-6 w-6" onClick={() => onEdit(tx)}>
                       <Pencil className="w-3 h-3" />
                     </Button>
                   )}
-                  {/* Split / Re-split */}
                   {onSplit && (
-                    <Button variant="ghost" size="icon" className="text-indigo-400 h-7 w-7" onClick={() => onSplit(tx)}>
+                    <Button variant="ghost" size="icon" className="text-indigo-400 h-6 w-6" onClick={() => onSplit(tx)}>
                       <Scissors className="w-3 h-3" />
                     </Button>
                   )}
-                  {/* Unsplit */}
                   {isSplit && onUnsplit && (
-                    <Button variant="ghost" size="icon" className="text-amber-400 h-7 w-7" onClick={() => onUnsplit(tx)}
+                    <Button variant="ghost" size="icon" className="text-amber-400 h-6 w-6" onClick={() => onUnsplit(tx)}
                       title="Annuler le split">
                       <X className="w-3 h-3" />
                     </Button>
                   )}
-                  {/* Remboursement (seulement si pas splitté — on rembourse les enfants) */}
                   {!isSplit && (
-                    <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7" onClick={() => onRemb(tx)}>
+                    <Button variant="ghost" size="icon" className="text-slate-500 h-6 w-6" onClick={() => onRemb(tx)}>
                       <ReceiptText className="w-3 h-3" />
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7" onClick={() => onDelete(tx)}>
+                  <Button variant="ghost" size="icon" className="text-slate-500 h-6 w-6" onClick={() => onDelete(tx)}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>
