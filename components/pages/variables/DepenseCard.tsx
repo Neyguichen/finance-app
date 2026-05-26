@@ -66,7 +66,7 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
                 )}
               </div>
               {!readOnly && (
-                <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-0.5">
                   <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7" onClick={() => onEdit(tx)}>
                     <Pencil className="w-3 h-3" />
                   </Button>
