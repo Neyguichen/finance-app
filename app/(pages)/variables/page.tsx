@@ -184,8 +184,7 @@ export default function VariablesPage() {
           <div className="space-y-2">
             {effectiveTransactions.map((tx: any) => (
               <DepenseCard key={tx.id} tx={tx} readOnly={isAdminViewing} doubleDate={doubleDate} getMontantNet={getMontantNet}
-                onEdit={setEditTx} onRemb={setRembTx} onDelete={setDeleteTxTarget} 
-                onSplit={setSplitTx} onUnsplit={(tx) => unsplit.mutate(tx.id)} />
+                onEdit={setEditTx} onDelete={setDeleteTxTarget} />
             ))}
           </div>
         </div>
@@ -227,6 +226,9 @@ export default function VariablesPage() {
           if (isAdminViewing) return
           await updateTx.mutateAsync(data)
         }} doubleDate={doubleDate}
+        onRemb={(tx) => { setEditTx(null); setRembTx(tx) }}
+        onSplit={(tx) => { setEditTx(null); setSplitTx(tx) }}
+        onUnsplit={(tx) => { unsplit.mutate(tx.id); setEditTx(null) }}
       />
       <DepenseDeleteDialog target={deleteTxTarget} onClose={() => setDeleteTxTarget(null)}
         onDelete={(id) => removeTx.mutate(id)} />

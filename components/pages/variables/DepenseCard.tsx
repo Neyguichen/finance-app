@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, ReceiptText, Scissors, ChevronDown, ChevronRight, X } from 'lucide-react'
+import { Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { formatEuro, formatDate } from '@/lib/utils'
 
 type Props = {
@@ -10,13 +10,10 @@ type Props = {
   doubleDate?: boolean
   getMontantNet: (tx: any) => number
   onEdit: (tx: any) => void
-  onRemb: (tx: any) => void
   onDelete: (tx: any) => void
-  onSplit?: (tx: any) => void
-  onUnsplit?: (tx: any) => void
 }
 
-export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, onEdit, onRemb, onDelete, onSplit, onUnsplit }: Props) {
+export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, onEdit, onDelete }: Props) {
   const [expanded, setExpanded] = useState(false)
   const net = getMontantNet(tx)
   const hasRemb = tx.remboursements?.length > 0
@@ -29,7 +26,6 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
         <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              {/* Toggle expand pour split */}
               {isSplit ? (
                 <button type="button" onClick={() => setExpanded(!expanded)} className="text-indigo-400 hover:text-indigo-200 flex-shrink-0">
                   {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -70,29 +66,11 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
                 )}
               </div>
               {!readOnly && (
-                <div className="grid grid-cols-2 gap-0.5">
-                  {!isSplit && (
-                    <Button variant="ghost" size="icon" className="text-slate-500 h-6 w-6" onClick={() => onEdit(tx)}>
-                      <Pencil className="w-3 h-3" />
-                    </Button>
-                  )}
-                  {onSplit && (
-                    <Button variant="ghost" size="icon" className="text-indigo-400 h-6 w-6" onClick={() => onSplit(tx)}>
-                      <Scissors className="w-3 h-3" />
-                    </Button>
-                  )}
-                  {isSplit && onUnsplit && (
-                    <Button variant="ghost" size="icon" className="text-amber-400 h-6 w-6" onClick={() => onUnsplit(tx)}
-                      title="Annuler le split">
-                      <X className="w-3 h-3" />
-                    </Button>
-                  )}
-                  {!isSplit && (
-                    <Button variant="ghost" size="icon" className="text-slate-500 h-6 w-6" onClick={() => onRemb(tx)}>
-                      <ReceiptText className="w-3 h-3" />
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="icon" className="text-slate-500 h-6 w-6" onClick={() => onDelete(tx)}>
+                <div className="flex flex-col gap-0.5">
+                  <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7" onClick={() => onEdit(tx)}>
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7" onClick={() => onDelete(tx)}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>
@@ -122,17 +100,10 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
                         {child.infos && <p className="text-[10px] text-slate-500 truncate">{child.infos}</p>}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-pink-400">{formatEuro(childNet)}</p>
-                        {childHasRemb && (
-                          <p className="text-[10px] text-emerald-400 line-through">{formatEuro(Number(child.montant))}</p>
-                        )}
-                      </div>
-                      {!readOnly && (
-                        <Button variant="ghost" size="icon" className="text-slate-500 h-6 w-6" onClick={() => onRemb(child)}>
-                          <ReceiptText className="w-3 h-3" />
-                        </Button>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-bold text-pink-400">{formatEuro(childNet)}</p>
+                      {childHasRemb && (
+                        <p className="text-[10px] text-emerald-400 line-through">{formatEuro(Number(child.montant))}</p>
                       )}
                     </div>
                   </div>
