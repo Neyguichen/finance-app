@@ -23,15 +23,17 @@ import RemboursementDialog from '@/components/pages/variables/RemboursementDialo
 import CategorieDialog from '@/components/pages/variables/CategorieDialog'
 import ArchiveDialog from '@/components/pages/variables/ArchiveDialog'
 import VariablesFab from '@/components/pages/variables/VariablesFab'
+import SplitDialog from '@/components/pages/variables/SplitDialog'
 
 export default function VariablesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const espaceId = espace?.id
   const doubleDate = !!espace?.double_date
+  const [splitTx, setSplitTx] = useState<any>(null)
 
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
-  const { data: transactions = [], create: createTx, update: updateTx, remove: removeTx } = useTransactions(moisId)
+  const { data: transactions = [], allFlat, create: createTx, update: updateTx, remove: removeTx, split, unsplit } = useTransactions(moisId)
   const { data: revenusList = [] } = useRevenus(moisId)
   const { data: chargesList = [] } = useChargesFixesData(moisId)
   const { data: mouvementsList = [] } = useMouvements(moisId)
@@ -42,6 +44,7 @@ export default function VariablesPage() {
   const effectiveCategories = isAdminViewing ? (adminData?.categories || []) : categories
   const effectiveBudgets = isAdminViewing ? (adminData?.budgets || []) : budgets
   const effectiveTransactions = isAdminViewing ? (adminData?.transactions || []) : transactions
+  const effectiveTransactionsFlat = isAdminViewing ? (adminData?.transactions || []) : allFlat
   const effectiveRevenusList = isAdminViewing ? (adminData?.revenus || []) : revenusList
   const effectiveChargesList = isAdminViewing ? (adminData?.charges_fixes || []) : chargesList
   const effectiveMouvementsList = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvementsList
@@ -59,7 +62,7 @@ export default function VariablesPage() {
     }
     return effectiveBudgets.find((b: any) => b.categorie_id === catId)
   }
-  const getDepenses = (catId: string) => effectiveTransactions
+  const getDepenses = (catId: string) => effectiveTransactionsFlat
     .filter((t: any) => t.categorie_id === catId)
     .reduce((s: number, t: any) => s + getMontantNet(t), 0)
   const getMontantNet = (tx: any) => {
@@ -74,7 +77,7 @@ export default function VariablesPage() {
       .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
       .map((sc: any) => {
         const budget = effectiveBudgets.find((b: any) => b.categorie_id === sc.id)
-        const dep = effectiveTransactions
+        const dep = effectiveTransactionsFlat
           .filter((t: any) => t.sous_categorie_id === sc.id)
           .reduce((s: number, t: any) => s + getMontantNet(t), 0)
         return {
@@ -114,7 +117,7 @@ export default function VariablesPage() {
     const b = effectiveBudgets.find((b: any) => b.categorie_id === cat.id)
     return s + (b ? Number(b.prevu) : 0)
   }, 0)
-  const totalReel = effectiveTransactions.reduce((s: number, t: any) => s + getMontantNet(t), 0)
+  const totalReel = effectiveTransactionsFlat.reduce((s: number, t: any) => s + getMontantNet(t), 0)
 
   const [fabOpen, setFabOpen] = useState(false)
   const [catOpen, setCatOpen] = useState(false)
@@ -181,13 +184,21 @@ export default function VariablesPage() {
           <div className="space-y-2">
             {effectiveTransactions.map((tx: any) => (
               <DepenseCard key={tx.id} tx={tx} readOnly={isAdminViewing} doubleDate={doubleDate} getMontantNet={getMontantNet}
-                onEdit={setEditTx} onRemb={setRembTx} onDelete={setDeleteTxTarget} />
+                onEdit={setEditTx} onRemb={setRembTx} onDelete={setDeleteTxTarget} 
+                onSplit={setSplitTx} onUnsplit={(tx) => unsplit.mutate(tx.id)} />
             ))}
           </div>
         </div>
       </div>
 
       {/* Dialogs */}
+      <SplitDialog tx={splitTx} onClose={() => setSplitTx(null)}
+        categories={effectiveCategories}
+        onSave={async (parentId, lines) => {
+          await split.mutateAsync({ parentId, lines })
+        }} 
+      />
+
       <CategorieDialog open={catOpen} onOpenChange={setCatOpen}
         categories={effectiveCategories}
         onCreate={async ({ nom, icone, parent_id }) => {
@@ -199,11 +210,17 @@ export default function VariablesPage() {
           })
         }} 
       />
-      <DepenseForm open={txOpen} onOpenChange={setTxOpen} doubleDate={doubleDate} categories={effectiveCategories} espaceId={espaceId} createCat={createCat}
+      <DepenseForm open={txOpen} onOpenChange={setTxOpen} doubleDate={doubleDate}
+        categories={effectiveCategories} espaceId={espaceId} createCat={createCat}
         onSubmit={async (data) => {
           if (isAdminViewing || !moisId) return
           await createTx.mutateAsync({ mois_id: moisId, ...data })
-        }} 
+        }}
+        onSubmitSplit={async (parentData, lines) => {
+          if (isAdminViewing || !moisId) return
+          const parent = await createTx.mutateAsync({ mois_id: moisId, ...parentData })
+          await split.mutateAsync({ parentId: parent.id, lines })
+        }}
       />
       <DepenseEditDialog editTx={editTx} onClose={() => setEditTx(null)} categories={effectiveCategories} espaceId={espaceId} createCat={createCat}
         onSave={async (data) => {

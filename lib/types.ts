@@ -92,6 +92,9 @@ export interface Transaction {
   infos: string | null
   categorie?: Categorie
   sous_categorie?: Categorie | null
+  parent_transaction_id?: string | null
+  is_split?: boolean
+  children?: Transaction[]
 }
 
 export interface Remboursement {

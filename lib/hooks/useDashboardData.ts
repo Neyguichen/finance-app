@@ -17,7 +17,7 @@ export function useDashboardData() {
 
   const { data: revenus = [] } = useRevenus(moisId)
   const { data: charges = [] } = useChargesFixes(moisId)
-  const { data: transactions = [] } = useTransactions(moisId)
+  const { allFlat: transactionsFlat = [] } = useTransactions(moisId)
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: categories = [] } = useCategories(espace?.id)
   const { data: budgets = [] } = useBudgets(moisId)
@@ -28,7 +28,7 @@ export function useDashboardData() {
   // Override en mode admin
   const rev = isAdminViewing ? (adminData?.revenus || []) : revenus
   const chg = isAdminViewing ? (adminData?.charges_fixes || []) : charges
-  const txn = isAdminViewing ? (adminData?.transactions || []) : transactions
+  const txn = isAdminViewing ? (adminData?.transactions || []) : transactionsFlat
   const mvt = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvements
   const cat = isAdminViewing ? (adminData?.categories || []) : categories
   const bgt = isAdminViewing ? (adminData?.budgets || []) : budgets
