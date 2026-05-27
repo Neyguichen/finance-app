@@ -28,13 +28,13 @@ export default function CategorieDialog({ open, onOpenChange, categories = [], o
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
-        <DialogHeader><DialogTitle>{parentId ? 'Nouvelle sous-catégorie' : 'Nouveau budget'}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{parentId ? 'Nouvelle sous-catégorie' : 'Nouvelle catégorie'}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           {/* Sélecteur catégorie parente (optionnel) */}
           {parentCategories.length > 0 && (
             <div>
               <label className="text-xs text-slate-400 mb-1 block">
-                Rattacher à un budget <span className="text-slate-600">(optionnel)</span>
+                Rattacher à une catégorie <span className="text-slate-600">(optionnel)</span>
               </label>
               <select
                 className="select select-bordered w-full bg-slate-800 border-slate-700 text-sm"
@@ -45,7 +45,7 @@ export default function CategorieDialog({ open, onOpenChange, categories = [], o
                   else setIcone('🛒')
                 }}
               >
-                <option value="">Aucun (budget principal)</option>
+                <option value="">Aucune (catégorie principale)</option>
                 {[...parentCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                 ))}

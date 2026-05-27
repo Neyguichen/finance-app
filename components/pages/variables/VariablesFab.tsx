@@ -19,7 +19,7 @@ export default function VariablesFab({ open, onToggle, onBudget, onDepense }: Pr
         {open && (
           <>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Budget</span>
+              <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Catégorie</span>
               <button onClick={onBudget}
                 className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform">
                 📂

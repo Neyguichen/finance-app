@@ -115,11 +115,11 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
               <div className="space-y-2">
                 <select className="select select-bordered w-full bg-slate-800 border-slate-700"
                   value={catId} onChange={e => handleCatChange(e.target.value)}>
-                  <option value="">Budget...</option>
+                  <option value="">Catégorie...</option>
                   {[...parentCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                     <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                   ))}
-                  <option value="__NEW__">➕ Nouveau budget...</option>
+                  <option value="__NEW__">➕ Nouvelle catégorie...</option>
                 </select>
                 {inlineCatOpen && espaceId && (
                   <InlineCatCreator

@@ -125,11 +125,11 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
               <div className="space-y-2">
                 <select className="select select-bordered w-full bg-slate-800 border-slate-700"
                   value={txCat} onChange={e => handleCatChange(e.target.value)}>
-                  <option value="">Budget...</option>
+                  <option value="">Catégorie...</option>
                   {[...parentCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                     <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                   ))}
-                  <option value="__NEW__">➕ Nouveau budget...</option>
+                  <option value="__NEW__">➕ Nouvelle catégorie...</option>
                 </select>
                 {inlineCatOpen && espaceId && (
                   <InlineCatCreator espaceId={espaceId} categoriesCount={categories.length}
@@ -215,7 +215,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
                     </div>
                     <select className="select select-bordered w-full bg-slate-700 border-slate-600 text-sm"
                       value={line.categorie_id} onChange={e => updateSplitLine(i, 'categorie_id', e.target.value)}>
-                      <option value="">Budget...</option>
+                      <option value="">Catégorie...</option>
                       {[...parentCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                         <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                       ))}
