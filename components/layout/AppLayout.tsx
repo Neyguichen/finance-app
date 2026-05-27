@@ -57,7 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="h-full flex flex-col overflow-hidden">
       <AdminBanner />
       <header
-        className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800 z-30"
+        className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800"
         style={headerWrapStyle}
       >
         <EspaceSelector />
