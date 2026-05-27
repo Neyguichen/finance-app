@@ -6,7 +6,6 @@ import MobileNav from '@/components/layout/MobileNav';
 import EspaceSelector from '@/components/layout/EspaceSelector';
 import AppMenu from '@/components/layout/AppMenu';
 import AdminBanner from '@/components/layout/AdminBanner';
-import StickyHeader from '@/components/layout/StickyHeader';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,16 +28,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
-      <body className={`${inter.className} bg-slate-950 text-white`}>
+    <html lang="fr" className="h-full">
+      <body className={`${inter.className} bg-slate-950 text-white h-full flex flex-col overflow-hidden`}>
       <Providers>
         <AdminBanner />
-        {/* Header global avec menu hamburger */}
-        <StickyHeader>
+        {/* Header — hors de la zone scrollable, ne disparait jamais */}
+        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800 z-30">
           <EspaceSelector />
           <AppMenu />
-        </StickyHeader>
-        <main className="pb-20 min-h-screen">
+        </header>
+        {/* Zone scrollable */}
+        <main className="flex-1 overflow-y-auto pb-20">
           {children}
         </main>
         <MobileNav />
