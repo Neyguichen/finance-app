@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { Plus, Trash2 } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
+import InlineCatCreator from './InlineCatCreator'
 
 type SplitLine = {
   categorie_id: string
@@ -19,12 +21,18 @@ type Props = {
   tx: any | null
   onClose: () => void
   categories: any[]
+  espaceId: string | undefined
+  createCat: any
   onSave: (parentId: string, lines: SplitLine[]) => Promise<void>
 }
 
-export default function SplitDialog({ tx, onClose, categories, onSave }: Props) {
+export default function SplitDialog({ tx, onClose, categories, espaceId, createCat, onSave }: Props) {
   const [lines, setLines] = useState<SplitLine[]>([])
   const [saving, setSaving] = useState(false)
+  const [newCatLineIndex, setNewCatLineIndex] = useState<number | null>(null)
+  const [newSubLineIndex, setNewSubLineIndex] = useState<number | null>(null)
+  const [newSubNom, setNewSubNom] = useState('')
+  const [newSubIcone, setNewSubIcone] = useState('📎')
 
   const parentCategories = categories.filter((c: any) => !c.parent_id && c.actif !== false)
   const getSubCats = (parentId: string) =>
@@ -39,7 +47,6 @@ export default function SplitDialog({ tx, onClose, categories, onSave }: Props) 
   useEffect(() => {
     if (tx) {
       if (tx.is_split && tx.children?.length > 0) {
-        // Pré-remplir avec les enfants existants
         setLines(tx.children.map((c: any) => ({
           categorie_id: c.categorie_id,
           sous_categorie_id: c.sous_categorie_id || '',
@@ -47,12 +54,13 @@ export default function SplitDialog({ tx, onClose, categories, onSave }: Props) 
           infos: c.infos || '',
         })))
       } else {
-        // Pré-remplir ligne 1 avec la catégorie actuelle + le reste vide
         setLines([
           { categorie_id: tx.categorie_id, sous_categorie_id: tx.sous_categorie_id || '', montant: 0, infos: '' },
           { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' },
         ])
       }
+      setNewCatLineIndex(null)
+      setNewSubLineIndex(null)
     }
   }, [tx])
 
@@ -60,10 +68,29 @@ export default function SplitDialog({ tx, onClose, categories, onSave }: Props) 
     setLines(prev => prev.map((l, i) => {
       if (i !== index) return l
       const updated = { ...l, [field]: value }
-      // Reset sous-cat si on change de catégorie
       if (field === 'categorie_id') updated.sous_categorie_id = ''
       return updated
     }))
+  }
+
+  const handleCatChange = (index: number, value: string) => {
+    if (value === '__NEW__') {
+      setNewCatLineIndex(index)
+    } else {
+      updateLine(index, 'categorie_id', value)
+      if (newCatLineIndex === index) setNewCatLineIndex(null)
+    }
+  }
+
+  const handleSubCatChange = (index: number, value: string) => {
+    if (value === '__NEW_SUB__') {
+      setNewSubLineIndex(index)
+      setNewSubNom('')
+      setNewSubIcone('📎')
+    } else {
+      updateLine(index, 'sous_categorie_id', value)
+      if (newSubLineIndex === index) setNewSubLineIndex(null)
+    }
   }
 
   const addLine = () => {
@@ -73,9 +100,10 @@ export default function SplitDialog({ tx, onClose, categories, onSave }: Props) 
   const removeLine = (index: number) => {
     if (lines.length <= 2) return
     setLines(prev => prev.filter((_, i) => i !== index))
+    if (newCatLineIndex === index) setNewCatLineIndex(null)
+    if (newSubLineIndex === index) setNewSubLineIndex(null)
   }
 
-  // Auto-fill dernière ligne avec le reste
   const autoFillLast = () => {
     if (remaining <= 0) return
     setLines(prev => prev.map((l, i) => i === prev.length - 1 ? { ...l, montant: Math.round((l.montant + remaining) * 100) / 100 } : l))
@@ -127,22 +155,81 @@ export default function SplitDialog({ tx, onClose, categories, onSave }: Props) 
                 </div>
                 {/* Catégorie */}
                 <select className="select select-bordered w-full bg-slate-700 border-slate-600 text-sm"
-                  value={line.categorie_id} onChange={e => updateLine(i, 'categorie_id', e.target.value)}>
+                  value={line.categorie_id} onChange={e => handleCatChange(i, e.target.value)}>
                   <option value="">Budget...</option>
                   {[...parentCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                     <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                   ))}
+                  <option value="__NEW__">➕ Nouveau budget...</option>
                 </select>
-                {/* Sous-catégorie */}
-                {subCats.length > 0 && (
-                  <select className="select select-bordered w-full bg-slate-700 border-slate-600 text-sm"
-                    value={line.sous_categorie_id} onChange={e => updateLine(i, 'sous_categorie_id', e.target.value)}>
-                    <option value="">Sous-catégorie (optionnel)</option>
-                    {subCats.map((sc: any) => (
-                      <option key={sc.id} value={sc.id}>{sc.icone} {sc.nom}</option>
-                    ))}
-                  </select>
+                {newCatLineIndex === i && espaceId && (
+                  <InlineCatCreator
+                    espaceId={espaceId}
+                    categoriesCount={categories.length}
+                    createCat={(data: any) => createCat.mutateAsync(data)}
+                    onCreated={(id: string) => { updateLine(i, 'categorie_id', id); setNewCatLineIndex(null) }}
+                    onCancel={() => setNewCatLineIndex(null)}
+                  />
                 )}
+                {/* Sous-catégorie */}
+                {line.categorie_id && subCats.length > 0 ? (
+                  <>
+                    <select className="select select-bordered w-full bg-slate-700 border-slate-600 text-sm"
+                      value={line.sous_categorie_id} onChange={e => handleSubCatChange(i, e.target.value)}>
+                      <option value="">Sous-catégorie (optionnel)</option>
+                      {subCats.map((sc: any) => (
+                        <option key={sc.id} value={sc.id}>{sc.icone} {sc.nom}</option>
+                      ))}
+                      <option value="__NEW_SUB__">➕ Nouvelle sous-catégorie...</option>
+                    </select>
+                    {newSubLineIndex === i && (
+                      <div className="bg-slate-700 border border-slate-600 rounded-lg p-2 space-y-2">
+                        <p className="text-xs text-slate-400 font-semibold">Nouvelle sous-catégorie</p>
+                        <Input placeholder="Nom" value={newSubNom} className="text-sm bg-slate-600 border-slate-500"
+                          onChange={e => setNewSubNom(e.target.value)} />
+                        <EmojiPicker value={newSubIcone} onChange={setNewSubIcone} />
+                        <div className="flex gap-2">
+                          <Button className="flex-1" size="sm" onClick={async () => {
+                            if (!newSubNom.trim() || !espaceId) return
+                            const parent = categories.find((c: any) => c.id === line.categorie_id)
+                            const newSub = await createCat.mutateAsync({
+                              espace_id: espaceId, nom: newSubNom.trim(), icone: newSubIcone,
+                              couleur: parent?.couleur || '#8B5CF6', ordre: categories.length, parent_id: line.categorie_id,
+                            })
+                            updateLine(i, 'sous_categorie_id', newSub.id)
+                            setNewSubNom(''); setNewSubIcone('📎'); setNewSubLineIndex(null)
+                          }}>Créer</Button>
+                          <Button className="flex-1" size="sm" variant="ghost" onClick={() => setNewSubLineIndex(null)}>Annuler</Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : line.categorie_id && subCats.length === 0 && newSubLineIndex !== i ? (
+                  <button type="button" onClick={() => { setNewSubLineIndex(i); setNewSubNom(''); setNewSubIcone('📎') }}
+                    className="text-xs text-slate-500 hover:text-slate-300 py-1">
+                    ➕ Ajouter une sous-catégorie
+                  </button>
+                ) : line.categorie_id && newSubLineIndex === i ? (
+                  <div className="bg-slate-700 border border-slate-600 rounded-lg p-2 space-y-2">
+                    <p className="text-xs text-slate-400 font-semibold">Nouvelle sous-catégorie</p>
+                    <Input placeholder="Nom" value={newSubNom} className="text-sm bg-slate-600 border-slate-500"
+                      onChange={e => setNewSubNom(e.target.value)} />
+                    <EmojiPicker value={newSubIcone} onChange={setNewSubIcone} />
+                    <div className="flex gap-2">
+                      <Button className="flex-1" size="sm" onClick={async () => {
+                        if (!newSubNom.trim() || !espaceId) return
+                        const parent = categories.find((c: any) => c.id === line.categorie_id)
+                        const newSub = await createCat.mutateAsync({
+                          espace_id: espaceId, nom: newSubNom.trim(), icone: newSubIcone,
+                          couleur: parent?.couleur || '#8B5CF6', ordre: categories.length, parent_id: line.categorie_id,
+                        })
+                        updateLine(i, 'sous_categorie_id', newSub.id)
+                        setNewSubNom(''); setNewSubIcone('📎'); setNewSubLineIndex(null)
+                      }}>Créer</Button>
+                      <Button className="flex-1" size="sm" variant="ghost" onClick={() => setNewSubLineIndex(null)}>Annuler</Button>
+                    </div>
+                  </div>
+                ) : null}
                 {/* Montant */}
                 <CalculatorInput value={line.montant} onChange={v => updateLine(i, 'montant', v)} placeholder="Montant" />
                 {/* Infos */}
@@ -152,7 +239,6 @@ export default function SplitDialog({ tx, onClose, categories, onSave }: Props) 
             )
           })}
 
-          {/* Ajouter une ligne */}
           <Button variant="outline" size="sm" className="w-full text-xs" onClick={addLine}>
             <Plus className="w-3 h-3 mr-1" /> Ajouter une ligne
           </Button>
@@ -183,7 +269,6 @@ export default function SplitDialog({ tx, onClose, categories, onSave }: Props) 
             </div>
           </div>
 
-          {/* Actions */}
           <Button className="w-full" onClick={handleSave} disabled={!isValid || saving}>
             {saving ? 'Enregistrement...' : '✂️ Valider le split'}
           </Button>

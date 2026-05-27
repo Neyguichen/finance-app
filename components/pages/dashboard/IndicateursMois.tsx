@@ -122,8 +122,8 @@ export default function IndicateursMois({
 
         {/* Top 3 dépenses */}
         {showTop3Depenses && top3Depenses.length > 0 && (
-          <div>
-            <p className="text-xs text-slate-500 mb-1.5">🏆 Top 3 dépenses du mois</p>
+          <div className="bg-pink-950/20 border border-pink-900/30 rounded-lg p-3">
+            <p className="text-xs font-semibold text-pink-400 mb-2">🏆 Top 3 dépenses du mois</p>
             <div className="space-y-1">
               {top3Depenses.map((tx: any, i: number) => (
                 <div key={tx.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-2 py-1.5">
@@ -143,8 +143,8 @@ export default function IndicateursMois({
 
         {/* Top 3 catégories avec détail sous-catégories */}
         {showTop3Categories && top3Categories.length > 0 && (
-          <div>
-            <p className="text-xs text-slate-500 mb-1.5">📊 Top 3 catégories du mois</p>
+          <div className="bg-blue-950/20 border border-blue-900/30 rounded-lg p-3">
+            <p className="text-xs font-semibold text-blue-400 mb-2">📊 Top 3 catégories du mois</p>
             <div className="space-y-1">
               {top3Categories.map((cat: any, i: number) => (
                 <div key={cat.id}>
@@ -193,8 +193,8 @@ export default function IndicateursMois({
 
         {/* Top 3 sous-catégories (classement indépendant) */}
         {showTop3SubCategories && top3SubCategories.length > 0 && (
-          <div>
-            <p className="text-xs text-slate-500 mb-1.5">🏷️ Top 3 sous-catégories du mois</p>
+          <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-3">
+            <p className="text-xs font-semibold text-emerald-400 mb-2">🏷️ Top 3 sous-catégories du mois</p>
             <div className="space-y-1">
               {top3SubCategories.map((sc: any, i: number) => (
                 <div key={sc.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-2 py-1.5">

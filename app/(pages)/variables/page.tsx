@@ -193,6 +193,8 @@ export default function VariablesPage() {
       {/* Dialogs */}
       <SplitDialog tx={splitTx} onClose={() => setSplitTx(null)}
         categories={effectiveCategories}
+        espaceId={espaceId}
+        createCat={createCat}
         onSave={async (parentId, lines) => {
           await split.mutateAsync({ parentId, lines })
         }} 

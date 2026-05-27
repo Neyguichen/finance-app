@@ -100,10 +100,17 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
                         {child.infos && <p className="text-[10px] text-slate-500 truncate">{child.infos}</p>}
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-bold text-pink-400">{formatEuro(childNet)}</p>
-                      {childHasRemb && (
-                        <p className="text-[10px] text-emerald-400 line-through">{formatEuro(Number(child.montant))}</p>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-pink-400">{formatEuro(childNet)}</p>
+                        {childHasRemb && (
+                          <p className="text-[10px] text-emerald-400 line-through">{formatEuro(Number(child.montant))}</p>
+                        )}
+                      </div>
+                      {!readOnly && (
+                        <Button variant="ghost" size="icon" className="text-slate-500 h-6 w-6" onClick={() => onEdit(child)}>
+                          <Pencil className="w-2.5 h-2.5" />
+                        </Button>
                       )}
                     </div>
                   </div>
