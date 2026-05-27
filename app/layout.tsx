@@ -2,10 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
-import MobileNav from '@/components/layout/MobileNav';
-import EspaceSelector from '@/components/layout/EspaceSelector';
-import AppMenu from '@/components/layout/AppMenu';
-import AdminBanner from '@/components/layout/AdminBanner';
+import AppLayout from '@/components/layout/AppLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,19 +26,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" className="h-full">
-      <body className={`${inter.className} bg-slate-950 text-white h-full flex flex-col overflow-hidden`}>
+      <body className={`${inter.className} bg-slate-950 text-white h-full`}>
       <Providers>
-        <AdminBanner />
-        {/* Header — hors de la zone scrollable, ne disparait jamais */}
-        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800 z-30">
-          <EspaceSelector />
-          <AppMenu />
-        </header>
-        {/* Zone scrollable */}
-        <main className="flex-1 overflow-y-auto pb-20">
-          {children}
-        </main>
-        <MobileNav />
+        <AppLayout>{children}</AppLayout>
       </Providers>
       </body>
     </html>
