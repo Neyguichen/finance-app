@@ -12,7 +12,8 @@ export default function StickyHeader({ children }: Props) {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)')
+    // Détecte les appareils tactiles (téléphone/tablette) vs souris (ordi)
+    const mq = window.matchMedia('(pointer: coarse)')
     setIsMobile(mq.matches)
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener('change', handler)
