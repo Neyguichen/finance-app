@@ -138,7 +138,7 @@ export default function VariablesPage() {
             </div>
             {showBudgetInfo && (
               <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
-                Revenus ({formatEuro(totalRevenusVar)}) − Charges fixes ({formatEuro(totalChargesVar)}) − Épargne ({formatEuro(totalEpargneVar)}) = Montant à répartir dans vos budgets variables
+                Revenus ({formatEuro(totalRevenusVar)}) − Charges fixes ({formatEuro(totalChargesVar)}) − Épargne ({formatEuro(totalEpargneVar)}) = Montant à répartir dans vos catégories
               </div>
             )}
             <div className="border-t border-pink-900 pt-2" />
@@ -167,7 +167,7 @@ export default function VariablesPage() {
         {/* 2. BUDGETS EN GRILLE COMPACTE */}
         {activeCategories.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-slate-400 mb-2">Budgets</h2>
+            <h2 className="text-sm font-semibold text-slate-400 mb-2">Catégories utilisées</h2>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
             {[...categoriesAvecActivite].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((cat: any) => {
                 const budget = getBudget(cat.id)
@@ -234,7 +234,7 @@ export default function VariablesPage() {
                   onClick={() => setShowInactive(!showInactive)}
                   className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  {showInactive ? '▼' : '▶'} Autres budgets ({categoriesSansActivite.length})
+                  {showInactive ? '▼' : '▶'} Autres catégories ({categoriesSansActivite.length})
                 </button>
                 {showInactive && (
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
@@ -355,7 +355,7 @@ export default function VariablesPage() {
       {/* ======================== */}
       <Dialog open={catOpen} onOpenChange={setCatOpen}>
         <DialogContent className="bg-slate-900 border-slate-700">
-          <DialogHeader><DialogTitle>Nouveau budget</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Nouvelle Catégorie</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Input placeholder="Nom (ex: Courses)" value={newCatNom} onChange={e => setNewCatNom(e.target.value)} />
             <EmojiPicker value={newCatIcone} onChange={setNewCatIcone} />
@@ -386,16 +386,16 @@ export default function VariablesPage() {
                     setTxCat(e.target.value)
                   }
                 }}>
-                <option value="">Budget...</option>
+                <option value="">Catégorie...</option>
                 {[...effectiveCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                 ))}
-                <option value="__NEW__">➕ Nouveau budget...</option>
+                <option value="__NEW__">➕ Nouvelle catégorie...</option>
               </select>
 
               {inlineCatOpen && (
                 <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-2">
-                  <p className="text-xs text-slate-400 font-semibold">Nouveau budget</p>
+                  <p className="text-xs text-slate-400 font-semibold">Nouvelle catégorie</p>
                   <Input placeholder="Nom (ex: Courses)" value={inlineCatNom}
                     onChange={e => setInlineCatNom(e.target.value)} />
                   <EmojiPicker value={inlineCatIcone} onChange={setInlineCatIcone} />
@@ -452,16 +452,16 @@ export default function VariablesPage() {
                     setEditTxCat(e.target.value)
                   }
                 }}>
-                <option value="">Budget...</option>
+                <option value="">Catégorie...</option>
                 {[...effectiveCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
                 ))}
-                <option value="__NEW__">➕ Nouveau budget...</option>
+                <option value="__NEW__">➕ Nouvelle catégorie...</option>
               </select>
 
               {inlineCatOpen && (
                 <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-2">
-                  <p className="text-xs text-slate-400 font-semibold">Nouveau budget</p>
+                  <p className="text-xs text-slate-400 font-semibold">Nouvelle catégorie</p>
                   <Input placeholder="Nom (ex: Courses)" value={inlineCatNom}
                     onChange={e => setInlineCatNom(e.target.value)} />
                   <EmojiPicker value={inlineCatIcone} onChange={setInlineCatIcone} />
@@ -558,7 +558,7 @@ export default function VariablesPage() {
       <Dialog open={!!archiveTarget} onOpenChange={(v) => { if (!v) setArchiveTarget(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700">
           <DialogHeader>
-            <DialogTitle>Archiver le budget « {archiveTarget?.nom} » ?</DialogTitle>
+            <DialogTitle>Archiver la catégorie « {archiveTarget?.nom} » ?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-400">
             Elle ne sera plus visible sur les prochains mois, mais les budgets et dépenses existants seront conservés.
@@ -597,7 +597,7 @@ export default function VariablesPage() {
               <>
                 {/* Bouton Budget */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Budget</span>
+                  <span className="text-xs text-white bg-slate-600 px-2 py-1 rounded-lg shadow">Catégorie</span>
                   <button
                     onClick={() => { setFabOpen(false); setCatOpen(true) }}
                     className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-transform"
