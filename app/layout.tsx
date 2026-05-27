@@ -6,6 +6,7 @@ import MobileNav from '@/components/layout/MobileNav';
 import EspaceSelector from '@/components/layout/EspaceSelector';
 import AppMenu from '@/components/layout/AppMenu';
 import AdminBanner from '@/components/layout/AdminBanner';
+import StickyHeader from '@/components/layout/StickyHeader';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -33,10 +34,10 @@ export default function RootLayout({
       <Providers>
         <AdminBanner />
         {/* Header global avec menu hamburger */}
-        <header className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800">
+        <StickyHeader>
           <EspaceSelector />
           <AppMenu />
-        </header>
+        </StickyHeader>
         <main className="pb-20 min-h-screen">
           {children}
         </main>
