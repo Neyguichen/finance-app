@@ -21,6 +21,7 @@ import { formatEuro, formatDate, pct } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 import { useRemboursements } from '@/lib/hooks/useRemboursements'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
+import DepenseDeleteDialog from '@/components/pages/variables/DepenseDeleteDialog'
 
 export default function VariablesPage() {
   const { moisId, month, setMonth, espace } = useApp()
@@ -28,6 +29,7 @@ export default function VariablesPage() {
 
   // FAB Speed Dial
   const [fabOpen, setFabOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<any>(null)
 
   const [catOpen, setCatOpen] = useState(false)
   const [txOpen, setTxOpen] = useState(false)
@@ -73,7 +75,7 @@ export default function VariablesPage() {
   const effectiveChargesList = isAdminViewing ? (adminData?.charges_fixes || []) : chargesList
   const effectiveMouvementsList = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvementsList
 
-  const activeCategories = effectiveCategories.filter((c: any) => c.actif !== false)
+  const activeCategories = effectiveCategories.filter((c: any) => c.actif !== false && !c.parent_id)
 
   const totalRevenusVar = effectiveRevenusList.reduce((s: number, r: any) => s + Number(r.montant), 0)
   const totalChargesVar = effectiveChargesList.reduce((s: number, c: any) => s + Number(c.montant), 0)
@@ -335,7 +337,7 @@ export default function VariablesPage() {
                             <ReceiptText className="w-3 h-3" />
                           </Button>
                           <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                            onClick={() => { if (!isAdminViewing) removeTx.mutate(tx.id) }}>
+                            onClick={() => setDeleteTarget(tx)}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </>
@@ -577,6 +579,15 @@ export default function VariablesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ========================== */}
+      {/* DIALOG SUPPRESSION DÉPENSE */}
+      {/* ========================== */}
+      <DepenseDeleteDialog
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDelete={(id: string) => { removeTx.mutate(id); setDeleteTarget(null) }}
+      />
 
       {/* ======================== */}
       {/* FAB SPEED DIAL            */}

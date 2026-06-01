@@ -25,6 +25,7 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
   const [editMontant, setEditMontant] = useState(0)
   const [editType, setEditType] = useState<'actif' | 'passif'>('actif')
   const [scopeOpen, setScopeOpen] = useState(false)
+  const [pendingData, setPendingData] = useState<any>(null)
 
   // Auto-fill quand editTarget change
   useEffect(() => {
@@ -37,25 +38,28 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
 
   const handleSaveClick = () => {
     if (!editTarget) return
-    if (editTarget.recurrentId) {
-      // Récurrent → ouvrir le dialog de scope
-      setScopeOpen(true)
-    } else {
-      // Ponctuel → sauver directement
-      onSave({ id: editTarget.id, nom: editNom, montant: editMontant, type: editType, recurrentId: null }, 'mois')
-      onClose()
-    }
-  }
-
-  const handleScopeChoice = async (scope: 'mois' | 'tous') => {
-    if (!editTarget) return
-    await onSave({
+    const data = {
       id: editTarget.id,
       nom: editNom,
       montant: editMontant,
       type: editType,
       recurrentId: editTarget.recurrentId,
-    }, scope)
+    }
+    if (editTarget.recurrentId) {
+      // Sauvegarder les données AVANT d'ouvrir le scope dialog
+      // (car onClose() va nullifier editTarget quand le dialog d'édition se ferme)
+      setPendingData(data)
+      setScopeOpen(true)
+    } else {
+      onSave(data, 'mois')
+      onClose()
+    }
+  }
+
+  const handleScopeChoice = async (scope: 'mois' | 'tous') => {
+    if (!pendingData) return
+    await onSave(pendingData, scope)
+    setPendingData(null)
     setScopeOpen(false)
     onClose()
   }
