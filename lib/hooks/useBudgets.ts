@@ -37,13 +37,15 @@ export function useBudgets(moisId: string | undefined) {
 
   const copyFromPrevious = useMutation({
     mutationFn: async ({ espace_id, currentMonth }: { espace_id: string; currentMonth: string }) => {
-      const [yr, mo] = currentMonth.split('-').map(Number)
-      const pMo = mo === 1 ? 12 : mo - 1
-      const pYr = mo === 1 ? yr - 1 : yr
-      const prevMoisStr = `${pYr}-${String(pMo).padStart(2, '0')}`
-
+      // Trouver le mois le plus récent AVANT le mois actuel (format-agnostic)
       const { data: prevMoisRec } = await supabase
-        .from('mois').select('id').eq('espace_id', espace_id).eq('mois', prevMoisStr).single()
+        .from('mois')
+        .select('id, mois')
+        .eq('espace_id', espace_id)
+        .lt('mois', currentMonth)
+        .order('mois', { ascending: false })
+        .limit(1)
+        .single()
       if (!prevMoisRec) throw new Error('Aucun mois précédent trouvé')
 
       const { data: prevBudgets } = await supabase
