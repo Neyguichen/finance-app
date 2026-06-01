@@ -35,5 +35,37 @@ export function useBudgets(moisId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  return { ...query, upsert }
+  const copyFromPrevious = useMutation({
+    mutationFn: async ({ espace_id, currentMonth }: { espace_id: string; currentMonth: string }) => {
+      const [yr, mo] = currentMonth.split('-').map(Number)
+      const pMo = mo === 1 ? 12 : mo - 1
+      const pYr = mo === 1 ? yr - 1 : yr
+      const prevMoisStr = `${pYr}-${String(pMo).padStart(2, '0')}`
+
+      const { data: prevMoisRec } = await supabase
+        .from('mois').select('id').eq('espace_id', espace_id).eq('mois', prevMoisStr).single()
+      if (!prevMoisRec) throw new Error('Aucun mois précédent trouvé')
+
+      const { data: prevBudgets } = await supabase
+        .from('budgets').select('categorie_id, prevu').eq('mois_id', prevMoisRec.id)
+      if (!prevBudgets || prevBudgets.length === 0) throw new Error('Aucun budget le mois précédent')
+
+      // Ne pas écraser les budgets déjà définis ce mois
+      const { data: existingBudgets } = await supabase
+        .from('budgets').select('categorie_id').eq('mois_id', moisId!)
+      const existingCatIds = new Set((existingBudgets || []).map((b: any) => b.categorie_id))
+      const toInsert = prevBudgets.filter(b => !existingCatIds.has(b.categorie_id))
+
+      if (toInsert.length > 0) {
+        const { error } = await supabase.from('budgets').insert(
+          toInsert.map(b => ({ mois_id: moisId!, categorie_id: b.categorie_id, prevu: b.prevu }))
+        )
+        if (error) throw error
+      }
+      return toInsert.length
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
+  return { ...query, upsert, copyFromPrevious }
 }

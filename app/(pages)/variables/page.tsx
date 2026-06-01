@@ -38,7 +38,7 @@ export default function VariablesPage() {
 
   // Hooks data
   const { data: categories = [], create: createCat, remove: removeCat } = useCategories(espaceId)
-  const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
+  const { data: budgets = [], upsert: upsertBudget, copyFromPrevious } = useBudgets(moisId)
   const { data: transactions = [], allFlat, create: createTx, update: updateTx, remove: removeTx, split, unsplit } = useTransactions(moisId)
   const { data: revenusList = [] } = useRevenus(moisId)
   const { data: chargesList = [] } = useChargesFixes(moisId)
@@ -67,6 +67,7 @@ export default function VariablesPage() {
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; nom: string } | null>(null)
   const [showBudgetInfo, setShowBudgetInfo] = useState(false)
   const [showInactive, setShowInactive] = useState(false)
+  const [copyMsg, setCopyMsg] = useState<string | null>(null)
   const [catOpen, setCatOpen] = useState(false)
   const [newCatNom, setNewCatNom] = useState('')
   const [newCatIcone, setNewCatIcone] = useState('🛒')
@@ -216,6 +217,27 @@ export default function VariablesPage() {
             <Progress value={totalPrevu > 0 ? pct(totalReel, totalPrevu) : 0} className="h-2" />
           </CardContent>
         </Card>
+
+        {/* BOUTON REPRISE BUDGETS */}
+        {!isAdminViewing && espaceId && month && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="text-xs"
+              disabled={copyFromPrevious.isPending}
+              onClick={async () => {
+                setCopyMsg(null)
+                try {
+                  const count = await copyFromPrevious.mutateAsync({ espace_id: espaceId, currentMonth: month })
+                  setCopyMsg(count > 0 ? `✅ ${count} budget(s) repris du mois précédent` : '✅ Tous les budgets existaient déjà')
+                } catch (e: any) {
+                  setCopyMsg(`⚠️ ${e.message}`)
+                }
+                setTimeout(() => setCopyMsg(null), 4000)
+              }}>
+              {copyFromPrevious.isPending ? '⏳ Copie...' : '📋 Reprendre budgets mois précédent'}
+            </Button>
+            {copyMsg && <span className="text-xs text-slate-400">{copyMsg}</span>}
+          </div>
+        )}
 
         {/* 2. BUDGETS EN GRILLE */}
         {parentCategories.length > 0 && (
