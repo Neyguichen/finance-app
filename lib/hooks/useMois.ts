@@ -102,6 +102,29 @@ export function useMois(espaceId: string | undefined) {
           if (rows.length > 0) await supabase.from('mouvements_epargne').insert(rows)
         }
 
+        // Copier les budgets du mois précédent si absents
+        const { count: budgetCount } = await supabase
+          .from('budgets')
+          .select('id', { count: 'exact', head: true })
+          .eq('mois_id', theMois.id)
+        if ((budgetCount ?? 0) === 0) {
+          const [yr, mo] = mois.split('-').map(Number)
+          const pMo = mo === 1 ? 12 : mo - 1
+          const pYr = mo === 1 ? yr - 1 : yr
+          const prevMoisStr = `${pYr}-${String(pMo).padStart(2, '0')}`
+          const { data: prevMoisRec } = await supabase
+            .from('mois').select('id').eq('espace_id', espace_id).eq('mois', prevMoisStr).single()
+          if (prevMoisRec) {
+            const { data: prevBudgets } = await supabase
+              .from('budgets').select('categorie_id, prevu').eq('mois_id', prevMoisRec.id)
+            if (prevBudgets && prevBudgets.length > 0) {
+              await supabase.from('budgets').insert(
+                prevBudgets.map(b => ({ mois_id: theMois.id, categorie_id: b.categorie_id, prevu: b.prevu }))
+              )
+            }
+          }
+        }
+
         return theMois
       }
 
@@ -156,9 +179,35 @@ export function useMois(espaceId: string | undefined) {
         if (rows.length > 0) await supabase.from('mouvements_epargne').insert(rows)
       }
 
+      // Copier les budgets du mois précédent si absents
+      const { count: newBudgetCount } = await supabase
+        .from('budgets')
+        .select('id', { count: 'exact', head: true })
+        .eq('mois_id', newMois.id)
+      if ((newBudgetCount ?? 0) === 0) {
+        const [yr2, mo2] = mois.split('-').map(Number)
+        const pMo2 = mo2 === 1 ? 12 : mo2 - 1
+        const pYr2 = mo2 === 1 ? yr2 - 1 : yr2
+        const prevMoisStr2 = `${pYr2}-${String(pMo2).padStart(2, '0')}`
+        const { data: prevMoisRec2 } = await supabase
+          .from('mois').select('id').eq('espace_id', espace_id).eq('mois', prevMoisStr2).single()
+        if (prevMoisRec2) {
+          const { data: prevBudgets2 } = await supabase
+            .from('budgets').select('categorie_id, prevu').eq('mois_id', prevMoisRec2.id)
+          if (prevBudgets2 && prevBudgets2.length > 0) {
+            await supabase.from('budgets').insert(
+              prevBudgets2.map(b => ({ mois_id: newMois.id, categorie_id: b.categorie_id, prevu: b.prevu }))
+            )
+          }
+        }
+      }
+
       return newMois
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+    },
   })
 
   return { ...query, getOrCreate }
