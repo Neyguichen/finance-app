@@ -1,102 +1,95 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { Menu, X, Database, LogOut, Settings, Trash2, Info, RotateCcw, UserX, Handshake, Users, Receipt, Calendar} from 'lucide-react'
+import { Calendar, Database, Handshake, Info, LogOut, Menu, Settings, Users, X } from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 
 export default function AppMenu() {
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const supabase = createClient()
   const router = useRouter()
-  const { espace, espaces, userId } = useApp()
+  const { userId } = useApp()
   const { data: dbUsage } = useDbUsage()
 
-  const handleLogout = async () => {
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const closeMenu = () => {
     setOpen(false)
+  }
+
+  const handleLogout = async () => {
+    closeMenu()
     await supabase.auth.signOut()
     router.push('/login')
   }
 
-  return (
+  const portal = (
     <>
-      {/* Bouton hamburger */}
-      <button
-        onClick={() => setOpen(true)}
-        className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
-      {/* Overlay */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/50 z-[60]"
-          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-[9999] bg-black/50"
+          onClick={closeMenu}
         />
       )}
 
-      {/* Drawer (slide depuis la droite) */}
       <div
-        className={`fixed top-0 right-0 h-full w-72 bg-slate-900 border-l border-slate-800 z-[70] transform transition-transform duration-300 ease-in-out ${
+        className={`fixed right-0 top-0 z-[10000] h-full w-72 transform border-l border-slate-800 bg-slate-900 transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Header du drawer */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-800">
-          <h2 className="font-semibold text-lg">Menu</h2>
+        <div className="flex items-center justify-between border-b border-slate-800 p-4">
+          <h2 className="text-lg font-semibold">Menu</h2>
           <button
-            onClick={() => setOpen(false)}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            onClick={closeMenu}
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+            aria-label="Fermer le menu"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Contenu du menu */}
-        <div className="p-4 space-y-1">
-
+        <div className="space-y-1 p-4">
           {isAdmin(userId) && (
-            <>
-              <MenuLink icon={Users} label="🔒 Admin" onClick={() => { setOpen(false); router.push('/admin') }} />
-            </>
+            <MenuLink icon={Users} label="Admin" onClick={() => { closeMenu(); router.push('/admin') }} />
           )}
 
           <MenuLink icon={Calendar} label="Bilan Annuel" onClick={() => {
-            setOpen(false)
+            closeMenu()
             router.push('/bilan-annuel')
           }} />
 
           <MenuLink icon={Handshake} label="Dettes" onClick={() => {
-            setOpen(false)
+            closeMenu()
             router.push('/dette')
           }} />
 
           <MenuLink icon={Settings} label="Paramètres" onClick={() => {
-            setOpen(false)
+            closeMenu()
             router.push('/parametres')
           }} />
 
           <MenuLink icon={Info} label="À propos" onClick={() => {
-            setOpen(false)
+            closeMenu()
             router.push('/a-propos')
           }} />
 
           <MenuLink icon={LogOut} label="Se déconnecter" danger onClick={handleLogout} />
         </div>
 
-        {/* Version en bas */}
-        <div className="absolute bottom-6 left-0 right-0 text-center">
-
-          {/* Jauge BDD */}
+        <div className="absolute bottom-6 left-0 right-0 px-4 text-center">
           {dbUsage && (
-            <div className="mt-2 p-3 bg-slate-800 rounded-lg space-y-2">
+            <div className="mb-3 space-y-2 rounded-lg bg-slate-800 p-3">
               <div className="flex items-center gap-2">
-                <Database className="w-4 h-4 text-slate-400" />
+                <Database className="h-4 w-4 text-slate-400" />
                 <span className="text-sm text-slate-300">Base de données</span>
               </div>
               <div className="flex justify-between text-xs">
@@ -107,12 +100,13 @@ export default function AppMenu() {
                   dbUsage.percent > 80 ? 'text-red-400' :
                   dbUsage.percent > 60 ? 'text-yellow-400' :
                   'text-emerald-400'
-                }`}>
+                }`}
+                >
                   {dbUsage.percent}%
                 </span>
               </div>
               <progress
-                className={`progress w-full h-2 ${
+                className={`progress h-2 w-full ${
                   dbUsage.percent > 80 ? 'progress-error' :
                   dbUsage.percent > 60 ? 'progress-warning' :
                   'progress-success'
@@ -128,9 +122,23 @@ export default function AppMenu() {
       </div>
     </>
   )
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+        aria-expanded={open}
+        aria-label="Ouvrir le menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {mounted && createPortal(portal, document.body)}
+    </>
+  )
 }
 
-// Composant interne pour les liens du menu
 function MenuLink({ icon: Icon, label, onClick, danger }: {
   icon: any
   label: string
@@ -140,13 +148,13 @@ function MenuLink({ icon: Icon, label, onClick, danger }: {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
         danger
           ? 'text-red-400 hover:bg-red-950'
           : 'text-slate-300 hover:bg-slate-800'
       }`}
     >
-      <Icon className="w-4 h-4" />
+      <Icon className="h-4 w-4" />
       {label}
     </button>
   )
