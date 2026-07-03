@@ -1,8 +1,15 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Budget } from '@/lib/types'
+
+type BudgetCopyRow = {
+  categorie_id: string
+  prevu: number | string | null
+}
+
+const hasBudgetAmount = (budget: BudgetCopyRow) => Number(budget.prevu || 0) > 0
 
 export function useBudgets(moisId: string | undefined) {
   const supabase = createClient()
@@ -37,7 +44,6 @@ export function useBudgets(moisId: string | undefined) {
 
   const copyFromPrevious = useMutation({
     mutationFn: async ({ espace_id, currentMonth }: { espace_id: string; currentMonth: string }) => {
-      // Trouver le mois le plus récent AVANT le mois actuel (format-agnostic)
       const { data: prevMoisRec } = await supabase
         .from('mois')
         .select('id, mois')
@@ -46,25 +52,43 @@ export function useBudgets(moisId: string | undefined) {
         .order('mois', { ascending: false })
         .limit(1)
         .single()
-      if (!prevMoisRec) throw new Error('Aucun mois précédent trouvé')
+      if (!prevMoisRec) throw new Error('Aucun mois precedent trouve')
 
       const { data: prevBudgets } = await supabase
-        .from('budgets').select('categorie_id, prevu').eq('mois_id', prevMoisRec.id)
-      if (!prevBudgets || prevBudgets.length === 0) throw new Error('Aucun budget le mois précédent')
+        .from('budgets')
+        .select('categorie_id, prevu')
+        .eq('mois_id', prevMoisRec.id)
+      const prevBudgetsWithAmount = ((prevBudgets || []) as BudgetCopyRow[]).filter(hasBudgetAmount)
+      if (prevBudgetsWithAmount.length === 0) {
+        throw new Error('Aucun budget renseigne le mois precedent')
+      }
 
-      // Ne pas écraser les budgets déjà définis ce mois
       const { data: existingBudgets } = await supabase
-        .from('budgets').select('categorie_id').eq('mois_id', moisId!)
-      const existingCatIds = new Set((existingBudgets || []).map((b: any) => b.categorie_id))
-      const toInsert = prevBudgets.filter(b => !existingCatIds.has(b.categorie_id))
+        .from('budgets')
+        .select('categorie_id, prevu')
+        .eq('mois_id', moisId!)
+      const existingCatIdsWithAmount = new Set(
+        ((existingBudgets || []) as BudgetCopyRow[])
+          .filter(hasBudgetAmount)
+          .map(budget => budget.categorie_id)
+      )
+      const toCopy = prevBudgetsWithAmount.filter(
+        budget => !existingCatIdsWithAmount.has(budget.categorie_id)
+      )
 
-      if (toInsert.length > 0) {
-        const { error } = await supabase.from('budgets').insert(
-          toInsert.map(b => ({ mois_id: moisId!, categorie_id: b.categorie_id, prevu: b.prevu }))
+      if (toCopy.length > 0) {
+        const { error } = await supabase.from('budgets').upsert(
+          toCopy.map(budget => ({
+            mois_id: moisId!,
+            categorie_id: budget.categorie_id,
+            prevu: Number(budget.prevu),
+          })),
+          { onConflict: 'mois_id,categorie_id' }
         )
         if (error) throw error
       }
-      return toInsert.length
+
+      return toCopy.length
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
