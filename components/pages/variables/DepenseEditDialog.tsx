@@ -27,6 +27,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
   const [infos, setInfos] = useState('')
   const [date, setDate] = useState('')
   const [dateValidation, setDateValidation] = useState('')
+  const [validated, setValidated] = useState(false)
   const [catId, setCatId] = useState('')
   const [subCatId, setSubCatId] = useState('')
   const [inlineCatOpen, setInlineCatOpen] = useState(false)
@@ -45,6 +46,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
       setInfos(editTx.infos || '')
       setDate(editTx.date)
       setDateValidation(editTx.date_validation || '')
+      setValidated(Boolean(editTx.date_validation))
       setCatId(editTx.categorie_id)
       setSubCatId(editTx.sous_categorie_id || '')
     }
@@ -104,6 +106,13 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
                 </label>
                 <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
               </div>
+              {!doubleDate && (
+                <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                  <input type="checkbox" className="checkbox checkbox-sm"
+                    checked={validated} onChange={e => setValidated(e.target.checked)} />
+                  Dépense validée
+                </label>
+              )}
               {doubleDate && (
                 <div>
                   <label className="text-xs text-slate-400 mb-1 block">
@@ -154,7 +163,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
                   id: editTx.id,
                   montant,
                   date,
-                  date_validation: doubleDate && dateValidation ? dateValidation : null,
+                  date_validation: doubleDate ? (dateValidation || null) : (validated ? date : null),
                   infos: infos || null,
                   categorie_id: catId,
                   sous_categorie_id: subCatId || null,
