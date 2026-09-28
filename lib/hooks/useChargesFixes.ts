@@ -37,10 +37,10 @@ export function useChargesFixes(moisId: string | undefined) {
   })
 
   const togglePayee = useMutation({
-    mutationFn: async ({ id, payee }: { id: string; payee: boolean }) => {
+    mutationFn: async ({ id, payee, dateReelle }: { id: string; payee: boolean; dateReelle?: string }) => {
       const { error } = await supabase
         .from('charges_fixes')
-        .update({ payee, date_reelle: payee ? new Date().toISOString().slice(0, 10) : null })
+        .update({ payee, date_reelle: payee ? (dateReelle || new Date().toISOString().slice(0, 10)) : null })
         .eq('id', id)
       if (error) throw error
     },
