@@ -42,6 +42,8 @@ export interface Revenu {
   nom: string
   montant: number
   recu: boolean
+  date_prevue?: string | null
+  date_reelle?: string | null
   ordre: number
 }
 
@@ -64,6 +66,8 @@ export interface ChargeFixe {
   nom: string
   montant: number
   payee: boolean
+  date_prevue?: string | null
+  date_reelle?: string | null
   ordre: number
 }
 
