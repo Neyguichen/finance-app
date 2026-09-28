@@ -75,8 +75,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [moisId, setMoisId] = useState<string | undefined>(undefined)
 
-  const { data: allMois, getOrCreate } = useMois(espace?.id)
-  const moisCache = useRef<Map<string, string>>(new Map())
+  const { data: allMois } = useMois(espace?.id)
 
   // 1. Écouter les changements d'auth
   useEffect(() => {
@@ -118,45 +117,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadEspaces()
   }, [userId])
 
-  // 3. Récupérer ou créer le mois actif pour l'espace sélectionné
+  // 3. Résoudre le mois actif en lecture seule.
+  // V2: changer de période ne doit jamais créer un mois ni aucune opération financière.
   useEffect(() => {
-    if (!espace || !userId) return
-    const cacheKey = `${espace.id}_${month}`
-
-    // 1. Cache session → déjà visité, getOrCreate déjà appelé
-    const cached = moisCache.current.get(cacheKey)
-    if (cached) {
-      setMoisId(cached)
+    if (!espace || !userId) {
+      setMoisId(undefined)
+      setSyncing(false)
       return
     }
 
-    // 2. allMois → affichage INSTANTANÉ + getOrCreate en arrière-plan
     const found = allMois?.find(m => m.mois === month)
-    if (found) {
-      setMoisId(found.id) // UI immédiate, pas de latence
-      setSyncing(true)
-      // Copier les récurrences manquantes en arrière-plan
-      getOrCreate.mutateAsync({
-        espace_id: espace.id,
-        mois: month,
-        user_id: userId,
-      }).then(m => {
-        moisCache.current.set(cacheKey, m.id)
-      }).finally(() => setSyncing(false))
-      return
-    }
-
-    setSyncing(true)
-
-    // 3. Mois n'existe pas du tout → créer (seul cas avec latence réseau)
-    getOrCreate.mutateAsync({
-      espace_id: espace.id,
-      mois: month,
-      user_id: userId,
-    }).then(m => {
-      moisCache.current.set(cacheKey, m.id)
-      setMoisId(m.id)
-    }).finally(() => setSyncing(false))
+    setMoisId(found?.id)
+    setSyncing(false)
   }, [espace, month, userId, allMois])
 
   // Ajouter un espace (avec solde_initial optionnel)
