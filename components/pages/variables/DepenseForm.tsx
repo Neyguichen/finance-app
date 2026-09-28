@@ -35,6 +35,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
   const [txInfos, setTxInfos] = useState('')
   const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0])
   const [txDateValidation, setTxDateValidation] = useState('')
+  const [txValidated, setTxValidated] = useState(false)
   const [inlineCatOpen, setInlineCatOpen] = useState(false)
 
   // Split mode
@@ -81,7 +82,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
   }
 
   const resetForm = () => {
-    setTxMontant(0); setTxInfos(''); setTxSubCat(''); setTxDateValidation('')
+    setTxMontant(0); setTxInfos(''); setTxSubCat(''); setTxDateValidation(''); setTxValidated(false)
     setSplitMode(false)
     setSplitLines([
       { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' },
@@ -100,6 +101,13 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
             <label className="text-xs text-slate-400 mb-1 block">{doubleDate ? "Date d'opération" : 'Date'}</label>
             <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
           </div>
+          {!doubleDate && (
+            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+              <input type="checkbox" className="checkbox checkbox-sm"
+                checked={txValidated} onChange={e => setTxValidated(e.target.checked)} />
+              Dépense validée
+            </label>
+          )}
           {doubleDate && (
             <div>
               <label className="text-xs text-slate-400 mb-1 block">Date de validation bancaire <span className="text-slate-600">(optionnel)</span></label>
@@ -189,7 +197,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
                   sous_categorie_id: txSubCat || null,
                   montant: txMontant,
                   date: txDate,
-                  date_validation: doubleDate && txDateValidation ? txDateValidation : null,
+                  date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? txDate : null),
                   infos: txInfos || null,
                 })
                 resetForm(); onOpenChange(false)
@@ -277,7 +285,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
                       categorie_id: splitLines[0].categorie_id,
                       montant: txMontant,
                       date: txDate,
-                      date_validation: doubleDate && txDateValidation ? txDateValidation : null,
+                      date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? txDate : null),
                       infos: txInfos || null,
                     },
                     splitLines.map(l => ({ ...l, sous_categorie_id: l.sous_categorie_id || null, infos: l.infos || null })) as any,
