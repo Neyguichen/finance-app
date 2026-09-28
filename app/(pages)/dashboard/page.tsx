@@ -18,7 +18,9 @@ import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
 import SituationFinanciereV2 from '@/components/pages/dashboard/SituationFinanciereV2'
 import PrevuReelV2 from '@/components/pages/dashboard/PrevuReelV2'
 import EmptyMonthV2 from '@/components/pages/dashboard/EmptyMonthV2'
+import MonthPreparationPreview from '@/components/pages/dashboard/MonthPreparationPreview'
 import { useMois } from '@/lib/hooks/useMois'
+import { useMonthPreparation, usePrepareMonth } from '@/lib/hooks/useMonthPreparation'
 
 import { getMontantNet } from '@/lib/utils'
 import { useDashboardData } from '@/lib/hooks/useDashboardData'
@@ -31,6 +33,9 @@ export default function DashboardPage() {
   const [openEspace, setOpenEspace] = useState(false)
   const [newNom, setNewNom] = useState('')
   const [newIcone, setNewIcone] = useState('🏠')
+  const [preparationMode, setPreparationMode] = useState<'previous' | 'habits' | null>(null)
+  const preparationPreview = useMonthPreparation(espace?.id, month, preparationMode)
+  const prepareMonth = usePrepareMonth(espace?.id, month, userId)
 
   const data = useDashboardData()
   const v2 = useDashboardV2()
@@ -68,8 +73,18 @@ export default function DashboardPage() {
   const showIndicateurs = ds.ratioCharges || ds.maitrise || ds.epargne20 || ds.top3Depenses || ds.top3Categories
 
   const prepareEmptyMonth = async (mode: 'previous' | 'habits' | 'empty') => {
-    if (!espace || !userId || mode !== 'empty') return
-    await monthModel.createMonth.mutateAsync({ espace_id: espace.id, mois: month, user_id: userId })
+    if (!espace || !userId) return
+    if (mode === 'empty') {
+      await monthModel.createMonth.mutateAsync({ espace_id: espace.id, mois: month, user_id: userId })
+      return
+    }
+    setPreparationMode(mode)
+  }
+
+  const confirmPreparation = async (selectedIds: string[]) => {
+    const items = (preparationPreview.data?.items || []).filter(item => selectedIds.includes(item.id))
+    await prepareMonth.mutateAsync(items)
+    setPreparationMode(null)
   }
 
   return (
@@ -101,7 +116,16 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {!moisId && <EmptyMonthV2 month={month} onPrepare={prepareEmptyMonth} loading={monthModel.createMonth.isPending} />}
+        {!moisId && <EmptyMonthV2 month={month} onPrepare={prepareEmptyMonth} loading={monthModel.createMonth.isPending || prepareMonth.isPending} />}
+
+        <MonthPreparationPreview
+          open={preparationMode !== null}
+          onOpenChange={open => { if (!open) setPreparationMode(null) }}
+          espaceId={espace?.id}
+          month={month}
+          mode={preparationMode}
+          onConfirm={confirmPreparation}
+        />
 
         {/* Situation financière V2 : les cartes V1 restent dessous pendant la migration progressive. */}
         {espace?.solde_reference != null && espace?.date_solde_reference && today >= espace.date_solde_reference && (
