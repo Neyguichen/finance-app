@@ -33,7 +33,10 @@ export function useRevenus(moisId: string | undefined) {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   const update = useMutation({
@@ -47,7 +50,10 @@ export function useRevenus(moisId: string | undefined) {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   // Supprime l'instance mensuelle uniquement
@@ -56,7 +62,10 @@ export function useRevenus(moisId: string | undefined) {
       const { error } = await supabase.from('revenus').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   // Supprime l'instance mensuelle ET désactive le modèle récurrent
@@ -84,7 +93,10 @@ export function useRevenus(moisId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   return { ...query, create, update, remove, removeDefinitif, toggleRecu }
@@ -120,7 +132,10 @@ export function useRevenusRecurrents(espaceId: string | undefined) {
       if (error) throw error
       return data as RevenuRecurrent
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   const update = useMutation({
@@ -131,7 +146,10 @@ export function useRevenusRecurrents(espaceId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   return { ...query, create, update }
