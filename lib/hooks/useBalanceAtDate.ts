@@ -8,12 +8,13 @@ export function useBalanceAtDate(
   espaceId: string | undefined,
   referenceBalance: number | null | undefined,
   referenceDate: string | null | undefined,
-  targetDate: string
+  targetDate: string,
+  doubleDate = false
 ) {
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['balance_at_date', espaceId, referenceBalance, referenceDate, targetDate],
+    queryKey: ['balance_at_date', espaceId, referenceBalance, referenceDate, targetDate, doubleDate],
     enabled: !!espaceId && referenceBalance != null && !!referenceDate && !!targetDate,
     queryFn: async () => {
       if (!espaceId || referenceBalance == null || !referenceDate) return null
@@ -38,7 +39,7 @@ export function useBalanceAtDate(
         supabase.from('revenus').select('montant, recu, date_reelle').in('mois_id', monthIds),
         supabase.from('charges_fixes').select('montant, payee, date_reelle').in('mois_id', monthIds),
         supabase.from('transactions')
-          .select('id, montant, date, is_split, parent_transaction_id, remboursements(montant, date)')
+          .select('id, montant, date, date_validation, is_split, parent_transaction_id, remboursements(montant, date)')
           .in('mois_id', monthIds),
         supabase.from('mouvements_epargne').select('type, montant, date').in('mois_id', monthIds),
         supabase.from('dettes')
@@ -70,11 +71,17 @@ export function useBalanceAtDate(
         // A split parent is only a container: children carry the accounting amounts.
         if (transaction.is_split && !transaction.parent_transaction_id) continue
 
-        flows.push({
-          kind: 'expense',
-          amount: Number(transaction.montant),
-          date: transaction.date,
-        })
+        // Standard mode: date_validation acts as the validation checkbox state;
+        // the cash effect stays on the transaction date.
+        // Double-date mode: date_validation is the bank debit date and therefore
+        // both validates the transaction and dates its cash effect.
+        if (transaction.date_validation) {
+          flows.push({
+            kind: 'expense',
+            amount: Number(transaction.montant),
+            date: doubleDate ? transaction.date_validation : transaction.date,
+          })
+        }
 
         // A reimbursement is its own cash inflow on its real date. Subtracting
         // it from the original purchase would falsify balances between the two dates.
