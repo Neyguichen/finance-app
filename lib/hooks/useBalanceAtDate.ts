@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import { balanceAtDate, type DatedFinancialFlow } from '@/lib/financial-engine'
+import { balanceAtDate, type DatedFinancialFlow, type FinancialFlowKind } from '@/lib/financial-engine'
 
 export function useBalanceAtDate(
   espaceId: string | undefined,
@@ -120,7 +120,7 @@ export function useBalanceAtDate(
       }
 
       for (const movement of savings || []) {
-        const kind =
+        const kind: FinancialFlowKind =
           movement.type === 'epargne'
             ? 'savings_deposit'
             : movement.type === 'reprise'
