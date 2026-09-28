@@ -17,6 +17,8 @@ import RepartitionCategories from '@/components/pages/dashboard/RepartitionCateg
 import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
 import SituationFinanciereV2 from '@/components/pages/dashboard/SituationFinanciereV2'
 import PrevuReelV2 from '@/components/pages/dashboard/PrevuReelV2'
+import EmptyMonthV2 from '@/components/pages/dashboard/EmptyMonthV2'
+import { useMois } from '@/lib/hooks/useMois'
 
 import { getMontantNet } from '@/lib/utils'
 import { useDashboardData } from '@/lib/hooks/useDashboardData'
@@ -24,7 +26,8 @@ import { useActualCashSummary, useBalanceAtDate } from '@/lib/hooks/useBalanceAt
 import { useDashboardV2 } from '@/lib/hooks/useDashboardV2'
 
 export default function DashboardPage() {
-  const { month, setMonth, espaces, espace, loading, addEspace, isAdminViewing } = useApp()
+  const { month, setMonth, moisId, userId, espaces, espace, loading, addEspace, isAdminViewing } = useApp()
+  const monthModel = useMois(espace?.id)
   const [openEspace, setOpenEspace] = useState(false)
   const [newNom, setNewNom] = useState('')
   const [newIcone, setNewIcone] = useState('🏠')
@@ -64,6 +67,11 @@ export default function DashboardPage() {
 
   const showIndicateurs = ds.ratioCharges || ds.maitrise || ds.epargne20 || ds.top3Depenses || ds.top3Categories
 
+  const prepareEmptyMonth = async (mode: 'previous' | 'habits' | 'empty') => {
+    if (!espace || !userId || mode !== 'empty') return
+    await monthModel.createMonth.mutateAsync({ espace_id: espace.id, mois: month, user_id: userId })
+  }
+
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
@@ -92,6 +100,8 @@ export default function DashboardPage() {
             </Dialog>
           )}
         </div>
+
+        {!moisId && <EmptyMonthV2 month={month} onPrepare={prepareEmptyMonth} loading={monthModel.createMonth.isPending} />}
 
         {/* Situation financière V2 : les cartes V1 restent dessous pendant la migration progressive. */}
         {espace?.solde_reference != null && espace?.date_solde_reference && today >= espace.date_solde_reference && (
