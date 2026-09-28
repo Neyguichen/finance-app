@@ -60,50 +60,13 @@ export function usePrepareMonth(espaceId: string | undefined, targetMonth: strin
     mutationFn: async (items: MonthPreparationItem[]) => {
       if (!espaceId || !userId) throw new Error('Budget ou utilisateur manquant')
 
-      const { data: existing, error: lookupError } = await supabase.from('mois').select('id').eq('espace_id', espaceId).eq('mois', targetMonth).maybeSingle()
-      if (lookupError) throw lookupError
-
-      let monthId = existing?.id as string | undefined
-      if (!monthId) {
-        const { data: created, error } = await supabase.from('mois').insert({ espace_id: espaceId, user_id: userId, mois: targetMonth }).select('id').single()
-        if (error) throw error
-        monthId = created.id
-      }
-
-      const incomes = items.filter(item => item.kind === 'income').map(item => ({
-        mois_id: monthId!, recurrent_id: item.recurrentId || null, preparation_source_id: item.sourceId || null, type: item.incomeType || 'actif',
-        nom: item.label, montant: item.amount, recu: false, ordre: item.order || 0,
-      }))
-      const fixed = items.filter(item => item.kind === 'fixed').map(item => ({
-        mois_id: monthId!, recurrent_id: item.recurrentId || null, preparation_source_id: item.sourceId || null, nom: item.label,
-        montant: item.amount, payee: false, ordre: item.order || 0,
-      }))
-      const budgets = items.filter(item => item.kind === 'budget' && item.categoryId).map(item => ({
-        mois_id: monthId!, categorie_id: item.categoryId!, prevu: item.amount,
-      }))
-      const plannedSavings = items.filter(item => item.kind === 'savings' && item.recurrentId).map(item => ({
-        mois_id: monthId!, enveloppe_dest_id: item.envelopeId || null, recurrent_id: item.recurrentId!,
-        montant: item.amount, note: item.label, ordre: item.order || 0,
-      }))
-
-      if (incomes.length) {
-        const { error } = await supabase.from('revenus').upsert(incomes, { onConflict: 'mois_id,preparation_source_id', ignoreDuplicates: true })
-        if (error) throw error
-      }
-      if (fixed.length) {
-        const { error } = await supabase.from('charges_fixes').upsert(fixed, { onConflict: 'mois_id,preparation_source_id', ignoreDuplicates: true })
-        if (error) throw error
-      }
-      if (budgets.length) {
-        const { error } = await supabase.from('budgets').upsert(budgets, { onConflict: 'mois_id,categorie_id' })
-        if (error) throw error
-      }
-      if (plannedSavings.length) {
-        const { error } = await supabase.from('epargne_prevues').upsert(plannedSavings, { onConflict: 'mois_id,recurrent_id' })
-        if (error) throw error
-      }
-
-      return monthId
+      const { data, error } = await supabase.rpc('prepare_month_v2', {
+        p_espace_id: espaceId,
+        p_month: targetMonth,
+        p_items: items,
+      })
+      if (error) throw error
+      return data as string
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mois', espaceId] })
