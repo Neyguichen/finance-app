@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX, BarChart3 } from 'lucide-react'
+import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX, BarChart3, Repeat2 } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
@@ -12,6 +12,7 @@ import ProfilSection from '@/components/pages/parametres/ProfilSection'
 import EspacesSection from '@/components/pages/parametres/EspacesSection'
 import CategoriesSection from '@/components/pages/parametres/CategoriesSection'
 import StatsSection from '@/components/pages/parametres/StatsSection'
+import HabitudesSection from '@/components/pages/parametres/HabitudesSection'
 import ExportSection from '@/components/pages/parametres/ExportSection'
 import DonneesSection from '@/components/pages/parametres/DonneesSection'
 import CompteSection from '@/components/pages/parametres/CompteSection'
@@ -23,7 +24,7 @@ export default function ParametresPage() {
   const { data: categories = [], create: createCat, update: updateCat, remove: removeCat } = useCategories(espaceId)
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    profil: false, espaces: false, categories: false, stats: false, apparence: false,
+    profil: false, espaces: false, categories: false, habitudes: false, stats: false, apparence: false,
     export: false, donnees: false, compte: false,
   })
   const toggle = (key: string) => setOpenSections(prev => {
@@ -71,6 +72,10 @@ export default function ParametresPage() {
           removeCat={removeCat}
           onUpsertBudget={(catId, prevu) => { if (moisId) upsertBudget.mutate({ mois_id: moisId, categorie_id: catId, prevu }) }}
         />
+      </Section>
+
+      <Section open={openSections.habitudes} onToggle={() => toggle('habitudes')} icon={Repeat2} title="Habitudes" color="text-indigo-400">
+        <HabitudesSection espaceId={espaceId} />
       </Section>
 
       <Section open={openSections.stats} onToggle={() => toggle('stats')} icon={BarChart3} title="Statistiques" color="text-cyan-400">
