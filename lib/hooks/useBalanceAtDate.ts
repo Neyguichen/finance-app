@@ -85,7 +85,14 @@ export function useBalanceAtDate(
 
         // A reimbursement is its own cash inflow on its real date. Subtracting
         // it from the original purchase would falsify balances between the two dates.
-        for (const reimbursement of transaction.remboursements || []) {
+        const reimbursements = Array.isArray(transaction.remboursements)
+          ? transaction.remboursements
+          : transaction.remboursements
+            ? [transaction.remboursements]
+            : []
+
+        for (const reimbursement of reimbursements) {
+          if (!reimbursement.date) continue
           flows.push({
             kind: 'expense_reimbursement',
             amount: Number(reimbursement.montant),
@@ -95,8 +102,14 @@ export function useBalanceAtDate(
       }
 
       for (const debt of debts || []) {
-        for (const repayment of debt.remboursements_dette || []) {
-          if (!repayment.impacte_budget) continue
+        const repayments = Array.isArray(debt.remboursements_dette)
+          ? debt.remboursements_dette
+          : debt.remboursements_dette
+            ? [debt.remboursements_dette]
+            : []
+
+        for (const repayment of repayments) {
+          if (!repayment.impacte_budget || !repayment.date) continue
 
           flows.push({
             kind: debt.type === 'je_dois' ? 'debt_repayment_out' : 'debt_repayment_in',
