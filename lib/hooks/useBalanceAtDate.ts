@@ -37,7 +37,7 @@ export function useBalanceAtDate(
         supabase.from('revenus').select('montant, recu, date_reelle').in('mois_id', monthIds),
         supabase.from('charges_fixes').select('montant, payee, date_reelle').in('mois_id', monthIds),
         supabase.from('transactions')
-          .select('montant, date, is_split, parent_transaction_id, remboursements(montant)')
+          .select('id, montant, date, is_split, parent_transaction_id, remboursements(montant, date)')
           .in('mois_id', monthIds),
         supabase.from('mouvements_epargne').select('type, montant, date').in('mois_id', monthIds),
       ])
@@ -65,16 +65,21 @@ export function useBalanceAtDate(
         // A split parent is only a container: children carry the accounting amounts.
         if (transaction.is_split && !transaction.parent_transaction_id) continue
 
-        const reimbursements = transaction.remboursements || []
-        const reimbursed = reimbursements.reduce(
-          (sum: number, reimbursement: any) => sum + Number(reimbursement.montant),
-          0
-        )
         flows.push({
           kind: 'expense',
-          amount: Number(transaction.montant) - reimbursed,
+          amount: Number(transaction.montant),
           date: transaction.date,
         })
+
+        // A reimbursement is its own cash inflow on its real date. Subtracting
+        // it from the original purchase would falsify balances between the two dates.
+        for (const reimbursement of transaction.remboursements || []) {
+          flows.push({
+            kind: 'expense_reimbursement',
+            amount: Number(reimbursement.montant),
+            date: reimbursement.date,
+          })
+        }
       }
 
       for (const movement of savings || []) {
