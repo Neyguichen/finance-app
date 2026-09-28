@@ -37,6 +37,7 @@ export function useReferenceBalance() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reference_balance'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
     },
   })
 }
