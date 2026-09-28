@@ -36,7 +36,7 @@ export default function MonthPreparationPreview({ open, onOpenChange, espaceId, 
   const confirm = async () => {
     setSaving(true)
     try {
-      await onConfirm([...selected])
+      await onConfirm(Array.from(selected))
       onOpenChange(false)
     } finally {
       setSaving(false)
