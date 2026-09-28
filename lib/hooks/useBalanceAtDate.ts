@@ -33,6 +33,7 @@ export function useBalanceAtDate(
         { data: fixedExpenses, error: fixedError },
         { data: transactions, error: transactionsError },
         { data: savings, error: savingsError },
+        { data: debts, error: debtsError },
       ] = await Promise.all([
         supabase.from('revenus').select('montant, recu, date_reelle').in('mois_id', monthIds),
         supabase.from('charges_fixes').select('montant, payee, date_reelle').in('mois_id', monthIds),
@@ -40,12 +41,16 @@ export function useBalanceAtDate(
           .select('id, montant, date, is_split, parent_transaction_id, remboursements(montant, date)')
           .in('mois_id', monthIds),
         supabase.from('mouvements_epargne').select('type, montant, date').in('mois_id', monthIds),
+        supabase.from('dettes')
+          .select('id, type, remboursements_dette(montant, date, impacte_budget)')
+          .eq('espace_id', espaceId),
       ])
 
       if (incomesError) throw incomesError
       if (fixedError) throw fixedError
       if (transactionsError) throw transactionsError
       if (savingsError) throw savingsError
+      if (debtsError) throw debtsError
 
       const flows: DatedFinancialFlow[] = []
 
@@ -78,6 +83,18 @@ export function useBalanceAtDate(
             kind: 'expense_reimbursement',
             amount: Number(reimbursement.montant),
             date: reimbursement.date,
+          })
+        }
+      }
+
+      for (const debt of debts || []) {
+        for (const repayment of debt.remboursements_dette || []) {
+          if (!repayment.impacte_budget) continue
+
+          flows.push({
+            kind: debt.type === 'je_dois' ? 'debt_repayment_out' : 'debt_repayment_in',
+            amount: Number(repayment.montant),
+            date: repayment.date,
           })
         }
       }
