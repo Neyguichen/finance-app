@@ -1,18 +1,20 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, CalendarDays } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { formatEuro } from '@/lib/utils'
 
 type Props = {
   charge: any
   readOnly: boolean
-  onTogglePayee: (id: string, payee: boolean) => void
+  onTogglePayee: (id: string, payee: boolean, dateReelle?: string) => void
   onEdit: (charge: { id: string; nom: string; montant: number; recurrentId: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
 }
 
 export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onEdit, onDelete }: Props) {
+  const today = new Date().toISOString().split('T')[0]
   return (
     <Card className="bg-slate-900 border-slate-800">
       <CardContent className="flex items-center justify-between p-3">
@@ -21,15 +23,32 @@ export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onEdit
             checked={charge.payee}
             onCheckedChange={(checked) => {
               if (readOnly) return
-              onTogglePayee(charge.id, !!checked)
+              onTogglePayee(charge.id, !!checked, checked ? today : undefined)
             }}
           />
           <div>
             <p className={charge.payee ? 'line-through text-slate-500' : 'font-medium'}>
               {charge.nom}
             </p>
-            {charge.recurrent_id && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900 text-purple-400">↻</span>
+            <div className="flex items-center gap-1 flex-wrap">
+              {charge.recurrent_id && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900 text-purple-400">↻</span>
+              )}
+            </div>
+            {(charge.date_prevue || charge.date_reelle) && (
+              <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
+                <CalendarDays className="w-3 h-3" />
+                {charge.date_prevue && <span>Prévu {charge.date_prevue}</span>}
+                {charge.date_reelle && <span className="text-purple-400">Payé {charge.date_reelle}</span>}
+              </div>
+            )}
+            {!readOnly && charge.payee && (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-[11px] text-slate-500">Date payée</span>
+                <Input type="date" value={charge.date_reelle || today}
+                  className="h-7 w-36 text-xs bg-slate-800 border-slate-700"
+                  onChange={e => onTogglePayee(charge.id, true, e.target.value)} />
+              </div>
             )}
           </div>
         </div>
