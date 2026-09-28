@@ -17,8 +17,8 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
         if (!previous) return { mode, items, sourceMonth: undefined }
 
         const [revenus, fixes, budgets] = await Promise.all([
-          supabase.from('revenus').select('id, nom, montant, recurrent_id').eq('mois_id', previous.id),
-          supabase.from('charges_fixes').select('id, nom, montant, recurrent_id').eq('mois_id', previous.id),
+          supabase.from('revenus').select('id, nom, montant, recurrent_id, type, ordre').eq('mois_id', previous.id),
+          supabase.from('charges_fixes').select('id, nom, montant, recurrent_id, ordre').eq('mois_id', previous.id),
           supabase.from('budgets').select('id, categorie_id, prevu, categorie:categories(nom)').eq('mois_id', previous.id),
         ])
         if (revenus.error) throw revenus.error
