@@ -86,6 +86,7 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
           {tx.children.map((child: any) => {
             const childNet = getMontantNet(child)
             const childHasRemb = child.remboursements?.length > 0
+            const childAwaitingValidation = !child.date_validation
             return (
               <Card key={child.id} className="bg-slate-900/60 border-slate-800">
                 <CardContent className="p-2">
@@ -93,7 +94,12 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-sm">{child.categorie?.icone || '📦'}</span>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium truncate">{child.categorie?.nom || 'Sans catégorie'}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-medium truncate">{child.categorie?.nom || 'Sans catégorie'}</p>
+                          {childAwaitingValidation && (
+                            <span className="text-[9px] px-1 py-0.5 rounded-full bg-amber-900 text-amber-400 flex-shrink-0">⏳ À valider</span>
+                          )}
+                        </div>
                         {child.sous_categorie && (
                           <p className="text-[10px] text-slate-400">{child.sous_categorie.icone} {child.sous_categorie.nom}</p>
                         )}
