@@ -30,6 +30,8 @@ export function useDashboardV2() {
 
     const actualSavingsDeposits = mouvements.filter(item => item.type === 'epargne').reduce((sum, item) => sum + Number(item.montant), 0)
     const savingsWithdrawals = mouvements.filter(item => item.type === 'reprise').reduce((sum, item) => sum + Number(item.montant), 0)
+    const plannedMonthResult = plannedIncome + savingsWithdrawals - plannedFixed - plannedVariable - actualSavingsDeposits
+    const actualMonthResult = actualIncome + savingsWithdrawals - actualFixed - actualVariable - actualSavingsDeposits
 
     return {
       plannedIncome,
@@ -43,6 +45,8 @@ export function useDashboardV2() {
       savingsWithdrawals,
       plannedOutflows: plannedFixed + plannedVariable + actualSavingsDeposits,
       actualOutflows: actualFixed + actualVariable + actualSavingsDeposits,
+      plannedMonthResult,
+      actualMonthResult,
     }
   }, [revenus, charges, transactions, mouvements, budgets])
 }
