@@ -71,11 +71,11 @@ export function usePrepareMonth(espaceId: string | undefined, targetMonth: strin
       }
 
       const incomes = items.filter(item => item.kind === 'income').map(item => ({
-        mois_id: monthId!, recurrent_id: item.recurrentId || null, type: item.incomeType || 'actif',
+        mois_id: monthId!, recurrent_id: item.recurrentId || null, preparation_source_id: item.sourceId || null, type: item.incomeType || 'actif',
         nom: item.label, montant: item.amount, recu: false, ordre: item.order || 0,
       }))
       const fixed = items.filter(item => item.kind === 'fixed').map(item => ({
-        mois_id: monthId!, recurrent_id: item.recurrentId || null, nom: item.label,
+        mois_id: monthId!, recurrent_id: item.recurrentId || null, preparation_source_id: item.sourceId || null, nom: item.label,
         montant: item.amount, payee: false, ordre: item.order || 0,
       }))
       const budgets = items.filter(item => item.kind === 'budget' && item.categoryId).map(item => ({
@@ -87,11 +87,11 @@ export function usePrepareMonth(espaceId: string | undefined, targetMonth: strin
       }))
 
       if (incomes.length) {
-        const { error } = await supabase.from('revenus').insert(incomes)
+        const { error } = await supabase.from('revenus').upsert(incomes, { onConflict: 'mois_id,preparation_source_id', ignoreDuplicates: true })
         if (error) throw error
       }
       if (fixed.length) {
-        const { error } = await supabase.from('charges_fixes').insert(fixed)
+        const { error } = await supabase.from('charges_fixes').upsert(fixed, { onConflict: 'mois_id,preparation_source_id', ignoreDuplicates: true })
         if (error) throw error
       }
       if (budgets.length) {
