@@ -102,7 +102,7 @@ export function useDettes(espaceId: string | undefined) {
   })
 
   const addRemboursement = useMutation({
-    mutationFn: async (remb: { dette_id: string; montant: number; date: string }) => {
+    mutationFn: async (remb: { dette_id: string; montant: number; date: string; impacte_budget?: boolean }) => {
       const { data, error } = await supabase
         .from('remboursements_dette')
         .insert(remb)
@@ -126,10 +126,10 @@ export function useDettes(espaceId: string | undefined) {
   })
 
   const updateRemboursement = useMutation({
-    mutationFn: async ({ id, montant, date }: { id: string; montant: number; date: string }) => {
+    mutationFn: async ({ id, montant, date, impacte_budget }: { id: string; montant: number; date: string; impacte_budget?: boolean }) => {
       const { error } = await supabase
         .from('remboursements_dette')
-        .update({ montant, date })
+        .update({ montant, date, ...(impacte_budget !== undefined ? { impacte_budget } : {}) })
         .eq('id', id)
       if (error) throw error
     },
