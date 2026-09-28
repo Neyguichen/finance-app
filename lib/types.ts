@@ -169,6 +169,8 @@ export interface RemboursementDette {
   montant: number
   date: string
   note: string | null
+  /** V2: ce remboursement correspond réellement à un flux du Budget. */
+  impacte_budget?: boolean
   created_at: string
 }
 
