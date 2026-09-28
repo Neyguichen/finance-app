@@ -20,7 +20,12 @@ import DepenseEditDialog from '@/components/pages/variables/DepenseEditDialog'
 import DepenseDeleteDialog from '@/components/pages/variables/DepenseDeleteDialog'
 import ChargeFixeForm from '@/components/pages/charges-fixes/ChargeFixeForm'
 import { ChargeFixeEditDialog, ChargeFixeDeleteDialog, ChargeFixeScopeDialog } from '@/components/pages/charges-fixes/ChargeFixeDialogs'
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { CalculatorInput } from '@/components/ui/calculator-input'
+import SplitDialog from '@/components/pages/variables/SplitDialog'
+import { useRemboursements } from '@/lib/hooks/useRemboursements'
 
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
@@ -33,12 +38,18 @@ export default function DepensesPage() {
   const [editFixed, setEditFixed] = useState<any>(null)
   const [deleteFixed, setDeleteFixed] = useState<any>(null)
   const [scopeFixed, setScopeFixed] = useState<any>(null)
+  const [splitTx, setSplitTx] = useState<any>(null)
+  const [rembTx, setRembTx] = useState<any>(null)
+  const [newRembMontant, setNewRembMontant] = useState(0)
+  const [newRembNote, setNewRembNote] = useState('')
+  const [newRembDate, setNewRembDate] = useState(new Date().toISOString().split('T')[0])
   const { data: categories = [] } = useCategories(espace?.id)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], allFlat, create: createTx, update: updateTx, remove: removeTx, split, unsplit } = useTransactions(moisId)
   const { data: charges = [], togglePayee, create: createFixed, update: updateFixed, remove: removeFixed, removeDefinitif } = useChargesFixes(moisId)
   const { create: createFixedRecurring, update: updateFixedRecurring } = useChargesFixesRecurrentes(espace?.id)
   const { data: adminData } = useAdminMoisData(month)
+  const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
 
   const effectiveCategories: any[] = isAdminViewing ? (adminData?.categories || []) : categories
   const effectiveBudgets: any[] = isAdminViewing ? (adminData?.budgets || []) : budgets
@@ -97,9 +108,11 @@ export default function DepensesPage() {
       <ChargeFixeDeleteDialog target={deleteFixed} onClose={() => setDeleteFixed(null)} onDelete={removeFixedExpense} />
       <ChargeFixeScopeDialog target={scopeFixed} onClose={() => setScopeFixed(null)} onSave={saveFixedScope} />
       <DepenseForm open={txOpen} onOpenChange={setTxOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={{ mutateAsync: async () => { throw new Error('Création de catégorie disponible dans Paramètres') } }} doubleDate={espace?.double_date ?? false} onSubmit={createTransaction} onSubmitSplit={createSplitTransaction} />
-      <DepenseEditDialog editTx={editTx} onClose={() => setEditTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={{ mutateAsync: async () => { throw new Error('Création de catégorie disponible dans Paramètres') } }} doubleDate={espace?.double_date ?? false} onSave={async (data:any)=>{ await updateTx.mutateAsync(data); setEditTx(null) }} onRemb={()=>{}} onSplit={async(tx:any)=>{ if(tx?.id) await unsplit.mutateAsync(tx.id) }} onUnsplit={async(tx:any)=>{ await unsplit.mutateAsync(tx.id); setEditTx(null) }} />
+      <DepenseEditDialog editTx={editTx} onClose={() => setEditTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={{ mutateAsync: async () => { throw new Error('Création de catégorie disponible dans Paramètres') } }} doubleDate={espace?.double_date ?? false} onSave={async (data:any)=>{ await updateTx.mutateAsync(data); setEditTx(null) }} onRemb={(tx:any)=>{ setEditTx(null); setRembTx(tx) }} onSplit={(tx:any)=>{ setEditTx(null); setSplitTx(tx) }} onUnsplit={async(tx:any)=>{ await unsplit.mutateAsync(tx.id); setEditTx(null) }} />
       <DepenseDeleteDialog target={deleteTx} onClose={() => setDeleteTx(null)} onDelete={(id:string)=>{ removeTx.mutate(id); setDeleteTx(null) }} />
-      <p className="text-xs text-slate-600">La gestion courante est maintenant intégrée ici. Remboursements et outils de split avancés seront rapatriés au prochain incrément.</p>
+      <SplitDialog tx={splitTx} onClose={() => setSplitTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={{ mutateAsync: async () => { throw new Error('Création de catégorie disponible dans Paramètres') } }} onSave={async(parentId:string, lines:any[])=>{ await split.mutateAsync({ parentId, lines }); setSplitTx(null) }} />
+      <Dialog open={!!rembTx} onOpenChange={(v)=>{ if(!v) setRembTx(null) }}><DialogContent className="bg-slate-900 border-slate-700"><DialogHeader><DialogTitle>Remboursements — {rembTx?.infos || rembTx?.categorie?.nom || 'Dépense'}</DialogTitle></DialogHeader><div className="space-y-4"><p className="text-sm text-slate-400">Dépense initiale : <span className="font-bold text-pink-400">{formatEuro(Number(rembTx?.montant || 0))}</span></p>{remboursements.map((r:any)=><div key={r.id} className="flex items-center justify-between bg-slate-800 rounded-lg p-2"><div><span className="text-sm text-emerald-400 font-semibold">+{formatEuro(Number(r.montant))}</span>{r.note && <span className="text-xs text-slate-500 ml-2">{r.note}</span>}</div><Button variant="ghost" size="icon" className="h-6 w-6 text-slate-500" onClick={()=>removeRemb.mutate(r.id)}><Trash2 className="w-3 h-3"/></Button></div>)}<div className="border-t border-slate-700 pt-3 space-y-3"><p className="text-sm font-semibold">Ajouter un remboursement</p><CalculatorInput value={newRembMontant} onChange={setNewRembMontant} placeholder="Montant" /><Input placeholder="Note (optionnel)" value={newRembNote} onChange={e=>setNewRembNote(e.target.value)} /><Input type="date" value={newRembDate} onChange={e=>setNewRembDate(e.target.value)} /><Button className="w-full" onClick={async()=>{ if(!rembTx||!newRembMontant)return; await createRemb.mutateAsync({transaction_id:rembTx.id,montant:newRembMontant,note:newRembNote||null,date:newRembDate}); setNewRembMontant(0);setNewRembNote('') }}>Ajouter</Button></div></div></DialogContent></Dialog>
+      <p className="text-xs text-slate-600">La gestion des transactions, splits et remboursements est maintenant intégrée à cette vue.</p>
     </div>
   </div>
 }
