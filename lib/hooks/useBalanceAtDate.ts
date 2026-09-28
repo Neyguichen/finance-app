@@ -69,6 +69,8 @@ export function useBalanceAtDate(espaceId: string | undefined, referenceBalance:
   })
 }
 
+// Actual period summaries share the same source of truth as dated balances.
+// Cash-affecting mutations must invalidate both query families.
 export function useActualCashSummary(espaceId: string | undefined, startDate: string, endDate: string, doubleDate = false) {
   const supabase = createClient()
   return useQuery({
