@@ -16,10 +16,12 @@ import SortantsCard from '@/components/pages/dashboard/SortantsCard'
 import RepartitionCategories from '@/components/pages/dashboard/RepartitionCategories'
 import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
 import SituationFinanciereV2 from '@/components/pages/dashboard/SituationFinanciereV2'
+import PrevuReelV2 from '@/components/pages/dashboard/PrevuReelV2'
 
 import { getMontantNet } from '@/lib/utils'
 import { useDashboardData } from '@/lib/hooks/useDashboardData'
 import { useActualCashSummary, useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
+import { useDashboardV2 } from '@/lib/hooks/useDashboardV2'
 
 export default function DashboardPage() {
   const { month, setMonth, espaces, espace, loading, addEspace, isAdminViewing } = useApp()
@@ -28,6 +30,7 @@ export default function DashboardPage() {
   const [newIcone, setNewIcone] = useState('🏠')
 
   const data = useDashboardData()
+  const v2 = useDashboardV2()
   const today = new Date().toISOString().slice(0, 10)
   const [year, monthNumber] = month.split('-').map(Number)
   const monthStart = `${month}-01`
@@ -100,6 +103,17 @@ export default function DashboardPage() {
             today={today}
           />
         )}
+
+        <PrevuReelV2
+          plannedIncome={v2.plannedIncome}
+          actualIncome={v2.actualIncome}
+          expectedIncome={v2.expectedIncome}
+          plannedFixed={v2.plannedFixed}
+          actualFixed={v2.actualFixed}
+          plannedVariable={v2.plannedVariable}
+          actualVariable={v2.actualVariable}
+          actualSavingsDeposits={v2.actualSavingsDeposits}
+        />
 
         {/* Toujours visible */}
         <ResteAVivreCard restePrevu={data.restePrevu} resteReel={data.resteReel} />
