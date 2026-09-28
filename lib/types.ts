@@ -96,6 +96,8 @@ export interface Transaction {
   categorie_id: string
   sous_categorie_id?: string | null
   date: string
+  /** V2: en mode standard, date de validation; en mode double date, date de débit bancaire. */
+  date_validation?: string | null
   montant: number
   infos: string | null
   categorie?: Categorie
