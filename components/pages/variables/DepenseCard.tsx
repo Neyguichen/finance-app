@@ -17,7 +17,7 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
   const [expanded, setExpanded] = useState(false)
   const net = getMontantNet(tx)
   const hasRemb = tx.remboursements?.length > 0
-  const isAwaitingValidation = doubleDate && !tx.date_validation
+  const isAwaitingValidation = !tx.date_validation
   const isSplit = tx.is_split && tx.children?.length > 0
 
   return (
