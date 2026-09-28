@@ -19,6 +19,11 @@ export type MonthPreparationItem = {
   label: string
   amount: number
   sourceId?: string
+  recurrentId?: string | null
+  categoryId?: string
+  envelopeId?: string
+  incomeType?: 'actif' | 'passif'
+  order?: number
   selected: boolean
 }
 
