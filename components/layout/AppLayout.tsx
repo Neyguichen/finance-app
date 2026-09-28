@@ -5,6 +5,7 @@ import EspaceSelector from '@/components/layout/EspaceSelector'
 import AppMenu from '@/components/layout/AppMenu'
 import AdminBanner from '@/components/layout/AdminBanner'
 import MobileNav from '@/components/layout/MobileNav'
+import { ReferenceBalanceSetup } from '@/components/ReferenceBalanceSetup'
 
 const HEADER_H = 44 // hauteur du header en px
 const SCROLL_THRESHOLD = 10
@@ -163,6 +164,9 @@ export default function AppLayout({
         ref={mainRef}
         className="flex-1 overflow-y-auto pb-20 isolate"
       >
+        <div className="px-4 pt-4">
+          <ReferenceBalanceSetup />
+        </div>
         {children}
       </main>
 
