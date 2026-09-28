@@ -118,6 +118,7 @@ export function useMouvements(moisId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
       queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
   })
 
@@ -134,6 +135,7 @@ export function useMouvements(moisId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
       queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
   })
 
@@ -147,6 +149,7 @@ export function useMouvements(moisId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
       queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
   })
 
@@ -163,6 +166,7 @@ export function useMouvements(moisId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
       queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
       queryClient.invalidateQueries({ queryKey: ['epargne_recurrentes'] })
     },
   })
