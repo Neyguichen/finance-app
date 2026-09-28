@@ -31,21 +31,24 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
         return { mode, items, sourceMonth: previous.mois }
       }
 
-      const [revenus, fixes, savings, envelopes] = await Promise.all([
+      const [revenus, fixes, savings, budgetHabits, envelopes] = await Promise.all([
         supabase.from('revenus_recurrents').select('*').eq('espace_id', espaceId!).eq('actif', true),
         supabase.from('charges_fixes_recurrentes').select('*').eq('espace_id', espaceId!).eq('actif', true),
         supabase.from('epargne_recurrentes').select('*').eq('espace_id', espaceId!).eq('actif', true),
+        supabase.from('budget_habitudes').select('*, categorie:categories(nom)').eq('espace_id', espaceId!).eq('actif', true),
         supabase.from('enveloppes').select('id, nom').eq('espace_id', espaceId!),
       ])
       if (revenus.error) throw revenus.error
       if (fixes.error) throw fixes.error
       if (savings.error) throw savings.error
+      if (budgetHabits.error) throw budgetHabits.error
       if (envelopes.error) throw envelopes.error
       const envelopeNames = new Map((envelopes.data || []).map(e => [e.id, e.nom]))
 
       for (const row of revenus.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `income:${row.id}`, kind: 'income', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, incomeType: row.type as 'actif' | 'passif', order: row.ordre || 0, selected: true })
       for (const row of fixes.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, order: row.ordre || 0, selected: true })
       for (const row of savings.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `savings:${row.id}`, kind: 'savings', label: row.note || envelopeNames.get(row.enveloppe_dest_id) || 'Épargne', amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, envelopeId: row.enveloppe_dest_id, order: row.ordre || 0, selected: true })
+      for (const row of budgetHabits.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `budget:${row.id}`, kind: 'budget', label: (row.categorie as { nom?: string } | null)?.nom || 'Budget variable', amount: Number(row.montant), sourceId: row.id, categoryId: row.categorie_id, order: row.ordre || 0, selected: true })
       return { mode, items, sourceMonth: undefined }
     },
   })
