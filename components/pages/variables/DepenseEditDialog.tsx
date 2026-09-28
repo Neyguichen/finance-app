@@ -85,6 +85,38 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
                   {editTx.categorie?.icone} {editTx.categorie?.nom} • {editTx.children.length} ligne(s)
                 </div>
               </div>
+              <div className="space-y-3 bg-slate-800/60 rounded-lg p-3">
+                <p className="text-xs font-semibold text-slate-400">Date et validation du split</p>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">{doubleDate ? "Date d'opération" : 'Date'}</label>
+                  <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                </div>
+                {!doubleDate ? (
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input type="checkbox" className="checkbox checkbox-sm" checked={validated}
+                      onChange={e => setValidated(e.target.checked)} />
+                    Dépense validée
+                  </label>
+                ) : (
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Date de validation bancaire <span className="text-slate-600">(optionnel)</span></label>
+                    <Input type="date" value={dateValidation} onChange={e => setDateValidation(e.target.value)} />
+                  </div>
+                )}
+                <Button className="w-full" onClick={async () => {
+                  await onSave({
+                    id: editTx.id,
+                    montant: Number(editTx.montant),
+                    date,
+                    date_validation: doubleDate ? (dateValidation || null) : (validated ? date : null),
+                    infos: editTx.infos || null,
+                    categorie_id: editTx.categorie_id,
+                    sous_categorie_id: editTx.sous_categorie_id || null,
+                  })
+                  onClose()
+                }}>Enregistrer date et validation</Button>
+                <p className="text-[11px] text-slate-500">La modification s'applique à toutes les lignes du split.</p>
+              </div>
               {onSplit && (
                 <Button variant="outline" className="w-full text-indigo-400 border-indigo-800" onClick={() => { handleClose(); onSplit(editTx) }}>
                   <Scissors className="w-4 h-4 mr-2" /> Re-scinder
