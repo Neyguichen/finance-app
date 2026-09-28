@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { isHabitDue, type MonthPreparationItem } from '@/lib/month-preparation'
 
@@ -47,6 +47,59 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
       for (const row of fixes.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, order: row.ordre || 0, selected: true })
       for (const row of savings.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `savings:${row.id}`, kind: 'savings', label: row.note || envelopeNames.get(row.enveloppe_dest_id) || 'Épargne', amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, envelopeId: row.enveloppe_dest_id, order: row.ordre || 0, selected: true })
       return { mode, items, sourceMonth: undefined }
+    },
+  })
+}
+
+
+export function usePrepareMonth(espaceId: string | undefined, targetMonth: string, userId: string | undefined) {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (items: MonthPreparationItem[]) => {
+      if (!espaceId || !userId) throw new Error('Budget ou utilisateur manquant')
+
+      const { data: existing, error: lookupError } = await supabase.from('mois').select('id').eq('espace_id', espaceId).eq('mois', targetMonth).maybeSingle()
+      if (lookupError) throw lookupError
+
+      let monthId = existing?.id as string | undefined
+      if (!monthId) {
+        const { data: created, error } = await supabase.from('mois').insert({ espace_id: espaceId, user_id: userId, mois: targetMonth }).select('id').single()
+        if (error) throw error
+        monthId = created.id
+      }
+
+      const incomes = items.filter(item => item.kind === 'income').map(item => ({
+        mois_id: monthId!, recurrent_id: item.recurrentId || null, type: item.incomeType || 'actif',
+        nom: item.label, montant: item.amount, recu: false, ordre: item.order || 0,
+      }))
+      const fixed = items.filter(item => item.kind === 'fixed').map(item => ({
+        mois_id: monthId!, recurrent_id: item.recurrentId || null, nom: item.label,
+        montant: item.amount, payee: false, ordre: item.order || 0,
+      }))
+      const budgets = items.filter(item => item.kind === 'budget' && item.categoryId).map(item => ({
+        mois_id: monthId!, categorie_id: item.categoryId!, prevu: item.amount,
+      }))
+
+      if (incomes.length) {
+        const { error } = await supabase.from('revenus').insert(incomes)
+        if (error) throw error
+      }
+      if (fixed.length) {
+        const { error } = await supabase.from('charges_fixes').insert(fixed)
+        if (error) throw error
+      }
+      if (budgets.length) {
+        const { error } = await supabase.from('budgets').upsert(budgets, { onConflict: 'mois_id,categorie_id' })
+        if (error) throw error
+      }
+
+      return monthId
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mois', espaceId] })
+      queryClient.invalidateQueries({ queryKey: ['month_preparation', espaceId, targetMonth] })
     },
   })
 }
