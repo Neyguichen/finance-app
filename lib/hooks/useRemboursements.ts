@@ -36,6 +36,7 @@ export function useRemboursements(transactionId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
     },
   })
   
@@ -47,6 +48,7 @@ export function useRemboursements(transactionId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
     },
   })
 
