@@ -36,6 +36,7 @@ export default function DetteDetail({
   const [editRemb, setEditRemb] = useState<string | null>(null)
   const [editRembMontant, setEditRembMontant] = useState(0)
   const [editRembDate, setEditRembDate] = useState('')
+  const [editRembImpacteBudget, setEditRembImpacteBudget] = useState(false)
 
   const totalRemb = rembList.reduce((s, r) => s + Number(r.montant), 0)
   const reste = Number(dette.montant) - totalRemb
@@ -116,9 +117,14 @@ export default function DetteDetail({
                         value={editRembMontant} onChange={e => setEditRembMontant(parseFloat(e.target.value) || 0)} />
                       <Input type="date" className="w-32 h-7 text-xs"
                         value={editRembDate} onChange={e => setEditRembDate(e.target.value)} />
+                      <label className="flex items-center gap-1 text-[11px] text-slate-400" title="Impacte réellement le solde du Budget">
+                        <input type="checkbox" className="checkbox checkbox-xs"
+                          checked={editRembImpacteBudget} onChange={e => setEditRembImpacteBudget(e.target.checked)} />
+                        Budget
+                      </label>
                       <Button size="sm" variant="ghost" className="h-7 text-xs text-emerald-400"
                         onClick={() => {
-                          onUpdateRemboursement({ id: r.id, montant: editRembMontant, date: editRembDate })
+                          onUpdateRemboursement({ id: r.id, montant: editRembMontant, date: editRembDate, impacte_budget: editRembImpacteBudget })
                           setEditRemb(null)
                         }}>✓</Button>
                       <Button size="sm" variant="ghost" className="h-7 text-xs"
@@ -128,9 +134,14 @@ export default function DetteDetail({
                     <>
                       <span className="text-slate-400">{formatDate(r.date)}</span>
                       <span className="text-emerald-400 font-medium">{formatEuro(Number(r.montant))}</span>
+                      {r.impacte_budget && (
+                        <span className="text-[10px] rounded bg-blue-950 px-1.5 py-0.5 text-blue-300" title="Ce remboursement impacte le solde réel du Budget">
+                          Budget
+                        </span>
+                      )}
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" className="h-6 w-6"
-                          onClick={() => { setEditRemb(r.id); setEditRembMontant(Number(r.montant)); setEditRembDate(r.date) }}>
+                          onClick={() => { setEditRemb(r.id); setEditRembMontant(Number(r.montant)); setEditRembDate(r.date); setEditRembImpacteBudget(Boolean(r.impacte_budget)) }}>
                           <Pencil className="w-3 h-3" />
                         </Button>
                         <Button size="icon" variant="ghost" className="h-6 w-6 text-red-400"
