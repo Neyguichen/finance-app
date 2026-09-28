@@ -14,9 +14,9 @@ type Props = {
   dette: Dette
   rembList: RemboursementDette[]
   onUpdate: (data: { id: string; titre: string; personne: string; montant: number; date_echeance: string | null; description: string | null }) => void
-  onAddRemboursement: (data: { dette_id: string; montant: number; date: string }) => void
+  onAddRemboursement: (data: { dette_id: string; montant: number; date: string; impacte_budget?: boolean }) => void
   onRemoveRemboursement: (id: string) => void
-  onUpdateRemboursement: (data: { id: string; montant: number; date: string }) => void
+  onUpdateRemboursement: (data: { id: string; montant: number; date: string; impacte_budget?: boolean }) => void
   onArchive: (id: string) => void
   onUnarchive: (id: string) => void
 }
@@ -29,6 +29,7 @@ export default function DetteDetail({
   const [expanded, setExpanded] = useState(false)
   const [newMontant, setNewMontant] = useState('')
   const [newDate, setNewDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [newImpacteBudget, setNewImpacteBudget] = useState(false)
   const [editDette, setEditDette] = useState(false)
 
   // Édition remboursement inline
@@ -145,7 +146,8 @@ export default function DetteDetail({
 
             {/* Ajouter un remboursement */}
             {!dette.archived && reste > 0 && (
-              <div className="flex gap-2">
+              <div className="space-y-2">
+                <div className="flex gap-2">
                 <Input type="number" step="0.01" placeholder="Montant"
                   className="flex-1 h-8 text-sm" value={newMontant}
                   onChange={e => setNewMontant(e.target.value)} />
@@ -153,9 +155,23 @@ export default function DetteDetail({
                   value={newDate} onChange={e => setNewDate(e.target.value)} />
                 <Button size="sm" className="h-8" onClick={() => {
                   if (!newMontant) return
-                  onAddRemboursement({ dette_id: dette.id, montant: parseFloat(newMontant), date: newDate })
+                  onAddRemboursement({ dette_id: dette.id, montant: parseFloat(newMontant), date: newDate, impacte_budget: newImpacteBudget })
                   setNewMontant('')
+                  setNewImpacteBudget(false)
                 }}>+</Button>
+                </div>
+                <label className="flex items-start gap-2 text-xs text-slate-400 cursor-pointer">
+                  <input type="checkbox" className="checkbox checkbox-xs mt-0.5"
+                    checked={newImpacteBudget} onChange={e => setNewImpacteBudget(e.target.checked)} />
+                  <span>
+                    Ce remboursement a réellement transité par ce Budget
+                    <span className="block text-slate-500">
+                      {dette.type === 'je_dois'
+                        ? 'Il sera compté comme une sortie d’argent dans le solde réel.'
+                        : 'Il sera compté comme une entrée d’argent, sans être considéré comme un revenu.'}
+                    </span>
+                  </span>
+                </label>
               </div>
             )}
 
