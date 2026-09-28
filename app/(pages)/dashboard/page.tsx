@@ -18,6 +18,7 @@ import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
 
 import { getMontantNet } from '@/lib/utils'
 import { useDashboardData } from '@/lib/hooks/useDashboardData'
+import { useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
 
 export default function DashboardPage() {
   const { month, setMonth, espaces, espace, loading, addEspace, isAdminViewing } = useApp()
@@ -26,6 +27,13 @@ export default function DashboardPage() {
   const [newIcone, setNewIcone] = useState('🏠')
 
   const data = useDashboardData()
+  const today = new Date().toISOString().slice(0, 10)
+  const v2Balance = useBalanceAtDate(
+    espace?.id,
+    espace?.solde_reference,
+    espace?.date_solde_reference,
+    today
+  )
 
   // Stats visibles (tout activé par défaut)
   const ds = {
@@ -74,6 +82,33 @@ export default function DashboardPage() {
             </Dialog>
           )}
         </div>
+
+        {/* Comparaison temporaire V1/V2 : informative uniquement, aucun calcul V1 n'est remplacé. */}
+        {espace?.solde_reference != null && espace?.date_solde_reference && (
+          <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-blue-300">Contrôle moteur V2</p>
+                <p className="text-xs text-slate-400">
+                  Solde réel calculé au {new Date(today + 'T12:00:00').toLocaleDateString('fr-FR')} depuis la référence du{' '}
+                  {new Date(espace.date_solde_reference + 'T12:00:00').toLocaleDateString('fr-FR')}.
+                </p>
+              </div>
+              <div className="text-right">
+                {v2Balance.isLoading ? (
+                  <span className="loading loading-spinner loading-sm" />
+                ) : v2Balance.data != null ? (
+                  <p className="text-xl font-bold">{Number(v2Balance.data).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</p>
+                ) : (
+                  <p className="text-sm text-slate-400">Indisponible</p>
+                )}
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              Valeur de contrôle uniquement : le Dashboard continue d'utiliser les calculs V1 pendant la validation.
+            </p>
+          </div>
+        )}
 
         {/* Toujours visible */}
         <ResteAVivreCard restePrevu={data.restePrevu} resteReel={data.resteReel} />
