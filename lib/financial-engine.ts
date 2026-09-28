@@ -23,6 +23,9 @@ export interface CashSummary {
   earnedIncome: number
   cashInflows: number
   expenses: number
+  expenseReimbursements: number
+  debtRepaymentsIn: number
+  debtRepaymentsOut: number
   savingsDeposits: number
   savingsWithdrawals: number
   internalSavingsTransfers: number
@@ -51,12 +54,17 @@ export function summarizeCashFlows(flows: FinancialFlow[]): CashSummary {
           summary.netCashMovement -= amount
           break
         case 'expense_reimbursement':
+          summary.expenseReimbursements += amount
+          summary.cashInflows += amount
+          summary.netCashMovement += amount
+          break
         case 'debt_repayment_in':
+          summary.debtRepaymentsIn += amount
           summary.cashInflows += amount
           summary.netCashMovement += amount
           break
         case 'debt_repayment_out':
-          summary.expenses += amount
+          summary.debtRepaymentsOut += amount
           summary.netCashMovement -= amount
           break
         case 'savings_deposit':
@@ -79,6 +87,9 @@ export function summarizeCashFlows(flows: FinancialFlow[]): CashSummary {
       earnedIncome: 0,
       cashInflows: 0,
       expenses: 0,
+      expenseReimbursements: 0,
+      debtRepaymentsIn: 0,
+      debtRepaymentsOut: 0,
       savingsDeposits: 0,
       savingsWithdrawals: 0,
       internalSavingsTransfers: 0,
