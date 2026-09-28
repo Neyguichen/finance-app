@@ -35,7 +35,7 @@ export default function DashboardPage() {
   const [newIcone, setNewIcone] = useState('🏠')
   const [preparationMode, setPreparationMode] = useState<'previous' | 'habits' | null>(null)
   const preparationPreview = useMonthPreparation(espace?.id, month, preparationMode)
-  const prepareMonth = usePrepareMonth(espace?.id, month, userId)
+  const prepareMonth = usePrepareMonth(espace?.id, month, userId ?? undefined)
 
   const data = useDashboardData()
   const v2 = useDashboardV2()
