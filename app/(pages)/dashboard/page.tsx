@@ -30,8 +30,8 @@ export default function DashboardPage() {
   const today = new Date().toISOString().slice(0, 10)
   const v2Balance = useBalanceAtDate(
     espace?.id,
-    espace?.solde_reference,
-    espace?.date_solde_reference,
+    espace?.solde_reference ?? null,
+    espace?.date_solde_reference ?? null,
     today,
     espace?.double_date ?? false
   )
