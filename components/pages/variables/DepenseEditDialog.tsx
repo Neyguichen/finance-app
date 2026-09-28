@@ -115,7 +115,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
                   })
                   onClose()
                 }}>Enregistrer date et validation</Button>
-                <p className="text-[11px] text-slate-500">La modification s'applique à toutes les lignes du split.</p>
+                <p className="text-[11px] text-slate-500">La modification s&apos;applique à toutes les lignes du split.</p>
               </div>
               {onSplit && (
                 <Button variant="outline" className="w-full text-indigo-400 border-indigo-800" onClick={() => { handleClose(); onSplit(editTx) }}>
