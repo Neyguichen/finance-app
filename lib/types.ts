@@ -5,6 +5,10 @@ export interface Espace {
   icone: string
   ordre: number
   solde_initial: number
+  /** Solde réel vérifié à une date donnée (moteur V2). */
+  solde_reference?: number | null
+  /** Date ISO YYYY-MM-DD associée au solde de référence V2. */
+  date_solde_reference?: string | null
   created_at: string
   double_date?: boolean
   dashboard_stats?: Record<string, boolean>
