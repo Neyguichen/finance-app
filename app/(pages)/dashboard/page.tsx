@@ -106,7 +106,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Valeur de contrôle uniquement : le Dashboard continue d'utiliser les calculs V1 pendant la validation.
+              Valeur de contrôle uniquement : le Dashboard continue d&apos;utiliser les calculs V1 pendant la validation.
             </p>
           </div>
         )}
