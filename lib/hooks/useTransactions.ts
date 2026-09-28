@@ -68,6 +68,7 @@ export function useTransactions(moisId: string | undefined) {
     queryClient.invalidateQueries({ queryKey: key })
     queryClient.invalidateQueries({ queryKey: ['transactions-flat', moisId] })
     queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
   }
 
   const create = useMutation({
