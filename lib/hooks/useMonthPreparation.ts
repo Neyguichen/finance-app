@@ -81,6 +81,10 @@ export function usePrepareMonth(espaceId: string | undefined, targetMonth: strin
       const budgets = items.filter(item => item.kind === 'budget' && item.categoryId).map(item => ({
         mois_id: monthId!, categorie_id: item.categoryId!, prevu: item.amount,
       }))
+      const plannedSavings = items.filter(item => item.kind === 'savings' && item.recurrentId).map(item => ({
+        mois_id: monthId!, enveloppe_dest_id: item.envelopeId || null, recurrent_id: item.recurrentId!,
+        montant: item.amount, note: item.label, ordre: item.order || 0,
+      }))
 
       if (incomes.length) {
         const { error } = await supabase.from('revenus').insert(incomes)
@@ -94,12 +98,17 @@ export function usePrepareMonth(espaceId: string | undefined, targetMonth: strin
         const { error } = await supabase.from('budgets').upsert(budgets, { onConflict: 'mois_id,categorie_id' })
         if (error) throw error
       }
+      if (plannedSavings.length) {
+        const { error } = await supabase.from('epargne_prevues').upsert(plannedSavings, { onConflict: 'mois_id,recurrent_id' })
+        if (error) throw error
+      }
 
       return monthId
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mois', espaceId] })
       queryClient.invalidateQueries({ queryKey: ['month_preparation', espaceId, targetMonth] })
+      queryClient.invalidateQueries({ queryKey: ['epargne_prevues'] })
     },
   })
 }
