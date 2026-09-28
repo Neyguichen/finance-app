@@ -78,3 +78,32 @@ export function summarizeCashFlows(flows: FinancialFlow[]): CashSummary {
 export function balanceFromReference(referenceBalance: number, flows: FinancialFlow[]) {
   return Number(referenceBalance || 0) + summarizeCashFlows(flows).netCashMovement
 }
+
+
+export interface DatedFinancialFlow extends FinancialFlow {
+  date: string
+}
+
+/**
+ * Calculates the verified cash balance at a target date.
+ * Only actual flows strictly after the reference date and up to the target
+ * date are applied. Planned flows must never be passed to this function.
+ */
+export function balanceAtDate(
+  referenceBalance: number,
+  referenceDate: string,
+  targetDate: string,
+  flows: DatedFinancialFlow[]
+) {
+  if (targetDate === referenceDate) return Number(referenceBalance || 0)
+
+  if (targetDate < referenceDate) {
+    throw new Error('Cannot derive a historical balance before the V2 reference date')
+  }
+
+  const applicableFlows = flows.filter(
+    flow => flow.date > referenceDate && flow.date <= targetDate
+  )
+
+  return balanceFromReference(referenceBalance, applicableFlows)
+}
