@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export type HabitKind = 'income' | 'fixed' | 'savings' | 'budget'
 export type HabitRow = { id:string; kind:HabitKind; label:string; amount:number; actif:boolean; frequence_mois:number; categoryId?:string; envelopeId?:string }
+export type BudgetHabitInput = { categoryId:string; amount:number; frequence_mois:number }
 
 export function useHabits(espaceId?: string) {
   const supabase = createClient()
@@ -38,5 +39,17 @@ export function useHabits(espaceId?: string) {
     },
     onSuccess:()=>{qc.invalidateQueries({queryKey:['habits',espaceId]});qc.invalidateQueries({queryKey:['month_preparation',espaceId]})}
   })
-  return {...query,toggle}
+  const saveBudget=useMutation({
+    mutationFn:async(input:BudgetHabitInput)=>{
+      if(!espaceId) throw new Error('Budget manquant')
+      const {error}=await supabase.from('budget_habitudes').upsert({espace_id:espaceId,categorie_id:input.categoryId,montant:input.amount,frequence_mois:input.frequence_mois,actif:true},{onConflict:'espace_id,categorie_id'})
+      if(error) throw error
+    },
+    onSuccess:()=>{qc.invalidateQueries({queryKey:['habits',espaceId]});qc.invalidateQueries({queryKey:['month_preparation',espaceId]})}
+  })
+  const removeBudget=useMutation({
+    mutationFn:async(id:string)=>{const {error}=await supabase.from('budget_habitudes').delete().eq('id',id);if(error) throw error},
+    onSuccess:()=>{qc.invalidateQueries({queryKey:['habits',espaceId]});qc.invalidateQueries({queryKey:['month_preparation',espaceId]})}
+  })
+  return {...query,toggle,saveBudget,removeBudget}
 }
