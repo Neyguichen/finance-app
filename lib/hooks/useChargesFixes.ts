@@ -33,7 +33,10 @@ export function useChargesFixes(moisId: string | undefined) {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   const togglePayee = useMutation({
@@ -44,7 +47,10 @@ export function useChargesFixes(moisId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   const update = useMutation({
@@ -57,7 +63,10 @@ export function useChargesFixes(moisId: string | undefined) {
         .single()
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   // Supprime l'instance mensuelle uniquement
@@ -66,7 +75,10 @@ export function useChargesFixes(moisId: string | undefined) {
       const { error } = await supabase.from('charges_fixes').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   // Supprime l'instance mensuelle ET désactive le modèle récurrent
@@ -117,7 +129,10 @@ export function useChargesFixesRecurrentes(espaceId: string | undefined) {
       if (error) throw error
       return data as ChargeFixeRecurrente
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   const update = useMutation({
@@ -128,7 +143,10 @@ export function useChargesFixesRecurrentes(espaceId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   return { ...query, create, update }
