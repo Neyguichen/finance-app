@@ -8,6 +8,8 @@ export type FinancialFlowKind =
   | 'earned_income'
   | 'expense'
   | 'expense_reimbursement'
+  | 'debt_repayment_in'
+  | 'debt_repayment_out'
   | 'savings_deposit'
   | 'savings_withdrawal'
   | 'savings_transfer'
@@ -49,8 +51,13 @@ export function summarizeCashFlows(flows: FinancialFlow[]): CashSummary {
           summary.netCashMovement -= amount
           break
         case 'expense_reimbursement':
+        case 'debt_repayment_in':
           summary.cashInflows += amount
           summary.netCashMovement += amount
+          break
+        case 'debt_repayment_out':
+          summary.expenses += amount
+          summary.netCashMovement -= amount
           break
         case 'savings_deposit':
           summary.savingsDeposits += amount
