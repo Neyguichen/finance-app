@@ -32,7 +32,8 @@ export default function DashboardPage() {
     espace?.id,
     espace?.solde_reference,
     espace?.date_solde_reference,
-    today
+    today,
+    espace?.double_date ?? false
   )
 
   // Stats visibles (tout activé par défaut)
