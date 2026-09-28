@@ -67,6 +67,7 @@ export function useTransactions(moisId: string | undefined) {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: key })
     queryClient.invalidateQueries({ queryKey: ['transactions-flat', moisId] })
+    queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
   }
 
   const create = useMutation({
@@ -83,109 +84,32 @@ export function useTransactions(moisId: string | undefined) {
   });
 
   const update = useMutation({
-    mutationFn: async ({
-      id,
-      ...updates
-    }: Partial<Transaction> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: Partial<Transaction> & { id: string }) => {
       const clean = { ...updates }
       delete clean.categorie
       delete clean.sous_categorie
       delete clean.children
-      const { error } = await supabase
-        .from('transactions')
-        .update(clean)
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
 
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { data: current, error: currentErr } = await supabase
         .from('transactions')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  // --- SPLIT ---
-  const split = useMutation({
-    mutationFn: async ({ parentId, lines }: {
-      parentId: string
-      lines: Array<{
-        categorie_id: string
-        sous_categorie_id?: string | null
-        montant: number
-        infos?: string | null
-      }>
-    }) => {
-      // 1. Récupérer le parent pour copier date, mois_id, date_validation
-      const { data: parent, error: parentErr } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('id', parentId)
+        .select('id, parent_transaction_id, is_split')
+        .eq('id', id)
         .single()
-      if (parentErr) throw parentErr
+      if (currentErr) throw currentErr
 
-      // 2. Supprimer les anciens enfants s'il y en a (re-split)
-      await supabase
-        .from('transactions')
-        .delete()
-        .eq('parent_transaction_id', parentId)
-
-      // 3. Marquer le parent comme splitté
-      const { error: updateErr } = await supabase
-        .from('transactions')
-        .update({ is_split: true })
-        .eq('id', parentId)
-      if (updateErr) throw updateErr
-
-      // 4. Créer les enfants
-      const children = lines.map(line => ({
-        mois_id: parent.mois_id,
-        date: parent.date,
-        date_validation: parent.date_validation || null,
-        parent_transaction_id: parentId,
-        categorie_id: line.categorie_id,
-        sous_categorie_id: line.sous_categorie_id || null,
-        montant: line.montant,
-        infos: line.infos || null,
-      }))
-
-      const { error: insertErr } = await supabase
-        .from('transactions')
-        .insert(children)
-      if (insertErr) throw insertErr
-    },
-    onSuccess: invalidate,
-  })
-
-  // --- UNSPLIT ---
-  const unsplit = useMutation({
-    mutationFn: async (parentId: string) => {
-      // 1. Supprimer les enfants
-      await supabase
-        .from('transactions')
-        .delete()
-        .eq('parent_transaction_id', parentId)
-
-      // 2. Remettre le parent en mode normal
-      const { error } = await supabase
-        .from('transactions')
-        .update({ is_split: false })
-        .eq('id', parentId)
+      const { error } = await supabase.from('transactions').update(clean).eq('id', id)
       if (error) throw error
+
+      if (!current.parent_transaction_id && current.is_split && ('date' in clean || 'date_validation' in clean)) {
+        const childUpdates: Record<string, string | null> = {}
+        if ('date' in clean && clean.date) childUpdates.date = clean.date
+        if ('date_validation' in clean) childUpdates.date_validation = clean.date_validation ?? null
+        if (Object.keys(childUpdates).length) {
+          const { error: childErr } = await supabase
+            .from('transactions').update(childUpdates).eq('parent_transaction_id', id)
+          if (childErr) throw childErr
+        }
+      }
     },
     onSuccess: invalidate,
-  })
-
-  return {
-    ...query,
-    allFlat: allFlat.data ?? [],
-    create, update, remove,
-    split, unsplit,
-  };
-}
+  });}
