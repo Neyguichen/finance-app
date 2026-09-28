@@ -15,10 +15,11 @@ import EntrantsCard from '@/components/pages/dashboard/EntrantsCard'
 import SortantsCard from '@/components/pages/dashboard/SortantsCard'
 import RepartitionCategories from '@/components/pages/dashboard/RepartitionCategories'
 import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
+import SituationFinanciereV2 from '@/components/pages/dashboard/SituationFinanciereV2'
 
 import { getMontantNet } from '@/lib/utils'
 import { useDashboardData } from '@/lib/hooks/useDashboardData'
-import { useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
+import { useActualCashSummary, useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
 
 export default function DashboardPage() {
   const { month, setMonth, espaces, espace, loading, addEspace, isAdminViewing } = useApp()
@@ -28,6 +29,10 @@ export default function DashboardPage() {
 
   const data = useDashboardData()
   const today = new Date().toISOString().slice(0, 10)
+  const [year, monthNumber] = month.split('-').map(Number)
+  const monthStart = `${month}-01`
+  const monthEnd = new Date(year, monthNumber, 0).toISOString().slice(0, 10)
+  const summaryEnd = today < monthEnd ? today : monthEnd
   const v2Balance = useBalanceAtDate(
     espace?.id,
     espace?.solde_reference ?? null,
@@ -35,6 +40,7 @@ export default function DashboardPage() {
     today,
     espace?.double_date ?? false
   )
+  const v2Summary = useActualCashSummary(espace?.id, monthStart, summaryEnd, espace?.double_date ?? false)
 
   // Stats visibles (tout activé par défaut)
   const ds = {
@@ -84,31 +90,15 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Comparaison temporaire V1/V2 : informative uniquement, aucun calcul V1 n'est remplacé. */}
-        {espace?.solde_reference != null && espace?.date_solde_reference && (
-          <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-blue-300">Contrôle moteur V2</p>
-                <p className="text-xs text-slate-400">
-                  Solde réel calculé au {new Date(today + 'T12:00:00').toLocaleDateString('fr-FR')} depuis la référence du{' '}
-                  {new Date(espace.date_solde_reference + 'T12:00:00').toLocaleDateString('fr-FR')}.
-                </p>
-              </div>
-              <div className="text-right">
-                {v2Balance.isLoading ? (
-                  <span className="loading loading-spinner loading-sm" />
-                ) : v2Balance.data != null ? (
-                  <p className="text-xl font-bold">{Number(v2Balance.data).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</p>
-                ) : (
-                  <p className="text-sm text-slate-400">Indisponible</p>
-                )}
-              </div>
-            </div>
-            <p className="mt-2 text-xs text-slate-500">
-              Valeur de contrôle uniquement : le Dashboard continue d&apos;utiliser les calculs V1 pendant la validation.
-            </p>
-          </div>
+        {/* Situation financière V2 : les cartes V1 restent dessous pendant la migration progressive. */}
+        {espace?.solde_reference != null && espace?.date_solde_reference && today >= espace.date_solde_reference && (
+          <SituationFinanciereV2
+            balance={v2Balance.data}
+            summary={v2Summary.data}
+            loading={v2Balance.isLoading || v2Summary.isLoading}
+            referenceDate={espace.date_solde_reference}
+            today={today}
+          />
         )}
 
         {/* Toujours visible */}
