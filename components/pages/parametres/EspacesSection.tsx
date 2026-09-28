@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { Pencil, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { useReferenceBalance } from '@/lib/hooks/useReferenceBalance'
 import { createClient } from '@/lib/supabase/client'
 
 type Props = {
@@ -17,6 +18,10 @@ type Props = {
 
 export default function EspacesSection({ espaces, currentEspaceId, updateEspace, removeEspace }: Props) {
   const supabase = createClient()
+  const referenceBalance = useReferenceBalance()
+  const [referenceTarget, setReferenceTarget] = useState<any>(null)
+  const [referenceAmount, setReferenceAmount] = useState('')
+  const [referenceDate, setReferenceDate] = useState('')
 
   // Édition
   const [editTarget, setEditTarget] = useState<any>(null)
@@ -97,6 +102,22 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
               </div>
             </div>
 
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-700 gap-3">
+              <div>
+                <p className="text-sm text-slate-300">Solde réel de référence</p>
+                <p className="text-xs text-slate-500">
+                  {esp.solde_reference != null && esp.date_solde_reference
+                    ? `${Number(esp.solde_reference).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })} au ${new Date(esp.date_solde_reference + 'T12:00:00').toLocaleDateString('fr-FR')}`
+                    : 'Non défini'}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => {
+                setReferenceTarget(esp)
+                setReferenceAmount(esp.solde_reference != null ? String(esp.solde_reference) : '')
+                setReferenceDate(esp.date_solde_reference || '')
+              }}>{esp.solde_reference != null ? 'Modifier' : 'Définir'}</Button>
+            </div>
+
             {/* Toggle double date */}
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-700">
               <div>
@@ -131,6 +152,28 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
             <EmojiPicker value={editIcone} onChange={setEditIcone} />
             <Button className="w-full" onClick={handleSaveEdit}>Enregistrer</Button>
             <Button className="w-full" variant="ghost" onClick={() => setEditTarget(null)}>Annuler</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!referenceTarget} onOpenChange={v => { if (!v) setReferenceTarget(null) }}>
+        <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
+          <DialogHeader><DialogTitle>Solde réel de référence</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            {referenceTarget?.solde_reference != null && (
+              <div className="p-3 rounded-lg border border-amber-800 bg-amber-950/30 text-sm text-amber-200">
+                Modifier ce point de référence recalculera les soldes V2 suivants. L&apos;historique de tes opérations ne sera pas réécrit.
+              </div>
+            )}
+            <div><label className="text-xs text-slate-400 mb-1 block">Solde réel</label><Input inputMode="decimal" value={referenceAmount} onChange={e => setReferenceAmount(e.target.value)} /></div>
+            <div><label className="text-xs text-slate-400 mb-1 block">À la date du</label><Input type="date" value={referenceDate} onChange={e => setReferenceDate(e.target.value)} /></div>
+            <Button className="w-full" disabled={referenceBalance.isPending || !referenceDate || !referenceAmount.trim()} onClick={async () => {
+              const amount = Number(referenceAmount.replace(',', '.'))
+              if (!referenceTarget || !Number.isFinite(amount)) return
+              await referenceBalance.mutateAsync({ espaceId: referenceTarget.id, balance: amount, date: referenceDate })
+              await updateEspace(referenceTarget.id, { solde_reference: amount, date_solde_reference: referenceDate })
+              setReferenceTarget(null)
+            }}>{referenceBalance.isPending ? 'Enregistrement…' : 'Enregistrer la référence'}</Button>
           </div>
         </DialogContent>
       </Dialog>
