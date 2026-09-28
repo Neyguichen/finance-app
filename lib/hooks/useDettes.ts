@@ -111,7 +111,10 @@ export function useDettes(espaceId: string | undefined) {
       if (error) throw error
       return data as RemboursementDette
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: rembKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: rembKey })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   const removeRemboursement = useMutation({
@@ -122,7 +125,10 @@ export function useDettes(espaceId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: rembKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: rembKey })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   const updateRemboursement = useMutation({
@@ -133,7 +139,10 @@ export function useDettes(espaceId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: rembKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: rembKey })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+    },
   })
 
   return {
