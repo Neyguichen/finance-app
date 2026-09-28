@@ -1,18 +1,20 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, CalendarDays } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { formatEuro } from '@/lib/utils'
 
 type Props = {
-  rev: { id: string; nom: string; montant: number; type: string; recu: boolean; recurrent_id?: string | null }
+  rev: { id: string; nom: string; montant: number; type: string; recu: boolean; recurrent_id?: string | null; date_prevue?: string | null; date_reelle?: string | null }
   readOnly: boolean
-  onToggleRecu: (id: string, recu: boolean) => void
+  onToggleRecu: (id: string, recu: boolean, dateReelle?: string) => void
   onEdit: (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
 }
 
 export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDelete }: Props) {
+  const today = new Date().toISOString().split('T')[0]
   return (
     <Card className="bg-slate-900 border-slate-800">
       <CardContent className="flex items-center justify-between p-3">
@@ -21,12 +23,12 @@ export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDele
             checked={rev.recu}
             onCheckedChange={(checked) => {
               if (readOnly) return
-              onToggleRecu(rev.id, !!checked)
+              onToggleRecu(rev.id, !!checked, checked ? today : undefined)
             }}
           />
           <div>
             <p className="font-medium">{rev.nom}</p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap">
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 rev.type === 'actif'
                   ? 'bg-emerald-900 text-emerald-400'
@@ -36,6 +38,21 @@ export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDele
                 <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900 text-purple-400">↻</span>
               )}
             </div>
+            {(rev.date_prevue || rev.date_reelle) && (
+              <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
+                <CalendarDays className="w-3 h-3" />
+                {rev.date_prevue && <span>Prévu {rev.date_prevue}</span>}
+                {rev.date_reelle && <span className="text-emerald-500">Reçu {rev.date_reelle}</span>}
+              </div>
+            )}
+            {!readOnly && rev.recu && (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-[11px] text-slate-500">Date reçue</span>
+                <Input type="date" value={rev.date_reelle || today}
+                  className="h-7 w-36 text-xs bg-slate-800 border-slate-700"
+                  onChange={e => onToggleRecu(rev.id, true, e.target.value)} />
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
