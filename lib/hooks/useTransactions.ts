@@ -104,12 +104,73 @@ export function useTransactions(moisId: string | undefined) {
         const childUpdates: Record<string, string | null> = {}
         if ('date' in clean && clean.date) childUpdates.date = clean.date
         if ('date_validation' in clean) childUpdates.date_validation = clean.date_validation ?? null
-        if (Object.keys(childUpdates).length) {
+        if (Object.keys(childUpdates).length > 0) {
           const { error: childErr } = await supabase
-            .from('transactions').update(childUpdates).eq('parent_transaction_id', id)
+            .from('transactions')
+            .update(childUpdates)
+            .eq('parent_transaction_id', id)
           if (childErr) throw childErr
         }
       }
     },
     onSuccess: invalidate,
-  });}
+  })
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('transactions').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
+
+  const split = useMutation({
+    mutationFn: async ({ parentId, lines }: {
+      parentId: string
+      lines: Array<{ categorie_id: string; sous_categorie_id?: string | null; montant: number; infos?: string | null }>
+    }) => {
+      const { data: parent, error: parentErr } = await supabase.from('transactions').select('*').eq('id', parentId).single()
+      if (parentErr) throw parentErr
+
+      const { error: deleteErr } = await supabase.from('transactions').delete().eq('parent_transaction_id', parentId)
+      if (deleteErr) throw deleteErr
+
+      const { error: updateErr } = await supabase.from('transactions').update({ is_split: true }).eq('id', parentId)
+      if (updateErr) throw updateErr
+
+      const children = lines.map(line => ({
+        mois_id: parent.mois_id,
+        date: parent.date,
+        date_validation: parent.date_validation || null,
+        parent_transaction_id: parentId,
+        categorie_id: line.categorie_id,
+        sous_categorie_id: line.sous_categorie_id || null,
+        montant: line.montant,
+        infos: line.infos || null,
+      }))
+      const { error: insertErr } = await supabase.from('transactions').insert(children)
+      if (insertErr) throw insertErr
+    },
+    onSuccess: invalidate,
+  })
+
+  const unsplit = useMutation({
+    mutationFn: async (parentId: string) => {
+      const { error: deleteErr } = await supabase.from('transactions').delete().eq('parent_transaction_id', parentId)
+      if (deleteErr) throw deleteErr
+      const { error } = await supabase.from('transactions').update({ is_split: false }).eq('id', parentId)
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
+
+  return {
+    ...query,
+    allFlat: allFlat.data ?? [],
+    create,
+    update,
+    remove,
+    split,
+    unsplit,
+  }
+}
