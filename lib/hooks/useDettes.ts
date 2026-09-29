@@ -19,6 +19,25 @@ export function useDettes(espaceId: string | undefined) {
   const key = ['dettes', espaceId]
   const rembKey = ['remboursements_dette', espaceId]
 
+  const assertRepaymentWithinDebt = async (detteId: string, montant: number, excludeId?: string) => {
+    const [detteResult, remboursementsResult] = await Promise.all([
+      supabase.from('dettes').select('montant').eq('id', detteId).single(),
+      supabase.from('remboursements_dette').select('id, montant').eq('dette_id', detteId),
+    ])
+
+    if (detteResult.error) throw detteResult.error
+    if (remboursementsResult.error) throw remboursementsResult.error
+
+    const dejaRembourse = (remboursementsResult.data || [])
+      .filter(remboursement => remboursement.id !== excludeId)
+      .reduce((total, remboursement) => total + Number(remboursement.montant), 0)
+    const resteDisponible = Math.max(0, Number(detteResult.data.montant) - dejaRembourse)
+
+    if (montant - resteDisponible > 0.005) {
+      throw new Error(`Le remboursement ne peut pas dépasser le reste dû (${resteDisponible.toFixed(2)} €).`)
+    }
+  }
+
   // --- Dettes ---
   const query = useQuery({
     queryKey: key,
@@ -113,6 +132,7 @@ export function useDettes(espaceId: string | undefined) {
   const addRemboursement = useMutation({
     mutationFn: async (remb: { dette_id: string; montant: number; date: string; impacte_budget?: boolean }) => {
       assertValidRepayment(remb.montant, remb.date)
+      await assertRepaymentWithinDebt(remb.dette_id, remb.montant)
       const { data, error } = await supabase
         .from('remboursements_dette')
         .insert(remb)
@@ -146,6 +166,14 @@ export function useDettes(espaceId: string | undefined) {
   const updateRemboursement = useMutation({
     mutationFn: async ({ id, montant, date, impacte_budget }: { id: string; montant: number; date: string; impacte_budget?: boolean }) => {
       assertValidRepayment(montant, date)
+      const { data: remboursement, error: remboursementError } = await supabase
+        .from('remboursements_dette')
+        .select('dette_id')
+        .eq('id', id)
+        .single()
+      if (remboursementError) throw remboursementError
+
+      await assertRepaymentWithinDebt(remboursement.dette_id, montant, id)
       const { error } = await supabase
         .from('remboursements_dette')
         .update({ montant, date, ...(impacte_budget !== undefined ? { impacte_budget } : {}) })
