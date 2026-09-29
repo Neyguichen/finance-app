@@ -51,7 +51,15 @@ export default function DashboardPage() {
   const [year, monthNumber] = month.split('-').map(Number)
   const monthStart = `${month}-01`
   const monthEnd = localDateISO(new Date(year, monthNumber, 0))
+  const monthOpeningDate = localDateISO(new Date(year, monthNumber - 1, 0))
   const summaryEnd = today < monthEnd ? today : monthEnd
+  const v2OpeningBalance = useBalanceAtDate(
+    espace?.id,
+    espace?.solde_reference ?? null,
+    espace?.date_solde_reference ?? null,
+    monthOpeningDate,
+    espace?.double_date ?? false
+  )
   const v2Balance = useBalanceAtDate(
     espace?.id,
     espace?.solde_reference ?? null,
@@ -147,8 +155,9 @@ export default function DashboardPage() {
         {espace?.solde_reference != null && espace?.date_solde_reference && today >= espace.date_solde_reference && (
           <SituationFinanciereV2
             balance={v2Balance.data}
+            openingBalance={v2OpeningBalance.data}
             summary={v2Summary.data}
-            loading={v2Balance.isLoading || v2Summary.isLoading}
+            loading={v2Balance.isLoading || v2OpeningBalance.isLoading || v2Summary.isLoading}
             referenceDate={espace.date_solde_reference}
             today={today}
             selectedMonth={month}
