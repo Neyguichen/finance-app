@@ -36,8 +36,9 @@ export function useDashboardV2() {
     const today = localDateISO()
     const { plannedIncome, receivedIncome: actualIncome, expectedIncome } = summarizeIncome(revenus)
 
+    const parentBudgets = budgets.filter(budget => !budget.categorie?.parent_id)
     const { plannedFixed, actualFixed, plannedVariable, actualVariable } =
-      summarizeAnalyticalExpenses(charges, budgets, transactions)
+      summarizeAnalyticalExpenses(charges, parentBudgets, transactions)
 
     const plannedSavingsDeposits = plannedSavings.reduce((sum, item) => sum + Number(item.montant), 0)
     const actualSavingsDeposits = mouvements.filter(item => item.type === 'epargne').reduce((sum, item) => sum + Number(item.montant), 0)
@@ -94,7 +95,7 @@ export function useDashboardV2() {
         - remainingSavingsCash
     }
 
-    const budgetProgress = budgets
+    const budgetProgress = parentBudgets
       .filter(budget => Number(budget.prevu || 0) > 0)
       .map(budget => {
         const planned = Number(budget.prevu || 0)
