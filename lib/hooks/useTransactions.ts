@@ -141,6 +141,19 @@ export function useTransactions(moisId: string | undefined) {
       const { data: parent, error: parentErr } = await supabase.from('transactions').select('*').eq('id', parentId).single()
       if (parentErr) throw parentErr
 
+      const { data: reimbursements, error: reimbursementsErr } = await supabase
+        .from('remboursements')
+        .select('montant')
+        .eq('transaction_id', parentId)
+      if (reimbursementsErr) throw reimbursementsErr
+
+      const reimbursementTotal = (reimbursements || []).reduce((sum, item) => sum + Number(item.montant), 0)
+      const netAmount = Math.max(0, Number(parent.montant) - reimbursementTotal)
+      const linesTotal = lines.reduce((sum, line) => sum + Number(line.montant), 0)
+      if (Math.abs(linesTotal - netAmount) >= 0.01) {
+        throw new Error(`Le split doit répartir le coût net de ${netAmount.toFixed(2)} €`)
+      }
+
       const { error: deleteErr } = await supabase.from('transactions').delete().eq('parent_transaction_id', parentId)
       if (deleteErr) throw deleteErr
 
