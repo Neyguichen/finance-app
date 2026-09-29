@@ -98,6 +98,13 @@ export function useTransactions(moisId: string | undefined) {
         .single()
       if (currentErr) throw currentErr
 
+      // Split children are analytical allocations only. Their cash dates are owned
+      // by the top-level transaction and must not diverge from the parent.
+      if (current.parent_transaction_id) {
+        delete clean.date
+        delete clean.date_validation
+      }
+
       const { error } = await supabase.from('transactions').update(clean).eq('id', id)
       if (error) throw error
 
