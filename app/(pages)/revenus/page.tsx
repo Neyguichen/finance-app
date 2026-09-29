@@ -95,7 +95,7 @@ export default function RevenusPage() {
 
         <div className="space-y-2">
           {effectiveRevenus.map((rev: any) => (
-            <RevenuCard key={rev.id} rev={rev} readOnly={isAdminViewing}
+            <RevenuCard key={rev.id} rev={rev} readOnly={isAdminViewing} doubleDate={espace?.double_date ?? false}
               onToggleRecu={(id, recu, dateReelle) => toggleRecu.mutate({ id, recu, dateReelle })}
               onEdit={setEditTarget} onDelete={setDeleteTarget} />
           ))}
