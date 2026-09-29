@@ -53,6 +53,19 @@ export type ImportPreviewRow = MappedImportRow & {
   match: ImportMatch | null
 }
 
+function snapshotValue(value: any) {
+  if (value == null) return null
+  if (typeof value === 'number') return cents(value)
+  if (typeof value === 'string' && /^-?\d+(?:\.\d+)?$/.test(value)) return cents(value)
+  return value
+}
+
+function snapshotMatches(current: Record<string, any>, snapshot: Record<string, any>) {
+  return Object.entries(snapshot).every(([key, value]) =>
+    snapshotValue(current?.[key]) === snapshotValue(value)
+  )
+}
+
 export function useCsvImport(espaceId: string | undefined, userId: string | null) {
   const supabase = createClient()
   const queryClient = useQueryClient()
@@ -366,7 +379,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           }
 
           if (row.status === 'fixed_candidate' && row.match?.kind === 'fixed_candidate') {
-            const { error: fixedError } = await supabase
+            const { data: updatedFixed, error: fixedError } = await supabase
               .from('charges_fixes')
               .update({
                 payee: true,
@@ -374,6 +387,8 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
                 date_reelle: row.date,
               })
               .eq('id', row.match.targetId)
+              .select('id, payee, montant_reel, date_reelle')
+              .single()
             if (fixedError) throw fixedError
 
             const { error: itemError } = await supabase.from('import_batch_items').insert({
@@ -384,6 +399,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               target_table: 'charges_fixes',
               target_id: row.match.targetId,
               before_state: row.match.beforeState || null,
+              after_state: updatedFixed,
               raw: row,
             })
             if (itemError) throw itemError
@@ -407,7 +423,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
                 date_reelle: row.date,
                 ordre: 0,
               })
-              .select('id')
+              .select('id, mois_id, recurrent_id, type, nom, montant, recu, date_prevue, date_reelle, ordre')
               .single()
             if (error) throw error
 
@@ -418,6 +434,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               action: 'created',
               target_table: 'revenus',
               target_id: created.id,
+              after_state: created,
               raw: row,
             })
             if (itemError) throw itemError
@@ -440,7 +457,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
                 date: row.date,
                 note: row.label,
               })
-              .select('id')
+              .select('id, mois_id, recurrent_id, enveloppe_source_id, enveloppe_dest_id, montant, type, date, note')
               .single()
             if (error) throw error
 
@@ -451,6 +468,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               action: 'created',
               target_table: 'mouvements_epargne',
               target_id: created.id,
+              after_state: created,
               raw: row,
             })
             if (itemError) throw itemError
@@ -472,7 +490,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               infos: row.label,
               is_split: false,
             })
-            .select('id')
+            .select('id, mois_id, categorie_id, sous_categorie_id, date, date_validation, montant, infos, is_split, parent_transaction_id')
             .single()
           if (error) throw error
 
@@ -483,6 +501,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             action: 'created',
             target_table: 'transactions',
             target_id: created.id,
+            after_state: created,
             raw: row,
           })
           if (itemError) throw itemError
@@ -544,6 +563,56 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         .eq('batch_id', batchId)
         .order('row_index', { ascending: false })
       if (itemsError) throw itemsError
+
+      // Safety preflight: an import lot is reversible only while the objects it
+      // created or changed are still exactly in the state left by the import.
+      // Refuse the whole undo before deleting/restoring anything if the user
+      // edited one of those objects afterwards.
+      for (const item of items || []) {
+        if (!item.after_state || !item.target_table || !item.target_id) continue
+
+        let current: Record<string, any> | null = null
+        if (item.target_table === 'revenus') {
+          const { data, error } = await supabase
+            .from('revenus')
+            .select('id, mois_id, recurrent_id, type, nom, montant, recu, date_prevue, date_reelle, ordre')
+            .eq('id', item.target_id)
+            .maybeSingle()
+          if (error) throw error
+          current = data
+        } else if (item.target_table === 'transactions') {
+          const { data, error } = await supabase
+            .from('transactions')
+            .select('id, mois_id, categorie_id, sous_categorie_id, date, date_validation, montant, infos, is_split, parent_transaction_id')
+            .eq('id', item.target_id)
+            .maybeSingle()
+          if (error) throw error
+          current = data
+        } else if (item.target_table === 'mouvements_epargne') {
+          const { data, error } = await supabase
+            .from('mouvements_epargne')
+            .select('id, mois_id, recurrent_id, enveloppe_source_id, enveloppe_dest_id, montant, type, date, note')
+            .eq('id', item.target_id)
+            .maybeSingle()
+          if (error) throw error
+          current = data
+        } else if (item.target_table === 'charges_fixes' && item.before_state) {
+          const { data, error } = await supabase
+            .from('charges_fixes')
+            .select('id, payee, montant_reel, date_reelle')
+            .eq('id', item.target_id)
+            .maybeSingle()
+          if (error) throw error
+          current = data
+        }
+
+        if (!current || !snapshotMatches(current, item.after_state)) {
+          throw new Error(
+            'Annulation refusée : au moins une opération de ce lot a été modifiée après l’import. ' +
+            'Le lot est conservé pour éviter d’effacer une modification plus récente.'
+          )
+        }
+      }
 
       for (const item of items || []) {
         if (item.action === 'created' && item.target_table && item.target_id) {

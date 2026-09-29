@@ -49,6 +49,12 @@ export default function ImportCsvPage() {
   const [defaultCategory, setDefaultCategory] = useState('')
   const [lastResult, setLastResult] = useState<{ createdCount: number; matchedCount: number; ignoredCount: number; errorCount: number } | null>(null)
 
+  const previewPeriod = useMemo(() => {
+    if (preview.length === 0) return null
+    const dates = preview.map(row => row.date).sort()
+    return { start: dates[0], end: dates[dates.length - 1] }
+  }, [preview])
+
   const activeParentCategories = useMemo(
     () => categories.filter(category => category.actif !== false && !category.parent_id),
     [categories]
@@ -266,7 +272,8 @@ export default function ImportCsvPage() {
             <div>
               <h2 className="font-semibold">Prévisualisation obligatoire</h2>
               <p className="mt-1 text-xs text-slate-500">
-                {preview.length} ligne(s) exploitable(s), {invalidRows.length} ligne(s) invalide(s).
+                {preview.length} ligne(s) exploitable(s), {invalidRows.length} ligne(s) invalide(s)
+                {previewPeriod ? ` · période du ${formatDate(previewPeriod.start)} au ${formatDate(previewPeriod.end)}` : ''}.
               </p>
             </div>
             <label className="min-w-56">
@@ -414,6 +421,12 @@ export default function ImportCsvPage() {
         <p className="mt-1 text-xs text-slate-500">
           Un lot peut être annulé uniquement de manière sûre : Neyguichen supprime les opérations créées par ce lot et restaure les charges fixes qu&apos;il avait rapprochées.
         </p>
+
+        {importModel.undoBatch.isError && (
+          <div className="mt-4 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-sm text-amber-200">
+            L’annulation a été refusée car le lot n’est plus strictement réversible. Une opération créée ou rapprochée par cet import a probablement été modifiée ensuite.
+          </div>
+        )}
 
         <div className="mt-4 space-y-2">
           {(importModel.history.data || []).length === 0 ? (
