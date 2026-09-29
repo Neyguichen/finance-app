@@ -3,25 +3,41 @@ import { formatEuro } from '@/lib/utils'
 
 type Props = {
   totalDisponible: number
+  totalPrevus: number
   totalEpargne: number
   totalReprise: number
 }
 
-export default function EpargneResume({ totalDisponible, totalEpargne, totalReprise }: Props) {
+export default function EpargneResume({ totalDisponible, totalPrevus, totalEpargne, totalReprise }: Props) {
+  const ecart = totalEpargne - totalPrevus
+
   return (
     <Card className="bg-teal-950 border-teal-800">
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 space-y-3">
         <div className="flex justify-between items-center">
           <span className="font-semibold text-emerald-400">💰 Total disponible</span>
           <span className="font-bold text-xl text-emerald-400">{formatEuro(totalDisponible)}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-slate-400">Épargné ce mois</span>
-          <span className="font-bold text-teal-400">{formatEuro(totalEpargne)}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-slate-400">Repris ce mois</span>
-          <span className="font-bold text-orange-400">{formatEuro(totalReprise)}</span>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm border-t border-teal-900 pt-3">
+          <div>
+            <p className="text-slate-500 text-xs">Prévu ce mois</p>
+            <p className="font-bold text-sky-400">{formatEuro(totalPrevus)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-slate-500 text-xs">Réel épargné</p>
+            <p className="font-bold text-teal-400">{formatEuro(totalEpargne)}</p>
+          </div>
+          <div>
+            <p className="text-slate-500 text-xs">Écart au prévu</p>
+            <p className={`font-bold ${ecart >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {ecart > 0 ? '+' : ''}{formatEuro(ecart)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-slate-500 text-xs">Repris ce mois</p>
+            <p className="font-bold text-orange-400">{formatEuro(totalReprise)}</p>
+          </div>
         </div>
       </CardContent>
     </Card>
