@@ -8,19 +8,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 // --- DIALOG D'ÉDITION ---
 type EditProps = {
-  editTarget: { id: string; nom: string; montant: number; recurrentId: string | null } | null
+  editTarget: { id: string; nom: string; montant: number; recurrentId: string | null; categorieId?: string | null } | null
+  categories?: { id: string; nom: string; icone?: string | null; parent_id?: string | null }[]
   onClose: () => void
-  onSave: (id: string, nom: string, montant: number, recurrentId: string | null) => void
+  onSave: (id: string, nom: string, montant: number, recurrentId: string | null, categorieId?: string | null) => void
 }
 
-export function ChargeFixeEditDialog({ editTarget, onClose, onSave }: EditProps) {
+export function ChargeFixeEditDialog({ editTarget, categories = [], onClose, onSave }: EditProps) {
   const [nom, setNom] = useState('')
   const [montant, setMontant] = useState(0)
+  const [categorieId, setCategorieId] = useState('')
 
   useEffect(() => {
     if (editTarget) {
       setNom(editTarget.nom)
       setMontant(Number(editTarget.montant))
+      setCategorieId(editTarget.categorieId || '')
     }
   }, [editTarget])
 
@@ -32,8 +35,9 @@ export function ChargeFixeEditDialog({ editTarget, onClose, onSave }: EditProps)
         </DialogHeader>
         <div className="space-y-4">
           <Input placeholder="Nom" value={nom} onChange={e => setNom(e.target.value)} />
-          <CalculatorInput value={montant} onChange={(val) => setMontant(val)} placeholder="Montant" />
-          <Button className="w-full" onClick={() => onSave(editTarget!.id, nom, montant, editTarget!.recurrentId)}>
+          <CalculatorInput value={montant} onChange={(val) => setMontant(val)} placeholder="Montant prévu" />
+          {categories.length > 0 && <select value={categorieId} onChange={e => setCategorieId(e.target.value)} className="w-full h-10 rounded-md border border-slate-700 bg-slate-800 px-3 text-sm"><option value="">Sans catégorie</option>{categories.filter(c => !c.parent_id).map(c => <option key={c.id} value={c.id}>{c.icone ? `${c.icone} ` : ''}{c.nom}</option>)}</select>}
+          <Button className="w-full" onClick={() => onSave(editTarget!.id, nom, montant, editTarget!.recurrentId, categorieId || null)}>
             Enregistrer
           </Button>
           <Button className="w-full" variant="ghost" onClick={onClose}>Annuler</Button>
