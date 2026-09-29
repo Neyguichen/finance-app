@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { Calendar, Database, Handshake, Info, LogOut, Menu, Scale, Settings, Users, X } from 'lucide-react'
+import { Calendar, Database, Handshake, Info, LogOut, Menu, Scale, Settings, Upload, Users, X } from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 
@@ -75,6 +75,11 @@ export default function AppMenu() {
           <MenuLink icon={Scale} label="Vérifier le solde" onClick={() => {
             closeMenu()
             router.push('/verification-solde')
+          }} />
+
+          <MenuLink icon={Upload} label="Importer un CSV" onClick={() => {
+            closeMenu()
+            router.push('/import-csv')
           }} />
 
           <MenuLink icon={Settings} label="Paramètres" onClick={() => {
