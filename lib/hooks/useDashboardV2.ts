@@ -10,7 +10,7 @@ import { useBudgets } from '@/lib/hooks/useBudgets'
 import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 import { usePlannedSavings } from '@/lib/hooks/usePlannedSavings'
 import { summarizeIncome } from '@/lib/income-summary'
-import { localDateISO } from '@/lib/utils'
+import { getMontantNet, localDateISO } from '@/lib/utils'
 
 function normalizeMovementDate(date: string) {
   return date.length === 7 ? `${date}-01` : date
@@ -36,13 +36,8 @@ export function useDashboardV2() {
     const actualSavingsDeposits = mouvements.filter(item => item.type === 'epargne').reduce((sum, item) => sum + Number(item.montant), 0)
     const savingsWithdrawals = mouvements.filter(item => item.type === 'reprise').reduce((sum, item) => sum + Number(item.montant), 0)
     const plannedMonthResult = plannedIncome - plannedFixed - plannedVariable - plannedSavingsDeposits
-    // Analytical month result: recorded variable expenses are intentionally included even when
-    // not bank-validated yet. The dated cash balance remains the source of truth for real cash.
     const actualMonthResult = actualIncome + savingsWithdrawals - actualFixed - actualVariable - actualSavingsDeposits
 
-    // Remaining cash movement used by the current-month end forecast.
-    // It starts from today's verified balance, so only flows not yet reflected in that balance
-    // belong here. Variable budgets assume the remaining budget is fully consumed.
     const remainingIncomeCash = revenus
       .filter(item => !item.recu || Boolean(item.date_reelle && item.date_reelle > today))
       .reduce((sum, item) => sum + Number(item.montant), 0)
@@ -70,6 +65,26 @@ export function useDashboardV2() {
       - remainingVariableBudget
       - remainingSavingsCash
 
+    const budgetProgress = budgets
+      .filter(budget => Number(budget.prevu || 0) > 0)
+      .map(budget => {
+        const planned = Number(budget.prevu || 0)
+        const actual = transactions
+          .filter(transaction => transaction.categorie_id === budget.categorie_id)
+          .reduce((sum, transaction) => sum + getMontantNet(transaction), 0)
+        return {
+          id: budget.id,
+          categoryId: budget.categorie_id,
+          name: budget.categorie?.nom || 'Budget',
+          icon: budget.categorie?.icone || '💳',
+          planned,
+          actual,
+          remaining: planned - actual,
+          order: budget.categorie?.ordre ?? 999,
+        }
+      })
+      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'fr'))
+
     return {
       plannedIncome,
       actualIncome,
@@ -93,6 +108,7 @@ export function useDashboardV2() {
         remainingVariableBudget,
         remainingSavingsCash,
       },
+      budgetProgress,
     }
   }, [revenus, charges, transactions, mouvements, budgets, plannedSavings])
 }

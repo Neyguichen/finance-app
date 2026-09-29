@@ -17,6 +17,7 @@ import RepartitionCategories from '@/components/pages/dashboard/RepartitionCateg
 import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
 import SituationFinanciereV2 from '@/components/pages/dashboard/SituationFinanciereV2'
 import PrevuReelV2 from '@/components/pages/dashboard/PrevuReelV2'
+import BudgetsV2 from '@/components/pages/dashboard/BudgetsV2'
 import EmptyMonthV2 from '@/components/pages/dashboard/EmptyMonthV2'
 import MonthPreparationPreview from '@/components/pages/dashboard/MonthPreparationPreview'
 import { useMois } from '@/lib/hooks/useMois'
@@ -150,6 +151,8 @@ export default function DashboardPage() {
           plannedSavingsDeposits={v2.plannedSavingsDeposits}
           actualSavingsDeposits={v2.actualSavingsDeposits}
         />
+
+        <BudgetsV2 budgets={v2.budgetProgress} />
 
         <ResteAVivreCard restePrevu={data.restePrevu} resteReel={data.resteReel} />
 
