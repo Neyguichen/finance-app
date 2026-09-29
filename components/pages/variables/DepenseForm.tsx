@@ -105,7 +105,11 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
           {!doubleDate && (
             <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
               <input type="checkbox" className="checkbox checkbox-sm"
-                checked={txValidated} onChange={e => setTxValidated(e.target.checked)} />
+                checked={txValidated} onChange={e => {
+                  const checked = e.target.checked
+                  setTxValidated(checked)
+                  setTxDateValidation(checked ? (txDateValidation || localDateISO()) : '')
+                }} />
               Dépense validée
             </label>
           )}
@@ -198,7 +202,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
                   sous_categorie_id: txSubCat || null,
                   montant: txMontant,
                   date: txDate,
-                  date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? txDate : null),
+                  date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? (txDateValidation || localDateISO()) : null),
                   infos: txInfos || null,
                 })
                 resetForm(); onOpenChange(false)
@@ -286,7 +290,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
                       categorie_id: splitLines[0].categorie_id,
                       montant: txMontant,
                       date: txDate,
-                      date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? txDate : null),
+                      date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? (txDateValidation || localDateISO()) : null),
                       infos: txInfos || null,
                     },
                     splitLines.map(l => ({ ...l, sous_categorie_id: l.sous_categorie_id || null, infos: l.infos || null })) as any,
