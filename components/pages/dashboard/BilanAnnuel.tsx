@@ -47,11 +47,12 @@ export default function BilanAnnuel({
         {/* Toujours visible : Total Revenus + Total Dépenses */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-amber-900/30 rounded-lg p-3">
-            <p className="text-xs text-amber-500">Total Revenus</p>
+            <p className="text-xs text-amber-500">Revenus prévus</p>
             <p className="text-sm font-bold text-emerald-400">{formatEuro(yearData.annualTotals.revenus)}</p>
+            <p className="text-xs text-amber-500 mt-1">Reçus : {formatEuro(yearData.annualTotals.revenusRecus ?? 0)}</p>
           </div>
           <div className="bg-amber-900/30 rounded-lg p-3">
-            <p className="text-xs text-amber-500">Total Dépenses</p>
+            <p className="text-xs text-amber-500">Sortants prévus / enregistrés</p>
             <p className="text-sm font-bold text-rose-400">
               {formatEuro(yearData.annualTotals.charges + yearData.annualTotals.depenses + yearData.annualTotals.epargne)}
             </p>
