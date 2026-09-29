@@ -8,6 +8,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Formater un montant en euros
+export function localDateISO(date = new Date()): string {
+  return format(date, 'yyyy-MM-dd')
+}
+
 export function formatEuro(amount: number): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
