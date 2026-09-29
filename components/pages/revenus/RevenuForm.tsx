@@ -64,7 +64,7 @@ export default function RevenuForm({ open, onOpenChange, onSubmit }: Props) {
           {/* Sélecteur de fréquence */}
           <div>
             <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-            <div className="grid flex-wrap gap-1">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {FREQUENCES.map(f => (
                 <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
                   className={`py-2 rounded-lg text-xs font-medium transition-colors flex-1 min-w-[4.5rem] ${
