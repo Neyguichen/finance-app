@@ -4,6 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Dette, RemboursementDette } from '@/lib/types'
 
+function assertValidDebtAmount(montant: number) {
+  if (!Number.isFinite(montant) || montant <= 0) {
+    throw new Error('Le montant de la dette ou de la créance doit être strictement positif.')
+  }
+}
+
 function assertValidRepayment(montant: number, date: string) {
   if (!Number.isFinite(montant) || montant <= 0) {
     throw new Error('Le montant du remboursement doit être strictement positif.')
@@ -18,6 +24,26 @@ export function useDettes(espaceId: string | undefined) {
   const queryClient = useQueryClient()
   const key = ['dettes', espaceId]
   const rembKey = ['remboursements_dette', espaceId]
+
+  const assertDebtAmountCoversRepayments = async (detteId: string, montant: number) => {
+    const { data, error } = await supabase
+      .from('remboursements_dette')
+      .select('montant')
+      .eq('dette_id', detteId)
+
+    if (error) throw error
+
+    const dejaRembourse = (data || []).reduce(
+      (total, remboursement) => total + Number(remboursement.montant),
+      0,
+    )
+
+    if (dejaRembourse - montant > 0.005) {
+      throw new Error(
+        `Le montant total ne peut pas être inférieur au montant déjà remboursé (${dejaRembourse.toFixed(2)} €).`,
+      )
+    }
+  }
 
   const assertRepaymentWithinDebt = async (detteId: string, montant: number, excludeId?: string) => {
     const [detteResult, remboursementsResult] = await Promise.all([
@@ -55,6 +81,7 @@ export function useDettes(espaceId: string | undefined) {
 
   const create = useMutation({
     mutationFn: async (dette: Omit<Dette, 'id' | 'created_at' | 'archived'>) => {
+      assertValidDebtAmount(Number(dette.montant))
       const { data, error } = await supabase
         .from('dettes')
         .insert(dette)
@@ -68,6 +95,12 @@ export function useDettes(espaceId: string | undefined) {
 
   const update = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Dette> & { id: string }) => {
+      if (updates.montant !== undefined) {
+        const montant = Number(updates.montant)
+        assertValidDebtAmount(montant)
+        await assertDebtAmountCoversRepayments(id, montant)
+      }
+
       const { error } = await supabase
         .from('dettes')
         .update(updates)
