@@ -111,7 +111,10 @@ export default function VariablesPage() {
     .filter((m: any) => m.type === 'epargne')
     .reduce((s: number, m: any) => s + Number(m.montant), 0)
   const budgetDisponible = totalRevenusVar - totalChargesVar - totalEpargneVar
-  const totalPrevu = effectiveBudgets.reduce((s: number, b: any) => s + Number(b.prevu), 0)
+  const parentCategoryIds = new Set(parentCategories.map((c: any) => c.id))
+  const totalPrevu = effectiveBudgets
+    .filter((b: any) => parentCategoryIds.has(b.categorie_id))
+    .reduce((s: number, b: any) => s + Number(b.prevu), 0)
   const totalReel = effectiveAllFlat.reduce((s: number, t: any) => s + getMontantNet(t), 0)
 
   // Catégories avec/sans activité
