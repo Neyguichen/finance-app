@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Revenu, RevenuRecurrent } from '@/lib/types'
+import { localDateISO } from '@/lib/utils'
 
 export function useRevenus(moisId: string | undefined) {
   const supabase = createClient()
@@ -92,7 +93,7 @@ export function useRevenus(moisId: string | undefined) {
     mutationFn: async ({ id, recu, dateReelle }: { id: string; recu: boolean; dateReelle?: string }) => {
       const { error } = await supabase
         .from('revenus')
-        .update({ recu, date_reelle: recu ? (dateReelle || new Date().toISOString().slice(0, 10)) : null })
+        .update({ recu, date_reelle: recu ? (dateReelle || localDateISO()) : null })
         .eq('id', id)
       if (error) throw error
     },
