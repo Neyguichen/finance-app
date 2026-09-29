@@ -42,12 +42,12 @@ export default function RevenusPage() {
   const getEnvNom = (id: string | null) => effectiveEnveloppes.find((e: any) => e.id === id)?.nom || 'Enveloppe'
 
   // Création
-  const handleCreate = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number }) => {
+  const handleCreate = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null }) => {
     if (isAdminViewing || !moisId || !espace) return
     if (values.frequence === 0) {
       await create.mutateAsync({
         mois_id: moisId, recurrent_id: null, type: values.type,
-        nom: values.nom, montant: values.montant, recu: false, ordre: effectiveRevenus.length,
+        nom: values.nom, montant: values.montant, recu: false, date_prevue: values.datePrevue, ordre: effectiveRevenus.length,
       })
     } else {
       const rec = await createRecurrent.mutateAsync({
