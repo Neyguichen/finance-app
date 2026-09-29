@@ -9,11 +9,12 @@ type Props = {
   charge: any
   readOnly: boolean
   onTogglePayee: (id: string, payee: boolean, dateReelle?: string) => void
+  onActualAmountChange?: (id: string, montantReel: number | null) => void
   onEdit: (charge: { id: string; nom: string; montant: number; recurrentId: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
 }
 
-export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onEdit, onDelete }: Props) {
+export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onActualAmountChange, onEdit, onDelete }: Props) {
   const today = new Date().toISOString().split('T')[0]
   return (
     <Card className="bg-slate-900 border-slate-800">
@@ -43,17 +44,18 @@ export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onEdit
               </div>
             )}
             {!readOnly && charge.payee && (
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1 flex flex-wrap items-center gap-2">
                 <span className="text-[11px] text-slate-500">Date payée</span>
                 <Input type="date" value={charge.date_reelle || today}
                   className="h-7 w-36 text-xs bg-slate-800 border-slate-700"
                   onChange={e => onTogglePayee(charge.id, true, e.target.value)} />
+                {onActualAmountChange && <><span className="text-[11px] text-slate-500">Montant payé</span><Input type="number" min="0" step="0.01" value={charge.montant_reel ?? charge.montant} className="h-7 w-28 text-xs bg-slate-800 border-slate-700" onChange={e => onActualAmountChange(charge.id, e.target.value === '' ? null : Number(e.target.value))} /></>}
               </div>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-bold text-purple-400">{formatEuro(Number(charge.montant))}</span>
+          <div className="text-right"><span className="font-bold text-purple-400">{formatEuro(Number(charge.payee ? (charge.montant_reel ?? charge.montant) : charge.montant))}</span>{charge.payee && charge.montant_reel != null && Number(charge.montant_reel) !== Number(charge.montant) && <p className="text-[10px] text-slate-500">prévu {formatEuro(Number(charge.montant))}</p>}</div>
           {!readOnly && (
             <>
               <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
