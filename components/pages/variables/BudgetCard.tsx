@@ -33,12 +33,12 @@ export default function BudgetCard({ cat, prevu, depense, avgMois, inactive, rea
   const [expanded, setExpanded] = useState(false)
   const [subInputs, setSubInputs] = useState<Record<string, string>>({})
 
-  const ratio = prevu > 0 ? pct(depense, prevu) : 0
-
-  // Pour sous-catégories : le total prévu = somme des sous-cat prévus
-  const totalPrevuSubCats = hasSubCats ? subCats.reduce((s, sc) => s + sc.prevu, 0) : prevu
-  const effectivePrevu = hasSubCats ? totalPrevuSubCats : prevu
+  // Le budget de la catégorie parente reste le budget de référence.
+  // Les budgets de sous-catégories sont seulement une ventilation interne et
+  // ne doivent ni remplacer ni doubler le budget parent.
+  const effectivePrevu = prevu
   const effectiveRatio = effectivePrevu > 0 ? pct(depense, effectivePrevu) : 0
+  const allocatedToSubCats = hasSubCats ? subCats.reduce((s, sc) => s + sc.prevu, 0) : 0
 
   const getSubInput = (sc: SubCatBudget) => subInputs[sc.id] ?? (sc.prevu || '')
 
@@ -85,8 +85,8 @@ export default function BudgetCard({ cat, prevu, depense, avgMois, inactive, rea
 
       {!inactive && <Progress value={Math.min(effectiveRatio, 100)} className="h-1" />}
 
-      {/* Sans sous-catégories : input budget direct (comme avant) */}
-      {!hasSubCats && !readOnly && (
+      {/* Le budget parent reste toujours modifiable, même avec des sous-catégories. */}
+      {!readOnly && (
         <div className="flex gap-1">
           <Input
             type="number" step="0.01"
@@ -104,7 +104,12 @@ export default function BudgetCard({ cat, prevu, depense, avgMois, inactive, rea
         </div>
       )}
 
-      {/* Avec sous-catégories : détail expandable */}
+      {/* Avec sous-catégories : ventilation facultative du budget parent. */}
+      {hasSubCats && (
+        <p className="text-[10px] text-slate-500 text-right">
+          Ventilé : {formatEuro(allocatedToSubCats)} sur {formatEuro(prevu)}
+        </p>
+      )}
       {hasSubCats && expanded && (
         <div className="mt-2 space-y-1.5 border-t border-slate-800 pt-2">
           {subCats.map(sc => {
