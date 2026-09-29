@@ -61,7 +61,9 @@ export function useDashboardData() {
   const totalRevenusRecus = totalActifRecu + totalPassifRecu
   const totalEntreesTresorerieReelles = totalRevenusRecus + totalReprises
 
-  const sharedExpenseSummary = summarizeAnalyticalExpenses(chg, bgt, txn)
+  const parentCategoryIds = new Set(parentCats.map((c: any) => c.id))
+  const parentBudgets = bgt.filter((b: any) => parentCategoryIds.has(b.categorie_id))
+  const sharedExpenseSummary = summarizeAnalyticalExpenses(chg, parentBudgets, txn)
   const totalChargesFixes = sharedExpenseSummary.plannedFixed
   const totalChargesPayees = sharedExpenseSummary.actualFixed
   const chargesFixesNonPayees = chg.filter((c: any) => !c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
@@ -138,10 +140,9 @@ export function useDashboardData() {
       .filter((s: any) => s.depense > 0 || s.prevu > 0)
       .sort((a: any, b: any) => b.depense - a.depense)
 
-      // Si sous-cat existent : prevu = somme des budgets sous-cat
-      const effectivePrevu = subCats.length > 0
-      ? subCats.reduce((s: number, sc: any) => s + sc.prevu, 0)
-      : prevu
+      // Le budget parent reste la référence. Les sous-budgets ne sont qu'une
+      // ventilation analytique et ne remplacent pas le budget de la catégorie.
+      const effectivePrevu = prevu
 
       // Montant sans sous-catégorie (dépenses parentes directes)
       const depenseSansSousCat = txn
