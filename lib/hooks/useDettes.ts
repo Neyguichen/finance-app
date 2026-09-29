@@ -4,6 +4,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Dette, RemboursementDette } from '@/lib/types'
 
+function assertValidRepayment(montant: number, date: string) {
+  if (!Number.isFinite(montant) || montant <= 0) {
+    throw new Error('Le montant du remboursement doit être strictement positif.')
+  }
+  if (!date) {
+    throw new Error('La date du remboursement est obligatoire.')
+  }
+}
+
 export function useDettes(espaceId: string | undefined) {
   const supabase = createClient()
   const queryClient = useQueryClient()
@@ -103,6 +112,7 @@ export function useDettes(espaceId: string | undefined) {
 
   const addRemboursement = useMutation({
     mutationFn: async (remb: { dette_id: string; montant: number; date: string; impacte_budget?: boolean }) => {
+      assertValidRepayment(remb.montant, remb.date)
       const { data, error } = await supabase
         .from('remboursements_dette')
         .insert(remb)
@@ -135,6 +145,7 @@ export function useDettes(espaceId: string | undefined) {
 
   const updateRemboursement = useMutation({
     mutationFn: async ({ id, montant, date, impacte_budget }: { id: string; montant: number; date: string; impacte_budget?: boolean }) => {
+      assertValidRepayment(montant, date)
       const { error } = await supabase
         .from('remboursements_dette')
         .update({ montant, date, ...(impacte_budget !== undefined ? { impacte_budget } : {}) })
