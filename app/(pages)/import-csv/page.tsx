@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, FileSpreadsheet, RotateCcw, Save, Upload }
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useEnveloppes } from '@/lib/hooks/useEpargne'
-import { useCsvImport, type ImportPreviewRow } from '@/lib/hooks/useCsvImport'
+import { useCsvImport, type ImportDecision, type ImportPreviewRow } from '@/lib/hooks/useCsvImport'
 import {
   mapCsvRows,
   parseCsv,
@@ -119,6 +119,7 @@ export default function ImportCsvPage() {
         ...(natureChanged ? {
           status: 'new' as const,
           match: null,
+          decision: changes.nature === 'ignore' || changes.nature === 'savings_internal' ? 'ignore' as const : 'create' as const,
           categoryId: changes.nature === 'expense' ? row.categoryId : null,
           envelopeId: changes.nature === 'savings_deposit' || changes.nature === 'savings_withdrawal' ? row.envelopeId : null,
         } : {}),
@@ -129,20 +130,20 @@ export default function ImportCsvPage() {
   const applyDefaultCategory = (categoryId: string) => {
     setDefaultCategory(categoryId)
     setPreview(current => current.map(row =>
-      row.nature === 'expense' && row.status === 'new'
+      row.nature === 'expense' && row.decision === 'create'
         ? { ...row, categoryId }
         : row
     ))
   }
 
   const missingCategoryCount = preview.filter(
-    row => row.nature === 'expense' && row.status === 'new' && !row.categoryId
+    row => row.nature === 'expense' && row.decision === 'create' && !row.categoryId
   ).length
 
   const missingEnvelopeCount = preview.filter(
     row =>
       (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') &&
-      row.status === 'new' &&
+      row.decision === 'create' &&
       !row.envelopeId
   ).length
 
@@ -288,10 +289,10 @@ export default function ImportCsvPage() {
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-4">
-            <Stat label="Nouvelles" value={preview.filter(row => row.status === 'new' && row.nature !== 'ignore' && row.nature !== 'savings_internal').length} />
-            <Stat label="Doublons" value={preview.filter(row => row.status === 'duplicate').length} />
-            <Stat label="À rapprocher" value={preview.filter(row => row.status === 'fixed_candidate').length} />
-            <Stat label="Ignorées / internes" value={preview.filter(row => row.nature === 'ignore' || row.nature === 'savings_internal').length} />
+            <Stat label="À créer" value={preview.filter(row => row.decision === 'create').length} />
+            <Stat label="À rapprocher" value={preview.filter(row => row.decision === 'match').length} />
+            <Stat label="À ignorer" value={preview.filter(row => row.decision === 'ignore').length} />
+            <Stat label="Doublons détectés" value={preview.filter(row => row.status === 'duplicate').length} />
           </div>
 
           {invalidRows.length > 0 && (
@@ -313,6 +314,7 @@ export default function ImportCsvPage() {
                   <th>Nature</th>
                   <th>Affectation</th>
                   <th>Analyse</th>
+                  <th>Décision</th>
                 </tr>
               </thead>
               <tbody>
@@ -333,7 +335,7 @@ export default function ImportCsvPage() {
                       </select>
                     </td>
                     <td>
-                      {row.nature === 'expense' && row.status === 'new' ? (
+                      {row.nature === 'expense' && row.decision === 'create' ? (
                         <select
                           className="select select-bordered select-xs min-w-40 bg-slate-950"
                           value={row.categoryId || ''}
@@ -344,7 +346,7 @@ export default function ImportCsvPage() {
                             <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>
                           ))}
                         </select>
-                      ) : (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') && row.status === 'new' ? (
+                      ) : (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') && row.decision === 'create' ? (
                         <select
                           className="select select-bordered select-xs min-w-40 bg-slate-950"
                           value={row.envelopeId || ''}
@@ -373,6 +375,17 @@ export default function ImportCsvPage() {
                         <span className="badge badge-sm border-emerald-800 bg-emerald-950 text-emerald-300">Nouvelle</span>
                       )}
                     </td>
+                    <td>
+                      <select
+                        className="select select-bordered select-xs min-w-44 bg-slate-950"
+                        value={row.decision}
+                        onChange={event => updateRow(row.rowIndex, { decision: event.target.value as ImportDecision })}
+                      >
+                        <option value="create">Créer une opération</option>
+                        {row.match && <option value="match">Rapprocher / conserver l’existante</option>}
+                        <option value="ignore">Ignorer cette ligne</option>
+                      </select>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -380,6 +393,10 @@ export default function ImportCsvPage() {
           </div>
 
           {preview.length > 200 && <p className="mt-2 text-xs text-slate-500">Les 200 premières lignes sont affichées, mais les {preview.length} lignes seront traitées.</p>}
+
+          <div className="mt-4 rounded-lg border border-blue-900/60 bg-blue-950/20 p-3 text-xs text-blue-200">
+            Les correspondances détectées ne sont jamais appliquées silencieusement : la colonne <strong>Décision</strong> reste modifiable pour chaque ligne avant confirmation.
+          </div>
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs">

@@ -47,3 +47,19 @@ export function exactPairIndexes(effects: number[], target: number) {
   }
   return null
 }
+
+
+export function amountDistance(a: number | string | null | undefined, b: number | string | null | undefined) {
+  return Math.abs(cents(a) - cents(b))
+}
+
+export function plausibleFixedMatch(
+  planned: number | string | null | undefined,
+  actual: number | string | null | undefined,
+) {
+  const plannedValue = Math.abs(cents(planned))
+  const actualValue = Math.abs(cents(actual))
+  if (!Number.isFinite(plannedValue) || !Number.isFinite(actualValue)) return false
+  const tolerance = Math.max(1, plannedValue * 0.05)
+  return Math.abs(plannedValue - actualValue) <= tolerance
+}

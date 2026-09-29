@@ -8,7 +8,7 @@ import {
   type ImportNature,
   type MappedImportRow,
 } from '@/lib/import-csv'
-import { cents, labelsClose, sameAmount, sameDateAmountLabel } from '@/lib/reconciliation'
+import { amountDistance, cents, labelsClose, plausibleFixedMatch, sameAmount, sameDateAmountLabel } from '@/lib/reconciliation'
 
 export type ImportFormat = {
   id: string
@@ -48,9 +48,12 @@ export type ImportMatch = {
   beforeState?: Record<string, any>
 }
 
+export type ImportDecision = 'create' | 'match' | 'ignore'
+
 export type ImportPreviewRow = MappedImportRow & {
   status: 'new' | 'duplicate' | 'fixed_candidate'
   match: ImportMatch | null
+  decision: ImportDecision
 }
 
 function snapshotValue(value: any) {
@@ -159,7 +162,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
 
       return rows.map<ImportPreviewRow>(row => {
         if (row.nature === 'ignore' || row.nature === 'savings_internal') {
-          return { ...row, status: 'new', match: null }
+          return { ...row, status: 'new', match: null, decision: 'ignore' }
         }
 
         const monthStart = monthStartFromDate(row.date)
@@ -182,6 +185,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             return {
               ...row,
               status: 'duplicate',
+              decision: 'match',
               match: {
                 kind: 'duplicate_income',
                 targetId: duplicate.id,
@@ -190,7 +194,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               },
             }
           }
-          return { ...row, status: 'new', match: null }
+          return { ...row, status: 'new', match: null, decision: 'create' }
         }
 
         if (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') {
@@ -205,6 +209,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             return {
               ...row,
               status: 'duplicate',
+              decision: 'match',
               match: {
                 kind: 'duplicate_savings',
                 targetId: duplicateSavings.id,
@@ -213,7 +218,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               },
             }
           }
-          return { ...row, status: 'new', match: null }
+          return { ...row, status: 'new', match: null, decision: 'create' }
         }
 
         const duplicateTransaction = (transactionResult.data || []).find((transaction: any) =>
@@ -263,18 +268,21 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         const fixedCandidate = (fixedResult.data || []).find((fixed: any) =>
           monthById.get(fixed.mois_id) === monthStart &&
           !fixed.payee &&
-          sameAmount(fixed.montant, amount) &&
+          plausibleFixedMatch(fixed.montant, amount) &&
           labelsClose(fixed.nom || '', row.label)
         )
         if (fixedCandidate) {
           return {
             ...row,
             status: 'fixed_candidate',
+            decision: 'match',
             match: {
               kind: 'fixed_candidate',
               targetId: fixedCandidate.id,
               label: fixedCandidate.nom,
-              detail: 'Cette ligne peut rapprocher une charge fixe prévue au lieu de créer une nouvelle dépense.',
+              detail: amountDistance(fixedCandidate.montant, amount) < 0.01
+                ? 'Cette ligne peut rapprocher exactement une charge fixe prévue au lieu de créer une nouvelle dépense.'
+                : `Charge prévue ${cents(fixedCandidate.montant).toFixed(2)} € ; banque ${amount.toFixed(2)} € ; écart ${amountDistance(fixedCandidate.montant, amount).toFixed(2)} €.`,
               beforeState: {
                 payee: fixedCandidate.payee,
                 montant_reel: fixedCandidate.montant_reel,
@@ -284,7 +292,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           }
         }
 
-        return { ...row, status: 'new', match: null }
+        return { ...row, status: 'new', match: null, decision: 'create' }
       })
     },
   })
@@ -342,7 +350,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
 
       for (const row of rows) {
         try {
-          if (row.nature === 'ignore' || row.nature === 'savings_internal') {
+          if (row.decision === 'ignore' || row.nature === 'ignore' || row.nature === 'savings_internal') {
             ignoredCount += 1
             const { error } = await supabase.from('import_batch_items').insert({
               batch_id: batch.id,
@@ -355,7 +363,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             continue
           }
 
-          if (row.status === 'duplicate' && row.match) {
+          if (row.decision === 'match' && row.status === 'duplicate' && row.match) {
             matchedCount += 1
             const targetTable =
               row.match.kind === 'duplicate_income'
@@ -378,7 +386,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             continue
           }
 
-          if (row.status === 'fixed_candidate' && row.match?.kind === 'fixed_candidate') {
+          if (row.decision === 'match' && row.status === 'fixed_candidate' && row.match?.kind === 'fixed_candidate') {
             const { data: updatedFixed, error: fixedError } = await supabase
               .from('charges_fixes')
               .update({
