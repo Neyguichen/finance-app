@@ -10,6 +10,7 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   dette: Dette | null
+  minimumMontant?: number
   onSave: (data: {
     id: string
     titre: string
@@ -20,7 +21,7 @@ type Props = {
   }) => void
 }
 
-export default function DetteEditDialog({ open, onOpenChange, dette, onSave }: Props) {
+export default function DetteEditDialog({ open, onOpenChange, dette, minimumMontant = 0, onSave }: Props) {
   const [titre, setTitre] = useState('')
   const [personne, setPersonne] = useState('')
   const [montant, setMontant] = useState(0)
@@ -37,6 +38,9 @@ export default function DetteEditDialog({ open, onOpenChange, dette, onSave }: P
     }
   }, [dette])
 
+  const montantValide = Number.isFinite(montant) && montant > 0 && montant + 0.005 >= minimumMontant
+  const canSave = Boolean(dette && titre.trim() && personne.trim() && montantValide)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-900 border-slate-700">
@@ -44,17 +48,26 @@ export default function DetteEditDialog({ open, onOpenChange, dette, onSave }: P
         <div className="space-y-3">
           <Input placeholder="Titre" value={titre} onChange={e => setTitre(e.target.value)} />
           <Input placeholder="Personne" value={personne} onChange={e => setPersonne(e.target.value)} />
-          <Input type="number" step="0.01" placeholder="Montant total"
-            value={montant} onChange={e => setMontant(parseFloat(e.target.value) || 0)} />
+          <div>
+            <Input type="number" min={Math.max(0.01, minimumMontant)} step="0.01" placeholder="Montant total"
+              value={montant} onChange={e => setMontant(parseFloat(e.target.value) || 0)} />
+            {minimumMontant > 0 && (
+              <p className="text-[11px] text-slate-500 mt-1">
+                Minimum autorisé : {minimumMontant.toFixed(2)} € déjà remboursés.
+              </p>
+            )}
+          </div>
           <Input type="date" placeholder="Échéance" value={dateFin} onChange={e => setDateFin(e.target.value)} />
           <Input placeholder="Note" value={note} onChange={e => setNote(e.target.value)} />
-          <Button className="w-full" onClick={() => {
-            if (!dette) return
+          <Button className="w-full" disabled={!canSave} onClick={() => {
+            if (!dette || !canSave) return
             onSave({
               id: dette.id,
-              titre, personne, montant,
+              titre: titre.trim(),
+              personne: personne.trim(),
+              montant,
               date_echeance: dateFin || null,
-              description: note || null,
+              description: note.trim() || null,
             })
           }}>Enregistrer</Button>
         </div>
