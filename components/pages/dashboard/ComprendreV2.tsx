@@ -76,8 +76,11 @@ export default function ComprendreV2({
               Le bilan annuel existant reste disponible pendant la migration. Les analyses multi-périodes seront enrichies dans leur phase dédiée.
             </p>
           </div>
-          <Button asChild size="sm" variant="outline" className="shrink-0">
-            <Link href="/bilan-annuel">Voir le bilan annuel <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+          <Button asChild size="sm" variant="outline" className="shrink-0 whitespace-nowrap">
+            <Link href="/bilan-annuel" className="inline-flex items-center gap-1.5">
+              <span>Voir le bilan annuel</span>
+              <ArrowRight className="h-3.5 w-3.5 shrink-0" />
+            </Link>
           </Button>
         </div>
       </CardContent>
