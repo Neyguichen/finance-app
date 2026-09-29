@@ -155,11 +155,17 @@ export function useMouvements(moisId: string | undefined) {
 
   const removeDefinitif = useMutation({
     mutationFn: async ({ mouvementId, recurrentId }: { mouvementId: string; recurrentId: string }) => {
-      await supabase
+      const { error: recurrentError } = await supabase
         .from('epargne_recurrentes')
         .update({ actif: false })
         .eq('id', recurrentId)
-      await supabase.from('mouvements_epargne').delete().eq('id', mouvementId)
+      if (recurrentError) throw recurrentError
+
+      const { error: mouvementError } = await supabase
+        .from('mouvements_epargne')
+        .delete()
+        .eq('id', mouvementId)
+      if (mouvementError) throw mouvementError
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
@@ -207,7 +213,6 @@ export function useEpargneRecurrentes(espaceId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
-  // ✅ AJOUT : update pour le scope "tous les prochains mois"
   const update = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<EpargneRecurrente> & { id: string }) => {
       const { error } = await supabase
