@@ -20,8 +20,8 @@ export default function RevenusResume({ plannedIncome, receivedIncome, expectedI
           <div><p className="text-xs text-slate-400">Encore attendus</p><p className="font-bold text-lg">{formatEuro(expectedIncome)}</p></div>
         </div>
         <div className="border-t border-blue-800 pt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
-          <div className="flex justify-between gap-3"><span className="text-slate-400">Actifs</span><span>{formatEuro(totalActif)}</span></div>
-          <div className="flex justify-between gap-3"><span className="text-slate-400">Passifs</span><span>{formatEuro(totalPassif)}</span></div>
+          <div className="flex justify-between gap-3"><span className="text-slate-400">Actifs prévus</span><span>{formatEuro(totalActif)}</span></div>
+          <div className="flex justify-between gap-3"><span className="text-slate-400">Passifs prévus</span><span>{formatEuro(totalPassif)}</span></div>
         </div>
         {totalReprises > 0 && (
           <div className="border-t border-blue-800 pt-2 flex justify-between gap-3 text-sm">
