@@ -3,17 +3,18 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Pencil, Trash2, CalendarDays } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { formatEuro, localDateISO } from '@/lib/utils'
+import { formatEuro, formatDate, localDateISO } from '@/lib/utils'
 
 type Props = {
   rev: { id: string; nom: string; montant: number; type: string; recu: boolean; recurrent_id?: string | null; date_prevue?: string | null; date_reelle?: string | null }
   readOnly: boolean
-  onToggleRecu: (id: string, recu: boolean, dateReelle?: string) => void
+  doubleDate?: boolean
+  onToggleRecu: (id: string, recu: boolean, dateReelle?: string | null) => void
   onEdit: (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
 }
 
-export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDelete }: Props) {
+export default function RevenuCard({ rev, readOnly, doubleDate = false, onToggleRecu, onEdit, onDelete }: Props) {
   const today = localDateISO()
   return (
     <Card className="bg-slate-900 border-slate-800">
@@ -23,7 +24,7 @@ export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDele
             checked={rev.recu}
             onCheckedChange={(checked) => {
               if (readOnly) return
-              onToggleRecu(rev.id, !!checked, checked ? today : undefined)
+              onToggleRecu(rev.id, !!checked, checked ? (doubleDate ? null : today) : undefined)
             }}
           />
           <div>
@@ -48,9 +49,9 @@ export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDele
             {!readOnly && rev.recu && (
               <div className="mt-1 flex items-center gap-2">
                 <span className="text-[11px] text-slate-500">Date reçue</span>
-                <Input type="date" value={rev.date_reelle || today}
+                <Input type="date" value={rev.date_reelle || (doubleDate ? '' : today)}
                   className="h-7 w-36 text-xs bg-slate-800 border-slate-700"
-                  onChange={e => onToggleRecu(rev.id, true, e.target.value)} />
+                  onChange={e => onToggleRecu(rev.id, true, e.target.value || (doubleDate ? null : today))} />
               </div>
             )}
           </div>
