@@ -30,11 +30,13 @@ export default function RevenusPage() {
 
   const reprises = effectiveMouvements.filter((m: any) => m.type === 'reprise')
   const totalReprises = reprises.reduce((s: number, m: any) => s + Number(m.montant), 0)
-  const plannedIncome = effectiveRevenus.reduce((s: number, r: any) => s + Number(r.montant), 0)
-  const receivedIncome = effectiveRevenus.filter((r: any) => r.recu).reduce((s: number, r: any) => s + Number(r.montant), 0)
-  const expectedIncome = Math.max(0, plannedIncome - receivedIncome)
-  const totalActif = effectiveRevenus.filter((r: any) => r.type === 'actif').reduce((s: number, r: any) => s + Number(r.montant), 0)
-  const totalPassif = effectiveRevenus.filter((r: any) => r.type === 'passif').reduce((s: number, r: any) => s + Number(r.montant), 0)
+  const {
+    plannedIncome,
+    receivedIncome,
+    expectedIncome,
+    plannedActiveIncome: totalActif,
+    plannedPassiveIncome: totalPassif,
+  } = summarizeIncome(effectiveRevenus)
 
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<any>(null)
