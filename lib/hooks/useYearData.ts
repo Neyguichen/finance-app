@@ -34,7 +34,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       const [revResult, charResult, txResult, mvtResult] = await Promise.all([
         supabase.from('revenus').select('montant, type, recu, mois_id').in('mois_id', moisIds),
         supabase.from('charges_fixes').select('montant, montant_reel, payee, mois_id').in('mois_id', moisIds),
-        supabase.from('transactions').select('montant, categorie_id, mois_id, remboursements(montant)').in('mois_id', moisIds),
+        supabase.from('transactions').select('id, montant, categorie_id, mois_id, is_split, parent_transaction_id, remboursements(montant)').in('mois_id', moisIds),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', moisIds),
       ])
       const revenus = revResult.data || []
@@ -70,7 +70,10 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         }
       }
 
+      // Les parents split sont des conteneurs analytiques : seules leurs lignes enfants
+      // portent la ventilation réelle. Les transactions non-split restent comptées normalement.
       for (const t of transactions as any[]) {
+        if (t.is_split && !t.parent_transaction_id) continue
         const mois = moisMap.get(t.mois_id)
         if (mois && monthlyData[mois]) {
           const rembs = t.remboursements || []
