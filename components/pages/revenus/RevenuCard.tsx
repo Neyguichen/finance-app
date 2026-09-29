@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Pencil, Trash2, CalendarDays } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { formatEuro } from '@/lib/utils'
+import { formatEuro, localDateISO } from '@/lib/utils'
 
 type Props = {
   rev: { id: string; nom: string; montant: number; type: string; recu: boolean; recurrent_id?: string | null; date_prevue?: string | null; date_reelle?: string | null }
@@ -14,11 +14,11 @@ type Props = {
 }
 
 export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDelete }: Props) {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateISO()
   return (
     <Card className="bg-slate-900 border-slate-800">
-      <CardContent className="flex items-center justify-between p-3">
-        <div className="flex items-center gap-3">
+      <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex w-full min-w-0 items-start gap-3 sm:w-auto sm:items-center">
           <Checkbox
             checked={rev.recu}
             onCheckedChange={(checked) => {
@@ -55,7 +55,7 @@ export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDele
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center justify-end gap-1 sm:w-auto sm:gap-2">
           <span className={`font-bold ${Number(rev.montant) < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
             {formatEuro(Number(rev.montant))}
           </span>
