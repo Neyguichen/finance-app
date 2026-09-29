@@ -53,7 +53,6 @@ export default function DashboardPage() {
   )
   const v2Summary = useActualCashSummary(espace?.id, monthStart, summaryEnd, espace?.double_date ?? false)
 
-  // Stats visibles (tout activé par défaut)
   const ds = {
     repartition: true, ratioCharges: true, maitrise: true, epargne20: true,
     top3Depenses: true, top3Categories: true,
@@ -91,7 +90,6 @@ export default function DashboardPage() {
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
       <div className="p-4 space-y-4">
-        {/* Bouton ajouter espace */}
         <div className="flex items-center justify-between">
           {!isAdminViewing && (
             <Dialog open={openEspace} onOpenChange={setOpenEspace}>
@@ -127,7 +125,6 @@ export default function DashboardPage() {
           onConfirm={confirmPreparation}
         />
 
-        {/* Situation financière V2 : les cartes V1 restent dessous pendant la migration progressive. */}
         {espace?.solde_reference != null && espace?.date_solde_reference && today >= espace.date_solde_reference && (
           <SituationFinanciereV2
             balance={v2Balance.data}
@@ -138,6 +135,7 @@ export default function DashboardPage() {
             selectedMonth={month}
             plannedMonthResult={v2.plannedMonthResult}
             actualMonthResult={v2.actualMonthResult}
+            projectedRemainingCashMovement={v2.projectedRemainingCashMovement}
           />
         )}
 
@@ -152,7 +150,6 @@ export default function DashboardPage() {
           actualSavingsDeposits={v2.actualSavingsDeposits}
         />
 
-        {/* Toujours visible */}
         <ResteAVivreCard restePrevu={data.restePrevu} resteReel={data.resteReel} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -171,7 +168,6 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Optionnel : Répartition + Indicateurs */}
         {(ds.repartition || showIndicateurs) && (
           <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
             {ds.repartition && (

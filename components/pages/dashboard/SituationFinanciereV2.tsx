@@ -13,6 +13,7 @@ type Props = {
   selectedMonth: string
   plannedMonthResult: number
   actualMonthResult: number
+  projectedRemainingCashMovement: number
 }
 
 function monthLabel(month: string) {
@@ -32,6 +33,7 @@ export default function SituationFinanciereV2({
   selectedMonth,
   plannedMonthResult,
   actualMonthResult,
+  projectedRemainingCashMovement,
 }: Props) {
   if (loading) {
     return <Card className="bg-slate-900 border-slate-800"><CardContent className="p-4"><span className="loading loading-spinner loading-sm" /></CardContent></Card>
@@ -44,6 +46,9 @@ export default function SituationFinanciereV2({
   const monthEnd = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0, 12)
   const daysRemaining = isCurrentMonth
     ? Math.max(0, Math.ceil((monthEnd.getTime() - todayDate.getTime()) / 86_400_000))
+    : null
+  const plannedEndBalance = isCurrentMonth && balance != null
+    ? Number(balance) + projectedRemainingCashMovement
     : null
 
   return (
@@ -76,19 +81,50 @@ export default function SituationFinanciereV2({
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-400">Revenus reçus · {periodLabel}</p>
-            <p className="text-lg font-bold text-emerald-400 mt-1">{formatEuro(summary?.earnedIncome || 0)}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-slate-900 border-slate-800">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-400">Dépenses réelles · {periodLabel}</p>
-            <p className="text-lg font-bold text-pink-400 mt-1">{formatEuro(summary?.expenses || 0)}</p>
-          </CardContent>
-        </Card>
+        {isCurrentMonth ? (
+          <Card className="col-span-2 bg-slate-900 border-slate-800">
+            <CardContent className="p-4">
+              <p className="text-xs text-slate-400">Prévu fin de mois</p>
+              <p className="text-2xl font-bold mt-1">{plannedEndBalance == null ? '—' : formatEuro(plannedEndBalance)}</p>
+              <p className="text-[11px] text-slate-500 mt-2">
+                Disponible actuel + revenus encore attendus − flux restant prévu. Hors nouveaux flux exceptionnels non planifiés.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Card className="bg-slate-900 border-slate-800">
+              <CardContent className="p-4">
+                <p className="text-xs text-slate-400">Revenus reçus · {periodLabel}</p>
+                <p className="text-lg font-bold text-emerald-400 mt-1">{formatEuro(summary?.earnedIncome || 0)}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-slate-900 border-slate-800">
+              <CardContent className="p-4">
+                <p className="text-xs text-slate-400">Dépenses réelles · {periodLabel}</p>
+                <p className="text-lg font-bold text-pink-400 mt-1">{formatEuro(summary?.expenses || 0)}</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
+
+      {isCurrentMonth && (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="bg-slate-900 border-slate-800">
+            <CardContent className="p-4">
+              <p className="text-xs text-slate-400">Revenus reçus · {periodLabel}</p>
+              <p className="text-lg font-bold text-emerald-400 mt-1">{formatEuro(summary?.earnedIncome || 0)}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-900 border-slate-800">
+            <CardContent className="p-4">
+              <p className="text-xs text-slate-400">Dépenses réelles · {periodLabel}</p>
+              <p className="text-lg font-bold text-pink-400 mt-1">{formatEuro(summary?.expenses || 0)}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Card className="bg-slate-900 border-slate-800">
