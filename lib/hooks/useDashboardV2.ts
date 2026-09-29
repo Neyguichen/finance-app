@@ -9,6 +9,7 @@ import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 import { usePlannedSavings } from '@/lib/hooks/usePlannedSavings'
+import { summarizeIncome } from '@/lib/income-summary'
 
 export function useDashboardV2() {
   const { moisId } = useApp()
@@ -20,9 +21,7 @@ export function useDashboardV2() {
   const { data: plannedSavings = [] } = usePlannedSavings(moisId)
 
   return useMemo(() => {
-    const plannedIncome = revenus.reduce((sum, item) => sum + Number(item.montant), 0)
-    const actualIncome = revenus.filter(item => item.recu).reduce((sum, item) => sum + Number(item.montant), 0)
-    const expectedIncome = Math.max(0, plannedIncome - actualIncome)
+    const { plannedIncome, receivedIncome: actualIncome, expectedIncome } = summarizeIncome(revenus)
 
     const { plannedFixed, actualFixed, plannedVariable, actualVariable } =
       summarizeAnalyticalExpenses(charges, budgets, transactions)
