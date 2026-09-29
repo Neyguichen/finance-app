@@ -15,18 +15,22 @@ import EpargneFab from '@/components/pages/epargne/EpargneFab'
 
 import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
 import { useEnveloppesAtMonth } from '@/lib/hooks/useEnveloppesAtMonth'
+import { usePlannedSavings } from '@/lib/hooks/usePlannedSavings'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
+import { formatEuro } from '@/lib/utils'
 
 export default function EpargnePage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
+  const { data: plannedSavings = [] } = usePlannedSavings(isAdminViewing ? undefined : moisId)
   const { create: createRecurrent, update: updateRecurrent } = useEpargneRecurrentes(espace?.id)
   const { data: adminData } = useAdminMoisData(month)
 
   const effectiveEnveloppes = isAdminViewing ? (adminData?.enveloppes || []) : enveloppes
   const effectiveMouvements = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvements
+  const effectivePlannedSavings = isAdminViewing ? [] : plannedSavings
 
   // Classement enveloppes
   const enveloppesActives = effectiveEnveloppes.filter((e: any) => !e.archived)
@@ -48,7 +52,8 @@ export default function EpargnePage() {
   const [showArchived, setShowArchived] = useState(false)
   const [showInactiveEnv, setShowInactiveEnv] = useState(false)
 
-  // Totaux
+  // Totaux : les prévisions viennent de la préparation du mois, les mouvements restent le réel.
+  const totalPrevus = effectivePlannedSavings.reduce((s: number, item: any) => s + Number(item.montant), 0)
   const totalEpargne = effectiveMouvements.filter((m: any) => m.type === 'epargne').reduce((s: number, m: any) => s + Number(m.montant), 0)
   const totalReprise = effectiveMouvements.filter((m: any) => m.type === 'reprise').reduce((s: number, m: any) => s + Number(m.montant), 0)
   const totalDisponible = enveloppesActives.reduce((s: number, e: any) => s + Number(e.solde), 0)
@@ -137,7 +142,31 @@ export default function EpargnePage() {
       <div className="p-4 space-y-4">
         <h1 className="text-xl font-bold">Épargne</h1>
 
-        <EpargneResume totalDisponible={totalDisponible} totalEpargne={totalEpargne} totalReprise={totalReprise} />
+        <EpargneResume
+          totalDisponible={totalDisponible}
+          totalPrevus={totalPrevus}
+          totalEpargne={totalEpargne}
+          totalReprise={totalReprise}
+        />
+
+        {!isAdminViewing && effectivePlannedSavings.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Prévisions d’épargne</h2>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {effectivePlannedSavings.map((item: any) => (
+                <div key={item.id} className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{getEnvNom(item.enveloppe_dest_id)}</p>
+                      {item.note && <p className="text-xs text-slate-500 truncate">{item.note}</p>}
+                    </div>
+                    <span className="font-semibold text-sky-400 whitespace-nowrap">{formatEuro(Number(item.montant))}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Enveloppes actives */}
         {(enveloppesActives.length > 1 || enveloppesActives.some((e: any) => e.objectif && Number(e.objectif) > 0)) && (
