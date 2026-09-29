@@ -19,6 +19,9 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
   const hasRemb = tx.remboursements?.length > 0
   const isAwaitingValidation = !tx.date_validation
   const isSplit = tx.is_split && tx.children?.length > 0
+  const splitCategories = isSplit
+    ? Array.from(new Set(tx.children.map((child: any) => child.categorie?.nom || 'Sans catégorie')))
+    : []
 
   return (
     <div>
@@ -35,8 +38,12 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
               )}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  {isSplit && <span className="flex-shrink-0">{tx.categorie?.icone || '📦'}</span>}
-                  <p className="text-sm font-medium truncate">{tx.categorie?.nom || 'Sans catégorie'}</p>
+                  {isSplit ? (
+                    <span className="flex-shrink-0">✂️</span>
+                  ) : (
+                    <span className="flex-shrink-0">{tx.categorie?.icone || '📦'}</span>
+                  )}
+                  <p className="text-sm font-medium truncate">{isSplit ? 'Dépense scindée' : (tx.categorie?.nom || 'Sans catégorie')}</p>
                   {isAwaitingValidation && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-900 text-amber-400 flex-shrink-0">⏳ À valider</span>
                   )}
@@ -44,9 +51,13 @@ export default function DepenseCard({ tx, readOnly, doubleDate, getMontantNet, o
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-900 text-indigo-400 flex-shrink-0">✂️ Split ({tx.children.length})</span>
                   )}
                 </div>
-                {tx.sous_categorie && (
+                {isSplit ? (
+                  <p className="text-xs text-slate-400 truncate">
+                    {splitCategories.join(' · ')}
+                  </p>
+                ) : tx.sous_categorie ? (
                   <p className="text-xs text-slate-400">{tx.sous_categorie.icone} {tx.sous_categorie.nom}</p>
-                )}
+                ) : null}
                 {tx.infos && <p className="text-xs text-slate-500 truncate">{tx.infos}</p>}
               </div>
             </div>
