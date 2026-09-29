@@ -20,12 +20,12 @@ export default function DettePage() {
     archive, unarchive,
   } = useDettes(espace?.id)
 
+  // `jai_prete` reste la valeur physique V1 ; l'interface utilise désormais "On me doit".
   const [tab, setTab] = useState<'je_dois' | 'jai_prete'>('je_dois')
   const [openAdd, setOpenAdd] = useState(false)
 
   const rembData = remboursements?.data || []
 
-  // Helper reste après remboursements
   const getReste = (dette: Dette) => {
     const rembs = rembData.filter(r => r.dette_id === dette.id)
     const totalRemb = rembs.reduce((s, r) => s + Number(r.montant), 0)
@@ -33,7 +33,7 @@ export default function DettePage() {
   }
 
   const totalJeDois = dettes.filter(d => d.type === 'je_dois' && !d.archived).reduce((s, d) => s + getReste(d), 0)
-  const totalJaiPrete = dettes.filter(d => d.type === 'jai_prete' && !d.archived).reduce((s, d) => s + getReste(d), 0)
+  const totalOnMeDoit = dettes.filter(d => d.type === 'jai_prete' && !d.archived).reduce((s, d) => s + getReste(d), 0)
 
   const dettesActives = dettes.filter(d => !d.archived && d.type === tab)
   const dettesArchivees = dettes.filter(d => d.archived && d.type === tab)
@@ -58,9 +58,8 @@ export default function DettePage() {
 
       <DetteForm open={openAdd} onOpenChange={setOpenAdd} tab={tab} onSubmit={handleAdd} />
 
-      <DetteResume totalJeDois={totalJeDois} totalJaiPrete={totalJaiPrete} />
+      <DetteResume totalJeDois={totalJeDois} totalJaiPrete={totalOnMeDoit} />
 
-      {/* Onglets */}
       <div className="flex gap-2">
         <button onClick={() => setTab('je_dois')}
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -69,14 +68,13 @@ export default function DettePage() {
         <button onClick={() => setTab('jai_prete')}
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
             tab === 'jai_prete' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-          }`}>J&apos;ai prêté</button>
+          }`}>On me doit</button>
       </div>
 
-      {/* Liste des dettes actives */}
       <div className="space-y-3">
         {dettesActives.length === 0 && dettesArchivees.length === 0 && (
           <p className="text-center text-slate-500 text-sm py-8">
-            {tab === 'je_dois' ? 'Aucune dette enregistrée 🎉' : 'Aucun prêt enregistré'}
+            {tab === 'je_dois' ? 'Aucune dette enregistrée 🎉' : 'Aucune créance enregistrée'}
           </p>
         )}
 
@@ -95,7 +93,6 @@ export default function DettePage() {
         ))}
       </div>
 
-      {/* Archives */}
       {dettesArchivees.length > 0 && (
         <details className="mt-4">
           <summary className="text-sm text-slate-500 cursor-pointer">
