@@ -38,10 +38,12 @@ export default function SituationFinanciereV2({ balance, summary, loading, refer
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Card className="bg-slate-900 border-slate-800"><CardContent className="p-4"><p className="text-xs text-slate-400">Résultat prévu du mois</p><p className="text-xl font-bold mt-1">{formatEuro(plannedMonthResult)}</p><p className="text-[11px] text-slate-500 mt-1">Revenus + reprises − charges − budgets variables − épargne</p></CardContent></Card>
-        <Card className="bg-slate-900 border-slate-800"><CardContent className="p-4"><p className="text-xs text-slate-400">Résultat réel enregistré</p><p className="text-xl font-bold mt-1">{formatEuro(actualMonthResult)}</p><p className="text-[11px] text-slate-500 mt-1">À distinguer du solde réel, qui part du point de référence daté.</p></CardContent></Card>
+        <Card className="bg-slate-900 border-slate-800"><CardContent className="p-4"><p className="text-xs text-slate-400">Résultat réel enregistré</p><p className="text-xl font-bold mt-1">{formatEuro(actualMonthResult)}</p><p className="text-[11px] text-slate-500 mt-1">À distinguer du mouvement réel de trésorerie ci-dessous, qui inclut aussi dettes et créances.</p></CardContent></Card>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-        <div className="rounded-lg bg-slate-900 border border-slate-800 p-3"><p className="text-slate-500">Remboursements reçus</p><p className="font-semibold mt-1">{formatEuro(summary?.expenseReimbursements || 0)}</p></div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+        <div className="rounded-lg bg-slate-900 border border-slate-800 p-3"><p className="text-slate-500">Remb. de dépenses</p><p className="font-semibold mt-1">{formatEuro(summary?.expenseReimbursements || 0)}</p></div>
+        <div className="rounded-lg bg-slate-900 border border-slate-800 p-3"><p className="text-slate-500">On me doit · reçu</p><p className="font-semibold text-emerald-400 mt-1">{formatEuro(summary?.debtRepaymentsIn || 0)}</p></div>
+        <div className="rounded-lg bg-slate-900 border border-slate-800 p-3"><p className="text-slate-500">Je dois · remboursé</p><p className="font-semibold text-orange-400 mt-1">{formatEuro(summary?.debtRepaymentsOut || 0)}</p></div>
         <div className="rounded-lg bg-slate-900 border border-slate-800 p-3"><p className="text-slate-500">Reprises épargne</p><p className="font-semibold mt-1">{formatEuro(summary?.savingsWithdrawals || 0)}</p></div>
         <div className="rounded-lg bg-slate-900 border border-slate-800 p-3"><p className="text-slate-500">Épargne versée</p><p className="font-semibold mt-1">{formatEuro(summary?.savingsDeposits || 0)}</p></div>
         <div className="rounded-lg bg-slate-900 border border-slate-800 p-3"><p className="text-slate-500">Mouvement net du mois</p><p className="font-semibold mt-1">{formatEuro(summary?.netCashMovement || 0)}</p></div>
