@@ -9,7 +9,7 @@ type Props = {
   rev: { id: string; nom: string; montant: number; type: string; recu: boolean; recurrent_id?: string | null; date_prevue?: string | null; date_reelle?: string | null }
   readOnly: boolean
   onToggleRecu: (id: string, recu: boolean, dateReelle?: string) => void
-  onEdit: (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null }) => void
+  onEdit: (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
 }
 
@@ -62,7 +62,7 @@ export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDele
           {!readOnly && (
             <>
               <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                onClick={() => onEdit({ id: rev.id, nom: rev.nom, montant: Number(rev.montant), type: rev.type as 'actif' | 'passif', recurrentId: rev.recurrent_id })}>
+                onClick={() => onEdit({ id: rev.id, nom: rev.nom, montant: Number(rev.montant), type: rev.type as 'actif' | 'passif', recurrentId: rev.recurrent_id, datePrevue: rev.date_prevue })}>
                 <Pencil className="w-4 h-4" />
               </Button>
               <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
