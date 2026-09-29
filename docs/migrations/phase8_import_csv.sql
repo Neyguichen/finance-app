@@ -49,3 +49,5 @@ create table if not exists public.import_batch_items (
 -- drop table if exists public.import_batch_items;
 -- drop table if exists public.import_batches;
 -- drop table if exists public.import_formats;
+
+-- Deployment bundle: Phase 8 block 1.
