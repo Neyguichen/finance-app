@@ -5,9 +5,10 @@ import { createClient } from '@/lib/supabase/client'
 import { balanceAtDate, summarizeCashFlows, type DatedFinancialFlow, type FinancialFlowKind } from '@/lib/financial-engine'
 
 async function loadActualFlows(supabase: ReturnType<typeof createClient>, espaceId: string, doubleDate: boolean) {
-  const { data: months, error: monthsError } = await supabase.from('mois').select('id').eq('espace_id', espaceId)
+  const { data: months, error: monthsError } = await supabase.from('mois').select('id, mois').eq('espace_id', espaceId)
   if (monthsError) throw monthsError
   const monthIds = (months || []).map(month => month.id)
+  const monthDateById = new Map((months || []).map(month => [month.id, month.mois]))
 
   const [
     { data: incomes, error: incomesError },
@@ -16,8 +17,8 @@ async function loadActualFlows(supabase: ReturnType<typeof createClient>, espace
     { data: savings, error: savingsError },
     { data: debts, error: debtsError },
   ] = await Promise.all([
-    monthIds.length ? supabase.from('revenus').select('montant, recu, date_reelle').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
-    monthIds.length ? supabase.from('charges_fixes').select('montant, montant_reel, payee, date_reelle').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
+    monthIds.length ? supabase.from('revenus').select('mois_id, montant, recu, date_reelle').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
+    monthIds.length ? supabase.from('charges_fixes').select('mois_id, montant, montant_reel, payee, date_reelle').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
     monthIds.length ? supabase.from('transactions').select('id, montant, date, date_validation, is_split, parent_transaction_id, remboursements(montant, date)').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
     monthIds.length ? supabase.from('mouvements_epargne').select('type, montant, date').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
     supabase.from('dettes').select('id, type, remboursements_dette(montant, date, impacte_budget)').eq('espace_id', espaceId),
@@ -29,8 +30,20 @@ async function loadActualFlows(supabase: ReturnType<typeof createClient>, espace
   if (debtsError) throw debtsError
 
   const flows: DatedFinancialFlow[] = []
-  for (const income of incomes || []) if (income.recu && income.date_reelle) flows.push({ kind: 'earned_income', amount: Number(income.montant), date: income.date_reelle })
-  for (const expense of fixedExpenses || []) if (expense.payee && expense.date_reelle) flows.push({ kind: 'expense', amount: Number(expense.montant_reel ?? expense.montant), date: expense.date_reelle })
+  // Legacy V1 rows can be marked as received/paid without a precise real date.
+  // They still represent actual cash flows. In that case, anchor the flow to the
+  // accounting month so historical balances remain usable without inventing a
+  // fake day of validation in the stored data.
+  for (const income of incomes || []) {
+    if (!income.recu) continue
+    const date = income.date_reelle || monthDateById.get(income.mois_id)
+    if (date) flows.push({ kind: 'earned_income', amount: Number(income.montant), date })
+  }
+  for (const expense of fixedExpenses || []) {
+    if (!expense.payee) continue
+    const date = expense.date_reelle || monthDateById.get(expense.mois_id)
+    if (date) flows.push({ kind: 'expense', amount: Number(expense.montant_reel ?? expense.montant), date })
+  }
 
   for (const transaction of transactions || []) {
     // A split parent is the single cash operation; its children are analytical allocation only.
