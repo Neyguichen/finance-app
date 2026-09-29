@@ -71,31 +71,49 @@ async function loadActualFlows(supabase: ReturnType<typeof createClient>, espace
   return flows
 }
 
-export function useBalanceAtDate(espaceId: string | undefined, referenceBalance: number | null | undefined, referenceDate: string | null | undefined, targetDate: string, doubleDate = false) {
+function useActualFlows(espaceId: string | undefined, doubleDate: boolean) {
   const supabase = createClient()
   return useQuery({
-    queryKey: ['balance_at_date', espaceId, referenceBalance, referenceDate, targetDate, doubleDate],
-    enabled: !!espaceId && referenceBalance != null && !!referenceDate && !!targetDate,
+    queryKey: ['actual_flows', espaceId, doubleDate],
+    enabled: !!espaceId,
+    staleTime: 60_000,
     queryFn: async () => {
-      if (!espaceId || referenceBalance == null || !referenceDate || targetDate < referenceDate) return null
-      const flows = await loadActualFlows(supabase, espaceId, doubleDate)
-      return balanceAtDate(Number(referenceBalance), referenceDate, targetDate, flows)
+      if (!espaceId) return []
+      return loadActualFlows(supabase, espaceId, doubleDate)
     },
   })
 }
 
-// Actual period summaries share the same source of truth as dated balances.
-// Cash-affecting mutations must invalidate both query families.
+export function useBalanceAtDate(espaceId: string | undefined, referenceBalance: number | null | undefined, referenceDate: string | null | undefined, targetDate: string, doubleDate = false) {
+  const flowsQuery = useActualFlows(espaceId, doubleDate)
+  const enabled = !!espaceId && referenceBalance != null && !!referenceDate && !!targetDate
+  const data = !enabled || !referenceDate || referenceBalance == null || targetDate < referenceDate
+    ? null
+    : flowsQuery.data
+      ? balanceAtDate(Number(referenceBalance), referenceDate, targetDate, flowsQuery.data)
+      : undefined
+
+  return {
+    ...flowsQuery,
+    data,
+    isLoading: enabled && flowsQuery.isLoading,
+  }
+}
+
+// The balance and monthly summary now share one cached actual-flow query.
+// This prevents the dashboard from reloading the whole history several times.
 export function useActualCashSummary(espaceId: string | undefined, startDate: string, endDate: string, doubleDate = false) {
-  const supabase = createClient()
-  return useQuery({
-    queryKey: ['actual_cash_summary', espaceId, startDate, endDate, doubleDate],
-    enabled: !!espaceId && !!startDate && !!endDate,
-    queryFn: async () => {
-      if (!espaceId) return null
-      const flows = await loadActualFlows(supabase, espaceId, doubleDate)
-      const periodFlows = flows.filter(flow => flow.date >= startDate && flow.date <= endDate)
-      return summarizeCashFlows(periodFlows)
-    },
-  })
+  const flowsQuery = useActualFlows(espaceId, doubleDate)
+  const enabled = !!espaceId && !!startDate && !!endDate
+  const data = enabled && flowsQuery.data
+    ? summarizeCashFlows(flowsQuery.data.filter(flow => flow.date >= startDate && flow.date <= endDate))
+    : enabled
+      ? undefined
+      : null
+
+  return {
+    ...flowsQuery,
+    data,
+    isLoading: enabled && flowsQuery.isLoading,
+  }
 }
