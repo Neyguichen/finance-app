@@ -83,10 +83,10 @@ export default function RevenusPage() {
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
-      <div className="p-4 space-y-4 pb-24">
+      <div className="mx-auto w-full max-w-6xl p-3 sm:p-4 space-y-4 pb-28">
         <h1 className="text-xl font-bold">Revenus</h1>
 
-        <RevenusResume totalEntrants={totalEntrants} totalActif={totalActif} totalPassif={totalPassif} totalReprises={totalReprises} />
+        <RevenusResume plannedIncome={plannedIncome} receivedIncome={receivedIncome} expectedIncome={expectedIncome} totalActif={totalActif} totalPassif={totalPassif} totalReprises={totalReprises} />
 
         <div className="space-y-2">
           {effectiveRevenus.map((rev: any) => (
