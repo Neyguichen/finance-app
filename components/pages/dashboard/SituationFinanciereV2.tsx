@@ -6,6 +6,7 @@ import type { CashSummary } from '@/lib/financial-engine'
 
 type Props = {
   balance: number | null | undefined
+  openingBalance: number | null | undefined
   summary: CashSummary | null | undefined
   loading?: boolean
   referenceDate: string
@@ -27,6 +28,7 @@ function monthLabel(month: string) {
 
 export default function SituationFinanciereV2({
   balance,
+  openingBalance,
   summary,
   loading,
   referenceDate,
@@ -55,6 +57,9 @@ export default function SituationFinanciereV2({
   const experimentalEndBalance = isCurrentMonth && balance != null && experimentalRemainingCashMovement != null
     ? Number(balance) + experimentalRemainingCashMovement
     : null
+  const plannedPeriodEndBalance = openingBalance == null ? null : Number(openingBalance) + plannedMonthResult
+  const actualCashMovement = summary?.netCashMovement ?? actualMonthResult
+  const actualPeriodEndBalance = openingBalance == null ? null : Number(openingBalance) + actualCashMovement
 
   return (
     <section className="space-y-3">
@@ -149,16 +154,26 @@ export default function SituationFinanciereV2({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Card className="border-slate-800 bg-slate-900">
           <CardContent className="p-4">
-            <p className="text-xs text-slate-400">Résultat prévu · {periodLabel}</p>
+            <p className="text-xs text-slate-400">Variation prévue du mois · {periodLabel}</p>
             <p className="mt-1 text-xl font-bold">{formatEuro(plannedMonthResult)}</p>
             <p className="mt-1 text-[11px] text-slate-500">Revenus − charges fixes − budgets variables − épargne prévue.</p>
+            {openingBalance != null && plannedPeriodEndBalance != null && (
+              <p className="mt-2 border-t border-slate-800 pt-2 text-[11px] text-slate-400">
+                {formatEuro(openingBalance)} au début + {formatEuro(plannedMonthResult)} = <span className="font-semibold text-slate-200">{formatEuro(plannedPeriodEndBalance)}</span> prévu en fin de mois
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card className="border-slate-800 bg-slate-900">
           <CardContent className="p-4">
-            <p className="text-xs text-slate-400">Résultat réel enregistré · {periodLabel}</p>
+            <p className="text-xs text-slate-400">Variation réelle du mois · {periodLabel}</p>
             <p className="mt-1 text-xl font-bold">{formatEuro(actualMonthResult)}</p>
-            <p className="mt-1 text-[11px] text-slate-500">Indicateur analytique distinct du mouvement réel de trésorerie, qui inclut aussi dettes et créances.</p>
+            <p className="mt-1 text-[11px] text-slate-500">Le mouvement réel de trésorerie peut aussi inclure remboursements, dettes, créances et reprises d&apos;épargne.</p>
+            {openingBalance != null && actualPeriodEndBalance != null && (
+              <p className="mt-2 border-t border-slate-800 pt-2 text-[11px] text-slate-400">
+                {formatEuro(openingBalance)} au début + {formatEuro(actualCashMovement)} = <span className="font-semibold text-slate-200">{formatEuro(actualPeriodEndBalance)}</span> calculé en fin de période
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
