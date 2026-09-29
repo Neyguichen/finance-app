@@ -57,7 +57,7 @@ export default function RevenusPage() {
       })
       await create.mutateAsync({
         mois_id: moisId, recurrent_id: rec.id, type: values.type,
-        nom: values.nom, montant: values.montant, recu: false, ordre: effectiveRevenus.length,
+        nom: values.nom, montant: values.montant, recu: false, date_prevue: values.datePrevue, ordre: effectiveRevenus.length,
       })
     }
   }
