@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Scissors, ReceiptText, X } from 'lucide-react'
-import { formatEuro } from '@/lib/utils'
+import { formatEuro, localDateISO } from '@/lib/utils'
 import InlineCatCreator from './InlineCatCreator'
 
 type Props = {
@@ -95,7 +95,11 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
                 {!doubleDate ? (
                   <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                     <input type="checkbox" className="checkbox checkbox-sm" checked={validated}
-                      onChange={e => setValidated(e.target.checked)} />
+                      onChange={e => {
+                        const checked = e.target.checked
+                        setValidated(checked)
+                        setDateValidation(checked ? (dateValidation || localDateISO()) : '')
+                      }} />
                     Dépense validée
                   </label>
                 ) : (
@@ -109,7 +113,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
                     id: editTx.id,
                     montant: Number(editTx.montant),
                     date,
-                    date_validation: doubleDate ? (dateValidation || null) : (validated ? date : null),
+                    date_validation: doubleDate ? (dateValidation || null) : (validated ? (dateValidation || localDateISO()) : null),
                     infos: editTx.infos || null,
                     categorie_id: editTx.categorie_id,
                     sous_categorie_id: editTx.sous_categorie_id || null,
@@ -143,7 +147,11 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
                 {!doubleDate ? (
                   <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                     <input type="checkbox" className="checkbox checkbox-sm"
-                      checked={validated} onChange={e => setValidated(e.target.checked)} />
+                      checked={validated} onChange={e => {
+                      const checked = e.target.checked
+                      setValidated(checked)
+                      setDateValidation(checked ? (dateValidation || localDateISO()) : '')
+                    }} />
                     Dépense validée
                   </label>
                 ) : (
@@ -201,7 +209,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
                   id: editTx.id,
                   montant,
                   date,
-                  date_validation: doubleDate ? (dateValidation || null) : (validated ? date : null),
+                  date_validation: doubleDate ? (dateValidation || null) : (validated ? (dateValidation || localDateISO()) : null),
                   infos: infos || null,
                   categorie_id: catId,
                   sous_categorie_id: subCatId || null,
