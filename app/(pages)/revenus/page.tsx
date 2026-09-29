@@ -65,7 +65,7 @@ export default function RevenusPage() {
   // Édition
   const handleSaveEdit = async (data: any, scope: 'mois' | 'tous') => {
     if (isAdminViewing) return
-    await update.mutateAsync({ id: data.id, nom: data.nom, montant: data.montant, type: data.type })
+    await update.mutateAsync({ id: data.id, nom: data.nom, montant: data.montant, type: data.type, date_prevue: data.datePrevue ?? null })
     if (scope === 'tous' && data.recurrentId) {
       await updateRecurrent.mutateAsync({ id: data.recurrentId, nom: data.nom, montant: data.montant, type: data.type })
     }
