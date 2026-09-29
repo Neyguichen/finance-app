@@ -57,6 +57,7 @@ export default function BilanAnnuelPage() {
       return {
         mois: moisNomFr(mois),
         revenus: Math.round((rm1 > 0 ? rm1 : 0) + d.revenus + d.reprises),
+        revenusRecus: Math.round(d.revenusRecus),
         sortants: Math.round(d.charges + d.depenses + d.epargne + (rm1 < 0 ? Math.abs(rm1) : 0)),
         reste: Math.round(rm1 + d.revenus + d.reprises - d.charges - d.depenses - d.epargne),
       }
@@ -95,7 +96,7 @@ export default function BilanAnnuelPage() {
   }
 
   return (
-    <div className="p-4 space-y-4 pb-24">
+    <div className="mx-auto w-full max-w-6xl p-3 sm:p-4 space-y-4 pb-24">
       {/* Sélecteur d'année */}
       <div className="flex items-center justify-center gap-4">
         <button
@@ -105,7 +106,7 @@ export default function BilanAnnuelPage() {
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <div className="flex gap-2">
+        <div className="flex max-w-full gap-2 overflow-x-auto py-1">
           {availableYears.map((year) => (
             <button
               key={year}
