@@ -1,5 +1,6 @@
 'use client'
 
+import { localDateISO } from '@/lib/utils'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,7 +34,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
   const [txSubCat, setTxSubCat] = useState('')
   const [txMontant, setTxMontant] = useState(0)
   const [txInfos, setTxInfos] = useState('')
-  const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0])
+  const [txDate, setTxDate] = useState(localDateISO())
   const [txDateValidation, setTxDateValidation] = useState('')
   const [txValidated, setTxValidated] = useState(false)
   const [inlineCatOpen, setInlineCatOpen] = useState(false)
