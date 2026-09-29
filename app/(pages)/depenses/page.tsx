@@ -68,7 +68,7 @@ export default function DepensesPage() {
 
   const createTransaction = async (data: any) => { if (!moisId || isAdminViewing) return; await createTx.mutateAsync({ mois_id: moisId, ...data }) }
   const createSplitTransaction = async (data: any, lines: any[]) => { if (!moisId || isAdminViewing) return; const parent = await createTx.mutateAsync({ mois_id: moisId, ...data }); await split.mutateAsync({ parentId: parent.id, lines }) }
-  const createFixedExpense = async (v: { nom: string; montant: number; frequence: number }) => { if (!moisId || !espace || isAdminViewing) return; let recurrent_id: string | null = null; if (v.frequence > 0) { const rec = await createFixedRecurring.mutateAsync({ espace_id: espace.id, nom: v.nom, montant: v.montant, actif: true, frequence_mois: v.frequence, ordre: charges.length, mois_debut: month }); recurrent_id = rec.id } await createFixed.mutateAsync({ mois_id: moisId, recurrent_id, nom: v.nom, montant: v.montant, payee: false, ordre: charges.length }); setFixedOpen(false) }
+  const createFixedExpense = async (v: { nom: string; montant: number; frequence: number; categorie_id?: string | null }) => { if (!moisId || !espace || isAdminViewing) return; let recurrent_id: string | null = null; if (v.frequence > 0) { const rec = await createFixedRecurring.mutateAsync({ espace_id: espace.id, nom: v.nom, montant: v.montant, categorie_id: v.categorie_id ?? null, actif: true, frequence_mois: v.frequence, ordre: charges.length, mois_debut: month }); recurrent_id = rec.id } await createFixed.mutateAsync({ mois_id: moisId, recurrent_id, nom: v.nom, montant: v.montant, categorie_id: v.categorie_id ?? null, payee: false, ordre: charges.length }); setFixedOpen(false) }
   const saveFixed = (id: string, nom: string, montant: number, recurrentId: string | null) => { if (recurrentId) setScopeFixed({ id, nom, montant, recurrentId }); else updateFixed.mutateAsync({ id, nom, montant }); setEditFixed(null) }
   const saveFixedScope = async (scope: 'mois' | 'tous') => { if (!scopeFixed || isAdminViewing) return; await updateFixed.mutateAsync({ id: scopeFixed.id, nom: scopeFixed.nom, montant: scopeFixed.montant }); if (scope === 'tous') await updateFixedRecurring.mutateAsync({ id: scopeFixed.recurrentId, nom: scopeFixed.nom, montant: scopeFixed.montant }); setScopeFixed(null) }
   const removeFixedExpense = (mode: 'mois' | 'definitif') => { if (!deleteFixed || isAdminViewing) return; if (mode === 'definitif' && deleteFixed.recurrentId) removeDefinitif.mutate({ chargeId: deleteFixed.id, recurrentId: deleteFixed.recurrentId }); else removeFixed.mutate(deleteFixed.id); setDeleteFixed(null) }
@@ -103,7 +103,7 @@ export default function DepensesPage() {
         <Button size="sm" variant="outline" onClick={() => setFixedOpen(true)}>+ Charge fixe</Button>
         <Button className="rounded-full w-14 h-14 shadow-lg" onClick={() => setTxOpen(true)} aria-label="Ajouter une dépense"><Plus className="w-6 h-6" /></Button>
       </div>}
-      <ChargeFixeForm open={fixedOpen} onOpenChange={setFixedOpen} onSubmit={createFixedExpense} />
+      <ChargeFixeForm open={fixedOpen} onOpenChange={setFixedOpen} categories={effectiveCategories} onSubmit={createFixedExpense} />
       <ChargeFixeEditDialog editTarget={editFixed} onClose={() => setEditFixed(null)} onSave={saveFixed} />
       <ChargeFixeDeleteDialog target={deleteFixed} onClose={() => setDeleteFixed(null)} onDelete={removeFixedExpense} />
       <ChargeFixeScopeDialog target={scopeFixed} onClose={() => setScopeFixed(null)} onSave={saveFixedScope} />
