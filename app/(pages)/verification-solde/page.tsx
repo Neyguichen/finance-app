@@ -1,10 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Scale } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronRight, Lightbulb, Scale } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
-import { formatEuro, localDateISO } from '@/lib/utils'
+import { useBalanceReconciliationSuggestions } from '@/lib/hooks/useBalanceReconciliationSuggestions'
+import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
 
 export default function VerificationSoldePage() {
   const { espace } = useApp()
@@ -31,6 +33,12 @@ export default function VerificationSoldePage() {
 
   const beforeReference = Boolean(
     espace?.date_solde_reference && targetDate && targetDate < espace.date_solde_reference
+  )
+
+  const suggestions = useBalanceReconciliationSuggestions(
+    espace?.id,
+    targetDate,
+    beforeReference ? null : delta
   )
 
   return (
@@ -74,7 +82,7 @@ export default function VerificationSoldePage() {
             </div>
 
             <p className="mt-3 text-xs text-slate-500">
-              Référence actuelle : {formatEuro(Number(espace.solde_reference))} au {espace.date_solde_reference}.
+              Référence actuelle : {formatEuro(Number(espace.solde_reference))} au {formatDate(espace.date_solde_reference)}.
             </p>
           </section>
 
@@ -84,7 +92,7 @@ export default function VerificationSoldePage() {
               <div>
                 <p className="font-medium text-amber-200">Date antérieure au point de référence</p>
                 <p className="mt-1 text-sm text-amber-300/80">
-                  Neyguichen ne peut pas reconstruire un solde fiable avant le {espace.date_solde_reference} à partir de ce point de référence.
+                  Neyguichen ne peut pas reconstruire un solde fiable avant le {formatDate(espace.date_solde_reference)} à partir de ce point de référence.
                 </p>
               </div>
             </div>
@@ -120,12 +128,61 @@ export default function VerificationSoldePage() {
             </section>
           )}
 
-          {delta != null && Math.abs(delta) >= 0.01 && (
+          {delta != null && Math.abs(delta) >= 0.01 && !beforeReference && (
             <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-              <h2 className="font-semibold">Pistes de rapprochement</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Le moteur de suggestions sera la prochaine étape de cette phase. Aucune correction ne sera appliquée automatiquement.
-              </p>
+              <div className="flex items-start gap-3">
+                <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+                <div>
+                  <h2 className="font-semibold">Pistes de rapprochement</h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Neyguichen cherche des opérations qui pourraient expliquer un écart de {formatEuro(delta)}.
+                    Ce sont uniquement des suggestions : aucune donnée n&apos;est modifiée automatiquement.
+                  </p>
+                </div>
+              </div>
+
+              {suggestions.isLoading ? (
+                <p className="mt-4 text-sm text-slate-500">Recherche des pistes…</p>
+              ) : suggestions.data && suggestions.data.length > 0 ? (
+                <div className="mt-4 space-y-2">
+                  {suggestions.data.map(suggestion => (
+                    <div key={suggestion.id} className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium">{suggestion.title}</p>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] ${
+                              suggestion.confidence === 'forte'
+                                ? 'bg-emerald-950 text-emerald-300'
+                                : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              {suggestion.confidence === 'forte' ? 'Correspondance exacte' : 'À vérifier'}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-500">{suggestion.detail}</p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            Impact potentiel : <span className="font-medium">{suggestion.effect > 0 ? '+' : ''}{formatEuro(suggestion.effect)}</span>
+                          </p>
+                        </div>
+                        <Link
+                          href={suggestion.href}
+                          className="inline-flex shrink-0 items-center gap-1 text-sm text-blue-400 hover:text-blue-300"
+                        >
+                          Vérifier
+                          <ChevronRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+                  <p className="text-sm text-slate-300">Aucune correspondance évidente trouvée.</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    L&apos;écart peut venir d&apos;une opération absente, d&apos;une mauvaise date, d&apos;un montant différent ou d&apos;une combinaison plus complexe.
+                  </p>
+                </div>
+              )}
             </section>
           )}
         </>
