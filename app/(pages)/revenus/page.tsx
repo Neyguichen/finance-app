@@ -14,6 +14,7 @@ import RepriseCard from '@/components/pages/revenus/RepriseCard'
 import RevenuForm from '@/components/pages/revenus/RevenuForm'
 import RevenuEditDialog from '@/components/pages/revenus/RevenuEditDialog'
 import RevenuDeleteDialog from '@/components/pages/revenus/RevenuDeleteDialog'
+import { summarizeIncome } from '@/lib/income-summary'
 
 export default function RevenusPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
