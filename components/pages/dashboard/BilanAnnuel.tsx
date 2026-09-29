@@ -52,7 +52,7 @@ export default function BilanAnnuel({
             <p className="text-xs text-amber-500 mt-1">Reçus : {formatEuro(yearData.annualTotals.revenusRecus ?? 0)}</p>
           </div>
           <div className="bg-amber-900/30 rounded-lg p-3">
-            <p className="text-xs text-amber-500">Sortants prévus / enregistrés</p>
+            <p className="text-xs text-amber-500">Sortants (fixes prévus + variables/épargne enregistrées)</p>
             <p className="text-sm font-bold text-rose-400">
               {formatEuro(yearData.annualTotals.charges + yearData.annualTotals.depenses + yearData.annualTotals.epargne)}
             </p>
@@ -67,7 +67,7 @@ export default function BilanAnnuel({
                 </p>
               </div>
               <div className="bg-amber-900/30 rounded-lg p-3">
-                <p className="text-xs text-amber-500">Épargne nette</p>
+                <p className="text-xs text-amber-500">Épargne enregistrée</p>
                 <p className="text-sm font-bold text-teal-400">{formatEuro(yearData.annualTotals.epargne)}</p>
               </div>
             </>
@@ -172,7 +172,7 @@ export default function BilanAnnuel({
                   <td className="text-right text-amber-500">—</td>
                 </tr>
                 <tr className="border-b border-amber-900">
-                  <td className="py-2 text-amber-200">💰 Épargne</td>
+                  <td className="py-2 text-amber-200">💰 Épargne enregistrée</td>
                   <td className="text-right text-amber-200">{formatEuro(yearData.annualTotals.epargne)}</td>
                   <td className="text-right text-amber-200">{formatEuro(Math.round(yearData.annualTotals.epargne / (yearData.nbMonthsEpargne || 1)))}</td>
                   <td className="text-right text-amber-500">—</td>
