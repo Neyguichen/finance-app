@@ -41,8 +41,8 @@ export default function RevenuCard({ rev, readOnly, onToggleRecu, onEdit, onDele
             {(rev.date_prevue || rev.date_reelle) && (
               <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
                 <CalendarDays className="w-3 h-3" />
-                {rev.date_prevue && <span>Prévu {rev.date_prevue}</span>}
-                {rev.date_reelle && <span className="text-emerald-500">Reçu {rev.date_reelle}</span>}
+                {rev.date_prevue && <span>Prévu {formatDate(rev.date_prevue)}</span>}
+                {rev.date_reelle && <span className="text-emerald-500">Reçu {formatDate(rev.date_reelle)}</span>}
               </div>
             )}
             {!readOnly && rev.recu && (
