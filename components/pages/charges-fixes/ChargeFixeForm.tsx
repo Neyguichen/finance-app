@@ -15,7 +15,7 @@ const FREQUENCES = [
   { value: 12, label: 'Annuel' },
 ]
 
-type CategoryOption = { id: string; nom: string; icone?: string | null }
+type CategoryOption = { id: string; nom: string; icone?: string | null; parent_id?: string | null }
 
 type Props = {
   open: boolean
@@ -43,7 +43,7 @@ export default function ChargeFixeForm({ open, onOpenChange, categories = [], on
         <form onSubmit={handleSubmit(doSubmit)} className="space-y-4">
           <Input placeholder="Nom (ex: Loyer)" {...register('nom', { required: true })} />
           <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant prévu" />
-          {categories.length > 0 && <select {...register('categorie_id')} className="w-full h-10 rounded-md border border-slate-700 bg-slate-800 px-3 text-sm"><option value="">Sans catégorie</option>{categories.filter(c => !('parent_id' in c)).map(c => <option key={c.id} value={c.id}>{c.icone ? `${c.icone} ` : ''}{c.nom}</option>)}</select>}
+          {categories.length > 0 && <select {...register('categorie_id')} className="w-full h-10 rounded-md border border-slate-700 bg-slate-800 px-3 text-sm"><option value="">Sans catégorie</option>{categories.filter(c => !c.parent_id).map(c => <option key={c.id} value={c.id}>{c.icone ? `${c.icone} ` : ''}{c.nom}</option>)}</select>}
           <div>
             <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
             <div className="grid flex-wrap gap-1">
