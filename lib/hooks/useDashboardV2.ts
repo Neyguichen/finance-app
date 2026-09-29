@@ -72,6 +72,28 @@ export function useDashboardV2() {
       - remainingVariableBudget
       - remainingSavingsCash
 
+    const isCurrentMonth = month === today.slice(0, 7)
+    let experimentalVariableForecast: number | null = null
+    let experimentalRemainingCashMovement: number | null = null
+
+    if (isCurrentMonth) {
+      const [year, monthNumber] = month.split('-').map(Number)
+      const elapsedDays = Math.max(1, Number(today.slice(8, 10)))
+      const daysInMonth = new Date(year, monthNumber, 0).getDate()
+      const daysRemaining = Math.max(0, daysInMonth - elapsedDays)
+      const actualVariableToDate = transactions
+        .filter(transaction => transaction.date <= today)
+        .reduce((sum, transaction) => sum + getMontantNet(transaction), 0)
+      const dailyVariablePace = actualVariableToDate / elapsedDays
+      experimentalVariableForecast = Math.max(0, dailyVariablePace * daysRemaining)
+      experimentalRemainingCashMovement =
+        remainingIncomeCash
+        - remainingFixedCash
+        - pendingVariableCash
+        - experimentalVariableForecast
+        - remainingSavingsCash
+    }
+
     const budgetProgress = budgets
       .filter(budget => Number(budget.prevu || 0) > 0)
       .map(budget => {
@@ -125,12 +147,14 @@ export function useDashboardV2() {
       plannedMonthResult,
       actualMonthResult,
       projectedRemainingCashMovement,
+      experimentalRemainingCashMovement,
       projectionDetails: {
         remainingIncomeCash,
         remainingFixedCash,
         pendingVariableCash,
         remainingVariableBudget,
         remainingSavingsCash,
+        experimentalVariableForecast,
       },
       budgetProgress,
       savingsDebtSummary: {
@@ -141,6 +165,7 @@ export function useDashboardV2() {
       savingsDebtLoading: enveloppesQuery.isLoading || detteModel.isLoading || detteModel.remboursements.isLoading,
     }
   }, [
+    month,
     revenus,
     charges,
     transactions,

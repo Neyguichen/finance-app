@@ -140,6 +140,7 @@ export default function DashboardPage() {
             plannedMonthResult={v2.plannedMonthResult}
             actualMonthResult={v2.actualMonthResult}
             projectedRemainingCashMovement={v2.projectedRemainingCashMovement}
+            experimentalRemainingCashMovement={v2.experimentalRemainingCashMovement}
           />
         )}
 
