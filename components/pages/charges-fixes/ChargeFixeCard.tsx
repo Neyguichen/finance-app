@@ -39,8 +39,8 @@ export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onActu
             {(charge.date_prevue || charge.date_reelle) && (
               <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
                 <CalendarDays className="w-3 h-3" />
-                {charge.date_prevue && <span>Prévu {charge.date_prevue}</span>}
-                {charge.date_reelle && <span className="text-purple-400">Payé {charge.date_reelle}</span>}
+                {charge.date_prevue && <span>Prévu {formatDate(charge.date_prevue)}</span>}
+                {charge.date_reelle && <span className="text-purple-400">Payé {formatDate(charge.date_reelle)}</span>}
               </div>
             )}
             {!readOnly && charge.payee && (
