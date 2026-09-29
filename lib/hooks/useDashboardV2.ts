@@ -7,7 +7,7 @@ import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useBudgets } from '@/lib/hooks/useBudgets'
-import { getMontantNet } from '@/lib/utils'
+import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 import { usePlannedSavings } from '@/lib/hooks/usePlannedSavings'
 
 export function useDashboardV2() {
@@ -24,11 +24,8 @@ export function useDashboardV2() {
     const actualIncome = revenus.filter(item => item.recu).reduce((sum, item) => sum + Number(item.montant), 0)
     const expectedIncome = Math.max(0, plannedIncome - actualIncome)
 
-    const plannedFixed = charges.reduce((sum, item) => sum + Number(item.montant), 0)
-    const actualFixed = charges.filter(item => item.payee).reduce((sum, item) => sum + Number(item.montant_reel ?? item.montant), 0)
-
-    const plannedVariable = budgets.reduce((sum, item) => sum + Number(item.prevu || 0), 0)
-    const actualVariable = transactions.reduce((sum, item) => sum + getMontantNet(item), 0)
+    const { plannedFixed, actualFixed, plannedVariable, actualVariable } =
+      summarizeAnalyticalExpenses(charges, budgets, transactions)
 
     const plannedSavingsDeposits = plannedSavings.reduce((sum, item) => sum + Number(item.montant), 0)
     const actualSavingsDeposits = mouvements.filter(item => item.type === 'epargne').reduce((sum, item) => sum + Number(item.montant), 0)
