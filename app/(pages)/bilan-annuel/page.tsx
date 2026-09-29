@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useApp } from '@/components/AppContext'
 import { useYearData } from '@/lib/hooks/useYearData'
 import { useAvailableYears } from '@/lib/hooks/useAvailableYears'
@@ -14,7 +14,7 @@ const moisNomFr = (m: string) => {
 }
 
 export default function BilanAnnuelPage() {
-  const { espace, isAdminViewing } = useApp()
+  const { espace } = useApp()
   const espaceId = espace?.id
 
   const { data: availableYears = [], isLoading: loadingYears } = useAvailableYears(espaceId)
@@ -32,7 +32,6 @@ export default function BilanAnnuelPage() {
   const canPrev = yearIndex < availableYears.length - 1
   const canNext = yearIndex > 0
 
-  // Stats visibles (tout activé par défaut)
   const ds = {
     bilanEpargne: true, bilanMoisExtremes: true, bilanGraphRevSortants: true,
     bilanGraphReste: true, bilanCatVariable: true, bilanTableau: true,
@@ -40,78 +39,72 @@ export default function BilanAnnuelPage() {
   }
 
   const { lineChartData, catStats, catPlusVariable, catPlusVariableInfo } = useMemo(() => {
-    if (!yearData?.monthlyData) return { lineChartData: [], catStats: [], catPlusVariable: null, catPlusVariableInfo: null }
-
-    const monthlyResteM1: Record<string, number> = {}
-    const months = Object.keys(yearData.monthlyData).sort()
-    let carry = espace?.solde_initial ?? 0
-    for (const m of months) {
-      monthlyResteM1[m] = carry
-      const d: any = yearData.monthlyData[m]
-      carry = carry + d.revenus + d.reprises - d.charges - d.depenses - d.epargne
+    if (!yearData?.monthlyData) {
+      return { lineChartData: [], catStats: [], catPlusVariable: null, catPlusVariableInfo: null }
     }
 
+    const months = Object.keys(yearData.monthlyData).sort()
     const lineData = months.map((mois) => {
-      const d: any = yearData.monthlyData[mois]
-      const rm1 = monthlyResteM1[mois] ?? 0
+      const data: any = yearData.monthlyData[mois]
+      const entrees = data.revenusRecus + data.reprises + data.remboursementsCreance
+      const sortants = data.chargesReelles + data.depenses + data.epargne + data.remboursementsDette
       return {
         mois: moisNomFr(mois),
-        revenus: Math.round((rm1 > 0 ? rm1 : 0) + d.revenus + d.reprises),
-        revenusRecus: Math.round(d.revenusRecus),
-        sortants: Math.round(d.charges + d.depenses + d.epargne + (rm1 < 0 ? Math.abs(rm1) : 0)),
-        reste: Math.round(rm1 + d.revenus + d.reprises - d.charges - d.depenses - d.epargne),
+        revenus: Math.round(entrees),
+        sortants: Math.round(sortants),
+        reste: Math.round(entrees - sortants),
       }
     })
 
     const stats = [...categories]
       .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
-      .map((c: any) => ({ id: c.id, nom: c.nom, icone: c.icone }))
+      .map((categorie: any) => ({ id: categorie.id, nom: categorie.nom, icone: categorie.icone }))
 
     const cpv = yearData.catAnnualStats
       ? Object.entries(yearData.catAnnualStats)
-          .filter(([, s]: [string, any]) => s.total > 0 && s.max > s.min)
+          .filter(([, stat]: [string, any]) => stat.total > 0 && stat.max > stat.min)
           .sort(([, a]: [string, any], [, b]: [string, any]) => (b.max - b.min) - (a.max - a.min))[0] ?? null
       : null
 
-    const cpvInfo = cpv ? stats.find(c => c.id === cpv[0]) : null
+    const cpvInfo = cpv ? stats.find(categorie => categorie.id === cpv[0]) : null
 
     return { lineChartData: lineData, catStats: stats, catPlusVariable: cpv, catPlusVariableInfo: cpvInfo }
-  }, [yearData, categories, espace?.solde_initial])
+  }, [yearData, categories])
 
   if (!espaceId) {
-    return <div className="p-6 text-center text-slate-500">Sélectionnez un espace</div>
+    return <div className="p-6 text-center text-slate-500">Sélectionnez un Budget</div>
   }
 
   if (loadingYears) {
-    return <div className="flex items-center justify-center min-h-[50vh]"><span className="loading loading-spinner loading-lg" /></div>
+    return <div className="flex min-h-[50vh] items-center justify-center"><span className="loading loading-spinner loading-lg" /></div>
   }
 
   if (availableYears.length === 0) {
     return (
       <div className="p-6 text-center text-slate-500">
         <p>Aucune donnée annuelle disponible</p>
-        <p className="text-xs mt-1">Commencez à utiliser l&apos;app pour voir le bilan ici.</p>
+        <p className="mt-1 text-xs">Commencez à utiliser l&apos;app pour voir le bilan ici.</p>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl p-3 sm:p-4 space-y-4 pb-24">
-      {/* Sélecteur d'année */}
-      <div className="flex items-center justify-center gap-4">
+    <div className="mx-auto w-full max-w-6xl space-y-4 p-3 pb-24 sm:p-4">
+      <div className="flex items-center justify-center gap-2 sm:gap-4">
         <button
           onClick={() => canPrev && setSelectedYear(availableYears[yearIndex + 1])}
           disabled={!canPrev}
-          className={`p-2 rounded-lg transition-colors ${canPrev ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 cursor-not-allowed'}`}
+          className={`rounded-lg p-2 transition-colors ${canPrev ? 'text-slate-300 hover:bg-slate-800' : 'cursor-not-allowed text-slate-700'}`}
+          aria-label="Année précédente"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="h-5 w-5" />
         </button>
-        <div className="flex max-w-full gap-2 overflow-x-auto py-1">
+        <div className="flex max-w-[70vw] gap-2 overflow-x-auto py-1 sm:max-w-full">
           {availableYears.map((year) => (
             <button
               key={year}
               onClick={() => setSelectedYear(year)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 year === effectiveYear
                   ? 'bg-amber-600 text-white'
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
@@ -124,13 +117,13 @@ export default function BilanAnnuelPage() {
         <button
           onClick={() => canNext && setSelectedYear(availableYears[yearIndex - 1])}
           disabled={!canNext}
-          className={`p-2 rounded-lg transition-colors ${canNext ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 cursor-not-allowed'}`}
+          className={`rounded-lg p-2 transition-colors ${canNext ? 'text-slate-300 hover:bg-slate-800' : 'cursor-not-allowed text-slate-700'}`}
+          aria-label="Année suivante"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="h-5 w-5" />
         </button>
       </div>
 
-      {/* Contenu */}
       {yearData && yearData.nbMonths > 0 ? (
         <BilanAnnuel
           yearData={yearData}
@@ -147,7 +140,7 @@ export default function BilanAnnuelPage() {
           showTableau={ds.bilanTableau}
         />
       ) : (
-        <div className="text-center text-slate-500 py-8">
+        <div className="py-8 text-center text-slate-500">
           <p>Aucune donnée pour {effectiveYear}</p>
         </div>
       )}

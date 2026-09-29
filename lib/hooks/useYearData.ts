@@ -7,7 +7,6 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
   const supabase = createClient()
   const year = currentMonth.slice(0, 4)
 
-  // Calcul du mois précédent
   const [y, m] = currentMonth.split('-').map(Number)
   const prevDate = new Date(y, m - 2, 1)
   const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`
@@ -17,153 +16,218 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
     enabled: !!espaceId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      // 1. Tous les mois de l'année
-      const { data: moisList } = await supabase
+      const { data: moisList, error: moisError } = await supabase
         .from('mois')
         .select('id, mois')
         .eq('espace_id', espaceId!)
         .gte('mois', `${year}-01-01`)
         .lte('mois', `${year}-12-31`)
 
+      if (moisError) throw moisError
       if (!moisList || moisList.length === 0) return null
 
-      const moisIds = moisList.map(m => m.id)
-      const moisMap = new Map(moisList.map(m => [m.id, m.mois]))
+      const moisIds = moisList.map(mois => mois.id)
+      const moisMap = new Map(moisList.map(mois => [mois.id, mois.mois]))
+      const monthByPrefix = new Map(moisList.map(mois => [String(mois.mois).slice(0, 7), mois.mois]))
 
-      // 2. Charger toutes les données en parallèle
-      const [revResult, charResult, txResult, mvtResult] = await Promise.all([
+      const [revResult, charResult, txResult, mvtResult, debtResult] = await Promise.all([
         supabase.from('revenus').select('montant, type, recu, mois_id').in('mois_id', moisIds),
         supabase.from('charges_fixes').select('montant, montant_reel, payee, mois_id').in('mois_id', moisIds),
         supabase.from('transactions').select('id, montant, categorie_id, mois_id, is_split, parent_transaction_id, remboursements(montant)').in('mois_id', moisIds),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', moisIds),
+        supabase.from('dettes').select('type, remboursements_dette(montant, date, impacte_budget)').eq('espace_id', espaceId!),
       ])
+
+      if (revResult.error) throw revResult.error
+      if (charResult.error) throw charResult.error
+      if (txResult.error) throw txResult.error
+      if (mvtResult.error) throw mvtResult.error
+      if (debtResult.error) throw debtResult.error
+
       const revenus = revResult.data || []
       const charges = charResult.data || []
       const transactions = txResult.data || []
       const mouvements = mvtResult.data || []
+      const dettes = debtResult.data || []
 
-      // 3. Agréger par mois
       type MonthData = {
-        revenus: number; revenusRecus: number; charges: number; chargesReelles: number; depenses: number
-        epargne: number; reprises: number
+        revenus: number
+        revenusRecus: number
+        charges: number
+        chargesReelles: number
+        depenses: number
+        epargne: number
+        reprises: number
+        remboursementsDette: number
+        remboursementsCreance: number
         catDepenses: Record<string, number>
       }
+
       const monthlyData: Record<string, MonthData> = {}
-
-      for (const m of moisList) {
-        monthlyData[m.mois] = { revenus: 0, revenusRecus: 0, charges: 0, chargesReelles: 0, depenses: 0, epargne: 0, reprises: 0, catDepenses: {} }
-      }
-
-      for (const r of revenus) {
-        const mois = moisMap.get(r.mois_id)
-        if (mois && monthlyData[mois]) {
-          monthlyData[mois].revenus += Number(r.montant)
-          if (r.recu) monthlyData[mois].revenusRecus += Number(r.montant)
+      for (const mois of moisList) {
+        monthlyData[mois.mois] = {
+          revenus: 0,
+          revenusRecus: 0,
+          charges: 0,
+          chargesReelles: 0,
+          depenses: 0,
+          epargne: 0,
+          reprises: 0,
+          remboursementsDette: 0,
+          remboursementsCreance: 0,
+          catDepenses: {},
         }
       }
 
-      for (const c of charges) {
-        const mois = moisMap.get(c.mois_id)
+      for (const revenu of revenus) {
+        const mois = moisMap.get(revenu.mois_id)
         if (mois && monthlyData[mois]) {
-          monthlyData[mois].charges += Number(c.montant)
-          if (c.payee) monthlyData[mois].chargesReelles += Number(c.montant_reel ?? c.montant)
+          monthlyData[mois].revenus += Number(revenu.montant)
+          if (revenu.recu) monthlyData[mois].revenusRecus += Number(revenu.montant)
         }
       }
 
-      // Les parents split sont des conteneurs analytiques : seules leurs lignes enfants
-      // portent la ventilation réelle. Les transactions non-split restent comptées normalement.
-      for (const t of transactions as any[]) {
-        if (t.is_split && !t.parent_transaction_id) continue
-        const mois = moisMap.get(t.mois_id)
+      for (const charge of charges) {
+        const mois = moisMap.get(charge.mois_id)
         if (mois && monthlyData[mois]) {
-          const rembs = t.remboursements || []
-          const totalRemb = rembs.reduce((s: number, r: any) => s + Number(r.montant), 0)
-          const net = Number(t.montant) - totalRemb
-          monthlyData[mois].depenses += net
-          if (t.categorie_id) {
-            monthlyData[mois].catDepenses[t.categorie_id] =
-              (monthlyData[mois].catDepenses[t.categorie_id] || 0) + net
+          monthlyData[mois].charges += Number(charge.montant)
+          if (charge.payee) monthlyData[mois].chargesReelles += Number(charge.montant_reel ?? charge.montant)
+        }
+      }
+
+      // Split parents are cash containers. Children carry the analytical allocation,
+      // so category statistics use children and ordinary non-split transactions only.
+      for (const transaction of transactions as any[]) {
+        if (transaction.is_split && !transaction.parent_transaction_id) continue
+        const mois = moisMap.get(transaction.mois_id)
+        if (!mois || !monthlyData[mois]) continue
+
+        const remboursements = transaction.remboursements || []
+        const totalRembourse = remboursements.reduce(
+          (total: number, remboursement: any) => total + Number(remboursement.montant),
+          0,
+        )
+        const net = Number(transaction.montant) - totalRembourse
+        monthlyData[mois].depenses += net
+        if (transaction.categorie_id) {
+          monthlyData[mois].catDepenses[transaction.categorie_id] =
+            (monthlyData[mois].catDepenses[transaction.categorie_id] || 0) + net
+        }
+      }
+
+      for (const mouvement of mouvements) {
+        const mois = moisMap.get(mouvement.mois_id)
+        if (mois && monthlyData[mois]) {
+          if (mouvement.type === 'epargne') monthlyData[mois].epargne += Number(mouvement.montant)
+          if (mouvement.type === 'reprise') monthlyData[mois].reprises += Number(mouvement.montant)
+        }
+      }
+
+      for (const dette of dettes as any[]) {
+        const remboursements = Array.isArray(dette.remboursements_dette)
+          ? dette.remboursements_dette
+          : dette.remboursements_dette
+            ? [dette.remboursements_dette]
+            : []
+
+        for (const remboursement of remboursements) {
+          if (!remboursement.impacte_budget || !remboursement.date) continue
+          const mois = monthByPrefix.get(String(remboursement.date).slice(0, 7))
+          if (!mois || !monthlyData[mois]) continue
+          if (dette.type === 'je_dois') {
+            monthlyData[mois].remboursementsDette += Number(remboursement.montant)
+          } else {
+            monthlyData[mois].remboursementsCreance += Number(remboursement.montant)
           }
         }
       }
 
-      for (const mv of mouvements) {
-        const mois = moisMap.get(mv.mois_id)
-        if (mois && monthlyData[mois]) {
-          if (mv.type === 'epargne') monthlyData[mois].epargne += Number(mv.montant)
-          else if (mv.type === 'reprise') monthlyData[mois].reprises += Number(mv.montant)
-        }
-      }
-
-      // 4. Stats annuelles
       const months = Object.keys(monthlyData).sort()
       const nbMonths = months.length
+      const total = (field: keyof Omit<MonthData, 'catDepenses'>) =>
+        months.reduce((sum, month) => sum + Number(monthlyData[month][field]), 0)
 
       const annualTotals = {
-        revenus: months.reduce((s, m) => s + monthlyData[m].revenus, 0),
-        revenusRecus: months.reduce((s, m) => s + monthlyData[m].revenusRecus, 0),
-        charges: months.reduce((s, m) => s + monthlyData[m].charges, 0),
-        chargesReelles: months.reduce((s, m) => s + monthlyData[m].chargesReelles, 0),
-        depenses: months.reduce((s, m) => s + monthlyData[m].depenses, 0),
-        epargne: months.reduce((s, m) => s + monthlyData[m].epargne, 0),
+        revenus: total('revenus'),
+        revenusRecus: total('revenusRecus'),
+        charges: total('charges'),
+        chargesReelles: total('chargesReelles'),
+        depenses: total('depenses'),
+        epargne: total('epargne'),
+        reprises: total('reprises'),
+        remboursementsDette: total('remboursementsDette'),
+        remboursementsCreance: total('remboursementsCreance'),
       }
 
-      const nbMonthsCharges = months.filter(m => monthlyData[m].charges > 0).length
-      const nbMonthsEpargne = months.filter(m => monthlyData[m].epargne > 0).length
-      const nbActiveMonths = months.filter(m => {
-        const md = monthlyData[m]
-        return md.revenus > 0 || md.charges > 0 || md.depenses > 0 || md.epargne > 0
+      const depensesReelles = annualTotals.chargesReelles + annualTotals.depenses + annualTotals.remboursementsDette
+      const entreesTresorerie = annualTotals.revenusRecus + annualTotals.reprises + annualTotals.remboursementsCreance
+      const epargneNette = annualTotals.epargne - annualTotals.reprises
+      const mouvementNet = entreesTresorerie - depensesReelles - annualTotals.epargne
+      const tauxEpargne = annualTotals.revenusRecus > 0
+        ? Math.round((epargneNette / annualTotals.revenusRecus) * 100)
+        : 0
+
+      const nbMonthsCharges = months.filter(month => monthlyData[month].chargesReelles > 0).length
+      const nbMonthsEpargne = months.filter(month => monthlyData[month].epargne > 0 || monthlyData[month].reprises > 0).length
+      const nbActiveMonths = months.filter(month => {
+        const data = monthlyData[month]
+        return data.revenusRecus > 0
+          || data.chargesReelles > 0
+          || data.depenses > 0
+          || data.epargne > 0
+          || data.reprises > 0
+          || data.remboursementsDette > 0
+          || data.remboursementsCreance > 0
       }).length
 
-      const tauxEpargne = annualTotals.revenus > 0
-      ? Math.round((annualTotals.epargne / annualTotals.revenus) * 100)
-      : 0
-
-      // Mois le plus dépensier / économe (sortants totaux par mois)
       let moisMaxDepense = { mois: '', total: 0 }
       let moisMinDepense = { mois: '', total: Infinity }
-      for (const m of months) {
-        const md = monthlyData[m]
-        const totalSort = md.charges + md.depenses + md.epargne
-        if (totalSort > moisMaxDepense.total) moisMaxDepense = { mois: m, total: totalSort }
-        if (totalSort < moisMinDepense.total) moisMinDepense = { mois: m, total: totalSort }
+      for (const month of months) {
+        const data = monthlyData[month]
+        const sortantsReels = data.chargesReelles + data.depenses + data.epargne + data.remboursementsDette
+        if (sortantsReels > moisMaxDepense.total) moisMaxDepense = { mois: month, total: sortantsReels }
+        if (sortantsReels > 0 && sortantsReels < moisMinDepense.total) moisMinDepense = { mois: month, total: sortantsReels }
       }
       if (moisMinDepense.total === Infinity) moisMinDepense = { mois: '', total: 0 }
 
-      // 5. Stats par catégorie annuelles
       const allCatIds = new Set<string>()
-      for (const md of Object.values(monthlyData)) {
-        for (const catId of Object.keys(md.catDepenses)) allCatIds.add(catId)
+      for (const data of Object.values(monthlyData)) {
+        for (const categoryId of Object.keys(data.catDepenses)) allCatIds.add(categoryId)
       }
 
       const catAnnualStats: Record<string, {
-        total: number; avg: number; min: number; max: number; nbMois: number
+        total: number
+        avg: number
+        min: number
+        max: number
+        nbMois: number
       }> = {}
 
-      for (const catId of Array.from(allCatIds)) {
-        const values = months.map(m => monthlyData[m]?.catDepenses[catId] || 0)
-        const nonZero = values.filter(v => v > 0)
-        const total = values.reduce((s, v) => s + v, 0)
-        catAnnualStats[catId] = {
-          total,
-          avg: nonZero.length > 0 ? Math.round((total / nonZero.length) * 100) / 100 : 0,
+      for (const categoryId of Array.from(allCatIds)) {
+        const values = months.map(month => monthlyData[month]?.catDepenses[categoryId] || 0)
+        const nonZero = values.filter(value => value > 0)
+        const categoryTotal = values.reduce((sum, value) => sum + value, 0)
+        catAnnualStats[categoryId] = {
+          total: categoryTotal,
+          avg: nonZero.length > 0 ? Math.round((categoryTotal / nonZero.length) * 100) / 100 : 0,
           min: nonZero.length > 0 ? Math.min(...nonZero) : 0,
           max: nonZero.length > 0 ? Math.max(...nonZero) : 0,
           nbMois: nonZero.length,
         }
       }
 
-      // 6. Données mois précédent
-      const prevData = monthlyData[prevMonth] || null
-
       return {
         monthlyData,
         annualTotals,
+        depensesReelles,
+        entreesTresorerie,
+        epargneNette,
+        mouvementNet,
         tauxEpargne,
         moisMaxDepense,
         moisMinDepense,
         catAnnualStats,
-        prevMonth: prevData,
+        prevMonth: monthlyData[prevMonth] || null,
         prevMonthKey: prevMonth,
         nbMonths,
         nbActiveMonths,
