@@ -76,12 +76,15 @@ export function useRevenus(moisId: string | undefined) {
   const removeDefinitif = useMutation({
     mutationFn: async ({ revenuId, recurrentId }: { revenuId: string; recurrentId: string }) => {
       // 1. Désactiver le récurrent
-      await supabase
+      const { error: recurrentError } = await supabase
         .from('revenus_recurrents')
         .update({ actif: false })
         .eq('id', recurrentId)
+      if (recurrentError) throw recurrentError
+
       // 2. Supprimer l'instance du mois
-      await supabase.from('revenus').delete().eq('id', revenuId)
+      const { error: revenuError } = await supabase.from('revenus').delete().eq('id', revenuId)
+      if (revenuError) throw revenuError
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
