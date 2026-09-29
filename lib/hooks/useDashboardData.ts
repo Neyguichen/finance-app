@@ -13,6 +13,7 @@ import { useYearData } from '@/lib/hooks/useYearData'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 import { useApp } from '@/components/AppContext'
 import { getCategoryColor, getMontantNet } from '@/lib/utils'
+import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 
 export function useDashboardData() {
   const { moisId, month, espace, isAdminViewing } = useApp()
@@ -60,10 +61,11 @@ export function useDashboardData() {
   const totalRevenusRecus = totalActifRecu + totalPassifRecu
   const totalEntreesTresorerieReelles = totalRevenusRecus + totalReprises
 
-  const totalChargesFixes = chg.reduce((s: number, c: any) => s + Number(c.montant), 0)
-  const totalChargesPayees = chg.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant_reel ?? c.montant), 0)
+  const sharedExpenseSummary = summarizeAnalyticalExpenses(chg, bgt, txn)
+  const totalChargesFixes = sharedExpenseSummary.plannedFixed
+  const totalChargesPayees = sharedExpenseSummary.actualFixed
   const chargesFixesNonPayees = chg.filter((c: any) => !c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
-  const totalDepenses = txn.reduce((s: number, t: any) => s + getMontantNet(t), 0)
+  const totalDepenses = sharedExpenseSummary.actualVariable
 
   // Variables prévisionnelles — parents uniquement
   const totalVariablesPrevu = parentCats.reduce((sum: number, c: any) => {
