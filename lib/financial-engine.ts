@@ -64,7 +64,10 @@ export function summarizeCashFlows(flows: FinancialFlow[]): CashSummary {
           summary.netCashMovement += amount
           break
         case 'debt_repayment_out':
+          // A repayment of "Je dois" that actually transited through the Budget
+          // is both a debt reduction and a real expense, but remains one cash flow.
           summary.debtRepaymentsOut += amount
+          summary.expenses += amount
           summary.netCashMovement -= amount
           break
         case 'savings_deposit':
@@ -101,7 +104,6 @@ export function summarizeCashFlows(flows: FinancialFlow[]): CashSummary {
 export function balanceFromReference(referenceBalance: number, flows: FinancialFlow[]) {
   return Number(referenceBalance || 0) + summarizeCashFlows(flows).netCashMovement
 }
-
 
 export interface DatedFinancialFlow extends FinancialFlow {
   date: string
