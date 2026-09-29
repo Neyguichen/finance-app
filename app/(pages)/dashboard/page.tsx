@@ -19,6 +19,8 @@ import SituationFinanciereV2 from '@/components/pages/dashboard/SituationFinanci
 import PrevuReelV2 from '@/components/pages/dashboard/PrevuReelV2'
 import BudgetsV2 from '@/components/pages/dashboard/BudgetsV2'
 import EpargneDettesV2 from '@/components/pages/dashboard/EpargneDettesV2'
+import ComprendreV2 from '@/components/pages/dashboard/ComprendreV2'
+import TodoResumeV2 from '@/components/pages/dashboard/TodoResumeV2'
 import EmptyMonthV2 from '@/components/pages/dashboard/EmptyMonthV2'
 import MonthPreparationPreview from '@/components/pages/dashboard/MonthPreparationPreview'
 import { useMois } from '@/lib/hooks/useMois'
@@ -64,7 +66,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><span className="loading loading-spinner loading-lg" /></div>
+    return <div className="flex min-h-screen items-center justify-center"><span className="loading loading-spinner loading-lg" /></div>
   }
 
   if (espaces.length === 0) {
@@ -91,14 +93,14 @@ export default function DashboardPage() {
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
-      <div className="p-4 space-y-4">
+      <div className="mx-auto w-full max-w-7xl space-y-4 px-3 py-4 pb-24 sm:px-4">
         <div className="flex items-center justify-between">
           {!isAdminViewing && (
             <Dialog open={openEspace} onOpenChange={setOpenEspace}>
               <DialogTrigger asChild>
-                <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Espace</Button>
+                <Button size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Espace</Button>
               </DialogTrigger>
-              <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
+              <DialogContent className="mx-auto w-11/12 max-w-sm border-slate-700 bg-slate-900">
                 <DialogHeader><DialogTitle>Nouvel espace</DialogTitle></DialogHeader>
                 <div className="space-y-4">
                   <Input placeholder="Nom (ex: Joint)" value={newNom} onChange={e => setNewNom(e.target.value)} />
@@ -165,9 +167,20 @@ export default function DashboardPage() {
           loading={v2.savingsDebtLoading}
         />
 
+        <ComprendreV2
+          ratioChargesRevenus={data.ratioChargesRevenus}
+          tauxMaitrise={data.tauxMaitrise}
+          topExpense={data.top3Depenses?.[0] ?? null}
+          topCategory={data.top3Categories?.[0] ?? null}
+          getNetAmount={getMontantNet}
+        />
+
+        <TodoResumeV2 />
+
+        {/* Cartes V1 conservées temporairement pour comparaison pendant la migration. */}
         <ResteAVivreCard restePrevu={data.restePrevu} resteReel={data.resteReel} />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <EntrantsCard totalEntrants={data.totalEntrants} chartData={data.revenusChartData} />
           <SortantsCard
             totalSortantsAll={data.totalSortantsAll}
