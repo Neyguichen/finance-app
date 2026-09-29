@@ -6,6 +6,8 @@ import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useResteM1 } from '@/lib/hooks/useResteM1'
+import { useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
+import { localDateISO } from '@/lib/utils'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useYearData } from '@/lib/hooks/useYearData'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
@@ -21,7 +23,12 @@ export function useDashboardData() {
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: categories = [] } = useCategories(espace?.id)
   const { data: budgets = [] } = useBudgets(moisId)
-  const { data: resteM1 } = useResteM1(espace?.id, month, espace?.solde_initial ?? 0)
+  const { data: legacyResteM1 } = useResteM1(espace?.id, month, espace?.solde_initial ?? 0)
+  const [year, monthNumber] = month.split('-').map(Number)
+  const previousMonthEnd = localDateISO(new Date(year, monthNumber - 1, 0))
+  const canUseV2Carry = !!espace?.date_solde_reference && espace?.solde_reference != null && previousMonthEnd >= espace.date_solde_reference
+  const v2PreviousMonthBalance = useBalanceAtDate(espace?.id, espace?.solde_reference ?? null, espace?.date_solde_reference ?? null, previousMonthEnd, espace?.double_date ?? false)
+  const resteM1 = canUseV2Carry ? v2PreviousMonthBalance.data : legacyResteM1
   const { data: yearData } = useYearData(espace?.id, month) as { data: any }
   const { data: adminData } = useAdminMoisData(month)
 
