@@ -16,7 +16,7 @@ export default function EpargneFab({ onOpenMouvement, onOpenEnveloppe }: Props) 
       {fabOpen && (
         <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setFabOpen(false)} />
       )}
-      <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse items-center gap-3">
+      <div className="relative z-30 mx-4 mb-24 flex flex-col-reverse items-end gap-3 sm:fixed sm:bottom-20 sm:right-4 sm:z-50 sm:m-0 sm:items-center">
         <button
           onClick={() => setFabOpen(!fabOpen)}
           className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
