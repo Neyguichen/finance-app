@@ -25,7 +25,7 @@ export function useDashboardV2() {
     const expectedIncome = Math.max(0, plannedIncome - actualIncome)
 
     const plannedFixed = charges.reduce((sum, item) => sum + Number(item.montant), 0)
-    const actualFixed = charges.filter(item => item.payee).reduce((sum, item) => sum + Number(item.montant), 0)
+    const actualFixed = charges.filter(item => item.payee).reduce((sum, item) => sum + Number(item.montant_reel ?? item.montant), 0)
 
     const plannedVariable = budgets.reduce((sum, item) => sum + Number(item.prevu || 0), 0)
     const actualVariable = transactions.reduce((sum, item) => sum + getMontantNet(item), 0)
