@@ -22,7 +22,7 @@ import MonthPreparationPreview from '@/components/pages/dashboard/MonthPreparati
 import { useMois } from '@/lib/hooks/useMois'
 import { useMonthPreparation, usePrepareMonth } from '@/lib/hooks/useMonthPreparation'
 
-import { getMontantNet } from '@/lib/utils'
+import { getMontantNet, localDateISO } from '@/lib/utils'
 import { useDashboardData } from '@/lib/hooks/useDashboardData'
 import { useActualCashSummary, useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
 import { useDashboardV2 } from '@/lib/hooks/useDashboardV2'
@@ -39,10 +39,10 @@ export default function DashboardPage() {
 
   const data = useDashboardData()
   const v2 = useDashboardV2()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDateISO()
   const [year, monthNumber] = month.split('-').map(Number)
   const monthStart = `${month}-01`
-  const monthEnd = new Date(year, monthNumber, 0).toISOString().slice(0, 10)
+  const monthEnd = localDateISO(new Date(year, monthNumber, 0))
   const summaryEnd = today < monthEnd ? today : monthEnd
   const v2Balance = useBalanceAtDate(
     espace?.id,
