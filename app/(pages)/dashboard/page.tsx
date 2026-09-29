@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 
 import { useApp } from '@/components/AppContext'
@@ -25,6 +26,7 @@ import EmptyMonthV2 from '@/components/pages/dashboard/EmptyMonthV2'
 import MonthPreparationPreview from '@/components/pages/dashboard/MonthPreparationPreview'
 import { useMois } from '@/lib/hooks/useMois'
 import { useMonthPreparation, usePrepareMonth } from '@/lib/hooks/useMonthPreparation'
+import { useHabits } from '@/lib/hooks/useHabits'
 
 import { getMontantNet, localDateISO } from '@/lib/utils'
 import { useDashboardData } from '@/lib/hooks/useDashboardData'
@@ -32,8 +34,10 @@ import { useActualCashSummary, useBalanceAtDate } from '@/lib/hooks/useBalanceAt
 import { useDashboardV2 } from '@/lib/hooks/useDashboardV2'
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { month, setMonth, moisId, userId, espaces, espace, loading, addEspace, isAdminViewing } = useApp()
   const monthModel = useMois(espace?.id)
+  const habitsModel = useHabits(!moisId ? espace?.id : undefined)
   const [openEspace, setOpenEspace] = useState(false)
   const [newNom, setNewNom] = useState('')
   const [newIcone, setNewIcone] = useState('🏠')
@@ -74,6 +78,8 @@ export default function DashboardPage() {
   }
 
   const showIndicateurs = ds.ratioCharges || ds.maitrise || ds.epargne20 || ds.top3Depenses || ds.top3Categories
+  const hasPreviousMonth = (monthModel.data || []).some(item => item.mois.slice(0, 7) < month.slice(0, 7))
+  const hasHabits = (habitsModel.data || []).some(item => item.actif)
 
   const prepareEmptyMonth = async (mode: 'previous' | 'habits' | 'empty') => {
     if (!espace || !userId) return
@@ -118,7 +124,16 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {!moisId && <EmptyMonthV2 month={month} onPrepare={prepareEmptyMonth} loading={monthModel.createMonth.isPending || prepareMonth.isPending} />}
+        {!moisId && (
+          <EmptyMonthV2
+            month={month}
+            onPrepare={prepareEmptyMonth}
+            onDefineHabits={() => router.push('/parametres?section=habitudes')}
+            hasPreviousMonth={hasPreviousMonth}
+            hasHabits={hasHabits}
+            loading={monthModel.isLoading || habitsModel.isLoading || monthModel.createMonth.isPending || prepareMonth.isPending}
+          />
+        )}
 
         <MonthPreparationPreview
           open={preparationMode !== null}
