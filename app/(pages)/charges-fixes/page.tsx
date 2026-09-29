@@ -97,6 +97,7 @@ export default function ChargesFixesPage() {
               key={charge.id}
               charge={charge}
               readOnly={isAdminViewing}
+              doubleDate={espace?.double_date ?? false}
               onTogglePayee={(id, payee, dateReelle) => togglePayee.mutate({ id, payee, dateReelle })}
               onEdit={setEditTarget}
               onDelete={setDeleteTarget}
