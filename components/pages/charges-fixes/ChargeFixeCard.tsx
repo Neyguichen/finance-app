@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Pencil, Trash2, CalendarDays } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { formatEuro } from '@/lib/utils'
+import { formatEuro, localDateISO } from '@/lib/utils'
 
 type Props = {
   charge: any
@@ -15,7 +15,7 @@ type Props = {
 }
 
 export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onActualAmountChange, onEdit, onDelete }: Props) {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateISO()
   return (
     <Card className="bg-slate-900 border-slate-800">
       <CardContent className="flex items-center justify-between p-3">
