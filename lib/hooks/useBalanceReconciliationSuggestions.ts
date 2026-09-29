@@ -20,12 +20,13 @@ const cents = (value: number) => Math.round(value * 100) / 100
 export function useBalanceReconciliationSuggestions(
   espaceId: string | undefined,
   targetDate: string,
+  referenceDate: string | null | undefined,
   delta: number | null,
 ) {
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['balance_reconciliation', espaceId, targetDate, delta],
+    queryKey: ['balance_reconciliation', espaceId, targetDate, referenceDate, delta],
     enabled: !!espaceId && !!targetDate && delta != null && Math.abs(delta) >= 0.01,
     queryFn: async () => {
       if (!espaceId || delta == null) return [] as ReconciliationSuggestion[]
@@ -36,7 +37,13 @@ export function useBalanceReconciliationSuggestions(
         .eq('espace_id', espaceId)
       if (monthsError) throw monthsError
 
-      const monthIds = (months || []).map(month => month.id)
+      const eligibleMonths = (months || []).filter(month => {
+        const monthKey = String(month.mois).slice(0, 7)
+        const targetMonth = targetDate.slice(0, 7)
+        const referenceMonth = referenceDate?.slice(0, 7)
+        return monthKey <= targetMonth && (!referenceMonth || monthKey >= referenceMonth)
+      })
+      const monthIds = eligibleMonths.map(month => month.id)
       if (monthIds.length === 0) return []
 
       const [{ data: incomes, error: incomeError }, { data: fixed, error: fixedError }, { data: transactions, error: transactionError }] = await Promise.all([
@@ -100,6 +107,8 @@ export function useBalanceReconciliationSuggestions(
 
         for (const item of transactions || []) {
           if (item.date_validation) continue
+          if (item.date > targetDate) continue
+          if (referenceDate && item.date < referenceDate) continue
           const amount = cents(Number(item.montant))
           const category = Array.isArray(item.categorie) ? item.categorie[0]?.nom : (item.categorie as any)?.nom
           candidates.push({
