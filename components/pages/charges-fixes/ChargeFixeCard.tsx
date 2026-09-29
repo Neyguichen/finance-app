@@ -10,7 +10,7 @@ type Props = {
   readOnly: boolean
   onTogglePayee: (id: string, payee: boolean, dateReelle?: string) => void
   onActualAmountChange?: (id: string, montantReel: number | null) => void
-  onEdit: (charge: { id: string; nom: string; montant: number; recurrentId: string | null }) => void
+  onEdit: (charge: { id: string; nom: string; montant: number; recurrentId: string | null; categorieId?: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
 }
 
@@ -59,7 +59,7 @@ export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onActu
           {!readOnly && (
             <>
               <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                onClick={() => onEdit({ id: charge.id, nom: charge.nom, montant: Number(charge.montant), recurrentId: charge.recurrent_id })}>
+                onClick={() => onEdit({ id: charge.id, nom: charge.nom, montant: Number(charge.montant), recurrentId: charge.recurrent_id, categorieId: charge.categorie_id ?? null })}>
                 <Pencil className="w-4 h-4" />
               </Button>
               <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
