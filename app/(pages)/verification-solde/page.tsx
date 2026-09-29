@@ -38,6 +38,7 @@ export default function VerificationSoldePage() {
   const suggestions = useBalanceReconciliationSuggestions(
     espace?.id,
     targetDate,
+    espace?.date_solde_reference,
     beforeReference ? null : delta
   )
 
