@@ -135,6 +135,7 @@ export default function DashboardPage() {
             loading={v2Balance.isLoading || v2Summary.isLoading}
             referenceDate={espace.date_solde_reference}
             today={today}
+            selectedMonth={month}
             plannedMonthResult={v2.plannedMonthResult}
             actualMonthResult={v2.actualMonthResult}
           />
