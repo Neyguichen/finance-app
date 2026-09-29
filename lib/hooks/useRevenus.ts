@@ -36,6 +36,7 @@ export function useRevenus(moisId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
@@ -54,6 +55,7 @@ export function useRevenus(moisId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
@@ -67,6 +69,7 @@ export function useRevenus(moisId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
@@ -89,6 +92,7 @@ export function useRevenus(moisId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       queryClient.invalidateQueries({ queryKey: ['revenus_recurrents'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
@@ -104,6 +108,7 @@ export function useRevenus(moisId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
@@ -144,6 +149,7 @@ export function useRevenusRecurrents(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
@@ -159,6 +165,7 @@ export function useRevenusRecurrents(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
