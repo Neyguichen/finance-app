@@ -27,6 +27,14 @@ export default function ParametresPage() {
     profil: false, espaces: false, categories: false, habitudes: false, stats: false, apparence: false,
     export: false, donnees: false, compte: false,
   })
+
+  useEffect(() => {
+    const section = new URLSearchParams(window.location.search).get('section')
+    if (section === 'habitudes') {
+      setOpenSections(prev => ({ ...prev, habitudes: true }))
+    }
+  }, [])
+
   const toggle = (key: string) => setOpenSections(prev => {
     const allClosed: Record<string, boolean> = {}
     for (const k in prev) allClosed[k] = false
