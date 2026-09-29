@@ -28,7 +28,10 @@ export function useDashboardData() {
   const previousMonthEnd = localDateISO(new Date(year, monthNumber - 1, 0))
   const canUseV2Carry = !!espace?.date_solde_reference && espace?.solde_reference != null && previousMonthEnd >= espace.date_solde_reference
   const v2PreviousMonthBalance = useBalanceAtDate(espace?.id, espace?.solde_reference ?? null, espace?.date_solde_reference ?? null, previousMonthEnd, espace?.double_date ?? false)
-  const resteM1 = canUseV2Carry ? v2PreviousMonthBalance.data : legacyResteM1
+  // Keep the legacy value while the dated V2 balance is loading to avoid a transient zero carryover.
+  const resteM1 = canUseV2Carry && v2PreviousMonthBalance.data != null
+    ? v2PreviousMonthBalance.data
+    : legacyResteM1
   const { data: yearData } = useYearData(espace?.id, month) as { data: any }
   const { data: adminData } = useAdminMoisData(month)
 
