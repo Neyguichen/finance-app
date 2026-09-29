@@ -18,18 +18,18 @@ const FREQUENCES = [
 type Props = {
   open: boolean
   onOpenChange: (v: boolean) => void
-  onSubmit: (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number }) => Promise<void>
+  onSubmit: (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null }) => Promise<void>
 }
 
 export default function RevenuForm({ open, onOpenChange, onSubmit }: Props) {
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
   const [formFreq, setFormFreq] = useState(1)
   const { register, handleSubmit, reset, setValue, watch } = useForm({
-    defaultValues: { nom: '', montant: 0 },
+    defaultValues: { nom: '', montant: 0, datePrevue: '' },
   })
 
-  const handleFormSubmit = async (values: { nom: string; montant: number }) => {
-    await onSubmit({ ...values, type: formType, frequence: formFreq })
+  const handleFormSubmit = async (values: { nom: string; montant: number; datePrevue: string }) => {
+    await onSubmit({ nom: values.nom, montant: values.montant, datePrevue: values.datePrevue || null, type: formType, frequence: formFreq })
     reset()
     setFormType('actif')
     setFormFreq(1)
@@ -43,6 +43,10 @@ export default function RevenuForm({ open, onOpenChange, onSubmit }: Props) {
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <Input placeholder="Nom" {...register('nom', { required: true })} />
           <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
+          <div>
+            <label className="text-sm text-slate-400 mb-1 block">Date prévue <span className="text-xs">(facultative)</span></label>
+            <Input type="date" {...register('datePrevue')} />
+          </div>
           {/* Toggle Actif / Passif */}
           <div>
             <label className="text-sm text-slate-400 mb-1 block">Type</label>
