@@ -1,3 +1,5 @@
+import { normalizeFinancialLabel } from '@/lib/reconciliation'
+
 export type CsvMapping = {
   date: string
   label: string
@@ -12,7 +14,13 @@ export type ParsedCsv = {
   delimiter: string
 }
 
-export type ImportNature = 'expense' | 'income' | 'savings_internal' | 'ignore'
+export type ImportNature =
+  | 'expense'
+  | 'income'
+  | 'savings_deposit'
+  | 'savings_withdrawal'
+  | 'savings_internal'
+  | 'ignore'
 
 export type MappedImportRow = {
   rowIndex: number
@@ -21,6 +29,7 @@ export type MappedImportRow = {
   amount: number
   nature: ImportNature
   categoryId?: string | null
+  envelopeId?: string | null
 }
 
 function splitCsvLine(line: string, delimiter: string) {
@@ -111,14 +120,9 @@ export function parseImportAmount(value: string) {
   return negativeByParentheses ? -Math.abs(parsed) : parsed
 }
 
-export function normalizeImportLabel(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-}
+// Compatibility export for existing import code. Shared reconciliation rules now
+// own label normalization so CSV and balance reconciliation use the same logic.
+export const normalizeImportLabel = normalizeFinancialLabel
 
 export function mapCsvRows(
   rows: Record<string, string>[],
@@ -160,6 +164,7 @@ export function mapCsvRows(
       amount,
       nature: amount > 0 ? 'income' : 'expense',
       categoryId: null,
+      envelopeId: null,
     })
   })
 

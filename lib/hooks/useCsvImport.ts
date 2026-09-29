@@ -4,11 +4,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import {
   monthStartFromDate,
-  normalizeImportLabel,
   type CsvMapping,
   type ImportNature,
   type MappedImportRow,
 } from '@/lib/import-csv'
+import { cents, labelsClose, sameAmount, sameDateAmountLabel } from '@/lib/reconciliation'
 
 export type ImportFormat = {
   id: string
@@ -36,7 +36,12 @@ export type ImportBatch = {
 }
 
 export type ImportMatch = {
-  kind: 'duplicate_income' | 'duplicate_expense' | 'duplicate_fixed' | 'fixed_candidate'
+  kind:
+    | 'duplicate_income'
+    | 'duplicate_expense'
+    | 'duplicate_fixed'
+    | 'fixed_candidate'
+    | 'duplicate_savings'
   targetId: string
   label: string
   detail: string
@@ -46,15 +51,6 @@ export type ImportMatch = {
 export type ImportPreviewRow = MappedImportRow & {
   status: 'new' | 'duplicate' | 'fixed_candidate'
   match: ImportMatch | null
-}
-
-const cents = (value: number) => Math.round(Number(value) * 100) / 100
-
-function labelLooksSame(a: string, b: string) {
-  const left = normalizeImportLabel(a)
-  const right = normalizeImportLabel(b)
-  if (!left || !right) return false
-  return left === right || left.includes(right) || right.includes(left)
 }
 
 export function useCsvImport(espaceId: string | undefined, userId: string | null) {
@@ -127,13 +123,15 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       if (monthsError) throw monthsError
 
       const monthIds = (months || []).map(month => month.id)
-      const [incomeResult, fixedResult, transactionResult] = monthIds.length > 0
+      const [incomeResult, fixedResult, transactionResult, savingsResult] = monthIds.length > 0
         ? await Promise.all([
             supabase.from('revenus').select('id, mois_id, nom, montant, recu, date_reelle').in('mois_id', monthIds),
             supabase.from('charges_fixes').select('id, mois_id, nom, montant, montant_reel, payee, date_prevue, date_reelle').in('mois_id', monthIds),
             supabase.from('transactions').select('id, mois_id, montant, date, date_validation, infos, parent_transaction_id').in('mois_id', monthIds).is('parent_transaction_id', null),
+            supabase.from('mouvements_epargne').select('id, mois_id, type, montant, date, note, enveloppe_source_id, enveloppe_dest_id').in('mois_id', monthIds),
           ])
         : [
+            { data: [], error: null },
             { data: [], error: null },
             { data: [], error: null },
             { data: [], error: null },
@@ -142,6 +140,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       if (incomeResult.error) throw incomeResult.error
       if (fixedResult.error) throw fixedResult.error
       if (transactionResult.error) throw transactionResult.error
+      if (savingsResult.error) throw savingsResult.error
 
       const monthById = new Map((months || []).map(month => [month.id, String(month.mois).slice(0, 10)]))
 
@@ -157,9 +156,14 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           const duplicate = (incomeResult.data || []).find((income: any) =>
             monthById.get(income.mois_id) === monthStart &&
             income.recu &&
-            cents(income.montant) === amount &&
-            income.date_reelle === row.date &&
-            labelLooksSame(income.nom || '', row.label)
+            sameDateAmountLabel({
+              sourceDate: row.date,
+              sourceAmount: amount,
+              sourceLabel: row.label,
+              targetDate: income.date_reelle,
+              targetAmount: income.montant,
+              targetLabel: income.nom,
+            })
           )
           if (duplicate) {
             return {
@@ -176,11 +180,34 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           return { ...row, status: 'new', match: null }
         }
 
+        if (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') {
+          const expectedType = row.nature === 'savings_deposit' ? 'epargne' : 'reprise'
+          const duplicateSavings = (savingsResult.data || []).find((movement: any) =>
+            monthById.get(movement.mois_id) === monthStart &&
+            movement.type === expectedType &&
+            movement.date === row.date &&
+            sameAmount(movement.montant, amount)
+          )
+          if (duplicateSavings) {
+            return {
+              ...row,
+              status: 'duplicate',
+              match: {
+                kind: 'duplicate_savings',
+                targetId: duplicateSavings.id,
+                label: duplicateSavings.note || (expectedType === 'epargne' ? 'Versement épargne' : 'Reprise épargne'),
+                detail: 'Mouvement d’épargne déjà présent avec même date et même montant.',
+              },
+            }
+          }
+          return { ...row, status: 'new', match: null }
+        }
+
         const duplicateTransaction = (transactionResult.data || []).find((transaction: any) =>
           monthById.get(transaction.mois_id) === monthStart &&
-          cents(transaction.montant) === amount &&
+          sameAmount(transaction.montant, amount) &&
           (transaction.date === row.date || transaction.date_validation === row.date) &&
-          labelLooksSame(transaction.infos || '', row.label)
+          labelsClose(transaction.infos || '', row.label)
         )
         if (duplicateTransaction) {
           return {
@@ -198,9 +225,14 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         const paidFixed = (fixedResult.data || []).find((fixed: any) =>
           monthById.get(fixed.mois_id) === monthStart &&
           fixed.payee &&
-          cents(fixed.montant_reel ?? fixed.montant) === amount &&
-          fixed.date_reelle === row.date &&
-          labelLooksSame(fixed.nom || '', row.label)
+          sameDateAmountLabel({
+            sourceDate: row.date,
+            sourceAmount: amount,
+            sourceLabel: row.label,
+            targetDate: fixed.date_reelle,
+            targetAmount: fixed.montant_reel ?? fixed.montant,
+            targetLabel: fixed.nom,
+          })
         )
         if (paidFixed) {
           return {
@@ -218,8 +250,8 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         const fixedCandidate = (fixedResult.data || []).find((fixed: any) =>
           monthById.get(fixed.mois_id) === monthStart &&
           !fixed.payee &&
-          cents(fixed.montant) === amount &&
-          labelLooksSame(fixed.nom || '', row.label)
+          sameAmount(fixed.montant, amount) &&
+          labelsClose(fixed.nom || '', row.label)
         )
         if (fixedCandidate) {
           return {
@@ -312,16 +344,20 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
 
           if (row.status === 'duplicate' && row.match) {
             matchedCount += 1
+            const targetTable =
+              row.match.kind === 'duplicate_income'
+                ? 'revenus'
+                : row.match.kind === 'duplicate_fixed'
+                  ? 'charges_fixes'
+                  : row.match.kind === 'duplicate_savings'
+                    ? 'mouvements_epargne'
+                    : 'transactions'
             const { error } = await supabase.from('import_batch_items').insert({
               batch_id: batch.id,
               row_index: row.rowIndex,
               nature: row.nature,
               action: 'matched',
-              target_table: row.match.kind === 'duplicate_income'
-                ? 'revenus'
-                : row.match.kind === 'duplicate_fixed'
-                  ? 'charges_fixes'
-                  : 'transactions',
+              target_table: targetTable,
               target_id: row.match.targetId,
               raw: row,
             })
@@ -381,6 +417,39 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               nature: 'income',
               action: 'created',
               target_table: 'revenus',
+              target_id: created.id,
+              raw: row,
+            })
+            if (itemError) throw itemError
+            createdCount += 1
+            continue
+          }
+
+          if (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') {
+            if (!row.envelopeId) throw new Error('Enveloppe requise pour créer le mouvement d’épargne')
+            const isDeposit = row.nature === 'savings_deposit'
+            const { data: created, error } = await supabase
+              .from('mouvements_epargne')
+              .insert({
+                mois_id: month.id,
+                recurrent_id: null,
+                enveloppe_source_id: isDeposit ? null : row.envelopeId,
+                enveloppe_dest_id: isDeposit ? row.envelopeId : null,
+                montant: Math.abs(row.amount),
+                type: isDeposit ? 'epargne' : 'reprise',
+                date: row.date,
+                note: row.label,
+              })
+              .select('id')
+              .single()
+            if (error) throw error
+
+            const { error: itemError } = await supabase.from('import_batch_items').insert({
+              batch_id: batch.id,
+              row_index: row.rowIndex,
+              nature: row.nature,
+              action: 'created',
+              target_table: 'mouvements_epargne',
               target_id: created.id,
               raw: row,
             })
@@ -450,6 +519,9 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       queryClient.invalidateQueries({ queryKey: ['charges_fixes'] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['transactions-flat'] })
+      queryClient.invalidateQueries({ queryKey: ['mouvements'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
       queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
@@ -481,6 +553,9 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           } else if (item.target_table === 'transactions') {
             const { error } = await supabase.from('transactions').delete().eq('id', item.target_id)
             if (error) throw error
+          } else if (item.target_table === 'mouvements_epargne') {
+            const { error } = await supabase.from('mouvements_epargne').delete().eq('id', item.target_id)
+            if (error) throw error
           }
         } else if (
           item.action === 'matched' &&
@@ -508,6 +583,9 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       queryClient.invalidateQueries({ queryKey: ['charges_fixes'] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['transactions-flat'] })
+      queryClient.invalidateQueries({ queryKey: ['mouvements'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
       queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })

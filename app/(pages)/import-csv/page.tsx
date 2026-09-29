@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FileSpreadsheet, RotateCcw, Save, Upload } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
+import { useEnveloppes } from '@/lib/hooks/useEpargne'
 import { useCsvImport, type ImportPreviewRow } from '@/lib/hooks/useCsvImport'
 import {
   mapCsvRows,
@@ -17,7 +18,9 @@ import { formatDate, formatEuro } from '@/lib/utils'
 const natureLabels: Record<ImportNature, string> = {
   expense: 'Dépense',
   income: 'Revenu',
-  savings_internal: 'Mouvement interne',
+  savings_deposit: 'Versement épargne',
+  savings_withdrawal: 'Reprise épargne',
+  savings_internal: 'Transfert interne neutre',
   ignore: 'Ignorer',
 }
 
@@ -32,6 +35,7 @@ function guessColumn(headers: string[], terms: string[]) {
 export default function ImportCsvPage() {
   const { espace, userId, isAdminViewing } = useApp()
   const { data: categories = [] } = useCategories(espace?.id)
+  const { data: envelopes = [] } = useEnveloppes(espace?.id)
   const importModel = useCsvImport(espace?.id, userId)
 
   const [fileName, setFileName] = useState('')
@@ -106,7 +110,12 @@ export default function ImportCsvPage() {
       return {
         ...row,
         ...changes,
-        ...(natureChanged ? { status: 'new' as const, match: null } : {}),
+        ...(natureChanged ? {
+          status: 'new' as const,
+          match: null,
+          categoryId: changes.nature === 'expense' ? row.categoryId : null,
+          envelopeId: changes.nature === 'savings_deposit' || changes.nature === 'savings_withdrawal' ? row.envelopeId : null,
+        } : {}),
       }
     }))
   }
@@ -124,6 +133,15 @@ export default function ImportCsvPage() {
     row => row.nature === 'expense' && row.status === 'new' && !row.categoryId
   ).length
 
+  const missingEnvelopeCount = preview.filter(
+    row =>
+      (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') &&
+      row.status === 'new' &&
+      !row.envelopeId
+  ).length
+
+  const missingAssignmentCount = missingCategoryCount + missingEnvelopeCount
+
   const saveCurrentFormat = async () => {
     if (!formatName.trim()) return
     const saved = await importModel.saveFormat.mutateAsync({
@@ -135,7 +153,7 @@ export default function ImportCsvPage() {
   }
 
   const confirmImport = async () => {
-    if (!fileName || preview.length === 0 || missingCategoryCount > 0) return
+    if (!fileName || preview.length === 0 || missingAssignmentCount > 0) return
     const result = await importModel.importRows.mutateAsync({
       rows: preview,
       fileName,
@@ -286,7 +304,7 @@ export default function ImportCsvPage() {
                   <th>Libellé</th>
                   <th className="text-right">Montant</th>
                   <th>Nature</th>
-                  <th>Catégorie</th>
+                  <th>Affectation</th>
                   <th>Analyse</th>
                 </tr>
               </thead>
@@ -302,7 +320,7 @@ export default function ImportCsvPage() {
                       <select
                         className="select select-bordered select-xs bg-slate-950"
                         value={row.nature}
-                        onChange={event => updateRow(row.rowIndex, { nature: event.target.value as ImportNature, categoryId: event.target.value === 'expense' ? row.categoryId : null })}
+                        onChange={event => updateRow(row.rowIndex, { nature: event.target.value as ImportNature })}
                       >
                         {Object.entries(natureLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                       </select>
@@ -314,9 +332,20 @@ export default function ImportCsvPage() {
                           value={row.categoryId || ''}
                           onChange={event => updateRow(row.rowIndex, { categoryId: event.target.value || null })}
                         >
-                          <option value="">Choisir…</option>
+                          <option value="">Catégorie…</option>
                           {activeParentCategories.map(category => (
                             <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>
+                          ))}
+                        </select>
+                      ) : (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') && row.status === 'new' ? (
+                        <select
+                          className="select select-bordered select-xs min-w-40 bg-slate-950"
+                          value={row.envelopeId || ''}
+                          onChange={event => updateRow(row.rowIndex, { envelopeId: event.target.value || null })}
+                        >
+                          <option value="">Enveloppe…</option>
+                          {envelopes.filter(envelope => !envelope.archived).map(envelope => (
+                            <option key={envelope.id} value={envelope.id}>{envelope.nom}</option>
                           ))}
                         </select>
                       ) : <span className="text-xs text-slate-600">—</span>}
@@ -347,8 +376,11 @@ export default function ImportCsvPage() {
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs">
-              {missingCategoryCount > 0 ? (
-                <span className="text-amber-300">{missingCategoryCount} nouvelle(s) dépense(s) nécessitent encore une catégorie.</span>
+              {missingAssignmentCount > 0 ? (
+                <span className="text-amber-300">
+                  {missingCategoryCount > 0 ? `${missingCategoryCount} dépense(s) sans catégorie. ` : ''}
+                  {missingEnvelopeCount > 0 ? `${missingEnvelopeCount} mouvement(s) d’épargne sans enveloppe.` : ''}
+                </span>
               ) : (
                 <span className="text-emerald-400">Prévisualisation prête à être confirmée.</span>
               )}
@@ -356,7 +388,7 @@ export default function ImportCsvPage() {
             <button
               type="button"
               onClick={confirmImport}
-              disabled={missingCategoryCount > 0 || importModel.importRows.isPending}
+              disabled={missingAssignmentCount > 0 || importModel.importRows.isPending}
               className="btn btn-primary"
             >
               {importModel.importRows.isPending ? 'Import en cours…' : 'Confirmer l’import'}

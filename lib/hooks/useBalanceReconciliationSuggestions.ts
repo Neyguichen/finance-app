@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { cents, exactPairIndexes } from '@/lib/reconciliation'
 
 export type ReconciliationAction = {
   kind: 'income' | 'fixed' | 'variable'
@@ -20,8 +21,6 @@ export type ReconciliationSuggestion = {
 }
 
 type Candidate = ReconciliationSuggestion & { amount: number }
-
-const cents = (value: number) => Math.round(value * 100) / 100
 
 export function useBalanceReconciliationSuggestions(
   espaceId: string | undefined,
@@ -137,27 +136,30 @@ export function useBalanceReconciliationSuggestions(
         .filter(candidate => Math.abs(cents(candidate.effect - needed)) < 0.01)
         .sort((a, b) => a.title.localeCompare(b.title))
 
-      // Si aucun candidat unique n'explique l'écart, tester une combinaison simple de deux éléments.
+      // Le même moteur de rapprochement est partagé avec l'import CSV.
+      // Ici on cherche une combinaison simple de deux effets qui explique exactement l'écart.
       const combinations: ReconciliationSuggestion[] = []
       if (exact.length === 0) {
-        for (let i = 0; i < candidates.length; i++) {
-          for (let j = i + 1; j < candidates.length; j++) {
-            const effect = cents(candidates[i].effect + candidates[j].effect)
-            if (Math.abs(effect - needed) < 0.01) {
-              combinations.push({
-                id: `combo:${candidates[i].id}:${candidates[j].id}`,
-                kind: 'combination',
-                title: `${candidates[i].title} + ${candidates[j].title}`,
-                detail: `Ces deux opérations réunies correspondent exactement à l'écart constaté.`,
-                effect,
-                href: candidates[i].href === candidates[j].href ? candidates[i].href : '/dashboard',
-                confidence: 'forte',
-                actions: [...candidates[i].actions, ...candidates[j].actions],
-              })
-              if (combinations.length >= 3) break
-            }
-          }
-          if (combinations.length >= 3) break
+        const remaining = [...candidates]
+        while (remaining.length > 1 && combinations.length < 3) {
+          const pair = exactPairIndexes(remaining.map(item => item.effect), needed)
+          if (!pair) break
+          const [firstIndex, secondIndex] = pair
+          const first = remaining[firstIndex]
+          const second = remaining[secondIndex]
+          const effect = cents(first.effect + second.effect)
+          combinations.push({
+            id: `combo:${first.id}:${second.id}`,
+            kind: 'combination',
+            title: `${first.title} + ${second.title}`,
+            detail: `Ces deux opérations réunies correspondent exactement à l'écart constaté.`,
+            effect,
+            href: first.href === second.href ? first.href : '/dashboard',
+            confidence: 'forte',
+            actions: [...first.actions, ...second.actions],
+          })
+          remaining.splice(secondIndex, 1)
+          remaining.splice(firstIndex, 1)
         }
       }
 
