@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import SplitDialog from '@/components/pages/variables/SplitDialog'
 import { useRemboursements } from '@/lib/hooks/useRemboursements'
+import ArchiveDialog from '@/components/pages/variables/ArchiveDialog'
 
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
@@ -34,6 +35,7 @@ export default function DepensesPage() {
   const [txOpen, setTxOpen] = useState(false)
   const [editTx, setEditTx] = useState<any>(null)
   const [deleteTx, setDeleteTx] = useState<any>(null)
+  const [archiveTarget, setArchiveTarget] = useState<{ id: string; nom: string } | null>(null)
   const [fixedOpen, setFixedOpen] = useState(false)
   const [editFixed, setEditFixed] = useState<any>(null)
   const [deleteFixed, setDeleteFixed] = useState<any>(null)
@@ -92,7 +94,7 @@ export default function DepensesPage() {
           {effectiveCharges.length === 0 ? <p className="text-sm text-slate-600">Aucune charge fixe prévue.</p> : effectiveCharges.map((c: any) => <div key={c.id} className="flex justify-between rounded-xl border border-slate-800 bg-slate-900 p-3"><div><p className="font-medium">{c.nom}</p>{c.date_prevue && <p className="text-xs text-slate-500">Prévu le {c.date_prevue}</p>}</div><span className="font-bold">{formatEuro(Number(c.montant))}</span></div>)}
         </section>
         <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Budgets variables</h2><div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-          {parentCategories.map((cat: any) => { const subs=subCats(cat.id); const subBudgets=subs.map((sc:any)=>({id:sc.id,nom:sc.nom,icone:sc.icone,prevu:budget(sc.id),depense:spent(sc.id,true)})); return <BudgetCard key={cat.id} cat={cat} prevu={budget(cat.id)} depense={spent(cat.id)} readOnly={isAdminViewing} subCats={subBudgets} onUpsertBudget={(id,v)=>{if(moisId&&!isAdminViewing)upsertBudget.mutate({mois_id:moisId,categorie_id:id,prevu:v})}} onArchive={(target:{id:string;nom:string})=>{if(!isAdminViewing)archiveCat.mutate(target.id)}} /> })}
+          {parentCategories.map((cat: any) => { const subs=subCats(cat.id); const subBudgets=subs.map((sc:any)=>({id:sc.id,nom:sc.nom,icone:sc.icone,prevu:budget(sc.id),depense:spent(sc.id,true)})); return <BudgetCard key={cat.id} cat={cat} prevu={budget(cat.id)} depense={spent(cat.id)} readOnly={isAdminViewing} subCats={subBudgets} onUpsertBudget={(id,v)=>{if(moisId&&!isAdminViewing)upsertBudget.mutate({mois_id:moisId,categorie_id:id,prevu:v})}} onArchive={setArchiveTarget} /> })}
         </div></section>
       </> : <>
         <div className="flex gap-2 overflow-x-auto">{(['all','fixed','variable'] as const).map(f=><Button key={f} size="sm" variant={actualFilter===f?'default':'outline'} onClick={()=>setActualFilter(f)}>{f==='all'?'Toutes':f==='fixed'?'Fixes':'Variables'}</Button>)}</div>
@@ -110,6 +112,7 @@ export default function DepensesPage() {
       <DepenseForm open={txOpen} onOpenChange={setTxOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} onSubmit={createTransaction} onSubmitSplit={createSplitTransaction} />
       <DepenseEditDialog editTx={editTx} onClose={() => setEditTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} onSave={async (data:any)=>{ await updateTx.mutateAsync(data); setEditTx(null) }} onRemb={(tx:any)=>{ setEditTx(null); setRembTx(tx) }} onSplit={(tx:any)=>{ setEditTx(null); setSplitTx(tx) }} onUnsplit={async(tx:any)=>{ await unsplit.mutateAsync(tx.id); setEditTx(null) }} />
       <DepenseDeleteDialog target={deleteTx} onClose={() => setDeleteTx(null)} onDelete={(id:string)=>{ removeTx.mutate(id); setDeleteTx(null) }} />
+      <ArchiveDialog target={archiveTarget} onClose={() => setArchiveTarget(null)} onArchive={(id:string)=>{ if(!isAdminViewing) archiveCat.mutate(id); setArchiveTarget(null) }} />
       <SplitDialog tx={splitTx} onClose={() => setSplitTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} onSave={async(parentId:string, lines:any[])=>{ await split.mutateAsync({ parentId, lines }); setSplitTx(null) }} />
       <Dialog open={!!rembTx} onOpenChange={(v)=>{ if(!v) setRembTx(null) }}><DialogContent className="bg-slate-900 border-slate-700"><DialogHeader><DialogTitle>Remboursements — {rembTx?.infos || rembTx?.categorie?.nom || 'Dépense'}</DialogTitle></DialogHeader><div className="space-y-4"><p className="text-sm text-slate-400">Dépense initiale : <span className="font-bold text-pink-400">{formatEuro(Number(rembTx?.montant || 0))}</span></p>{remboursements.map((r:any)=><div key={r.id} className="flex items-center justify-between bg-slate-800 rounded-lg p-2"><div><span className="text-sm text-emerald-400 font-semibold">+{formatEuro(Number(r.montant))}</span>{r.note && <span className="text-xs text-slate-500 ml-2">{r.note}</span>}</div><Button variant="ghost" size="icon" className="h-6 w-6 text-slate-500" onClick={()=>removeRemb.mutate(r.id)}><Trash2 className="w-3 h-3"/></Button></div>)}<div className="border-t border-slate-700 pt-3 space-y-3"><p className="text-sm font-semibold">Ajouter un remboursement</p><CalculatorInput value={newRembMontant} onChange={setNewRembMontant} placeholder="Montant" /><Input placeholder="Note (optionnel)" value={newRembNote} onChange={e=>setNewRembNote(e.target.value)} /><Input type="date" value={newRembDate} onChange={e=>setNewRembDate(e.target.value)} /><Button className="w-full" onClick={async()=>{ if(!rembTx||!newRembMontant)return; await createRemb.mutateAsync({transaction_id:rembTx.id,montant:newRembMontant,note:newRembNote||null,date:newRembDate}); setNewRembMontant(0);setNewRembNote('') }}>Ajouter</Button></div></div></DialogContent></Dialog>
       <p className="text-xs text-slate-600">La gestion des transactions, splits et remboursements est maintenant intégrée à cette vue.</p>
