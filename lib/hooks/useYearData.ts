@@ -32,8 +32,8 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
 
       // 2. Charger toutes les données en parallèle
       const [revResult, charResult, txResult, mvtResult] = await Promise.all([
-        supabase.from('revenus').select('montant, type, mois_id').in('mois_id', moisIds),
-        supabase.from('charges_fixes').select('montant, payee, mois_id').in('mois_id', moisIds),
+        supabase.from('revenus').select('montant, type, recu, mois_id').in('mois_id', moisIds),
+        supabase.from('charges_fixes').select('montant, montant_reel, payee, mois_id').in('mois_id', moisIds),
         supabase.from('transactions').select('montant, categorie_id, mois_id, remboursements(montant)').in('mois_id', moisIds),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', moisIds),
       ])
@@ -44,24 +44,30 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
 
       // 3. Agréger par mois
       type MonthData = {
-        revenus: number; charges: number; depenses: number
+        revenus: number; revenusRecus: number; charges: number; chargesReelles: number; depenses: number
         epargne: number; reprises: number
         catDepenses: Record<string, number>
       }
       const monthlyData: Record<string, MonthData> = {}
 
       for (const m of moisList) {
-        monthlyData[m.mois] = { revenus: 0, charges: 0, depenses: 0, epargne: 0, reprises: 0, catDepenses: {} }
+        monthlyData[m.mois] = { revenus: 0, revenusRecus: 0, charges: 0, chargesReelles: 0, depenses: 0, epargne: 0, reprises: 0, catDepenses: {} }
       }
 
       for (const r of revenus) {
         const mois = moisMap.get(r.mois_id)
-        if (mois && monthlyData[mois]) monthlyData[mois].revenus += Number(r.montant)
+        if (mois && monthlyData[mois]) {
+          monthlyData[mois].revenus += Number(r.montant)
+          if (r.recu) monthlyData[mois].revenusRecus += Number(r.montant)
+        }
       }
 
       for (const c of charges) {
         const mois = moisMap.get(c.mois_id)
-        if (mois && monthlyData[mois]) monthlyData[mois].charges += Number(c.montant)
+        if (mois && monthlyData[mois]) {
+          monthlyData[mois].charges += Number(c.montant)
+          if (c.payee) monthlyData[mois].chargesReelles += Number(c.montant_reel ?? c.montant)
+        }
       }
 
       for (const t of transactions as any[]) {
@@ -92,7 +98,9 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
 
       const annualTotals = {
         revenus: months.reduce((s, m) => s + monthlyData[m].revenus, 0),
+        revenusRecus: months.reduce((s, m) => s + monthlyData[m].revenusRecus, 0),
         charges: months.reduce((s, m) => s + monthlyData[m].charges, 0),
+        chargesReelles: months.reduce((s, m) => s + monthlyData[m].chargesReelles, 0),
         depenses: months.reduce((s, m) => s + monthlyData[m].depenses, 0),
         epargne: months.reduce((s, m) => s + monthlyData[m].epargne, 0),
       }
