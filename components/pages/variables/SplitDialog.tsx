@@ -39,7 +39,11 @@ export default function SplitDialog({ tx, onClose, categories, espaceId, createC
     categories.filter((c: any) => c.parent_id === parentId && c.actif !== false)
       .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
 
-  const total = tx ? Number(tx.montant) : 0
+  const grossTotal = tx ? Number(tx.montant) : 0
+  const reimbursementTotal = tx
+    ? (tx.remboursements || []).reduce((sum: number, reimbursement: any) => sum + Number(reimbursement.montant), 0)
+    : 0
+  const total = Math.max(0, grossTotal - reimbursementTotal)
   const sumLines = lines.reduce((s, l) => s + l.montant, 0)
   const remaining = Math.round((total - sumLines) * 100) / 100
   const isValid = lines.length >= 2 && Math.abs(remaining) < 0.01 && lines.every(l => l.categorie_id && l.montant > 0)
@@ -132,10 +136,17 @@ export default function SplitDialog({ tx, onClose, categories, espaceId, createC
             <span className="flex items-center gap-2">✂️ Splitter la dépense</span>
           </DialogTitle>
           {tx && (
-            <div className="text-sm text-slate-400 mt-1">
-              <span className="font-semibold text-white">{formatEuro(total)}</span>
-              {tx.infos && <span> — {tx.infos}</span>}
-              <span className="text-slate-600"> • {tx.categorie?.icone} {tx.categorie?.nom}</span>
+            <div className="text-sm text-slate-400 mt-1 space-y-0.5">
+              <div>
+                <span className="font-semibold text-white">{formatEuro(total)} à répartir</span>
+                {tx.infos && <span> — {tx.infos}</span>}
+                <span className="text-slate-600"> • {tx.categorie?.icone} {tx.categorie?.nom}</span>
+              </div>
+              {reimbursementTotal > 0 && (
+                <div className="text-xs text-slate-500">
+                  Dépense {formatEuro(grossTotal)} − remboursement {formatEuro(reimbursementTotal)} = coût net {formatEuro(total)}
+                </div>
+              )}
             </div>
           )}
         </DialogHeader>
