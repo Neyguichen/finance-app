@@ -62,7 +62,7 @@ export default function DepensesPage() {
   const net = (tx: any) => Number(tx.montant) - (tx.remboursements || []).reduce((s: number, r: any) => s + Number(r.montant), 0)
   const spent = (id: string, sub = false) => effectiveFlat.filter((t: any) => (sub ? t.sous_categorie_id : t.categorie_id) === id).reduce((s: number, t: any) => s + net(t), 0)
   const plannedFixed = effectiveCharges.reduce((s: number, c: any) => s + Number(c.montant), 0)
-  const paidFixed = effectiveCharges.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
+  const paidFixed = effectiveCharges.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant_reel ?? c.montant), 0)
   const plannedVariable = effectiveBudgets.reduce((s: number, b: any) => s + Number(b.prevu), 0)
   const actualVariable = effectiveFlat.reduce((s: number, t: any) => s + net(t), 0)
 
@@ -96,7 +96,7 @@ export default function DepensesPage() {
         </div></section>
       </> : <>
         <div className="flex gap-2 overflow-x-auto">{(['all','fixed','variable'] as const).map(f=><Button key={f} size="sm" variant={actualFilter===f?'default':'outline'} onClick={()=>setActualFilter(f)}>{f==='all'?'Toutes':f==='fixed'?'Fixes':'Variables'}</Button>)}</div>
-        {(actualFilter==='all'||actualFilter==='fixed') && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Charges fixes</h2>{effectiveCharges.map((c:any)=><ChargeFixeCard key={c.id} charge={c} readOnly={isAdminViewing} onTogglePayee={(id,p,date)=>togglePayee.mutate({id,payee:p,dateReelle:date})} onEdit={setEditFixed} onDelete={setDeleteFixed} />)}</section>}
+        {(actualFilter==='all'||actualFilter==='fixed') && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Charges fixes</h2>{effectiveCharges.map((c:any)=><ChargeFixeCard key={c.id} charge={c} readOnly={isAdminViewing} onTogglePayee={(id,p,date)=>togglePayee.mutate({id,payee:p,dateReelle:date})} onActualAmountChange={(id,montant_reel)=>updateFixed.mutate({id,montant_reel})} onEdit={setEditFixed} onDelete={setDeleteFixed} />)}</section>}
         {(actualFilter==='all'||actualFilter==='variable') && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Transactions variables</h2>{effectiveTransactions.length===0?<p className="text-sm text-slate-600">Aucune dépense enregistrée.</p>:effectiveTransactions.map((tx:any)=><DepenseCard key={tx.id} tx={tx} readOnly={true} doubleDate={espace?.double_date??false} getMontantNet={net} onEdit={setEditTx} onDelete={setDeleteTx} />)}</section>}
       </>}
       {!isAdminViewing && moisId && <div className="fixed bottom-20 right-4 z-40 flex flex-col gap-2 items-end">
