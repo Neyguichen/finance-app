@@ -147,6 +147,7 @@ export default function DashboardPage() {
           actualFixed={v2.actualFixed}
           plannedVariable={v2.plannedVariable}
           actualVariable={v2.actualVariable}
+          plannedSavingsDeposits={v2.plannedSavingsDeposits}
           actualSavingsDeposits={v2.actualSavingsDeposits}
         />
 
