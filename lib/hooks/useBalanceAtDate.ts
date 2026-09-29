@@ -33,7 +33,10 @@ async function loadActualFlows(supabase: ReturnType<typeof createClient>, espace
   for (const expense of fixedExpenses || []) if (expense.payee && expense.date_reelle) flows.push({ kind: 'expense', amount: Number(expense.montant_reel ?? expense.montant), date: expense.date_reelle })
 
   for (const transaction of transactions || []) {
-    if (transaction.is_split && !transaction.parent_transaction_id) continue
+    // A split parent is the single cash operation; its children are analytical allocation only.
+    // This keeps the financial engine aligned with the accounting invariant and prevents
+    // reimbursements attached to the parent from disappearing.
+    if (transaction.parent_transaction_id) continue
     if (transaction.date_validation) flows.push({ kind: 'expense', amount: Number(transaction.montant), date: doubleDate ? transaction.date_validation : transaction.date })
     const reimbursements = Array.isArray(transaction.remboursements) ? transaction.remboursements : transaction.remboursements ? [transaction.remboursements] : []
     for (const reimbursement of reimbursements) if (reimbursement.date) flows.push({ kind: 'expense_reimbursement', amount: Number(reimbursement.montant), date: reimbursement.date })
