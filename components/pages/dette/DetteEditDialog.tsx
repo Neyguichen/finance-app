@@ -18,7 +18,7 @@ type Props = {
     montant: number
     date_echeance: string | null
     description: string | null
-  }) => void
+  }) => Promise<void>
 }
 
 export default function DetteEditDialog({ open, onOpenChange, dette, minimumMontant = 0, onSave }: Props) {
@@ -27,6 +27,8 @@ export default function DetteEditDialog({ open, onOpenChange, dette, minimumMont
   const [montant, setMontant] = useState(0)
   const [dateFin, setDateFin] = useState('')
   const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (dette) {
@@ -35,16 +37,44 @@ export default function DetteEditDialog({ open, onOpenChange, dette, minimumMont
       setMontant(Number(dette.montant))
       setDateFin(dette.date_echeance || '')
       setNote(dette.description || '')
+      setError(null)
     }
   }, [dette])
 
   const montantValide = Number.isFinite(montant) && montant > 0 && montant + 0.005 >= minimumMontant
   const canSave = Boolean(dette && titre.trim() && personne.trim() && montantValide)
+  const isDebt = dette?.type === 'je_dois'
+
+  const handleSave = async () => {
+    if (!dette || !canSave || saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave({
+        id: dette.id,
+        titre: titre.trim(),
+        personne: personne.trim(),
+        montant,
+        date_echeance: dateFin || null,
+        description: note.trim() || null,
+      })
+      onOpenChange(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Impossible d’enregistrer la modification.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      if (!saving) {
+        setError(null)
+        onOpenChange(nextOpen)
+      }
+    }}>
       <DialogContent className="bg-slate-900 border-slate-700">
-        <DialogHeader><DialogTitle>Modifier la dette</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isDebt ? 'Modifier la dette' : 'Modifier la créance'}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <Input placeholder="Titre" value={titre} onChange={e => setTitre(e.target.value)} />
           <Input placeholder="Personne" value={personne} onChange={e => setPersonne(e.target.value)} />
@@ -59,17 +89,10 @@ export default function DetteEditDialog({ open, onOpenChange, dette, minimumMont
           </div>
           <Input type="date" placeholder="Échéance" value={dateFin} onChange={e => setDateFin(e.target.value)} />
           <Input placeholder="Note" value={note} onChange={e => setNote(e.target.value)} />
-          <Button className="w-full" disabled={!canSave} onClick={() => {
-            if (!dette || !canSave) return
-            onSave({
-              id: dette.id,
-              titre: titre.trim(),
-              personne: personne.trim(),
-              montant,
-              date_echeance: dateFin || null,
-              description: note.trim() || null,
-            })
-          }}>Enregistrer</Button>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <Button className="w-full" disabled={!canSave || saving} onClick={handleSave}>
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

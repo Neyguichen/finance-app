@@ -24,6 +24,8 @@ export default function DetteForm({ open, onOpenChange, tab, onSubmit }: Props) 
   const [personne, setPersonne] = useState('')
   const [montant, setMontant] = useState('')
   const [dateEcheance, setDateEcheance] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const montantNumber = Number(montant)
   const canSubmit = Boolean(
@@ -34,21 +36,38 @@ export default function DetteForm({ open, onOpenChange, tab, onSubmit }: Props) 
   )
 
   const handleSubmit = async () => {
-    if (!canSubmit) return
-    await onSubmit({
-      titre: titre.trim(),
-      description: description.trim() || null,
-      personne: personne.trim(),
-      montant: montantNumber,
-      date_echeance: dateEcheance || null,
-    })
-    setTitre(''); setDescription(''); setPersonne(''); setMontant(''); setDateEcheance('')
+    if (!canSubmit || saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onSubmit({
+        titre: titre.trim(),
+        description: description.trim() || null,
+        personne: personne.trim(),
+        montant: montantNumber,
+        date_echeance: dateEcheance || null,
+      })
+      setTitre('')
+      setDescription('')
+      setPersonne('')
+      setMontant('')
+      setDateEcheance('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Impossible d’enregistrer cette dette ou créance.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const isDebt = tab === 'je_dois'
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      if (!saving) {
+        setError(null)
+        onOpenChange(nextOpen)
+      }
+    }}>
       <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
         <DialogHeader>
           <DialogTitle>
@@ -66,7 +85,10 @@ export default function DetteForm({ open, onOpenChange, tab, onSubmit }: Props) 
             </label>
             <Input type="date" value={dateEcheance} onChange={e => setDateEcheance(e.target.value)} />
           </div>
-          <Button className="w-full" disabled={!canSubmit} onClick={handleSubmit}>Ajouter</Button>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <Button className="w-full" disabled={!canSubmit || saving} onClick={handleSubmit}>
+            {saving ? 'Enregistrement…' : 'Ajouter'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

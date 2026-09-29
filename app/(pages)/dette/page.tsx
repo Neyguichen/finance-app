@@ -29,7 +29,7 @@ export default function DettePage() {
   const getReste = (dette: Dette) => {
     const rembs = rembData.filter(r => r.dette_id === dette.id)
     const totalRemb = rembs.reduce((s, r) => s + Number(r.montant), 0)
-    return Number(dette.montant) - totalRemb
+    return Math.max(0, Number(dette.montant) - totalRemb)
   }
 
   const totalJeDois = dettes.filter(d => d.type === 'je_dois' && !d.archived).reduce((s, d) => s + getReste(d), 0)
@@ -50,7 +50,7 @@ export default function DettePage() {
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">Dettes</h1>
+        <h1 className="text-xl font-bold">Dettes & créances</h1>
         <Button size="sm" onClick={() => setOpenAdd(true)}>
           <Plus className="w-4 h-4 mr-1" />Ajouter
         </Button>
@@ -83,12 +83,12 @@ export default function DettePage() {
             key={dette.id}
             dette={dette}
             rembList={rembData.filter(r => r.dette_id === dette.id)}
-            onUpdate={(data) => update.mutate(data)}
-            onAddRemboursement={(data) => addRemboursement.mutate(data)}
-            onRemoveRemboursement={(id) => removeRemboursement.mutate(id)}
-            onUpdateRemboursement={(data) => updateRemboursement.mutate(data)}
-            onArchive={(id) => archive.mutate(id)}
-            onUnarchive={(id) => unarchive.mutate(id)}
+            onUpdate={(data) => update.mutateAsync(data)}
+            onAddRemboursement={(data) => addRemboursement.mutateAsync(data).then(() => undefined)}
+            onRemoveRemboursement={(id) => removeRemboursement.mutateAsync(id)}
+            onUpdateRemboursement={(data) => updateRemboursement.mutateAsync(data)}
+            onArchive={(id) => archive.mutateAsync(id)}
+            onUnarchive={(id) => unarchive.mutateAsync(id)}
           />
         ))}
       </div>
@@ -104,12 +104,12 @@ export default function DettePage() {
                 key={dette.id}
                 dette={dette}
                 rembList={rembData.filter(r => r.dette_id === dette.id)}
-                onUpdate={(data) => update.mutate(data)}
-                onAddRemboursement={(data) => addRemboursement.mutate(data)}
-                onRemoveRemboursement={(id) => removeRemboursement.mutate(id)}
-                onUpdateRemboursement={(data) => updateRemboursement.mutate(data)}
-                onArchive={(id) => archive.mutate(id)}
-                onUnarchive={(id) => unarchive.mutate(id)}
+                onUpdate={(data) => update.mutateAsync(data)}
+                onAddRemboursement={(data) => addRemboursement.mutateAsync(data).then(() => undefined)}
+                onRemoveRemboursement={(id) => removeRemboursement.mutateAsync(id)}
+                onUpdateRemboursement={(data) => updateRemboursement.mutateAsync(data)}
+                onArchive={(id) => archive.mutateAsync(id)}
+                onUnarchive={(id) => unarchive.mutateAsync(id)}
               />
             ))}
           </div>
