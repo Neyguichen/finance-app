@@ -11,20 +11,24 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
     queryKey: ['enveloppes_at_month', espaceId, month],
     enabled: !!espaceId,
     queryFn: async () => {
-      // 1. Charger les enveloppes (pour nom, objectif, ordre…)
-      const { data: enveloppes, error: envErr } = await supabase
-        .from('enveloppes')
-        .select('*')
-        .eq('espace_id', espaceId!)
-        .order('ordre')
+      // Les enveloppes et la liste des mois sont indépendantes : les charger en parallèle
+      // évite un aller-retour réseau inutile sur le dashboard.
+      const [
+        { data: enveloppes, error: envErr },
+        { data: moisList, error: moisErr },
+      ] = await Promise.all([
+        supabase
+          .from('enveloppes')
+          .select('*')
+          .eq('espace_id', espaceId!)
+          .order('ordre'),
+        supabase
+          .from('mois')
+          .select('id')
+          .eq('espace_id', espaceId!)
+          .lte('mois', month),
+      ])
       if (envErr) throw envErr
-
-      // 2. Récupérer tous les mois_id jusqu'au mois sélectionné (inclus)
-      const { data: moisList, error: moisErr } = await supabase
-        .from('mois')
-        .select('id')
-        .eq('espace_id', espaceId!)
-        .lte('mois', month)
       if (moisErr) throw moisErr
 
       const moisIds = (moisList || []).map(m => m.id)
