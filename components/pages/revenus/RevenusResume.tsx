@@ -1,37 +1,32 @@
 import { Card, CardContent } from '@/components/ui/card'
-import { formatEuro, pct } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 type Props = {
-  totalEntrants: number
+  plannedIncome: number
+  receivedIncome: number
+  expectedIncome: number
   totalActif: number
   totalPassif: number
   totalReprises: number
 }
 
-export default function RevenusResume({ totalEntrants, totalActif, totalPassif, totalReprises }: Props) {
+export default function RevenusResume({ plannedIncome, receivedIncome, expectedIncome, totalActif, totalPassif, totalReprises }: Props) {
   return (
     <Card className="bg-blue-950 border-blue-800">
-      <CardContent className="p-4 space-y-2">
-        <div className="flex justify-between">
-          <span className="font-semibold">Total Entrants</span>
-          <span className="font-bold text-lg">{formatEuro(totalEntrants)}</span>
+      <CardContent className="p-3 sm:p-4 space-y-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div><p className="text-xs text-slate-400">Revenus prévus</p><p className="font-bold text-lg">{formatEuro(plannedIncome)}</p></div>
+          <div><p className="text-xs text-slate-400">Reçus</p><p className="font-bold text-lg text-emerald-400">{formatEuro(receivedIncome)}</p></div>
+          <div><p className="text-xs text-slate-400">Encore attendus</p><p className="font-bold text-lg">{formatEuro(expectedIncome)}</p></div>
         </div>
-        {totalActif > 0 && (
-          <div className="flex justify-between text-sm text-slate-400">
-            <span>Actif</span>
-            <span>{formatEuro(totalActif)} ({pct(totalActif, totalEntrants)}%)</span>
-          </div>
-        )}
-        {totalPassif > 0 && (
-          <div className="flex justify-between text-sm text-slate-400">
-            <span>Passif</span>
-            <span>{formatEuro(totalPassif)} ({pct(totalPassif, totalEntrants)}%)</span>
-          </div>
-        )}
+        <div className="border-t border-blue-800 pt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+          <div className="flex justify-between gap-3"><span className="text-slate-400">Actifs</span><span>{formatEuro(totalActif)}</span></div>
+          <div className="flex justify-between gap-3"><span className="text-slate-400">Passifs</span><span>{formatEuro(totalPassif)}</span></div>
+        </div>
         {totalReprises > 0 && (
-          <div className="flex justify-between text-sm text-slate-400">
-            <span>Reprises épargne</span>
-            <span>{formatEuro(totalReprises)} ({pct(totalReprises, totalEntrants)}%)</span>
+          <div className="border-t border-blue-800 pt-2 flex justify-between gap-3 text-sm">
+            <span className="text-slate-400">Reprises d’épargne <span className="text-xs">(hors revenus)</span></span>
+            <span>{formatEuro(totalReprises)}</span>
           </div>
         )}
       </CardContent>
