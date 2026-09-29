@@ -6,7 +6,7 @@ import MonthSelector from '@/components/layout/MonthSelector'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CalendarClock, ReceiptText } from 'lucide-react'
-import { formatEuro } from '@/lib/utils'
+import { formatEuro, localDateISO } from '@/lib/utils'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useTransactions } from '@/lib/hooks/useTransactions'
@@ -42,7 +42,7 @@ export default function DepensesPage() {
   const [rembTx, setRembTx] = useState<any>(null)
   const [newRembMontant, setNewRembMontant] = useState(0)
   const [newRembNote, setNewRembNote] = useState('')
-  const [newRembDate, setNewRembDate] = useState(new Date().toISOString().split('T')[0])
+  const [newRembDate, setNewRembDate] = useState(localDateISO())
   const { data: categories = [], create: createCat, remove: archiveCat } = useCategories(espace?.id)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], allFlat, create: createTx, update: updateTx, remove: removeTx, split, unsplit } = useTransactions(moisId)
