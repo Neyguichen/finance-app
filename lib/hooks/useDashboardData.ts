@@ -42,15 +42,17 @@ export function useDashboardData() {
 
   const totalActif = rev.filter((r: any) => r.type === 'actif').reduce((s: number, r: any) => s + Number(r.montant), 0)
   const totalPassif = rev.filter((r: any) => r.type === 'passif').reduce((s: number, r: any) => s + Number(r.montant), 0)
-  const totalRevenus = totalActif + totalPassif + totalReprises
+  const totalRevenus = totalActif + totalPassif
+  const totalEntreesTresoreriePrevues = totalRevenus + totalReprises
 
   const totalActifRecu = rev.filter((r: any) => r.type === 'actif' && r.recu).reduce((s: number, r: any) => s + Number(r.montant), 0)
   const totalPassifRecu = rev.filter((r: any) => r.type === 'passif' && r.recu).reduce((s: number, r: any) => s + Number(r.montant), 0)
-  const totalRevenusRecus = totalActifRecu + totalPassifRecu + totalReprises
+  const totalRevenusRecus = totalActifRecu + totalPassifRecu
+  const totalEntreesTresorerieReelles = totalRevenusRecus + totalReprises
 
   const totalChargesFixes = chg.reduce((s: number, c: any) => s + Number(c.montant), 0)
-  const totalChargesPayees = chg.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
-  const chargesFixesNonPayees = totalChargesFixes - totalChargesPayees
+  const totalChargesPayees = chg.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant_reel ?? c.montant), 0)
+  const chargesFixesNonPayees = chg.filter((c: any) => !c.payee).reduce((s: number, c: any) => s + Number(c.montant), 0)
   const totalDepenses = txn.reduce((s: number, t: any) => s + getMontantNet(t), 0)
 
   // Variables prévisionnelles — parents uniquement
@@ -73,10 +75,10 @@ export function useDashboardData() {
   const resteM1Sortant = resteM1Value < 0 ? Math.abs(resteM1Value) : 0
 
   // --- Soldes ---
-  const totalEntrants = resteM1Entrant + totalRevenus
+  const totalEntrants = resteM1Entrant + totalEntreesTresoreriePrevues
   const totalSortantsAll = totalChargesFixes + totalDepenses + totalEpargnes + resteM1Sortant
-  const restePrevu = resteM1Value + totalRevenus - totalChargesFixes - totalVariablesPrevu - totalEpargnes
-  const resteReel = resteM1Value + totalRevenusRecus - totalChargesPayees - totalDepenses - totalEpargnes
+  const restePrevu = resteM1Value + totalEntreesTresoreriePrevues - totalChargesFixes - totalVariablesPrevu - totalEpargnes
+  const resteReel = resteM1Value + totalEntreesTresorerieReelles - totalChargesPayees - totalDepenses - totalEpargnes
 
   // --- Données mois précédent (pour comparatif répartition catégories) ---
   const prevMonthData: any = (() => {
