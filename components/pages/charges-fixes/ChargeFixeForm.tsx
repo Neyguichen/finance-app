@@ -15,20 +15,23 @@ const FREQUENCES = [
   { value: 12, label: 'Annuel' },
 ]
 
+type CategoryOption = { id: string; nom: string; icone?: string | null }
+
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (values: { nom: string; montant: number; frequence: number }) => Promise<void>
+  categories?: CategoryOption[]
+  onSubmit: (values: { nom: string; montant: number; frequence: number; categorie_id?: string | null }) => Promise<void>
 }
 
-export default function ChargeFixeForm({ open, onOpenChange, onSubmit }: Props) {
+export default function ChargeFixeForm({ open, onOpenChange, categories = [], onSubmit }: Props) {
   const [formFreq, setFormFreq] = useState(1)
   const { register, handleSubmit, reset, setValue, watch } = useForm({
-    defaultValues: { nom: '', montant: 0 },
+    defaultValues: { nom: '', montant: 0, categorie_id: '' },
   })
 
-  const doSubmit = async (values: { nom: string; montant: number }) => {
-    await onSubmit({ ...values, frequence: formFreq })
+  const doSubmit = async (values: { nom: string; montant: number; categorie_id?: string }) => {
+    await onSubmit({ ...values, categorie_id: values.categorie_id || null, frequence: formFreq })
     reset()
     setFormFreq(1)
   }
@@ -39,7 +42,8 @@ export default function ChargeFixeForm({ open, onOpenChange, onSubmit }: Props) 
         <DialogHeader><DialogTitle>Nouvelle charge fixe</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit(doSubmit)} className="space-y-4">
           <Input placeholder="Nom (ex: Loyer)" {...register('nom', { required: true })} />
-          <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
+          <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant prévu" />
+          {categories.length > 0 && <select {...register('categorie_id')} className="w-full h-10 rounded-md border border-slate-700 bg-slate-800 px-3 text-sm"><option value="">Sans catégorie</option>{categories.filter(c => !('parent_id' in c)).map(c => <option key={c.id} value={c.id}>{c.icone ? `${c.icone} ` : ''}{c.nom}</option>)}</select>}
           <div>
             <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
             <div className="grid flex-wrap gap-1">
