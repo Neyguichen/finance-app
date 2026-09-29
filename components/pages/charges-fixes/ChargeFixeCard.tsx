@@ -18,8 +18,8 @@ export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onActu
   const today = localDateISO()
   return (
     <Card className="bg-slate-900 border-slate-800">
-      <CardContent className="flex items-center justify-between p-3">
-        <div className="flex items-center gap-3">
+      <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex w-full min-w-0 items-start gap-3 sm:w-auto sm:items-center">
           <Checkbox
             checked={charge.payee}
             onCheckedChange={(checked) => {
@@ -54,7 +54,7 @@ export default function ChargeFixeCard({ charge, readOnly, onTogglePayee, onActu
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center justify-end gap-1 sm:w-auto sm:gap-2">
           <div className="text-right"><span className="font-bold text-purple-400">{formatEuro(Number(charge.payee ? (charge.montant_reel ?? charge.montant) : charge.montant))}</span>{charge.payee && charge.montant_reel != null && Number(charge.montant_reel) !== Number(charge.montant) && <p className="text-[10px] text-slate-500">prévu {formatEuro(Number(charge.montant))}</p>}</div>
           {!readOnly && (
             <>
