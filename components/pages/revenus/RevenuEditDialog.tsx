@@ -12,18 +12,20 @@ type EditTarget = {
   montant: number
   type: 'actif' | 'passif'
   recurrentId?: string | null
+  datePrevue?: string | null
 }
 
 type Props = {
   editTarget: EditTarget | null
   onClose: () => void
-  onSave: (data: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null }, scope: 'mois' | 'tous') => Promise<void>
+  onSave: (data: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null }, scope: 'mois' | 'tous') => Promise<void>
 }
 
 export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props) {
   const [editNom, setEditNom] = useState('')
   const [editMontant, setEditMontant] = useState(0)
   const [editType, setEditType] = useState<'actif' | 'passif'>('actif')
+  const [editDatePrevue, setEditDatePrevue] = useState('')
   const [scopeOpen, setScopeOpen] = useState(false)
   const [pendingData, setPendingData] = useState<any>(null)
 
@@ -33,6 +35,7 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
       setEditNom(editTarget.nom)
       setEditMontant(Number(editTarget.montant))
       setEditType(editTarget.type)
+      setEditDatePrevue(editTarget.datePrevue || '')
     }
   }, [editTarget])
 
@@ -44,6 +47,7 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
       montant: editMontant,
       type: editType,
       recurrentId: editTarget.recurrentId,
+      datePrevue: editDatePrevue || null,
     }
     if (editTarget.recurrentId) {
       // Sauvegarder les données AVANT d'ouvrir le scope dialog
@@ -73,6 +77,10 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
           <div className="space-y-4">
             <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
             <CalculatorInput value={editMontant} onChange={setEditMontant} placeholder="Montant" />
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Date prévue <span className="text-xs">(facultative)</span></label>
+              <Input type="date" value={editDatePrevue} onChange={e => setEditDatePrevue(e.target.value)} />
+            </div>
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Type</label>
               <div className="flex gap-2">
