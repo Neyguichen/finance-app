@@ -7,6 +7,8 @@ import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useMouvements } from '@/lib/hooks/useEpargne'
 import { useBudgets } from '@/lib/hooks/useBudgets'
+import { useEnveloppesAtMonth } from '@/lib/hooks/useEnveloppesAtMonth'
+import { useDettes } from '@/lib/hooks/useDettes'
 import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 import { usePlannedSavings } from '@/lib/hooks/usePlannedSavings'
 import { summarizeIncome } from '@/lib/income-summary'
@@ -17,13 +19,18 @@ function normalizeMovementDate(date: string) {
 }
 
 export function useDashboardV2() {
-  const { moisId } = useApp()
+  const { moisId, month, espace } = useApp()
   const { data: revenus = [] } = useRevenus(moisId)
   const { data: charges = [] } = useChargesFixes(moisId)
   const { allFlat: transactions = [] } = useTransactions(moisId)
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: budgets = [] } = useBudgets(moisId)
   const { data: plannedSavings = [] } = usePlannedSavings(moisId)
+  const enveloppesQuery = useEnveloppesAtMonth(espace?.id, month)
+  const detteModel = useDettes(espace?.id)
+  const enveloppes = enveloppesQuery.data || []
+  const dettes = detteModel.data || []
+  const remboursementsDette = detteModel.remboursements.data || []
 
   return useMemo(() => {
     const today = localDateISO()
@@ -85,6 +92,23 @@ export function useDashboardV2() {
       })
       .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'fr'))
 
+    const repaidByDebt = remboursementsDette.reduce<Record<string, number>>((acc, repayment) => {
+      acc[repayment.dette_id] = (acc[repayment.dette_id] || 0) + Number(repayment.montant)
+      return acc
+    }, {})
+
+    const savingsAvailable = enveloppes
+      .filter(envelope => !envelope.archived)
+      .reduce((sum, envelope) => sum + Number(envelope.solde), 0)
+
+    const debtRemaining = dettes
+      .filter(debt => !debt.archived && debt.type === 'je_dois')
+      .reduce((sum, debt) => sum + Math.max(0, Number(debt.montant) - (repaidByDebt[debt.id] || 0)), 0)
+
+    const receivableRemaining = dettes
+      .filter(debt => !debt.archived && debt.type === 'jai_prete')
+      .reduce((sum, debt) => sum + Math.max(0, Number(debt.montant) - (repaidByDebt[debt.id] || 0)), 0)
+
     return {
       plannedIncome,
       actualIncome,
@@ -109,6 +133,25 @@ export function useDashboardV2() {
         remainingSavingsCash,
       },
       budgetProgress,
+      savingsDebtSummary: {
+        savingsAvailable,
+        debtRemaining,
+        receivableRemaining,
+      },
+      savingsDebtLoading: enveloppesQuery.isLoading || detteModel.isLoading || detteModel.remboursements.isLoading,
     }
-  }, [revenus, charges, transactions, mouvements, budgets, plannedSavings])
+  }, [
+    revenus,
+    charges,
+    transactions,
+    mouvements,
+    budgets,
+    plannedSavings,
+    enveloppes,
+    dettes,
+    remboursementsDette,
+    enveloppesQuery.isLoading,
+    detteModel.isLoading,
+    detteModel.remboursements.isLoading,
+  ])
 }
