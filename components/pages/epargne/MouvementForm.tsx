@@ -37,14 +37,19 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
   const [destId, setDestId] = useState('')
   const [freq, setFreq] = useState(1)
 
+  const sourceRequired = type === 'reprise' || type === 'transfert'
+  const destRequired = type === 'epargne' || type === 'transfert'
+  const sameEnvelope = type === 'transfert' && Boolean(sourceId) && sourceId === destId
+  const canSubmit = montant > 0 && (!sourceRequired || Boolean(sourceId)) && (!destRequired || Boolean(destId)) && !sameEnvelope
+
   const handleSubmit = async () => {
-    if (montant <= 0) return
+    if (!canSubmit) return
     await onSubmit({
       type,
       montant,
       note: note || null,
-      sourceId: (type === 'reprise' || type === 'transfert') ? (sourceId || null) : null,
-      destId: (type === 'epargne' || type === 'transfert') ? (destId || null) : null,
+      sourceId: sourceRequired ? (sourceId || null) : null,
+      destId: destRequired ? (destId || null) : null,
       frequence: type === 'epargne' ? freq : 0,
     })
     setMontant(0); setNote(''); setSourceId(''); setDestId(''); setFreq(1)
@@ -69,30 +74,31 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
             </div>
           </div>
           <CalculatorInput value={montant} onChange={setMontant} placeholder="Montant" />
-          {(type === 'epargne' || type === 'transfert') && (
+          {destRequired && (
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Vers</label>
               <select className="select select-bordered w-full bg-slate-800 border-slate-700"
                 value={destId} onChange={e => setDestId(e.target.value)}>
                 <option value="">Sélectionner...</option>
                 {enveloppesActives.map((env: any) => (
-                  <option key={env.id} value={env.id}>{env.nom}</option>
+                  <option key={env.id} value={env.id} disabled={type === 'transfert' && env.id === sourceId}>{env.nom}</option>
                 ))}
               </select>
             </div>
           )}
-          {(type === 'reprise' || type === 'transfert') && (
+          {sourceRequired && (
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Depuis</label>
               <select className="select select-bordered w-full bg-slate-800 border-slate-700"
                 value={sourceId} onChange={e => setSourceId(e.target.value)}>
                 <option value="">Sélectionner...</option>
                 {enveloppesActives.map((env: any) => (
-                  <option key={env.id} value={env.id}>{env.nom} ({formatEuro(Number(env.solde))})</option>
+                  <option key={env.id} value={env.id} disabled={type === 'transfert' && env.id === destId}>{env.nom} ({formatEuro(Number(env.solde))})</option>
                 ))}
               </select>
             </div>
           )}
+          {sameEnvelope && <p className="text-xs text-red-400">La source et la destination doivent être différentes.</p>}
           <Input placeholder="Note (optionnel)" value={note} onChange={e => setNote(e.target.value)} />
           {type === 'epargne' && (
             <div>
@@ -107,7 +113,7 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
               </div>
             </div>
           )}
-          <Button className="w-full" onClick={handleSubmit}>Ajouter</Button>
+          <Button className="w-full" disabled={!canSubmit} onClick={handleSubmit}>Ajouter</Button>
         </div>
       </DialogContent>
     </Dialog>

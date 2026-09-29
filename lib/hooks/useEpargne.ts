@@ -4,6 +4,30 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Enveloppe, MouvementEpargne, EpargneRecurrente } from '@/lib/types'
 
+function assertValidSavingsMovement(mvt: Partial<MouvementEpargne>) {
+  if (mvt.montant !== undefined) {
+    const montant = Number(mvt.montant)
+    if (!Number.isFinite(montant) || montant <= 0) {
+      throw new Error('Le montant du mouvement d’épargne doit être strictement positif.')
+    }
+  }
+
+  if (mvt.type === 'epargne' && !mvt.enveloppe_dest_id) {
+    throw new Error('Une enveloppe de destination est obligatoire pour épargner.')
+  }
+  if (mvt.type === 'reprise' && !mvt.enveloppe_source_id) {
+    throw new Error('Une enveloppe source est obligatoire pour une reprise.')
+  }
+  if (mvt.type === 'transfert') {
+    if (!mvt.enveloppe_source_id || !mvt.enveloppe_dest_id) {
+      throw new Error('Une source et une destination sont obligatoires pour un transfert.')
+    }
+    if (mvt.enveloppe_source_id === mvt.enveloppe_dest_id) {
+      throw new Error('La source et la destination d’un transfert doivent être différentes.')
+    }
+  }
+}
+
 export function useEnveloppes(espaceId: string | undefined) {
   const supabase = createClient()
   const queryClient = useQueryClient()
@@ -105,6 +129,7 @@ export function useMouvements(moisId: string | undefined) {
 
   const create = useMutation({
     mutationFn: async (mvt: Omit<MouvementEpargne, 'id'>) => {
+      assertValidSavingsMovement(mvt)
       const { data, error } = await supabase
         .from('mouvements_epargne')
         .insert(mvt)
@@ -124,6 +149,7 @@ export function useMouvements(moisId: string | undefined) {
 
   const update = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<MouvementEpargne> & { id: string }) => {
+      assertValidSavingsMovement(updates)
       const { error } = await supabase
         .from('mouvements_epargne')
         .update(updates)
