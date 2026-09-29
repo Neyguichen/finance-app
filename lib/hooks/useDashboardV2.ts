@@ -34,6 +34,8 @@ export function useDashboardV2() {
     const actualSavingsDeposits = mouvements.filter(item => item.type === 'epargne').reduce((sum, item) => sum + Number(item.montant), 0)
     const savingsWithdrawals = mouvements.filter(item => item.type === 'reprise').reduce((sum, item) => sum + Number(item.montant), 0)
     const plannedMonthResult = plannedIncome - plannedFixed - plannedVariable - plannedSavingsDeposits
+    // Analytical month result: recorded variable expenses are intentionally included even when
+    // not bank-validated yet. The dated cash balance remains the source of truth for real cash.
     const actualMonthResult = actualIncome + savingsWithdrawals - actualFixed - actualVariable - actualSavingsDeposits
 
     return {
