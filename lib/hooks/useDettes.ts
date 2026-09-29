@@ -176,6 +176,7 @@ export function useDettes(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rembKey })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
@@ -191,6 +192,7 @@ export function useDettes(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rembKey })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
@@ -215,6 +217,7 @@ export function useDettes(espaceId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rembKey })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
     },
