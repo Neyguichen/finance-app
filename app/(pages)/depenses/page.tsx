@@ -27,6 +27,7 @@ import { CalculatorInput } from '@/components/ui/calculator-input'
 import SplitDialog from '@/components/pages/variables/SplitDialog'
 import { useRemboursements } from '@/lib/hooks/useRemboursements'
 import ArchiveDialog from '@/components/pages/variables/ArchiveDialog'
+import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
@@ -63,10 +64,8 @@ export default function DepensesPage() {
   const budget = (id: string) => Number(effectiveBudgets.find((b: any) => b.categorie_id === id)?.prevu || 0)
   const net = (tx: any) => Number(tx.montant) - (tx.remboursements || []).reduce((s: number, r: any) => s + Number(r.montant), 0)
   const spent = (id: string, sub = false) => effectiveFlat.filter((t: any) => (sub ? t.sous_categorie_id : t.categorie_id) === id).reduce((s: number, t: any) => s + net(t), 0)
-  const plannedFixed = effectiveCharges.reduce((s: number, c: any) => s + Number(c.montant), 0)
-  const paidFixed = effectiveCharges.filter((c: any) => c.payee).reduce((s: number, c: any) => s + Number(c.montant_reel ?? c.montant), 0)
-  const plannedVariable = effectiveBudgets.reduce((s: number, b: any) => s + Number(b.prevu), 0)
-  const actualVariable = effectiveFlat.reduce((s: number, t: any) => s + net(t), 0)
+  const expenseSummary = summarizeAnalyticalExpenses(effectiveCharges, effectiveBudgets, effectiveFlat)
+  const { plannedFixed, actualFixed: paidFixed, plannedVariable, actualVariable } = expenseSummary
 
   const createTransaction = async (data: any) => { if (!moisId || isAdminViewing) return; await createTx.mutateAsync({ mois_id: moisId, ...data }) }
   const createSplitTransaction = async (data: any, lines: any[]) => { if (!moisId || isAdminViewing) return; const parent = await createTx.mutateAsync({ mois_id: moisId, ...data }); await split.mutateAsync({ parentId: parent.id, lines }) }
