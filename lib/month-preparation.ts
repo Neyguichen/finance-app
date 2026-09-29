@@ -20,7 +20,7 @@ export type MonthPreparationItem = {
   amount: number
   sourceId?: string
   recurrentId?: string | null
-  categoryId?: string
+  categoryId?: string | null
   envelopeId?: string
   incomeType?: 'actif' | 'passif'
   order?: number
