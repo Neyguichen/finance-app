@@ -39,6 +39,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
 
   const subCats = catId ? getSubCats(catId) : []
   const isSplit = editTx?.is_split && editTx?.children?.length > 0
+  const isSplitChild = !!editTx?.parent_transaction_id
 
   useEffect(() => {
     if (editTx) {
@@ -132,26 +133,31 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
           ) : (
             /* === Mode normal : édition + actions === */
             <>
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">
-                  {doubleDate ? "Date d'opération" : 'Date'}
-                </label>
-                <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
-              </div>
-              {!doubleDate && (
-                <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                  <input type="checkbox" className="checkbox checkbox-sm"
-                    checked={validated} onChange={e => setValidated(e.target.checked)} />
-                  Dépense validée
-                </label>
-              )}
-              {doubleDate && (
+              {!isSplitChild ? <>
                 <div>
                   <label className="text-xs text-slate-400 mb-1 block">
-                    Date de validation bancaire <span className="text-slate-600">(optionnel)</span>
+                    {doubleDate ? "Date d'opération" : 'Date'}
                   </label>
-                  <Input type="date" value={dateValidation} onChange={e => setDateValidation(e.target.value)} />
+                  <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
                 </div>
+                {!doubleDate ? (
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input type="checkbox" className="checkbox checkbox-sm"
+                      checked={validated} onChange={e => setValidated(e.target.checked)} />
+                    Dépense validée
+                  </label>
+                ) : (
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Date de validation bancaire <span className="text-slate-600">(optionnel)</span>
+                    </label>
+                    <Input type="date" value={dateValidation} onChange={e => setDateValidation(e.target.value)} />
+                  </div>
+                )}
+              </> : (
+                <p className="text-xs text-slate-500 rounded-lg border border-slate-800 bg-slate-800/50 p-3">
+                  La date et la validation bancaire sont gérées par la dépense scindée principale.
+                </p>
               )}
               <div className="space-y-2">
                 <select className="select select-bordered w-full bg-slate-800 border-slate-700"
