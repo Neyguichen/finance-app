@@ -3,6 +3,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 
+export type ReconciliationAction = {
+  kind: 'income' | 'fixed' | 'variable'
+  id: string
+}
+
 export type ReconciliationSuggestion = {
   id: string
   kind: 'income' | 'fixed' | 'variable' | 'combination'
@@ -11,6 +16,7 @@ export type ReconciliationSuggestion = {
   effect: number
   href: string
   confidence: 'forte' | 'possible'
+  actions: ReconciliationAction[]
 }
 
 type Candidate = ReconciliationSuggestion & { amount: number }
@@ -83,6 +89,7 @@ export function useBalanceReconciliationSuggestions(
             amount,
             href: '/revenus',
             confidence: Math.abs(amount - needed) < 0.01 ? 'forte' : 'possible',
+            actions: [{ kind: 'income', id: item.id }],
           })
         }
       }
@@ -102,6 +109,7 @@ export function useBalanceReconciliationSuggestions(
             amount,
             href: '/depenses',
             confidence: Math.abs(amount - Math.abs(needed)) < 0.01 ? 'forte' : 'possible',
+            actions: [{ kind: 'fixed', id: item.id }],
           })
         }
 
@@ -120,6 +128,7 @@ export function useBalanceReconciliationSuggestions(
             amount,
             href: '/depenses',
             confidence: Math.abs(amount - Math.abs(needed)) < 0.01 ? 'forte' : 'possible',
+            actions: [{ kind: 'variable', id: item.id }],
           })
         }
       }
@@ -143,6 +152,7 @@ export function useBalanceReconciliationSuggestions(
                 effect,
                 href: candidates[i].href === candidates[j].href ? candidates[i].href : '/dashboard',
                 confidence: 'forte',
+                actions: [...candidates[i].actions, ...candidates[j].actions],
               })
               if (combinations.length >= 3) break
             }
