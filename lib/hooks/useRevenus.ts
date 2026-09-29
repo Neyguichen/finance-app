@@ -99,10 +99,13 @@ export function useRevenus(moisId: string | undefined) {
   })
 
   const toggleRecu = useMutation({
-    mutationFn: async ({ id, recu, dateReelle }: { id: string; recu: boolean; dateReelle?: string }) => {
+    mutationFn: async ({ id, recu, dateReelle }: { id: string; recu: boolean; dateReelle?: string | null }) => {
+      const effectiveDate = recu
+        ? (dateReelle === null ? null : (dateReelle || localDateISO()))
+        : null
       const { error } = await supabase
         .from('revenus')
-        .update({ recu, date_reelle: recu ? (dateReelle || localDateISO()) : null })
+        .update({ recu, date_reelle: effectiveDate })
         .eq('id', id)
       if (error) throw error
     },
