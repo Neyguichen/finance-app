@@ -6,7 +6,7 @@ import MonthSelector from '@/components/layout/MonthSelector'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CalendarClock, ReceiptText } from 'lucide-react'
-import { formatEuro, localDateISO } from '@/lib/utils'
+import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useTransactions } from '@/lib/hooks/useTransactions'
@@ -64,7 +64,9 @@ export default function DepensesPage() {
   const budget = (id: string) => Number(effectiveBudgets.find((b: any) => b.categorie_id === id)?.prevu || 0)
   const net = (tx: any) => Number(tx.montant) - (tx.remboursements || []).reduce((s: number, r: any) => s + Number(r.montant), 0)
   const spent = (id: string, sub = false) => effectiveFlat.filter((t: any) => (sub ? t.sous_categorie_id : t.categorie_id) === id).reduce((s: number, t: any) => s + net(t), 0)
-  const expenseSummary = summarizeAnalyticalExpenses(effectiveCharges, effectiveBudgets, effectiveFlat)
+  const parentCategoryIds = new Set(parentCategories.map((c: any) => c.id))
+  const parentBudgets = effectiveBudgets.filter((b: any) => parentCategoryIds.has(b.categorie_id))
+  const expenseSummary = summarizeAnalyticalExpenses(effectiveCharges, parentBudgets, effectiveFlat)
   const { plannedFixed, actualFixed: paidFixed, plannedVariable, actualVariable } = expenseSummary
 
   const createTransaction = async (data: any) => { if (!moisId || isAdminViewing) return; await createTx.mutateAsync({ mois_id: moisId, ...data }) }
