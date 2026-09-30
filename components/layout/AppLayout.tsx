@@ -84,7 +84,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const headerContainerStyle: CSSProperties = {
     height: shouldHide ? '0px' : `${HEADER_H}px`,
-    overflow: 'hidden',
+    overflow: shouldHide ? 'hidden' : 'visible',
     flexShrink: 0,
     transition: 'height 250ms ease-in-out',
   }
@@ -110,7 +110,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <OnboardingGuide />
       <AdminBanner />
 
-      <div style={headerContainerStyle}>
+      <div className="relative z-40" style={headerContainerStyle}>
         <header
           className="flex items-center gap-3 border-b border-slate-800/70 bg-[#08111f]/92 px-3 backdrop-blur-xl sm:px-4"
           style={headerStyle}
