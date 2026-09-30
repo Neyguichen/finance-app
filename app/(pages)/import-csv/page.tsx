@@ -204,14 +204,12 @@ export default function ImportCsvPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 p-3 pb-24 sm:p-4">
-      <header>
-        <p className="text-xs uppercase tracking-wide text-blue-400">Phase 8 · Import CSV</p>
-        <h1 className="mt-1 text-2xl font-bold">Importer un relevé bancaire</h1>
-        <p className="mt-2 max-w-3xl text-sm text-slate-400">
-          Le CSV sert à rapprocher Neyguichen de la réalité bancaire. Rien n&apos;est importé avant la prévisualisation et ta confirmation.
-          Les doublons probables restent visibles.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Rapprochement"
+        title="Importer un relevé CSV"
+        description="Confronte Neyguichen à la réalité bancaire avec une prévisualisation obligatoire, des choix explicites et un contrôle anti-doublon."
+        icon={FileSpreadsheet}
+      />
 
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end">

@@ -3,25 +3,164 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  color-scheme: dark;
+  --nf-bg: #07101d;
+  --nf-bg-soft: #0a1424;
+  --nf-surface: rgba(15, 27, 45, 0.78);
+  --nf-surface-strong: #101d30;
+  --nf-surface-hover: #14243a;
+  --nf-border: rgba(148, 163, 184, 0.14);
+  --nf-border-strong: rgba(148, 163, 184, 0.24);
+  --nf-text: #f8fafc;
+  --nf-muted: #94a3b8;
+  --nf-subtle: #64748b;
+  --nf-primary: #818cf8;
+  --nf-primary-strong: #6366f1;
+  --nf-cyan: #22d3ee;
+  --nf-success: #34d399;
+  --nf-warning: #fbbf24;
+  --nf-danger: #fb7185;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+* {
+  border-color: var(--nf-border);
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--nf-bg);
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: var(--nf-text);
+  background:
+    radial-gradient(circle at 12% -8%, rgba(99, 102, 241, 0.14), transparent 32rem),
+    radial-gradient(circle at 88% 0%, rgba(34, 211, 238, 0.07), transparent 28rem),
+    linear-gradient(180deg, #08111f 0%, #07101d 46%, #060d18 100%);
+  font-feature-settings: "ss01" 1, "cv11" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(129, 140, 248, 0.28);
+  color: #fff;
+}
+
+@layer components {
+  .nf-card {
+    @apply rounded-2xl border shadow-sm;
+    border-color: var(--nf-border);
+    background: linear-gradient(180deg, rgba(18, 32, 52, 0.88), rgba(12, 23, 39, 0.88));
+    box-shadow: 0 18px 50px -36px rgba(0, 0, 0, 0.9);
+  }
+
+  .nf-card-hover {
+    @apply transition duration-200;
+  }
+
+  .nf-card-hover:hover {
+    border-color: var(--nf-border-strong);
+    transform: translateY(-1px);
+  }
+
+  .nf-panel {
+    @apply rounded-2xl border;
+    border-color: var(--nf-border);
+    background: rgba(9, 19, 33, 0.72);
+  }
+
+  .nf-eyebrow {
+    @apply text-[11px] font-semibold uppercase;
+    letter-spacing: .16em;
+    color: var(--nf-primary);
+  }
+
+  .nf-page-title {
+    @apply text-2xl font-semibold tracking-tight sm:text-3xl;
+    color: var(--nf-text);
+  }
+
+  .nf-page-subtitle {
+    @apply mt-1 max-w-3xl text-sm leading-6;
+    color: var(--nf-muted);
+  }
+
+  .nf-section-title {
+    @apply text-base font-semibold tracking-tight sm:text-lg;
+    color: var(--nf-text);
+  }
+
+  .nf-muted {
+    color: var(--nf-muted);
+  }
+
+  .nf-subtle {
+    color: var(--nf-subtle);
+  }
+
+  .nf-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium;
+    border-color: var(--nf-border);
+    background: rgba(15, 27, 45, 0.78);
+    color: var(--nf-muted);
+  }
+
+  .nf-glow {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nf-glow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 0 0, rgba(99, 102, 241, 0.15), transparent 38%),
+      radial-gradient(circle at 100% 0, rgba(34, 211, 238, 0.06), transparent 32%);
+  }
+
+  .nf-divider {
+    border-color: var(--nf-border);
+  }
+}
+
+.input,
+.textarea,
+.select {
+  border-color: var(--nf-border-strong) !important;
+  background: rgba(8, 17, 31, 0.88) !important;
+  color: var(--nf-text) !important;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none !important;
+  border-color: rgba(129, 140, 248, 0.72) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.10) !important;
+}
+
+.modal-box {
+  border: 1px solid var(--nf-border-strong);
+  background:
+    linear-gradient(180deg, rgba(16, 29, 48, 0.98), rgba(9, 19, 33, 0.98)) !important;
+  box-shadow: 0 32px 80px -32px rgba(0, 0, 0, 0.85);
+}
+
+.table :where(th, td) {
+  border-color: var(--nf-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

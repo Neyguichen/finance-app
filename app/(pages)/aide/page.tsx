@@ -5,6 +5,7 @@ import { BookOpen, Bug, CheckCircle2, Lightbulb, RotateCcw } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useFeedback } from '@/lib/hooks/useFeedback'
 import MigrationV1Card from '@/components/migration/MigrationV1Card'
+import PageHeader from '@/components/layout/PageHeader'
 
 export default function AidePage() {
   const { espace, updateEspace, isAdminViewing } = useApp()
@@ -32,13 +33,12 @@ export default function AidePage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 p-3 pb-24 sm:p-4">
-      <header>
-        <p className="text-xs uppercase tracking-wide text-blue-400">Aide & accompagnement</p>
-        <h1 className="mt-1 text-2xl font-bold">Bien utiliser Neyguichen</h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Retrouve les principes importants de la V2 et relance le guide de démarrage quand tu en as besoin.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Accompagnement"
+        title="Aide & retours"
+        description="Retrouve les principes clés de Neyguichen Finances, relance le guide et partage un bug ou une idée d’amélioration."
+        icon={BookOpen}
+      />
 
       <section className="grid gap-3 sm:grid-cols-2">
         <HelpCard

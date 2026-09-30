@@ -9,6 +9,7 @@ import { useBalanceReconciliationSuggestions, type ReconciliationSuggestion } fr
 import { useApplyReconciliationCorrection } from '@/lib/hooks/useApplyReconciliationCorrection'
 import { useNotifications } from '@/lib/hooks/useNotifications'
 import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
+import PageHeader from '@/components/layout/PageHeader'
 
 export default function VerificationSoldePage() {
   const { espace } = useApp()
@@ -65,14 +66,13 @@ export default function VerificationSoldePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5 p-4 pb-24">
-      <div>
-        <p className="text-xs uppercase tracking-wide text-blue-400">Phase 7 · Vérification du solde</p>
-        <h1 className="mt-1 text-2xl font-bold">Comparer Neyguichen à ton solde réel</h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Saisis le solde réellement constaté à une date donnée. Neyguichen calcule son propre solde à cette même date sans modifier tes données.
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-4xl space-y-5 p-3 pb-24 sm:p-4">
+      <PageHeader
+        eyebrow="Rapprochement"
+        title="Vérifier le solde"
+        description="Compare Neyguichen au solde réellement constaté à une date donnée, sans modifier silencieusement tes données."
+        icon={Scale}
+      />
 
       {!espace?.date_solde_reference || espace.solde_reference == null ? (
         <div className="rounded-xl border border-amber-800/60 bg-amber-950/30 p-4 text-sm text-amber-200">

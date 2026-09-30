@@ -22,7 +22,7 @@ export default function BudgetsV2({ budgets }: Props) {
   return (
     <section className="space-y-3">
       <div>
-        <p className="text-xs uppercase tracking-wide text-slate-500">Budgets variables</p>
+        <p className="nf-eyebrow">Budgets variables</p>
         <h2 className="text-lg font-semibold">Où en sont mes enveloppes ?</h2>
       </div>
 
@@ -33,7 +33,7 @@ export default function BudgetsV2({ budgets }: Props) {
           const exceeded = budget.remaining < 0
 
           return (
-            <Card key={budget.id} className="bg-slate-900 border-slate-800">
+            <Card key={budget.id} className="nf-card-hover">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
@@ -45,8 +45,8 @@ export default function BudgetsV2({ budgets }: Props) {
                   </span>
                 </div>
 
-                <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                  <div className="h-full rounded-full bg-slate-500" style={{ width: `${barPercent}%` }} />
+                <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                  <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400" style={{ width: `${barPercent}%` }} />
                 </div>
 
                 <div className="flex items-end justify-between gap-3">

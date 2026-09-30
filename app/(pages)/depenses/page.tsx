@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
+import PageHeader from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CalendarClock, ReceiptText } from 'lucide-react'
@@ -79,8 +80,13 @@ export default function DepensesPage() {
 
   return <div>
     <MonthSelector currentMonth={month} onChange={setMonth} />
-    <div className="mx-auto w-full max-w-6xl p-3 sm:p-4 space-y-4 pb-28">
-      <div><h1 className="text-xl font-bold">Dépenses</h1><p className="text-sm text-slate-500">Prévu et réel réunis, sans mélanger les deux.</p></div>
+    <div className="mx-auto w-full max-w-6xl space-y-5 p-3 pb-28 sm:p-4">
+      <PageHeader
+        eyebrow="Sorties"
+        title="Dépenses"
+        description="Prévisions, charges fixes et dépenses variables réunies dans une seule vue, sans mélanger prévu et réel."
+        icon={ReceiptText}
+      />
       <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-900 p-1 border border-slate-800">
         <Button variant={view === 'planned' ? 'default' : 'ghost'} onClick={() => setView('planned')}><CalendarClock className="w-4 h-4 mr-2" /> Prévues</Button>
         <Button variant={view === 'actual' ? 'default' : 'ghost'} onClick={() => setView('actual')}><ReceiptText className="w-4 h-4 mr-2" /> Réelles</Button>

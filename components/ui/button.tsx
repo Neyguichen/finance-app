@@ -15,9 +15,9 @@ export function Button({
   ...props
 }: ButtonProps) {
   const variants = {
-    default: 'btn btn-primary text-white',
-    ghost: 'btn btn-ghost',
-    outline: 'btn btn-outline',
+    default: 'btn border-0 bg-indigo-500 text-white shadow-sm hover:bg-indigo-400',
+    ghost: 'btn btn-ghost text-slate-300 hover:bg-slate-800/70 hover:text-white',
+    outline: 'btn border border-slate-700/80 bg-slate-900/60 text-slate-200 hover:border-slate-600 hover:bg-slate-800/80',
   };
   const sizes = {
     default: '',
@@ -26,7 +26,12 @@ export function Button({
   };
   return (
     <button
-      className={cn(variants[variant], sizes[size], className)}
+      className={cn(
+        'rounded-xl font-medium normal-case transition duration-200 disabled:opacity-50',
+        variants[variant],
+        sizes[size],
+        className
+      )}
       {...props}
     >
       {children}

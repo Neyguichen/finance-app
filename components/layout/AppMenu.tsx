@@ -53,15 +53,18 @@ export default function AppMenu() {
       )}
 
       <div
-        className={`fixed right-0 top-0 z-[10000] flex h-full w-[min(18rem,100vw)] transform flex-col border-l border-slate-800 bg-slate-900 transition-transform duration-300 ease-in-out ${
+        className={`fixed right-0 top-0 z-[10000] flex h-full w-[min(20rem,100vw)] transform flex-col border-l border-slate-800/80 bg-[#0a1424]/98 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between border-b border-slate-800 p-4">
-          <h2 className="text-lg font-semibold">Menu</h2>
+        <div className="flex items-center justify-between border-b border-slate-800/80 p-4">
+          <div>
+            <p className="nf-eyebrow">Neyguichen Finances</p>
+            <h2 className="mt-0.5 text-lg font-semibold tracking-tight">Menu</h2>
+          </div>
           <button
             onClick={closeMenu}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-800/70 hover:text-white"
             aria-label="Fermer le menu"
           >
             <X className="h-5 w-5" />
@@ -73,7 +76,7 @@ export default function AppMenu() {
             <MenuLink icon={Users} label="Admin" onClick={() => { closeMenu(); router.push('/admin') }} />
           )}
 
-          <MenuLink icon={Calendar} label="Bilan Annuel" onClick={() => {
+          <MenuLink icon={Calendar} label="Bilan annuel" onClick={() => {
             closeMenu()
             router.push('/bilan-annuel')
           }} />
@@ -127,7 +130,7 @@ export default function AppMenu() {
             router.push('/parametres')
           }} />
 
-          <MenuLink icon={CircleHelp} label="Aide & retours" onClick={() => {
+          <MenuLink icon={CircleHelp} label="Aide et retours" onClick={() => {
             closeMenu()
             router.push('/aide')
           }} />
@@ -172,7 +175,7 @@ export default function AppMenu() {
             </div>
           )}
 
-          <span className="text-xs text-slate-600">Finance App v{APP_VERSION}</span>
+          <span className="text-xs text-slate-600">Neyguichen Finances · v{APP_VERSION}</span>
         </div>
       </div>
     </>
@@ -182,7 +185,7 @@ export default function AppMenu() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="relative rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+        className="relative rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800/70 hover:text-white"
         aria-expanded={open}
         aria-label="Ouvrir le menu"
       >
@@ -212,7 +215,7 @@ function MenuLink({ icon: Icon, label, onClick, danger, badge }: {
       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
         danger
           ? 'text-red-400 hover:bg-red-950'
-          : 'text-slate-300 hover:bg-slate-800'
+          : 'text-slate-300 hover:bg-slate-800/70'
       }`}
     >
       <Icon className="h-4 w-4" />

@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Handshake, Plus } from 'lucide-react'
 
 import { useApp } from '@/components/AppContext'
 import { Button } from '@/components/ui/button'
+import PageHeader from '@/components/layout/PageHeader'
 import DetteResume from '@/components/pages/dette/DetteResume'
 import DetteForm from '@/components/pages/dette/DetteForm'
 import DetteDetail from '@/components/pages/dette/DetteDetail'
@@ -48,13 +49,18 @@ export default function DettePage() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">Dettes & créances</h1>
-        <Button size="sm" onClick={() => setOpenAdd(true)}>
-          <Plus className="w-4 h-4 mr-1" />Ajouter
-        </Button>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-5 p-3 pb-24 sm:p-4">
+      <PageHeader
+        eyebrow="Engagements"
+        title="Dettes & créances"
+        description="Suis ce que tu dois et ce qu’on te doit, sans transformer automatiquement les remboursements en revenus ou dépenses."
+        icon={Handshake}
+        action={
+          <Button size="sm" onClick={() => setOpenAdd(true)}>
+            <Plus className="mr-1 h-4 w-4" />Ajouter
+          </Button>
+        }
+      />
 
       <DetteForm open={openAdd} onOpenChange={setOpenAdd} tab={tab} onSubmit={handleAdd} />
 

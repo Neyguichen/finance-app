@@ -35,7 +35,7 @@ export function ReferenceBalanceSetup() {
     <section className="card bg-base-100 border border-base-300 shadow-sm mb-6">
       <div className="card-body gap-4">
         <div>
-          <div className="badge badge-primary badge-outline mb-2">Nouveau moteur V2</div>
+          <div className="nf-chip border-indigo-400/20 bg-indigo-500/10 text-indigo-200 mb-2">Point de départ</div>
           <h2 className="card-title">Définir le solde réel de référence</h2>
           <p className="text-sm opacity-70 mt-1">
             Indique le solde réel de ce Budget à une date précise. Tes anciennes données restent intactes :

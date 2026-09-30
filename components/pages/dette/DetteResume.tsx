@@ -9,13 +9,13 @@ type Props = {
 export default function DetteResume({ totalJeDois, totalJaiPrete }: Props) {
   return (
     <div className="grid grid-cols-2 gap-3">
-      <Card className="bg-red-950 border-red-800">
+      <Card className="border-rose-400/15 bg-rose-500/5">
         <CardContent className="p-3 text-center">
           <p className="text-xs text-red-400">Je dois</p>
           <p className="text-lg font-bold text-red-300">{formatEuro(totalJeDois)}</p>
         </CardContent>
       </Card>
-      <Card className="bg-emerald-950 border-emerald-800">
+      <Card className="border-emerald-400/15 bg-emerald-500/5">
         <CardContent className="p-3 text-center">
           <p className="text-xs text-emerald-400">On me doit</p>
           <p className="text-lg font-bold text-emerald-300">{formatEuro(totalJaiPrete)}</p>

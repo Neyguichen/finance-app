@@ -24,7 +24,7 @@ function Line({ label, planned, actual }: { label: string; planned: number; actu
         <span>{label}</span>
         <span className="text-slate-400">{formatEuro(actual)} / {formatEuro(planned)}</span>
       </div>
-      <div className="h-2 rounded-full bg-slate-800 overflow-hidden"><div className="h-full bg-slate-500 rounded-full" style={{ width: `${percent}%` }} /></div>
+      <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden"><div className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full" style={{ width: `${percent}%` }} /></div>
       {planned > 0 && delta !== 0 && (
         <p className="text-[11px] text-slate-500 text-right">Écart : {delta > 0 ? '+' : ''}{formatEuro(delta)}</p>
       )}
@@ -36,11 +36,11 @@ export default function PrevuReelV2(props: Props) {
   return (
     <section className="space-y-3">
       <div>
-        <p className="text-xs uppercase tracking-wide text-slate-500">Prévu vs réel</p>
+        <p className="nf-eyebrow">Prévu vs réel</p>
         <h2 className="text-lg font-semibold">Comment se déroule le mois ?</h2>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="nf-card-hover">
           <CardContent className="p-4 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -56,7 +56,7 @@ export default function PrevuReelV2(props: Props) {
             <p className="text-xs text-slate-400">Encore attendus : <span className="font-semibold text-slate-200">{formatEuro(props.expectedIncome)}</span></p>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="nf-card-hover">
           <CardContent className="p-4 space-y-4">
             <Line label="Charges fixes" planned={props.plannedFixed} actual={props.actualFixed} />
             <Line label="Dépenses variables" planned={props.plannedVariable} actual={props.actualVariable} />

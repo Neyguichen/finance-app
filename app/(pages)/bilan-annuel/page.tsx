@@ -6,7 +6,8 @@ import { useYearData } from '@/lib/hooks/useYearData'
 import { useAvailableYears } from '@/lib/hooks/useAvailableYears'
 import { useCategories } from '@/lib/hooks/useCategories'
 import BilanAnnuel from '@/components/pages/dashboard/BilanAnnuel'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react'
+import PageHeader from '@/components/layout/PageHeader'
 
 const moisNomFr = (m: string) => {
   const [, mo] = m.split('-').map(Number)
@@ -89,8 +90,14 @@ export default function BilanAnnuelPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 p-3 pb-24 sm:p-4">
-      <div className="flex items-center justify-center gap-2 sm:gap-4">
+    <div className="mx-auto w-full max-w-6xl space-y-5 p-3 pb-24 sm:p-4">
+      <PageHeader
+        eyebrow="Analyses"
+        title="Bilan annuel"
+        description="Prends du recul sur tes revenus, tes sorties, ton épargne et l’évolution de tes catégories."
+        icon={BarChart3}
+      />
+      <div className="nf-panel flex items-center justify-center gap-2 p-2 sm:gap-4">
         <button
           onClick={() => canPrev && setSelectedYear(availableYears[yearIndex + 1])}
           disabled={!canPrev}
@@ -106,8 +113,8 @@ export default function BilanAnnuelPage() {
               onClick={() => setSelectedYear(year)}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 year === effectiveYear
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-slate-900/50 text-slate-500 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
               {year}

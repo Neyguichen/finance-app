@@ -40,7 +40,7 @@ export default function SituationFinanciereV2({
   experimentalRemainingCashMovement,
 }: Props) {
   if (loading) {
-    return <Card className="border-slate-800 bg-slate-900"><CardContent className="p-4"><span className="loading loading-spinner loading-sm" /></CardContent></Card>
+    return <Card className="nf-card-hover"><CardContent className="p-4"><span className="loading loading-spinner loading-sm" /></CardContent></Card>
   }
 
   const currentMonth = today.slice(0, 7)
@@ -65,7 +65,7 @@ export default function SituationFinanciereV2({
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Situation actuelle · moteur V2</p>
+          <p className="nf-eyebrow">Situation actuelle</p>
           <h2 className="text-lg font-semibold">Où j&apos;en suis aujourd&apos;hui ?</h2>
         </div>
         <div className="rounded-full border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-400">
@@ -76,14 +76,14 @@ export default function SituationFinanciereV2({
       </div>
 
       {!isCurrentMonth && (
-        <div className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-400">
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/45/70 px-3 py-2 text-xs text-slate-400">
           Le disponible reste calculé à aujourd&apos;hui. Les indicateurs mensuels ci-dessous concernent <span className="font-medium text-slate-200">{periodLabel}</span>.
         </div>
       )}
 
       {isCurrentMonth ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Card className="border-slate-800 bg-slate-900">
+          <Card className="nf-card-hover">
             <CardContent className="p-4">
               <p className="text-xs text-slate-400">Disponible aujourd&apos;hui</p>
               <p className="mt-1 text-2xl font-bold">{balance == null ? '—' : formatEuro(balance)}</p>
@@ -92,7 +92,7 @@ export default function SituationFinanciereV2({
               </p>
             </CardContent>
           </Card>
-          <Card className="border-slate-800 bg-slate-900">
+          <Card className="nf-card-hover">
             <CardContent className="p-4">
               <p className="text-xs text-slate-400">Prévu fin de mois</p>
               <p className="mt-1 text-2xl font-bold">{plannedEndBalance == null ? '—' : formatEuro(plannedEndBalance)}</p>
@@ -101,11 +101,11 @@ export default function SituationFinanciereV2({
               </p>
             </CardContent>
           </Card>
-          <Card className="border-blue-900/60 bg-blue-950/30">
+          <Card className="nf-glow border-indigo-400/20 bg-indigo-500/10">
             <CardContent className="p-4">
-              <p className="text-xs text-blue-300">Projection expérimentale</p>
-              <p className="mt-1 text-2xl font-bold text-blue-200">{experimentalEndBalance == null ? '—' : formatEuro(experimentalEndBalance)}</p>
-              <p className="mt-2 text-[11px] text-blue-300/60">
+              <p className="text-xs text-indigo-300">Projection dynamique</p>
+              <p className="mt-1 text-2xl font-bold text-indigo-100">{experimentalEndBalance == null ? '—' : formatEuro(experimentalEndBalance)}</p>
+              <p className="mt-2 text-[11px] text-indigo-300/60">
                 Remplace le budget variable restant par le rythme de dépenses observé depuis le début du mois. Indicateur estimatif, pas un solde comptable.
               </p>
             </CardContent>
@@ -113,19 +113,19 @@ export default function SituationFinanciereV2({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Card className="border-slate-800 bg-slate-900 sm:col-span-1">
+          <Card className="nf-card-hover sm:col-span-1">
             <CardContent className="p-4">
               <p className="text-xs text-slate-400">Disponible aujourd&apos;hui</p>
               <p className="mt-1 text-2xl font-bold">{balance == null ? '—' : formatEuro(balance)}</p>
             </CardContent>
           </Card>
-          <Card className="border-slate-800 bg-slate-900">
+          <Card className="nf-card-hover">
             <CardContent className="p-4">
               <p className="text-xs text-slate-400">Revenus reçus · {periodLabel}</p>
               <p className="mt-1 text-lg font-bold text-emerald-400">{formatEuro(summary?.earnedIncome || 0)}</p>
             </CardContent>
           </Card>
-          <Card className="border-slate-800 bg-slate-900">
+          <Card className="nf-card-hover">
             <CardContent className="p-4">
               <p className="text-xs text-slate-400">Dépenses réelles · {periodLabel}</p>
               <p className="mt-1 text-lg font-bold text-pink-400">{formatEuro(summary?.expenses || 0)}</p>
@@ -136,13 +136,13 @@ export default function SituationFinanciereV2({
 
       {isCurrentMonth && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Card className="border-slate-800 bg-slate-900">
+          <Card className="nf-card-hover">
             <CardContent className="p-4">
               <p className="text-xs text-slate-400">Revenus reçus · {periodLabel}</p>
               <p className="mt-1 text-lg font-bold text-emerald-400">{formatEuro(summary?.earnedIncome || 0)}</p>
             </CardContent>
           </Card>
-          <Card className="border-slate-800 bg-slate-900">
+          <Card className="nf-card-hover">
             <CardContent className="p-4">
               <p className="text-xs text-slate-400">Dépenses réelles · {periodLabel}</p>
               <p className="mt-1 text-lg font-bold text-pink-400">{formatEuro(summary?.expenses || 0)}</p>
@@ -152,7 +152,7 @@ export default function SituationFinanciereV2({
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Card className="border-slate-800 bg-slate-900">
+        <Card className="nf-card-hover">
           <CardContent className="p-4">
             <p className="text-xs text-slate-400">Variation prévue du mois · {periodLabel}</p>
             <p className="mt-1 text-xl font-bold">{formatEuro(plannedMonthResult)}</p>
@@ -164,7 +164,7 @@ export default function SituationFinanciereV2({
             )}
           </CardContent>
         </Card>
-        <Card className="border-slate-800 bg-slate-900">
+        <Card className="nf-card-hover">
           <CardContent className="p-4">
             <p className="text-xs text-slate-400">Variation réelle du mois · {periodLabel}</p>
             <p className="mt-1 text-xl font-bold">{formatEuro(actualMonthResult)}</p>
@@ -179,12 +179,12 @@ export default function SituationFinanciereV2({
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-3"><p className="text-slate-500">Remb. de dépenses</p><p className="mt-1 font-semibold">{formatEuro(summary?.expenseReimbursements || 0)}</p></div>
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-3"><p className="text-slate-500">On me doit · reçu</p><p className="mt-1 font-semibold text-emerald-400">{formatEuro(summary?.debtRepaymentsIn || 0)}</p></div>
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-3"><p className="text-slate-500">Je dois · remboursé</p><p className="mt-1 font-semibold text-orange-400">{formatEuro(summary?.debtRepaymentsOut || 0)}</p></div>
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-3"><p className="text-slate-500">Reprises épargne</p><p className="mt-1 font-semibold">{formatEuro(summary?.savingsWithdrawals || 0)}</p></div>
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-3"><p className="text-slate-500">Épargne versée</p><p className="mt-1 font-semibold">{formatEuro(summary?.savingsDeposits || 0)}</p></div>
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-3"><p className="text-slate-500">Mouvement net de trésorerie</p><p className="mt-1 font-semibold">{formatEuro(summary?.netCashMovement || 0)}</p></div>
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/45 p-3"><p className="text-slate-500">Remb. de dépenses</p><p className="mt-1 font-semibold">{formatEuro(summary?.expenseReimbursements || 0)}</p></div>
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/45 p-3"><p className="text-slate-500">On me doit · reçu</p><p className="mt-1 font-semibold text-emerald-400">{formatEuro(summary?.debtRepaymentsIn || 0)}</p></div>
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/45 p-3"><p className="text-slate-500">Je dois · remboursé</p><p className="mt-1 font-semibold text-orange-400">{formatEuro(summary?.debtRepaymentsOut || 0)}</p></div>
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/45 p-3"><p className="text-slate-500">Reprises épargne</p><p className="mt-1 font-semibold">{formatEuro(summary?.savingsWithdrawals || 0)}</p></div>
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/45 p-3"><p className="text-slate-500">Épargne versée</p><p className="mt-1 font-semibold">{formatEuro(summary?.savingsDeposits || 0)}</p></div>
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/45 p-3"><p className="text-slate-500">Mouvement net de trésorerie</p><p className="mt-1 font-semibold">{formatEuro(summary?.netCashMovement || 0)}</p></div>
       </div>
     </section>
   )

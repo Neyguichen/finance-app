@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX, BarChart3, Repeat2, SlidersHorizontal } from 'lucide-react'
+import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX, BarChart3, Repeat2, Settings, SlidersHorizontal } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { createClient } from '@/lib/supabase/client'
+import PageHeader from '@/components/layout/PageHeader'
 
 import Section from '@/components/pages/parametres/Section'
 import ProfilSection from '@/components/pages/parametres/ProfilSection'
@@ -54,8 +55,13 @@ export default function ParametresPage() {
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
 
   return (
-    <div className="p-4 space-y-3 pb-24">
-      <h1 className="text-xl font-bold">⚙️ Paramètres</h1>
+    <div className="mx-auto max-w-5xl space-y-4 p-3 pb-24 sm:p-4">
+      <PageHeader
+        eyebrow="Personnalisation"
+        title="Paramètres"
+        description="Configure ton Budget, tes habitudes, tes catégories et les fonctions que tu souhaites utiliser."
+        icon={Settings}
+      />
 
       <Section open={openSections.profil} onToggle={() => toggle('profil')} icon={User} title="Profil" color="text-blue-400">
         <ProfilSection userEmail={userEmail} />

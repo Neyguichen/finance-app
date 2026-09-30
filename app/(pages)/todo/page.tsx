@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { CalendarDays, Check, CheckSquare2, ExternalLink, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import PageHeader from '@/components/layout/PageHeader'
 import { useApp } from '@/components/AppContext'
 import { useTodos } from '@/lib/hooks/useTodos'
 import { formatDate } from '@/lib/utils'
@@ -47,13 +48,12 @@ export default function TodoPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 p-3 pb-24 sm:p-4">
-      <header>
-        <p className="text-xs uppercase tracking-wide text-emerald-400">Phase 9 · Actions</p>
-        <h1 className="mt-1 text-2xl font-bold">Todo</h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Garde les actions financières à traiter sans les transformer en opérations comptables.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Actions"
+        title="Todo"
+        description="Garde les actions financières à traiter sans les transformer en opérations comptables."
+        icon={CheckSquare2}
+      />
 
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
         <h2 className="font-semibold">Ajouter une action</h2>

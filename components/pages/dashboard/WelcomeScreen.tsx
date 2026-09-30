@@ -27,9 +27,9 @@ export default function WelcomeScreen({ onCreateEspace }: WelcomeScreenProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-5 pb-24">
+    <div className="mx-auto max-w-4xl space-y-6 p-4 pb-24 sm:p-6">
       <header className="text-center">
-        <p className="text-xs uppercase tracking-wide text-blue-400">Bienvenue dans Neyguichen Finance</p>
+        <p className="text-xs uppercase tracking-wide text-blue-400">Bienvenue dans Neyguichen Finances</p>
         <h1 className="mt-2 text-3xl font-bold">Commence par créer ton premier Budget</h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-400">
           Un Budget regroupe ses propres revenus, dépenses, catégories, épargne et réglages.
@@ -43,7 +43,7 @@ export default function WelcomeScreen({ onCreateEspace }: WelcomeScreenProps) {
         <Info icon={Repeat2} title="3. Prépare ton mois" text="Définis tes récurrences ou commence de zéro." />
       </section>
 
-      <section className="mx-auto max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-5">
+      <section className="nf-card nf-glow mx-auto max-w-md p-5 sm:p-6">
         <div className="space-y-4">
           <label>
             <span className="mb-1 block text-sm text-slate-300">Nom du Budget</span>

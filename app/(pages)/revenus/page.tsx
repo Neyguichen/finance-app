@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { ArrowUpCircle, Plus } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
+import PageHeader from '@/components/layout/PageHeader'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
 import { useMouvements, useEnveloppes } from '@/lib/hooks/useEpargne'
 import { useApp } from '@/components/AppContext'

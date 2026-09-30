@@ -7,13 +7,13 @@ import AppLayout from '@/components/layout/AppLayout';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Finance App',
-  description: 'Gestion de budget personnel',
+  title: 'Neyguichen Finances',
+  description: 'Pilote ton budget, tes dépenses, ton épargne et tes objectifs simplement.',
   manifest: '/manifest.json',
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1e293b',
+  themeColor: '#07101d',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -25,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className="h-full">
-      <body className={`${inter.className} bg-slate-950 text-white h-full`}>
+    <html lang="fr" className="h-full" data-theme="neyguichen">
+      <body className={`${inter.className} h-full`}>
       <Providers>
         <AppLayout>{children}</AppLayout>
       </Providers>

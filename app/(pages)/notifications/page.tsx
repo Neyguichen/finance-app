@@ -6,6 +6,7 @@ import { Archive, Bell, CheckCheck, ExternalLink, ListTodo } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useNotifications } from '@/lib/hooks/useNotifications'
 import { useTodos } from '@/lib/hooks/useTodos'
+import PageHeader from '@/components/layout/PageHeader'
 
 const familyLabels = {
   finances: 'Finances',
@@ -40,16 +41,12 @@ export default function NotificationsPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 p-3 pb-24 sm:p-4">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-blue-400">Phase 9 · Centre interne</p>
-          <h1 className="mt-1 text-2xl font-bold">Notifications</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Les alertes restent séparées des opérations financières. Elles peuvent t&apos;orienter vers une action ou alimenter ta Todo.
-          </p>
-        </div>
-
-        {notifications.unreadCount > 0 && (
+      <PageHeader
+        eyebrow="Centre d’attention"
+        title="Notifications"
+        description="Les alertes restent séparées des opérations financières et t’orientent vers les actions qui méritent ton attention."
+        icon={Bell}
+        action={notifications.unreadCount > 0 ? (
           <button
             type="button"
             onClick={() => notifications.markAllRead.mutate()}
@@ -59,8 +56,8 @@ export default function NotificationsPage() {
             <CheckCheck className="h-4 w-4" />
             Tout marquer lu
           </button>
-        )}
-      </header>
+        ) : undefined}
+      />
 
       <div className="grid gap-2 sm:grid-cols-3">
         <Summary label="Non lues" value={notifications.unreadCount} />

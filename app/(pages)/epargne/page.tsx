@@ -5,6 +5,7 @@ import { PiggyBank } from 'lucide-react'
 
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
+import PageHeader from '@/components/layout/PageHeader'
 import EpargneResume from '@/components/pages/epargne/EpargneResume'
 import EnveloppeCard from '@/components/pages/epargne/EnveloppeCard'
 import EnveloppeForm from '@/components/pages/epargne/EnveloppeForm'
@@ -157,8 +158,13 @@ export default function EpargnePage() {
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
-      <div className="space-y-4 p-3 pb-24 sm:p-4">
-        <h1 className="text-xl font-bold">Épargne</h1>
+      <div className="mx-auto max-w-6xl space-y-5 p-3 pb-24 sm:p-4">
+        <PageHeader
+          eyebrow="Réserves"
+          title="Épargne"
+          description="Suis tes enveloppes, tes objectifs et tes mouvements sans confondre stock d’épargne et flux mensuels."
+          icon={PiggyBank}
+        />
 
         {!isAdminViewing && enveloppesActives.length === 0 && (
           <EmptyStateV2

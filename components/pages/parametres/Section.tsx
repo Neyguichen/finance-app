@@ -13,15 +13,15 @@ type Props = {
 
 export default function Section({ open, onToggle, icon: Icon, title, color, children }: Props) {
   return (
-    <Card className={`border-slate-800 ${open ? 'bg-slate-900' : 'bg-slate-900/50'}`}>
-      <button type="button" onClick={onToggle} className="w-full flex items-center justify-between p-4">
+    <Card className={`overflow-hidden transition ${open ? 'border-indigo-400/15' : ''}`}>
+      <button type="button" onClick={onToggle} className="flex w-full items-center justify-between p-4 text-left transition hover:bg-slate-800/35 sm:p-5">
         <div className="flex items-center gap-3">
-          <Icon className={`w-5 h-5 ${color}`} />
-          <span className="font-semibold">{title}</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700/70 bg-slate-950/45"><Icon className={`h-4 w-4 ${color}`} /></div>
+          <span className="font-semibold tracking-tight text-slate-200">{title}</span>
         </div>
         {open ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
       </button>
-      {open && <CardContent className="pt-0 pb-4">{children}</CardContent>}
+      {open && <CardContent className="border-t border-slate-800/70 pt-4 pb-4 sm:pt-5">{children}</CardContent>}
     </Card>
   )
 }

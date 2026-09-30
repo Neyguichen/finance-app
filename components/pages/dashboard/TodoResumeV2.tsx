@@ -17,7 +17,7 @@ export default function TodoResumeV2() {
   if (!todoEnabled) return null
 
   return (
-    <Card className="border-slate-800 bg-slate-900">
+    <Card className="nf-card-hover">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between gap-3 text-sm text-slate-300">
           <span className="flex items-center gap-2">
@@ -30,7 +30,7 @@ export default function TodoResumeV2() {
             )}
           </span>
           {!isAdminViewing && (
-            <Link href="/todo" className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+            <Link href="/todo" className="inline-flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200">
               Voir tout
               <ChevronRight className="h-3.5 w-3.5" />
             </Link>
@@ -45,7 +45,7 @@ export default function TodoResumeV2() {
         ) : top.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-700 bg-slate-950/30 p-3">
             <p className="text-sm text-slate-300">Aucune action en attente.</p>
-            <Link href="/todo" className="mt-1 inline-flex text-xs text-blue-400 hover:text-blue-300">
+            <Link href="/todo" className="mt-1 inline-flex text-xs text-indigo-300 hover:text-indigo-200">
               Ajouter une action
             </Link>
           </div>

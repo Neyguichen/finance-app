@@ -10,12 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import MonthSelector from '@/components/layout/MonthSelector'
+import PageHeader from '@/components/layout/PageHeader'
 import WelcomeScreen from '@/components/pages/dashboard/WelcomeScreen'
-import ResteAVivreCard from '@/components/pages/dashboard/ResteAVivreCard'
-import EntrantsCard from '@/components/pages/dashboard/EntrantsCard'
-import SortantsCard from '@/components/pages/dashboard/SortantsCard'
-import RepartitionCategories from '@/components/pages/dashboard/RepartitionCategories'
-import IndicateursMois from '@/components/pages/dashboard/IndicateursMois'
 import SituationFinanciereV2 from '@/components/pages/dashboard/SituationFinanciereV2'
 import PrevuReelV2 from '@/components/pages/dashboard/PrevuReelV2'
 import BudgetsV2 from '@/components/pages/dashboard/BudgetsV2'
@@ -29,7 +25,7 @@ import { useMonthPreparation, usePrepareMonth } from '@/lib/hooks/useMonthPrepar
 import { useHabits } from '@/lib/hooks/useHabits'
 
 import { getMontantNet, localDateISO } from '@/lib/utils'
-import { useDashboardData } from '@/lib/hooks/useDashboardData'
+import { useDashboardInsights } from '@/lib/hooks/useDashboardInsights'
 import { useActualCashSummary, useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
 import { useDashboardV2 } from '@/lib/hooks/useDashboardV2'
 
@@ -45,7 +41,7 @@ export default function DashboardPage() {
   const preparationPreview = useMonthPreparation(espace?.id, month, preparationMode)
   const prepareMonth = usePrepareMonth(espace?.id, month, userId ?? undefined)
 
-  const data = useDashboardData()
+  const insights = useDashboardInsights()
   const v2 = useDashboardV2()
   const today = localDateISO()
   const [year, monthNumber] = month.split('-').map(Number)
@@ -69,14 +65,6 @@ export default function DashboardPage() {
   )
   const v2Summary = useActualCashSummary(espace?.id, monthStart, summaryEnd, espace?.double_date ?? false)
 
-  const ds = {
-    repartition: true, ratioCharges: true, maitrise: true, epargne20: true,
-    top3Depenses: true, top3Categories: true,
-    bilanEpargne: true, bilanMoisExtremes: true, bilanGraphRevSortants: true,
-    bilanGraphReste: true, bilanCatVariable: true, bilanTableau: true,
-    ...(espace?.dashboard_stats as Record<string, boolean> | undefined),
-  }
-
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center"><span className="loading loading-spinner loading-lg" /></div>
   }
@@ -85,7 +73,6 @@ export default function DashboardPage() {
     return <WelcomeScreen onCreateEspace={async (nom, icone) => { await addEspace(nom, icone) }} />
   }
 
-  const showIndicateurs = ds.ratioCharges || ds.maitrise || ds.epargne20 || ds.top3Depenses || ds.top3Categories
   const hasPreviousMonth = (monthModel.data || []).some(item => item.mois.slice(0, 7) < month.slice(0, 7))
   const hasHabits = (habitsModel.data || []).some(item => item.actif)
 
@@ -108,16 +95,19 @@ export default function DashboardPage() {
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
       <div className="mx-auto w-full max-w-7xl space-y-4 px-3 py-4 pb-24 sm:px-4">
-        <div className="flex items-center justify-between">
-          {!isAdminViewing && (
+        <PageHeader
+          eyebrow="Vue d’ensemble"
+          title="Résumé"
+          description="Une lecture claire de ta situation, de ce qui était prévu et de ce qui s’est réellement passé."
+          action={!isAdminViewing ? (
             <Dialog open={openEspace} onOpenChange={setOpenEspace}>
               <DialogTrigger asChild>
-                <Button size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Espace</Button>
+                <Button size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Nouveau Budget</Button>
               </DialogTrigger>
-              <DialogContent className="mx-auto w-11/12 max-w-sm border-slate-700 bg-slate-900">
-                <DialogHeader><DialogTitle>Nouvel espace</DialogTitle></DialogHeader>
+              <DialogContent className="mx-auto w-11/12 max-w-sm">
+                <DialogHeader><DialogTitle>Nouveau Budget</DialogTitle></DialogHeader>
                 <div className="space-y-4">
-                  <Input placeholder="Nom (ex: Joint)" value={newNom} onChange={e => setNewNom(e.target.value)} />
+                  <Input placeholder="Nom (ex. Foyer)" value={newNom} onChange={e => setNewNom(e.target.value)} />
                   <EmojiPicker value={newIcone} onChange={setNewIcone} />
                   <Button className="w-full" onClick={async () => {
                     if (!newNom.trim()) return
@@ -125,12 +115,12 @@ export default function DashboardPage() {
                     setNewNom('')
                     setNewIcone('🏠')
                     setOpenEspace(false)
-                  }}>Créer l&apos;espace</Button>
+                  }}>Créer le Budget</Button>
                 </div>
               </DialogContent>
             </Dialog>
-          )}
-        </div>
+          ) : undefined}
+        />
 
         {!moisId && (
           <EmptyMonthV2
@@ -193,68 +183,15 @@ export default function DashboardPage() {
         />
 
         <ComprendreV2
-          ratioChargesRevenus={data.ratioChargesRevenus}
-          tauxMaitrise={data.tauxMaitrise}
-          topExpense={data.top3Depenses?.[0] ?? null}
-          topCategory={data.top3Categories?.[0] ?? null}
+          ratioChargesRevenus={insights.ratioChargesRevenus}
+          tauxMaitrise={insights.tauxMaitrise}
+          topExpense={insights.topExpense}
+          topCategory={insights.topCategory}
           getNetAmount={getMontantNet}
         />
 
         <TodoResumeV2 />
 
-        {/* Cartes V1 conservées temporairement pour comparaison pendant la migration. */}
-        <ResteAVivreCard restePrevu={data.restePrevu} resteReel={data.resteReel} />
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <EntrantsCard totalEntrants={data.totalEntrants} chartData={data.revenusChartData} />
-          <SortantsCard
-            totalSortantsAll={data.totalSortantsAll}
-            sortantsChartData={data.sortantsChartData}
-            chargesFixesNonPayees={data.chargesFixesNonPayees}
-            totalChargesPayees={data.totalChargesPayees}
-            totalChargesFixes={data.totalChargesFixes}
-            totalDepenses={data.totalDepenses}
-            totalVariablesBudget={data.totalVariablesBudget}
-            totalEpargnes={data.totalEpargnes}
-            resteM1Sortant={data.resteM1Sortant}
-            totalEntrants={data.totalEntrants}
-          />
-        </div>
-
-        {(ds.repartition || showIndicateurs) && (
-          <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
-            {ds.repartition && (
-              <RepartitionCategories
-                repartitionChartData={data.repartitionChartData}
-                totalChargesPayees={data.totalChargesPayees}
-                totalChargesFixes={data.totalChargesFixes}
-                totalEpargnes={data.totalEpargnes}
-                catStatsMonth={data.catStatsMonth}
-                prevMonthData={data.prevMonthData}
-              />
-            )}
-            {showIndicateurs && (
-              <IndicateursMois
-                ratioChargesRevenus={data.ratioChargesRevenus}
-                tauxMaitrise={data.tauxMaitrise}
-                totalDepenses={data.totalDepenses}
-                totalVariablesBudget={data.totalVariablesBudget}
-                objectifEpargne={data.objectifEpargne}
-                capaciteEpargne={data.capaciteEpargne}
-                totalEpargnes={data.totalEpargnes}
-                top3Depenses={data.top3Depenses}
-                top3Categories={data.top3Categories}
-                getMontantNet={getMontantNet}
-                showRatioCharges={ds.ratioCharges}
-                showMaitrise={ds.maitrise}
-                showEpargne20={ds.epargne20}
-                showTop3Depenses={ds.top3Depenses}
-                showTop3Categories={ds.top3Categories}
-                top3SubCategories={data.top3SubCategories}
-              />
-            )}
-          </div>
-        )}
       </div>
     </div>
   )

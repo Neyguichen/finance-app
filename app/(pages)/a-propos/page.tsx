@@ -1,13 +1,19 @@
 'use client'
 
 import { Card, CardContent } from '@/components/ui/card'
-import { ExternalLink, Mail, BookOpen, Code2 } from 'lucide-react'
+import { ExternalLink, Mail, BookOpen, Code2, Info } from 'lucide-react'
 import { APP_VERSION } from '@/lib/version'
+import PageHeader from '@/components/layout/PageHeader'
 
 export default function AProposPage() {
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">À propos</h1>
+    <div className="mx-auto max-w-4xl space-y-4 p-3 pb-24 sm:p-4">
+      <PageHeader
+        eyebrow="Neyguichen Finances"
+        title="À propos"
+        description="Informations produit, ressources et détails techniques de l’application."
+        icon={Info}
+      />
 
       {/* Guide utilisateur */}
       <Card className="bg-slate-900 border-slate-800">
@@ -46,7 +52,7 @@ export default function AProposPage() {
           <p className="text-sm text-slate-300">
             Développé avec ❤️ par <span className="font-semibold text-white">Stéphane</span>
           </p>
-          <p className="text-xs text-slate-500 mt-1">Architecture Espaces - v{APP_VERSION}</p>
+          <p className="text-xs text-slate-500 mt-1">Architecture Budgets · v{APP_VERSION}</p>
         </CardContent>
       </Card>
 
@@ -75,7 +81,7 @@ export default function AProposPage() {
             ))}
           </div>
           <p className="text-xs text-slate-500 text-center mt-2">
-            100% gratuit
+            Version personnelle
           </p>
         </CardContent>
       </Card>

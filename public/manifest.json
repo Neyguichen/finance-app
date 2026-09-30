@@ -1,11 +1,11 @@
 {
-  "name": "Finance App",
-  "short_name": "Finance",
-  "description": "Gestion de budget personnel",
+  "name": "Neyguichen Finances",
+  "short_name": "Neyguichen",
+  "description": "Pilote ton budget, tes dépenses, ton épargne et tes objectifs simplement.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1e293b",
+  "background_color": "#07101d",
+  "theme_color": "#07101d",
   "orientation": "portrait",
   "icons": [
     {
