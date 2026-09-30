@@ -3,6 +3,7 @@ name: Build check
 on:
   push:
     branches:
+      - main
       - v2/phase-1-financial-engine
   workflow_dispatch:
 
