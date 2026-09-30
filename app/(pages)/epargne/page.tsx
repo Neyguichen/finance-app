@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { PiggyBank } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
 
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
@@ -23,7 +22,6 @@ import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 import { formatEuro } from '@/lib/utils'
 
 export default function EpargnePage() {
-  const searchParams = useSearchParams()
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
@@ -59,10 +57,10 @@ export default function EpargnePage() {
   const [openMvt, setOpenMvt] = useState(false)
 
   useEffect(() => {
-    if (!isAdminViewing && moisId && searchParams.get('add') === 'movement') {
+    if (!isAdminViewing && moisId && new URLSearchParams(window.location.search).get('add') === 'movement') {
       setOpenMvt(true)
     }
-  }, [isAdminViewing, moisId, searchParams])
+  }, [isAdminViewing, moisId])
   const [editMvt, setEditMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string | null } | null>(null)
   const [scopeMvt, setScopeMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; note: string | null } | null>(null)
