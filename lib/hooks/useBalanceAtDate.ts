@@ -50,7 +50,15 @@ async function loadActualFlows(supabase: ReturnType<typeof createClient>, espace
     // This keeps the financial engine aligned with the accounting invariant and prevents
     // reimbursements attached to the parent from disappearing.
     if (transaction.parent_transaction_id) continue
-    if (transaction.date_validation) flows.push({ kind: 'expense', amount: Number(transaction.montant), date: doubleDate ? transaction.date_validation : transaction.date })
+    // En mode standard, une transaction est une dépense réelle à sa date d'opération.
+    // Le mode double date exige une validation bancaire explicite et utilise alors
+    // la date de validation comme date réelle. Cela conserve aussi les transactions
+    // historiques V1 qui n'avaient pas de date_validation.
+    if (!doubleDate && transaction.date) {
+      flows.push({ kind: 'expense', amount: Number(transaction.montant), date: transaction.date })
+    } else if (doubleDate && transaction.date_validation) {
+      flows.push({ kind: 'expense', amount: Number(transaction.montant), date: transaction.date_validation })
+    }
     const reimbursements = Array.isArray(transaction.remboursements) ? transaction.remboursements : transaction.remboursements ? [transaction.remboursements] : []
     for (const reimbursement of reimbursements) if (reimbursement.date) flows.push({ kind: 'expense_reimbursement', amount: Number(reimbursement.montant), date: reimbursement.date })
   }
@@ -66,7 +74,8 @@ async function loadActualFlows(supabase: ReturnType<typeof createClient>, espace
 
   for (const movement of savings || []) {
     const kind: FinancialFlowKind = movement.type === 'epargne' ? 'savings_deposit' : movement.type === 'reprise' ? 'savings_withdrawal' : 'savings_transfer'
-    flows.push({ kind, amount: Number(movement.montant), date: movement.date })
+    const movementDate = movement.date?.length === 7 ? `${movement.date}-01` : movement.date
+    if (movementDate) flows.push({ kind, amount: Number(movement.montant), date: movementDate })
   }
   return flows
 }
