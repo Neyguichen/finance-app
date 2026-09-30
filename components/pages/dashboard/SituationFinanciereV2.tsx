@@ -76,7 +76,7 @@ export default function SituationFinanciereV2({
       </div>
 
       {!isCurrentMonth && (
-        <div className="rounded-xl border border-slate-800/70 bg-slate-950/45/70 px-3 py-2 text-xs text-slate-400">
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/45 px-3 py-2 text-xs text-slate-400">
           Le disponible reste calculé à aujourd&apos;hui. Les indicateurs mensuels ci-dessous concernent <span className="font-medium text-slate-200">{periodLabel}</span>.
         </div>
       )}
