@@ -130,7 +130,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       if (!espaceId) throw new Error('Budget manquant')
       if (rows.length === 0) return [] as ImportPreviewRow[]
 
-      const monthStarts = [...new Set(rows.map(row => monthStartFromDate(row.date)))]
+      const monthStarts = Array.from(new Set(rows.map(row => monthStartFromDate(row.date))))
       const { data: months, error: monthsError } = await supabase
         .from('mois')
         .select('id, mois')
