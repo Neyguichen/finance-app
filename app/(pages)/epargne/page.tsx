@@ -209,7 +209,7 @@ export default function EpargnePage() {
           </button>
         </div>
 
-        <div className={section === 'savings' ? 'contents' : 'hidden'}>
+        <div className={section === 'savings' ? 'space-y-6' : 'hidden'}>
 
         {!isAdminViewing && enveloppesActives.length === 0 && (
           <EmptyStateV2
@@ -251,7 +251,7 @@ export default function EpargnePage() {
         {(enveloppesActives.length > 1 || enveloppesActives.some((e: any) => e.objectif && Number(e.objectif) > 0)) && (
           <div>
             {enveloppesVisibles.length > 0 && (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {enveloppesVisibles.map((env: any) => (
                   <EnveloppeCard key={env.id} env={env} readOnly={isAdminViewing} variant="active"
                     onEdit={setEditEnv} onArchive={(id) => archive.mutate(id)} />
@@ -296,8 +296,8 @@ export default function EpargnePage() {
         )}
 
         {/* Mouvements du mois */}
-        <h2 className="text-lg font-semibold">Mouvements du mois</h2>
-        <div className="space-y-2">
+        <div className="space-y-3"><h2 className="text-lg font-semibold">Mouvements du mois</h2>
+        <div className="space-y-3">
           {effectiveMouvements.map((mvt: any) => (
             <MouvementCard key={mvt.id} mvt={mvt} readOnly={isAdminViewing}
               getEnvNom={getEnvNom} onEdit={setEditMvt} onDelete={setDeleteTarget} />
@@ -313,7 +313,7 @@ export default function EpargnePage() {
               onAction={!isAdminViewing && enveloppesActives.length > 0 ? () => setOpenMvt(true) : undefined}
             />
           )}
-        </div>
+        </div></div>
 
         {/* Tous les dialogs */}
         <EnveloppeEditDialog editEnv={editEnv} onClose={() => setEditEnv(null)} onSave={handleSaveEditEnv} />
