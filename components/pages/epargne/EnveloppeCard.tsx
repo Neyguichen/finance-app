@@ -32,9 +32,9 @@ export default function EnveloppeCard({ env, readOnly, variant, onEdit, onArchiv
 
   return (
     <Card className={cardClass}>
-      <CardContent className="p-3 space-y-2">
+      <CardContent className="space-y-3 p-4 sm:p-5">
         <div className="flex items-center justify-between">
-          <p className="font-medium text-sm truncate">{env.nom}</p>
+          <p className="truncate text-sm font-semibold">{env.nom}</p>
           <div className="flex items-center gap-1">
             {!readOnly && !isArchived && (
               <>
@@ -66,7 +66,7 @@ export default function EnveloppeCard({ env, readOnly, variant, onEdit, onArchiv
             )}
           </div>
         </div>
-        <p className={`text-lg font-bold ${isActive ? 'text-emerald-400' : 'text-slate-400'}`}>
+        <p className={`text-xl font-bold ${isActive ? 'text-emerald-400' : 'text-slate-400'}`}>
           {formatEuro(Number(env.solde))}
         </p>
         {env.solde_reference != null && env.date_solde_reference && (
@@ -76,7 +76,7 @@ export default function EnveloppeCard({ env, readOnly, variant, onEdit, onArchiv
         )}
         {isActive && env.objectif && pourcent !== null && (
           <>
-            <Progress value={pourcent} className="h-2" />
+            <Progress value={pourcent} className="h-2.5" />
             <p className="text-xs text-slate-500">
               {pourcent}% — Objectif {formatEuro(Number(env.objectif))}
             </p>
