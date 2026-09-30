@@ -49,7 +49,6 @@ export default function PrevuReelV2(props: Props) {
               </div>
               <div className="text-right">
                 <p className="font-bold">{formatEuro(props.actualIncome)}</p>
-                <p className="text-xs text-slate-500">sur {formatEuro(props.plannedIncome)}</p>
               </div>
             </div>
             <Line label="Reçus" planned={props.plannedIncome} actual={props.actualIncome} />
