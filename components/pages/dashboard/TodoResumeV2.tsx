@@ -14,6 +14,7 @@ export default function TodoResumeV2() {
   const todos = useTodos(!isAdminViewing && todoEnabled ? espace?.id : undefined)
 
   const [adding, setAdding] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -27,7 +28,7 @@ export default function TodoResumeV2() {
     () => (todos.data || []).filter(item => item.status === 'todo'),
     [todos.data]
   )
-  const top = pending.slice(0, 5)
+  const visibleTodos = showAll ? pending : pending.slice(0, 5)
 
   if (!todoEnabled) return null
 
@@ -63,7 +64,7 @@ export default function TodoResumeV2() {
   }
 
   return (
-    <Card className="nf-card-hover">
+    <Card id="todo" className="nf-card-hover scroll-mt-24">
       <CardHeader className="pb-3">
         <CardTitle className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-300">
           <span className="flex items-center gap-2">
@@ -85,10 +86,16 @@ export default function TodoResumeV2() {
                 {adding ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                 {adding ? 'Fermer' : 'Ajouter'}
               </button>
-              <Link href="/todo" className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300">
-                Tout voir
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
+              {pending.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAll(value => !value)}
+                  className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300"
+                >
+                  {showAll ? 'Réduire' : 'Tout afficher'}
+                  <ChevronRight className={`h-3.5 w-3.5 transition-transform ${showAll ? 'rotate-90' : ''}`} />
+                </button>
+              )}
             </div>
           )}
         </CardTitle>
@@ -136,7 +143,7 @@ export default function TodoResumeV2() {
           <p className="text-sm text-slate-500">Todo personnelle masquée en vue administrateur.</p>
         ) : todos.isLoading ? (
           <p className="text-sm text-slate-500">Chargement…</p>
-        ) : top.length === 0 ? (
+        ) : visibleTodos.length === 0 ? (
           <button
             type="button"
             onClick={() => setAdding(true)}
@@ -147,7 +154,7 @@ export default function TodoResumeV2() {
           </button>
         ) : (
           <div className="space-y-2">
-            {top.map(todo => {
+            {visibleTodos.map(todo => {
               const editing = editingId === todo.id
               return (
                 <div key={todo.id} className="group rounded-xl border border-slate-800/80 bg-slate-950/35 p-3">
@@ -238,11 +245,15 @@ export default function TodoResumeV2() {
                 </div>
               )
             })}
-            {pending.length > top.length && (
-              <Link href="/todo" className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300">
-                + {pending.length - top.length} autre(s) action(s)
+            {!showAll && pending.length > visibleTodos.length && (
+              <button
+                type="button"
+                onClick={() => setShowAll(true)}
+                className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300"
+              >
+                + {pending.length - visibleTodos.length} autre(s) action(s)
                 <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
+              </button>
             )}
           </div>
         )}
