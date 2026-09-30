@@ -19,7 +19,7 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
 
         const [revenus, fixes, budgets] = await Promise.all([
           supabase.from('revenus').select('id, nom, montant, recurrent_id, type, ordre').eq('mois_id', previous.id),
-          supabase.from('charges_fixes').select('id, nom, montant, recurrent_id, categorie_id, ordre').eq('mois_id', previous.id),
+          supabase.from('charges_fixes').select('id, nom, montant, recurrent_id, categorie_id, sous_categorie_id, ordre').eq('mois_id', previous.id),
           supabase.from('budgets').select('id, categorie_id, prevu, categorie:categories(nom)').eq('mois_id', previous.id),
         ])
         if (revenus.error) throw revenus.error
@@ -27,7 +27,7 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
         if (budgets.error) throw budgets.error
 
         for (const row of revenus.data || []) items.push({ id: `income:${row.id}`, kind: 'income', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.recurrent_id, incomeType: row.type as 'actif' | 'passif', order: row.ordre || 0, selected: true })
-        for (const row of fixes.data || []) items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.recurrent_id, categoryId: row.categorie_id, order: row.ordre || 0, selected: true })
+        for (const row of fixes.data || []) items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.recurrent_id, categoryId: row.categorie_id, subcategoryId: row.sous_categorie_id, order: row.ordre || 0, selected: true })
         for (const row of budgets.data || []) items.push({ id: `budget:${row.id}`, kind: 'budget', label: (row.categorie as { nom?: string } | null)?.nom || 'Budget variable', amount: Number(row.prevu), sourceId: row.id, categoryId: row.categorie_id, selected: true })
         return { mode, items, sourceMonth: previous.mois }
       }
@@ -84,7 +84,7 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
       }
       for (const row of fixes.data || []) {
         if (isHabitDue(row, targetDate) && !existingFixedSources.has(row.id)) {
-          items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, categoryId: row.categorie_id, order: row.ordre || 0, selected: true })
+          items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, categoryId: row.categorie_id, subcategoryId: row.sous_categorie_id, order: row.ordre || 0, selected: true })
         }
       }
       for (const row of savings.data || []) {

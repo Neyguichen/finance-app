@@ -49,7 +49,7 @@ export default function EpargneDettesV2({
             <p className="text-xs text-slate-400">Je dois encore</p>
             <p className="text-xl font-bold text-orange-400">{formatEuro(debtRemaining)}</p>
             <p className="text-[11px] text-slate-500">Reste des dettes actives après remboursements enregistrés.</p>
-            <Link href="/dette" className="inline-block text-xs text-indigo-300 hover:text-indigo-200">Voir les dettes →</Link>
+            <Link href="/epargne?view=debts" className="inline-block text-xs text-indigo-300 hover:text-indigo-200">Ouvrir dettes & créances →</Link>
           </CardContent>
         </Card>
 
@@ -58,7 +58,7 @@ export default function EpargneDettesV2({
             <p className="text-xs text-slate-400">On me doit encore</p>
             <p className="text-xl font-bold text-emerald-400">{formatEuro(receivableRemaining)}</p>
             <p className="text-[11px] text-slate-500">Reste des créances actives, sans les assimiler à des revenus.</p>
-            <Link href="/dette" className="inline-block text-xs text-indigo-300 hover:text-indigo-200">Voir les créances →</Link>
+            <Link href="/epargne?view=debts" className="inline-block text-xs text-indigo-300 hover:text-indigo-200">Ouvrir dettes & créances →</Link>
           </CardContent>
         </Card>
       </div>

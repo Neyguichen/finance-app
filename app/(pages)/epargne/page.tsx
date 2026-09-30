@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { PiggyBank } from 'lucide-react'
+import { Handshake, PiggyBank } from 'lucide-react'
 
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
@@ -14,6 +14,7 @@ import MouvementCard from '@/components/pages/epargne/MouvementCard'
 import { MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
 import EpargneFab from '@/components/pages/epargne/EpargneFab'
 import EmptyStateV2 from '@/components/ui/EmptyStateV2'
+import DettesPanel from '@/components/pages/epargne/DettesPanel'
 
 import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
 import { useEnveloppesAtMonth } from '@/lib/hooks/useEnveloppesAtMonth'
@@ -23,6 +24,13 @@ import { formatEuro } from '@/lib/utils'
 
 export default function EpargnePage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
+  const [section, setSection] = useState<'savings' | 'debts'>('savings')
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('view') === 'debts') {
+      setSection('debts')
+    }
+  }, [])
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
@@ -168,10 +176,29 @@ export default function EpargnePage() {
       <div className="mx-auto max-w-6xl space-y-5 p-3 pb-24 sm:p-4">
         <PageHeader
           eyebrow="Réserves"
-          title="Épargne"
-          description="Suis tes enveloppes, tes objectifs et tes mouvements sans confondre stock d’épargne et flux mensuels."
-          icon={PiggyBank}
+          title="Épargne & dettes"
+          description="Réserves, objectifs, dettes et créances réunis dans un même espace, sans mélanger stocks et flux mensuels."
+          icon={section === 'savings' ? PiggyBank : Handshake}
         />
+
+        <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/80 bg-slate-950/35 p-1">
+          <button
+            type="button"
+            onClick={() => setSection('savings')}
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${section === 'savings' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            Épargne
+          </button>
+          <button
+            type="button"
+            onClick={() => setSection('debts')}
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${section === 'debts' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            Dettes & créances
+          </button>
+        </div>
+
+        <div className={section === 'savings' ? 'contents' : 'hidden'}>
 
         {!isAdminViewing && enveloppesActives.length === 0 && (
           <EmptyStateV2
@@ -289,10 +316,13 @@ export default function EpargnePage() {
         <MouvementEditDialog editMvt={editMvt} onClose={() => setEditMvt(null)} onSave={handleEditMvtSave} />
         <MouvementScopeDialog target={scopeMvt} onClose={() => setScopeMvt(null)} onSave={handleScopeEditMvt} />
         <MouvementDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDeleteMvt} />
+        </div>
+
+        {section === 'debts' && <DettesPanel />}
       </div>
 
       {/* FAB */}
-      {!isAdminViewing && (
+      {!isAdminViewing && section === 'savings' && (
         <EpargneFab onOpenMouvement={() => setOpenMvt(true)} />
       )}
     </div>

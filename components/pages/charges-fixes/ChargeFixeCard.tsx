@@ -11,7 +11,7 @@ type Props = {
   doubleDate?: boolean
   onTogglePayee: (id: string, payee: boolean, dateReelle?: string | null) => void
   onActualAmountChange?: (id: string, montantReel: number | null) => void
-  onEdit: (charge: { id: string; nom: string; montant: number; recurrentId: string | null; categorieId?: string | null }) => void
+  onEdit: (charge: { id: string; nom: string; montant: number; recurrentId: string | null; categorieId?: string | null; sousCategorieId?: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
 }
 
@@ -34,7 +34,12 @@ export default function ChargeFixeCard({ charge, readOnly, doubleDate = false, o
             </p>
             <div className="flex items-center gap-1 flex-wrap">
               {charge.recurrent_id && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900 text-purple-400">↻</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300">↻ Récurrente</span>
+              )}
+              {charge.categorie_nom && (
+                <span className="text-[11px] text-slate-500">
+                  {charge.categorie_icone || '📂'} {charge.categorie_nom}{charge.sous_categorie_nom ? ` · ${charge.sous_categorie_nom}` : ''}
+                </span>
               )}
             </div>
             {(charge.date_prevue || (doubleDate && charge.date_reelle)) && (
@@ -79,7 +84,7 @@ export default function ChargeFixeCard({ charge, readOnly, doubleDate = false, o
           {!readOnly && (
             <>
               <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"
-                onClick={() => onEdit({ id: charge.id, nom: charge.nom, montant: Number(charge.montant), recurrentId: charge.recurrent_id, categorieId: charge.categorie_id ?? null })}>
+                onClick={() => onEdit({ id: charge.id, nom: charge.nom, montant: Number(charge.montant), recurrentId: charge.recurrent_id, categorieId: charge.categorie_id ?? null, sousCategorieId: charge.sous_categorie_id ?? null })}>
                 <Pencil className="w-4 h-4" />
               </Button>
               <Button variant="ghost" size="icon" className="text-slate-500 h-8 w-8"

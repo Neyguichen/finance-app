@@ -19,7 +19,7 @@ export default function InlineCatCreator({ onCreated, onCancel, createCat, espac
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-2">
-      <p className="text-xs text-slate-400 font-semibold">Nouveau budget</p>
+      <p className="text-xs text-slate-400 font-semibold">Nouvelle catégorie</p>
       <Input placeholder="Nom (ex: Courses)" value={nom} onChange={e => setNom(e.target.value)} />
       <EmojiPicker value={icone} onChange={setIcone} />
       <div className="flex gap-2">
