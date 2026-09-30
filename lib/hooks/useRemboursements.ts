@@ -63,6 +63,23 @@ export function useRemboursements(transactionId: string | undefined) {
 
   const create = useMutation({
     mutationFn: async (r: Omit<Remboursement, 'id' | 'created_at'>) => {
+      const [transactionResult, existingResult] = await Promise.all([
+        supabase.from('transactions').select('montant').eq('id', r.transaction_id).single(),
+        supabase.from('remboursements').select('montant').eq('transaction_id', r.transaction_id),
+      ])
+      if (transactionResult.error) throw transactionResult.error
+      if (existingResult.error) throw existingResult.error
+
+      const gross = Number(transactionResult.data.montant)
+      const alreadyReimbursed = (existingResult.data || []).reduce((sum, item) => sum + Number(item.montant), 0)
+      const nextTotal = alreadyReimbursed + Number(r.montant)
+      if (!Number.isFinite(Number(r.montant)) || Number(r.montant) <= 0) {
+        throw new Error('Le remboursement doit être strictement positif.')
+      }
+      if (nextTotal - gross > 0.005) {
+        throw new Error(`Le total des remboursements ne peut pas dépasser la dépense initiale (${gross.toFixed(2)} €).`)
+      }
+
       const { data, error } = await supabase
         .from('remboursements')
         .insert(r)

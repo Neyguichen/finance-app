@@ -113,6 +113,17 @@ export default function SplitDialog({ tx, onClose, categories, espaceId, createC
     setLines(prev => prev.map((l, i) => i === prev.length - 1 ? { ...l, montant: Math.round((l.montant + remaining) * 100) / 100 } : l))
   }
 
+  const splitEqually = () => {
+    if (lines.length < 2 || total <= 0) return
+    const cents = Math.round(total * 100)
+    const base = Math.floor(cents / lines.length)
+    const rest = cents - base * lines.length
+    setLines(prev => prev.map((line, index) => ({
+      ...line,
+      montant: (base + (index === prev.length - 1 ? rest : 0)) / 100,
+    })))
+  }
+
   const handleSave = async () => {
     if (!tx || !isValid) return
     setSaving(true)
@@ -130,7 +141,7 @@ export default function SplitDialog({ tx, onClose, categories, espaceId, createC
 
   return (
     <Dialog open={!!tx} onOpenChange={v => { if (!v) onClose() }}>
-      <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-11/12 max-w-xl mx-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             <span className="flex items-center gap-2">✂️ Splitter la dépense</span>
@@ -155,7 +166,7 @@ export default function SplitDialog({ tx, onClose, categories, espaceId, createC
           {lines.map((line, i) => {
             const subCats = line.categorie_id ? getSubCats(line.categorie_id) : []
             return (
-              <div key={i} className="bg-slate-800 rounded-lg p-3 space-y-2">
+              <div key={i} className="rounded-xl border border-slate-800/70 bg-slate-950/35 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-slate-500 font-semibold">Ligne {i + 1}</span>
                   {lines.length > 2 && (
@@ -250,9 +261,14 @@ export default function SplitDialog({ tx, onClose, categories, espaceId, createC
             )
           })}
 
-          <Button variant="outline" size="sm" className="w-full text-xs" onClick={addLine}>
-            <Plus className="w-3 h-3 mr-1" /> Ajouter une ligne
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="sm" className="text-xs" onClick={addLine}>
+              <Plus className="w-3 h-3 mr-1" /> Ajouter une ligne
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs" onClick={splitEqually} disabled={lines.length < 2 || total <= 0}>
+              Répartir également
+            </Button>
+          </div>
 
           {/* Résumé */}
           <div className={`rounded-lg p-3 text-sm ${Math.abs(remaining) < 0.01 ? 'bg-emerald-950 border border-emerald-800' : 'bg-amber-950 border border-amber-800'}`}>
