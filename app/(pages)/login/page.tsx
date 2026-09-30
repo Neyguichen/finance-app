@@ -45,7 +45,7 @@ export default function LoginPage() {
           <div className="relative">
             <BrandMark className="justify-center" />
             <div className="mt-6 text-center">
-              <p className="nf-eyebrow">{isSignUp ? 'Créer ton espace' : 'Bienvenue'}</p>
+              <p className="nf-eyebrow">{isSignUp ? 'Créer ton Budget' : 'Bienvenue'}</p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
                 {isSignUp ? 'Créer un compte' : 'Se connecter'}
               </h1>

@@ -59,7 +59,7 @@ export default function ParametresPage() {
       <PageHeader
         eyebrow="Personnalisation"
         title="Paramètres"
-        description="Configure ton Budget, tes habitudes, tes catégories et les fonctions que tu souhaites utiliser."
+        description="Configure ton Budget, tes récurrences, tes catégories et les fonctions que tu souhaites utiliser."
         icon={Settings}
       />
 

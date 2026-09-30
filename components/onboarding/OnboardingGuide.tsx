@@ -7,7 +7,7 @@ import { useApp } from '@/components/AppContext'
 const steps = [
   {
     icon: WalletCards,
-    title: 'Ton Budget est ton espace financier',
+    title: 'Ton Budget est ton cadre financier',
     text: 'Tu peux créer plusieurs Budgets séparés. Chaque Budget possède ses propres catégories, récurrences, Todo, notifications et réglages.',
   },
   {

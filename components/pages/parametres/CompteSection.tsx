@@ -44,7 +44,7 @@ export default function CompteSection({ userId }: Props) {
               Cette action supprime <strong>définitivement</strong> :
             </p>
             <ul className="text-xs text-red-400 mt-2 space-y-1 list-disc list-inside">
-              <li>Toutes tes données (espaces, mois, revenus, charges, transactions, épargne…)</li>
+              <li>Toutes tes données (Budgets, mois, revenus, charges, transactions, épargne…)</li>
               <li>Toutes tes dettes et leurs remboursements</li>
               <li>Ton compte utilisateur</li>
             </ul>

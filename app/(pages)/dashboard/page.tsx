@@ -100,7 +100,7 @@ export default function DashboardPage() {
           <EmptyMonthV2
             month={month}
             onPrepare={prepareEmptyMonth}
-            onDefineHabits={() => router.push('/parametres?section=habitudes')}
+            onDefineHabits={() => router.push('/parametres?section=recurrences')}
             hasPreviousMonth={hasPreviousMonth}
             hasHabits={hasHabits}
             loading={monthModel.isLoading || habitsModel.isLoading || monthModel.createMonth.isPending || prepareMonth.isPending}

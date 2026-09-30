@@ -189,7 +189,7 @@ export default function DepensesPage() {
               icon={CalendarClock}
               title="Aucune charge fixe prévue"
               description={moisId
-                ? "Ajoute uniquement les charges que tu veux prévoir pour ce mois, ou configure tes récurrences dans les habitudes."
+                ? "Ajoute uniquement les charges que tu veux prévoir pour ce mois, ou configure tes récurrences dans les paramètres."
                 : "Ce mois n’est pas encore préparé. Prépare-le depuis le Dashboard avant d’ajouter des prévisions."}
               actionLabel={!isAdminViewing && moisId ? "Ajouter une charge fixe" : undefined}
               onAction={!isAdminViewing && moisId ? () => setFixedOpen(true) : undefined}
