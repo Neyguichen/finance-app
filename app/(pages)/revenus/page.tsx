@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { createPortal } from 'react-dom'
-import { ArrowUpCircle, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
-import PageHeader from '@/components/layout/PageHeader'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
 import { useMouvements, useEnveloppes } from '@/lib/hooks/useEpargne'
 import { useApp } from '@/components/AppContext'
@@ -56,72 +54,127 @@ export default function RevenusPage() {
 
   const getEnvNom = (id: string | null) => effectiveEnveloppes.find((e: any) => e.id === id)?.nom || 'Enveloppe'
 
-  // Création
   const handleCreate = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null }) => {
     if (isAdminViewing || !moisId || !espace) return
+
     if (values.frequence === 0) {
       await create.mutateAsync({
-        mois_id: moisId, recurrent_id: null, type: values.type,
-        nom: values.nom, montant: values.montant, recu: false, date_prevue: values.datePrevue, ordre: effectiveRevenus.length,
+        mois_id: moisId,
+        recurrent_id: null,
+        type: values.type,
+        nom: values.nom,
+        montant: values.montant,
+        recu: false,
+        date_prevue: values.datePrevue,
+        ordre: effectiveRevenus.length,
       })
     } else {
       const rec = await createRecurrent.mutateAsync({
-        espace_id: espace.id, type: values.type, nom: values.nom,
-        montant: values.montant, actif: true, frequence_mois: values.frequence,
-        ordre: effectiveRevenus.length, mois_debut: month,
+        espace_id: espace.id,
+        type: values.type,
+        nom: values.nom,
+        montant: values.montant,
+        actif: true,
+        frequence_mois: values.frequence,
+        ordre: effectiveRevenus.length,
+        mois_debut: month,
       })
+
       await create.mutateAsync({
-        mois_id: moisId, recurrent_id: rec.id, type: values.type,
-        nom: values.nom, montant: values.montant, recu: false, date_prevue: values.datePrevue, ordre: effectiveRevenus.length,
+        mois_id: moisId,
+        recurrent_id: rec.id,
+        type: values.type,
+        nom: values.nom,
+        montant: values.montant,
+        recu: false,
+        date_prevue: values.datePrevue,
+        ordre: effectiveRevenus.length,
       })
     }
   }
 
-  // Édition
   const handleSaveEdit = async (data: any, scope: 'mois' | 'tous') => {
     if (isAdminViewing) return
-    await update.mutateAsync({ id: data.id, nom: data.nom, montant: data.montant, type: data.type, date_prevue: data.datePrevue ?? null })
+
+    await update.mutateAsync({
+      id: data.id,
+      nom: data.nom,
+      montant: data.montant,
+      type: data.type,
+      date_prevue: data.datePrevue ?? null,
+    })
+
     if (scope === 'tous' && data.recurrentId) {
-      await updateRecurrent.mutateAsync({ id: data.recurrentId, nom: data.nom, montant: data.montant, type: data.type })
+      await updateRecurrent.mutateAsync({
+        id: data.recurrentId,
+        nom: data.nom,
+        montant: data.montant,
+        type: data.type,
+      })
     }
   }
 
-  // Suppression
   const handleDelete = (mode: 'mois' | 'definitif') => {
     if (isAdminViewing || !deleteTarget) return
+
     if (mode === 'definitif' && deleteTarget.recurrentId) {
-      removeDefinitif.mutate({ revenuId: deleteTarget.id, recurrentId: deleteTarget.recurrentId })
+      removeDefinitif.mutate({
+        revenuId: deleteTarget.id,
+        recurrentId: deleteTarget.recurrentId,
+      })
     } else {
       remove.mutate(deleteTarget.id)
     }
+
     setDeleteTarget(null)
   }
 
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
-      <div className="mx-auto w-full max-w-6xl p-3 sm:p-4 space-y-4 pb-28">
+
+      <div className="mx-auto w-full max-w-6xl space-y-4 p-3 pb-28 sm:p-4">
         <h1 className="text-xl font-bold">Revenus</h1>
 
-        <RevenusResume plannedIncome={plannedIncome} receivedIncome={receivedIncome} expectedIncome={expectedIncome} totalActif={totalActif} totalPassif={totalPassif} totalReprises={totalReprises} />
+        <RevenusResume
+          plannedIncome={plannedIncome}
+          receivedIncome={receivedIncome}
+          expectedIncome={expectedIncome}
+          totalActif={totalActif}
+          totalPassif={totalPassif}
+          totalReprises={totalReprises}
+        />
 
         <div className="space-y-2">
           {effectiveRevenus.map((rev: any) => (
-            <RevenuCard key={rev.id} rev={rev} readOnly={isAdminViewing} doubleDate={espace?.double_date ?? false}
+            <RevenuCard
+              key={rev.id}
+              rev={rev}
+              readOnly={isAdminViewing}
+              doubleDate={espace?.double_date ?? false}
               onToggleRecu={(id, recu, dateReelle) => toggleRecu.mutate({ id, recu, dateReelle })}
-              onEdit={setEditTarget} onDelete={setDeleteTarget} />
+              onEdit={setEditTarget}
+              onDelete={setDeleteTarget}
+            />
           ))}
+
           {reprises.map((rep: any) => (
             <RepriseCard key={rep.id} reprise={rep} getEnvNom={getEnvNom} />
           ))}
         </div>
 
-        {!isAdminViewing && (
-          <button onClick={() => setFormOpen(true)}
-            className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-2xl hover:brightness-110 transition-all"
-            aria-label="Ajouter un revenu">
-            <Plus className="w-6 h-6" />
-          </button>
+        {!isAdminViewing && mounted && createPortal(
+          <div className="pointer-events-none fixed bottom-20 left-0 z-50 flex w-[100dvw] justify-end px-4">
+            <button
+              type="button"
+              onClick={() => setFormOpen(true)}
+              className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all hover:brightness-110"
+              aria-label="Ajouter un revenu"
+            >
+              <Plus className="h-6 w-6" />
+            </button>
+          </div>,
+          document.body
         )}
 
         <RevenuForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleCreate} />
