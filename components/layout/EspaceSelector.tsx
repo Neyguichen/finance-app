@@ -51,7 +51,7 @@ export default function EspaceSelector() {
           <select
             value={espace.id}
             onChange={event => setEspaceId(event.target.value)}
-            className="h-9 max-w-[10.5rem] truncate rounded-xl border border-slate-700/70 bg-slate-950/55 px-3 text-sm font-medium text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-400/60 sm:max-w-[16rem]"
+            className="h-9 max-w-[10.5rem] truncate rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-3 text-sm font-semibold text-indigo-100 outline-none transition hover:border-indigo-400/45 hover:bg-indigo-500/15 focus:border-indigo-400/60 sm:max-w-[16rem]"
           >
             {espaces.map(item => (
               <option key={item.id} value={item.id}>
@@ -64,7 +64,7 @@ export default function EspaceSelector() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-700/70 bg-slate-950/55 text-slate-400 transition hover:border-indigo-400/30 hover:text-indigo-300"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-400/20 bg-indigo-500/5 text-indigo-300 transition hover:border-indigo-400/40 hover:bg-indigo-500/10"
           aria-label="Créer un Budget"
           title="Créer un Budget"
         >

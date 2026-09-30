@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PiggyBank } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
 import PageHeader from '@/components/layout/PageHeader'
 import EpargneResume from '@/components/pages/epargne/EpargneResume'
 import EnveloppeCard from '@/components/pages/epargne/EnveloppeCard'
-import EnveloppeForm from '@/components/pages/epargne/EnveloppeForm'
 import EnveloppeEditDialog from '@/components/pages/epargne/EnveloppeEditDialog'
 import MouvementForm from '@/components/pages/epargne/MouvementForm'
 import MouvementCard from '@/components/pages/epargne/MouvementCard'
@@ -23,6 +23,7 @@ import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 import { formatEuro } from '@/lib/utils'
 
 export default function EpargnePage() {
+  const searchParams = useSearchParams()
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
@@ -46,7 +47,6 @@ export default function EpargnePage() {
   const enveloppesArchivees = effectiveEnveloppes.filter((e: any) => e.archived)
 
   // États dialogs
-  const [openEnv, setOpenEnv] = useState(false)
   const [editEnv, setEditEnv] = useState<{
     id: string
     nom: string
@@ -57,6 +57,12 @@ export default function EpargnePage() {
     date_solde_reference?: string | null
   } | null>(null)
   const [openMvt, setOpenMvt] = useState(false)
+
+  useEffect(() => {
+    if (!isAdminViewing && moisId && searchParams.get('add') === 'movement') {
+      setOpenMvt(true)
+    }
+  }, [isAdminViewing, moisId, searchParams])
   const [editMvt, setEditMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string | null } | null>(null)
   const [scopeMvt, setScopeMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; note: string | null } | null>(null)
@@ -72,14 +78,17 @@ export default function EpargnePage() {
   const getEnvNom = (id: string | null) => effectiveEnveloppes.find((e: any) => e.id === id)?.nom || '—'
 
   // --- Handlers ---
-  const handleCreateEnv = async (data: { nom: string; objectif: number | null; solde_initial: number | null }) => {
-    if (isAdminViewing || !espace) return
-    await createEnv.mutateAsync({
-      espace_id: espace.id, nom: data.nom,
-      solde_initial: data.solde_initial ?? 0, solde: data.solde_initial ?? 0,
-      objectif: data.objectif, ordre: effectiveEnveloppes.length,
+  const handleCreateEnvelopeInline = async (name: string) => {
+    if (isAdminViewing || !espace) throw new Error('Budget indisponible')
+    const created = await createEnv.mutateAsync({
+      espace_id: espace.id,
+      nom: name,
+      solde_initial: 0,
+      solde: 0,
+      objectif: null,
+      ordre: effectiveEnveloppes.length,
     })
-    setOpenEnv(false)
+    return { id: created.id }
   }
 
   const handleSaveEditEnv = async (data: {
@@ -169,10 +178,10 @@ export default function EpargnePage() {
         {!isAdminViewing && enveloppesActives.length === 0 && (
           <EmptyStateV2
             icon={PiggyBank}
-            title="Crée ta première enveloppe d’épargne"
-            description="Une enveloppe peut recevoir un objectif et un solde réel de référence. Le solde de référence est un stock, pas un versement mensuel."
-            actionLabel="Créer une enveloppe"
-            onAction={() => setOpenEnv(true)}
+            title="Crée ta première enveloppe depuis un mouvement"
+            description="Ajoute un mouvement puis crée l’enveloppe directement dans le formulaire. Tu pourras ensuite régler son objectif et sa référence depuis sa carte."
+            actionLabel={moisId ? "Ajouter un mouvement" : undefined}
+            onAction={moisId ? () => setOpenMvt(true) : undefined}
           />
         )}
 
@@ -271,9 +280,14 @@ export default function EpargnePage() {
         </div>
 
         {/* Tous les dialogs */}
-        <EnveloppeForm open={openEnv} onOpenChange={setOpenEnv} onSubmit={handleCreateEnv} />
         <EnveloppeEditDialog editEnv={editEnv} onClose={() => setEditEnv(null)} onSave={handleSaveEditEnv} />
-        <MouvementForm open={openMvt} onOpenChange={setOpenMvt} enveloppesActives={enveloppesActives} onSubmit={handleCreateMvt} />
+        <MouvementForm
+          open={openMvt}
+          onOpenChange={setOpenMvt}
+          enveloppesActives={enveloppesActives}
+          onCreateEnvelope={handleCreateEnvelopeInline}
+          onSubmit={handleCreateMvt}
+        />
         <MouvementEditDialog editMvt={editMvt} onClose={() => setEditMvt(null)} onSave={handleEditMvtSave} />
         <MouvementScopeDialog target={scopeMvt} onClose={() => setScopeMvt(null)} onSave={handleScopeEditMvt} />
         <MouvementDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDeleteMvt} />
@@ -281,7 +295,7 @@ export default function EpargnePage() {
 
       {/* FAB */}
       {!isAdminViewing && (
-        <EpargneFab onOpenMouvement={() => setOpenMvt(true)} onOpenEnveloppe={() => setOpenEnv(true)} />
+        <EpargneFab onOpenMouvement={() => setOpenMvt(true)} />
       )}
     </div>
   )

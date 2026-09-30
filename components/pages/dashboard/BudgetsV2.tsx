@@ -33,7 +33,7 @@ export default function BudgetsV2({ budgets }: Props) {
           const exceeded = budget.remaining < 0
 
           return (
-            <Card key={budget.id} className="nf-card-hover">
+            <Card key={budget.id} className="nf-card-hover border-indigo-400/10 bg-gradient-to-br from-indigo-500/[0.07] via-slate-900/75 to-cyan-500/[0.04]">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
@@ -45,7 +45,7 @@ export default function BudgetsV2({ budgets }: Props) {
                   </span>
                 </div>
 
-                <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                <div className="h-2 overflow-hidden rounded-full bg-indigo-950/70">
                   <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400" style={{ width: `${barPercent}%` }} />
                 </div>
 

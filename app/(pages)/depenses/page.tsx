@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
 import PageHeader from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CalendarClock, Pencil, ReceiptText } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
@@ -33,6 +34,7 @@ import EmptyStateV2 from '@/components/ui/EmptyStateV2'
 import DepensesFab from '@/components/pages/depenses/DepensesFab'
 
 export default function DepensesPage() {
+  const searchParams = useSearchParams()
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const [view, setView] = useState<'planned' | 'actual'>('planned')
   const [actualFilter, setActualFilter] = useState<'all' | 'fixed' | 'variable'>('all')
@@ -42,6 +44,13 @@ export default function DepensesPage() {
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; nom: string } | null>(null)
   const [fixedOpen, setFixedOpen] = useState(false)
   const [editFixed, setEditFixed] = useState<any>(null)
+
+  useEffect(() => {
+    if (isAdminViewing || !moisId) return
+    const add = searchParams.get('add')
+    if (add === 'fixed') setFixedOpen(true)
+    if (add === 'variable') setTxOpen(true)
+  }, [isAdminViewing, moisId, searchParams])
   const [deleteFixed, setDeleteFixed] = useState<any>(null)
   const [scopeFixed, setScopeFixed] = useState<any>(null)
   const [splitTx, setSplitTx] = useState<any>(null)

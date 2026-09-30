@@ -128,7 +128,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         ref={mainRef}
         className="isolate flex-1 overflow-y-auto pb-20"
       >
-        <div className="mx-auto max-w-7xl px-3 pt-3 sm:px-4 sm:pt-4">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4">
           <ReferenceBalanceSetup />
         </div>
         <MonthPreparationStatus />

@@ -32,7 +32,7 @@ export function ReferenceBalanceSetup() {
   }
 
   return (
-    <section className="card bg-base-100 border border-base-300 shadow-sm mb-6">
+    <section className="nf-card mt-3 mb-6 sm:mt-4">
       <div className="card-body gap-4">
         <div>
           <div className="nf-chip border-indigo-400/20 bg-indigo-500/10 text-indigo-200 mb-2">Point de départ</div>

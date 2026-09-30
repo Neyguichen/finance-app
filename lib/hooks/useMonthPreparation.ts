@@ -11,8 +11,9 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
     enabled: !!espaceId && !!mode,
     queryFn: async () => {
       const items: MonthPreparationItem[] = []
+      const targetDate = targetMonth.length === 7 ? `${targetMonth}-01` : targetMonth
       if (mode === 'previous') {
-        const { data: previous, error } = await supabase.from('mois').select('id, mois').eq('espace_id', espaceId!).lt('mois', targetMonth).order('mois', { ascending: false }).limit(1).maybeSingle()
+        const { data: previous, error } = await supabase.from('mois').select('id, mois').eq('espace_id', espaceId!).lt('mois', targetDate).order('mois', { ascending: false }).limit(1).maybeSingle()
         if (error) throw error
         if (!previous) return { mode, items, sourceMonth: undefined }
 
@@ -31,24 +32,71 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
         return { mode, items, sourceMonth: previous.mois }
       }
 
-      const [revenus, fixes, savings, budgetHabits, envelopes] = await Promise.all([
+      const [revenus, fixes, savings, budgetHabits, envelopes, currentMonth] = await Promise.all([
         supabase.from('revenus_recurrents').select('*').eq('espace_id', espaceId!).eq('actif', true),
         supabase.from('charges_fixes_recurrentes').select('*').eq('espace_id', espaceId!).eq('actif', true),
         supabase.from('epargne_recurrentes').select('*').eq('espace_id', espaceId!).eq('actif', true),
         supabase.from('budget_habitudes').select('*, categorie:categories(nom)').eq('espace_id', espaceId!).eq('actif', true),
         supabase.from('enveloppes').select('id, nom').eq('espace_id', espaceId!),
+        supabase.from('mois').select('id').eq('espace_id', espaceId!).eq('mois', targetDate).maybeSingle(),
       ])
       if (revenus.error) throw revenus.error
       if (fixes.error) throw fixes.error
       if (savings.error) throw savings.error
       if (budgetHabits.error) throw budgetHabits.error
       if (envelopes.error) throw envelopes.error
-      const envelopeNames = new Map((envelopes.data || []).map(e => [e.id, e.nom]))
+      if (currentMonth.error) throw currentMonth.error
 
-      for (const row of revenus.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `income:${row.id}`, kind: 'income', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, incomeType: row.type as 'actif' | 'passif', order: row.ordre || 0, selected: true })
-      for (const row of fixes.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, categoryId: row.categorie_id, order: row.ordre || 0, selected: true })
-      for (const row of savings.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `savings:${row.id}`, kind: 'savings', label: row.note || envelopeNames.get(row.enveloppe_dest_id) || 'Épargne', amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, envelopeId: row.enveloppe_dest_id, order: row.ordre || 0, selected: true })
-      for (const row of budgetHabits.data || []) if (isHabitDue(row, targetMonth)) items.push({ id: `budget:${row.id}`, kind: 'budget', label: (row.categorie as { nom?: string } | null)?.nom || 'Budget variable', amount: Number(row.montant), sourceId: row.id, categoryId: row.categorie_id, order: row.ordre || 0, selected: true })
+      const envelopeNames = new Map((envelopes.data || []).map(e => [e.id, e.nom]))
+      const existingIncomeSources = new Set<string>()
+      const existingFixedSources = new Set<string>()
+      const existingSavingsSources = new Set<string>()
+      const existingBudgetCategories = new Set<string>()
+
+      if (currentMonth.data?.id) {
+        const [existingIncomes, existingFixes, existingSavings, existingBudgets] = await Promise.all([
+          supabase.from('revenus').select('recurrent_id, preparation_source_id').eq('mois_id', currentMonth.data.id),
+          supabase.from('charges_fixes').select('recurrent_id, preparation_source_id').eq('mois_id', currentMonth.data.id),
+          supabase.from('epargne_prevues').select('recurrent_id').eq('mois_id', currentMonth.data.id),
+          supabase.from('budgets').select('categorie_id').eq('mois_id', currentMonth.data.id),
+        ])
+        if (existingIncomes.error) throw existingIncomes.error
+        if (existingFixes.error) throw existingFixes.error
+        if (existingSavings.error) throw existingSavings.error
+        if (existingBudgets.error) throw existingBudgets.error
+
+        for (const row of existingIncomes.data || []) {
+          if (row.recurrent_id) existingIncomeSources.add(row.recurrent_id)
+          if (row.preparation_source_id) existingIncomeSources.add(row.preparation_source_id)
+        }
+        for (const row of existingFixes.data || []) {
+          if (row.recurrent_id) existingFixedSources.add(row.recurrent_id)
+          if (row.preparation_source_id) existingFixedSources.add(row.preparation_source_id)
+        }
+        for (const row of existingSavings.data || []) if (row.recurrent_id) existingSavingsSources.add(row.recurrent_id)
+        for (const row of existingBudgets.data || []) if (row.categorie_id) existingBudgetCategories.add(row.categorie_id)
+      }
+
+      for (const row of revenus.data || []) {
+        if (isHabitDue(row, targetDate) && !existingIncomeSources.has(row.id)) {
+          items.push({ id: `income:${row.id}`, kind: 'income', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, incomeType: row.type as 'actif' | 'passif', order: row.ordre || 0, selected: true })
+        }
+      }
+      for (const row of fixes.data || []) {
+        if (isHabitDue(row, targetDate) && !existingFixedSources.has(row.id)) {
+          items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, categoryId: row.categorie_id, order: row.ordre || 0, selected: true })
+        }
+      }
+      for (const row of savings.data || []) {
+        if (isHabitDue(row, targetDate) && !existingSavingsSources.has(row.id)) {
+          items.push({ id: `savings:${row.id}`, kind: 'savings', label: row.note || envelopeNames.get(row.enveloppe_dest_id) || 'Épargne', amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, envelopeId: row.enveloppe_dest_id, order: row.ordre || 0, selected: true })
+        }
+      }
+      for (const row of budgetHabits.data || []) {
+        if (isHabitDue(row, targetDate) && !existingBudgetCategories.has(row.categorie_id)) {
+          items.push({ id: `budget:${row.id}`, kind: 'budget', label: (row.categorie as { nom?: string } | null)?.nom || 'Budget variable', amount: Number(row.montant), sourceId: row.id, categoryId: row.categorie_id, order: row.ordre || 0, selected: true })
+        }
+      }
       return { mode, items, sourceMonth: undefined }
     },
   })
@@ -65,7 +113,7 @@ export function usePrepareMonth(espaceId: string | undefined, targetMonth: strin
 
       const { data, error } = await supabase.rpc('prepare_month_v2', {
         p_espace_id: espaceId,
-        p_month: targetMonth,
+        p_month: targetMonth.length === 7 ? `${targetMonth}-01` : targetMonth,
         p_items: items,
       })
       if (error) throw error
@@ -74,6 +122,9 @@ export function usePrepareMonth(espaceId: string | undefined, targetMonth: strin
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mois', espaceId] })
       queryClient.invalidateQueries({ queryKey: ['month_preparation', espaceId, targetMonth] })
+      queryClient.invalidateQueries({ queryKey: ['revenus'] })
+      queryClient.invalidateQueries({ queryKey: ['charges_fixes'] })
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
       queryClient.invalidateQueries({ queryKey: ['epargne_prevues'] })
     },
   })

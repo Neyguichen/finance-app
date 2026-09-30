@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { CircleHelp, Database, Info, LogOut, Menu, Scale, Settings, Upload, Users, X } from 'lucide-react'
+import { CircleHelp, Database, Info, LogOut, Menu, Scale, Upload, Users, X } from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 
@@ -62,7 +62,6 @@ export default function AppMenu() {
             <MenuLink icon={Upload} label="Importer un CSV" onClick={() => go('/import-csv')} />
           )}
 
-          <MenuLink icon={Settings} label="Paramètres" onClick={() => go('/parametres')} />
           <MenuLink icon={CircleHelp} label="Aide et retours" onClick={() => go('/aide')} />
           <MenuLink icon={Info} label="À propos" onClick={() => go('/a-propos')} />
           <MenuLink icon={LogOut} label="Se déconnecter" danger onClick={handleLogout} />

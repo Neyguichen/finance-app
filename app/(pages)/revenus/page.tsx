@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowUpCircle, Plus } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 import MonthSelector from '@/components/layout/MonthSelector'
 import PageHeader from '@/components/layout/PageHeader'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'

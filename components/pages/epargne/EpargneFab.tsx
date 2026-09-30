@@ -1,47 +1,17 @@
 'use client'
 
-import { useState } from 'react'
 import { Plus } from 'lucide-react'
 
-type Props = {
-  onOpenMouvement: () => void
-  onOpenEnveloppe: () => void
-}
-
-export default function EpargneFab({ onOpenMouvement, onOpenEnveloppe }: Props) {
-  const [fabOpen, setFabOpen] = useState(false)
-
+export default function EpargneFab({ onOpenMouvement }: { onOpenMouvement: () => void }) {
   return (
-    <>
-      {fabOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setFabOpen(false)} />
-      )}
-      <div className="relative z-30 mx-4 mb-24 flex flex-col-reverse items-end gap-3 sm:fixed sm:bottom-20 sm:right-4 sm:z-50 sm:m-0 sm:items-center">
-        <button
-          onClick={() => setFabOpen(!fabOpen)}
-          className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-        >
-          <Plus className={`w-7 h-7 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
-        </button>
-        {fabOpen && (
-          <>
-            <button
-              onClick={() => { setFabOpen(false); onOpenMouvement() }}
-              className="flex items-center gap-2 animate-fade-in"
-            >
-              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Mouvement</span>
-              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">💰</span>
-            </button>
-            <button
-              onClick={() => { setFabOpen(false); onOpenEnveloppe() }}
-              className="flex items-center gap-2 animate-fade-in"
-            >
-              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-lg shadow">Enveloppe</span>
-              <span className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-lg">✉️</span>
-            </button>
-          </>
-        )}
-      </div>
-    </>
+    <button
+      type="button"
+      onClick={onOpenMouvement}
+      className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500 text-white shadow-xl transition active:scale-95"
+      aria-label="Ajouter un mouvement d’épargne"
+      title="Ajouter un mouvement"
+    >
+      <Plus className="h-6 w-6" />
+    </button>
   )
 }

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatMois, nextMonth, prevMonth } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
+import MonthPreparationAction from '@/components/layout/MonthPreparationAction'
 
 interface Props {
   currentMonth: string
@@ -26,11 +27,14 @@ export default function MonthSelector({ currentMonth, onChange }: Props) {
           <ChevronLeft className="h-5 w-5" />
         </Button>
 
-        <div className="flex min-w-0 items-center gap-2">
-          <h2 className="truncate text-base font-semibold capitalize tracking-tight text-slate-100 sm:text-lg">
-            {formatMois(currentMonth)}
-          </h2>
-          {syncing && <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-300" />}
+        <div className="flex min-w-0 flex-col items-center">
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-base font-semibold capitalize tracking-tight text-slate-100 sm:text-lg">
+              {formatMois(currentMonth)}
+            </h2>
+            {syncing && <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-300" />}
+          </div>
+          <MonthPreparationAction />
         </div>
 
         <Button

@@ -22,6 +22,7 @@ import { getMontantNet, localDateISO } from '@/lib/utils'
 import { useDashboardInsights } from '@/lib/hooks/useDashboardInsights'
 import { useActualCashSummary, useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
 import { useDashboardV2 } from '@/lib/hooks/useDashboardV2'
+import DashboardQuickAdd from '@/components/pages/dashboard/DashboardQuickAdd'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -165,6 +166,8 @@ export default function DashboardPage() {
         <TodoResumeV2 />
 
       </div>
+
+      <DashboardQuickAdd />
     </div>
   )
 }
