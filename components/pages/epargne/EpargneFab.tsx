@@ -3,7 +3,10 @@
 import { Plus } from 'lucide-react'
 
 export default function EpargneFab({ onOpenMouvement }: { onOpenMouvement: () => void }) {
-  return (
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  if (!mounted) return null
+  return createPortal(
     <button
       type="button"
       onClick={onOpenMouvement}
@@ -12,6 +15,7 @@ export default function EpargneFab({ onOpenMouvement }: { onOpenMouvement: () =>
       title="Ajouter un mouvement"
     >
       <Plus className="h-6 w-6" />
-    </button>
+    </button>,
+    document.body
   )
 }
