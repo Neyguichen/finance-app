@@ -71,8 +71,8 @@ export default function FinancialAlertEngine() {
         family: 'actions',
         title: todo.due_date === today ? 'Action prévue aujourd’hui' : 'Action en retard',
         message: todo.title,
-        action_label: 'Ouvrir la Todo',
-        action_href: '/todo',
+        action_label: 'Voir dans le résumé',
+        action_href: '/dashboard#todo',
       })
     }
 
