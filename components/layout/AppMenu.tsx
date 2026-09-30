@@ -41,7 +41,7 @@ export default function AppMenu() {
     <>
       {open && <div className="fixed inset-0 z-[9999] bg-black/55" onClick={closeMenu} />}
       <div
-        className={`fixed right-0 top-0 z-[10000] flex h-full w-[min(20rem,100vw)] transform flex-col border-l border-slate-800/80 bg-[#0a1424]/98 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 z-[10000] flex h-full w-[min(20rem,100vw)] flex-col border-l border-slate-800/80 bg-[#0a1424] shadow-2xl transition-[right] duration-300 ease-in-out ${open ? 'right-0' : 'right-[-20rem]'}`}
       >
         <div className="flex items-center justify-between border-b border-slate-800/80 p-4">
           <div>
