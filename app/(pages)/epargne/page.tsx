@@ -157,7 +157,7 @@ export default function EpargnePage() {
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
-      <div className="p-4 space-y-4">
+      <div className="space-y-4 p-3 pb-24 sm:p-4">
         <h1 className="text-xl font-bold">Épargne</h1>
 
         {!isAdminViewing && enveloppesActives.length === 0 && (
@@ -200,7 +200,7 @@ export default function EpargnePage() {
         {(enveloppesActives.length > 1 || enveloppesActives.some((e: any) => e.objectif && Number(e.objectif) > 0)) && (
           <div>
             {enveloppesVisibles.length > 0 && (
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {enveloppesVisibles.map((env: any) => (
                   <EnveloppeCard key={env.id} env={env} readOnly={isAdminViewing} variant="active"
                     onEdit={setEditEnv} onArchive={(id) => archive.mutate(id)} />
@@ -234,7 +234,7 @@ export default function EpargnePage() {
               {showArchived ? '▼' : '▶'} Archivées ({enveloppesArchivees.length})
             </button>
             {showArchived && (
-              <div className="grid grid-cols-2 gap-3 mt-2">
+              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {enveloppesArchivees.map((env: any) => (
                   <EnveloppeCard key={env.id} env={env} readOnly={isAdminViewing} variant="archived"
                     onUnarchive={(id) => unarchive.mutate(id)} />

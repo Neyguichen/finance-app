@@ -43,14 +43,14 @@ export default function OnboardingGuide() {
   const Icon = current.icon
 
   return (
-    <div className="fixed inset-0 z-[12000] flex items-end justify-center bg-black/70 p-3 sm:items-center">
-      <div className="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl">
+    <div className="fixed inset-0 z-[12000] flex items-end justify-center overflow-y-auto bg-black/70 p-3 sm:items-center">
+      <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-2xl sm:p-5">
         <div className="flex items-center justify-between">
           <p className="text-xs uppercase tracking-wide text-blue-400">Guide de démarrage</p>
           <span className="text-xs text-slate-600">{step + 1} / {steps.length}</span>
         </div>
 
-        <div className="mt-5 flex items-start gap-4">
+        <div className="mt-5 flex flex-col items-start gap-4 sm:flex-row">
           <div className="rounded-xl bg-slate-950 p-3">
             <Icon className="h-6 w-6 text-blue-400" />
           </div>

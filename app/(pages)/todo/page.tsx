@@ -46,7 +46,7 @@ export default function TodoPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5 p-4 pb-24">
+    <div className="mx-auto w-full max-w-4xl space-y-5 p-3 pb-24 sm:p-4">
       <header>
         <p className="text-xs uppercase tracking-wide text-emerald-400">Phase 9 · Actions</p>
         <h1 className="mt-1 text-2xl font-bold">Todo</h1>
@@ -78,10 +78,10 @@ export default function TodoPage() {
           value={note}
           onChange={event => setNote(event.target.value)}
         />
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex justify-stretch sm:justify-end">
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm w-full sm:w-auto"
             onClick={submit}
             disabled={!title.trim() || model.createTodo.isPending}
           >
@@ -117,8 +117,8 @@ export default function TodoPage() {
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-slate-200">{todo.title}</p>
-                  {todo.note && <p className="mt-1 text-sm text-slate-500">{todo.note}</p>}
+                  <p className="break-words font-medium text-slate-200">{todo.title}</p>
+                  {todo.note && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-500">{todo.note}</p>}
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     {todo.due_date && (
                       <span className="inline-flex items-center gap-1">

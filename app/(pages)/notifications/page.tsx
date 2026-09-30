@@ -39,7 +39,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5 p-4 pb-24">
+    <div className="mx-auto w-full max-w-4xl space-y-5 p-3 pb-24 sm:p-4">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-blue-400">Phase 9 · Centre interne</p>
@@ -70,7 +70,7 @@ export default function NotificationsPage() {
 
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
+          <div className="-mx-1 flex max-w-full gap-2 overflow-x-auto px-1 pb-1">
             {([
               ['all', 'Toutes'],
               ['finances', 'Finances'],
@@ -138,10 +138,10 @@ export default function NotificationsPage() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-medium text-slate-200">{item.title}</h2>
+                    <h2 className="break-words font-medium text-slate-200">{item.title}</h2>
                     {!item.read_at && <span className="h-2 w-2 rounded-full bg-blue-400" aria-label="Non lue" />}
                   </div>
-                  {item.message && <p className="mt-1 text-sm text-slate-500">{item.message}</p>}
+                  {item.message && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-500">{item.message}</p>}
                   <p className="mt-2 text-[11px] text-slate-600">
                     {new Date(item.created_at).toLocaleString('fr-FR')}
                   </p>

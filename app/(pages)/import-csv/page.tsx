@@ -203,7 +203,7 @@ export default function ImportCsvPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5 p-4 pb-24">
+    <div className="mx-auto w-full max-w-6xl space-y-5 p-3 pb-24 sm:p-4">
       <header>
         <p className="text-xs uppercase tracking-wide text-blue-400">Phase 8 · Import CSV</p>
         <h1 className="mt-1 text-2xl font-bold">Importer un relevé bancaire</h1>
@@ -480,7 +480,7 @@ export default function ImportCsvPage() {
               type="button"
               onClick={confirmImport}
               disabled={duplicateFileBlocked || missingAssignmentCount > 0 || importModel.importRows.isPending}
-              className="btn btn-primary"
+              className="btn btn-primary w-full sm:w-auto"
             >
               {importModel.importRows.isPending ? 'Import en cours…' : 'Confirmer l’import'}
             </button>
@@ -531,7 +531,7 @@ export default function ImportCsvPage() {
               {batch.status === 'imported' && (
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline"
+                  className="btn btn-sm btn-outline w-full sm:w-auto"
                   disabled={importModel.undoBatch.isPending}
                   onClick={() => {
                     if (window.confirm('Annuler ce lot ? Les opérations créées par cet import seront supprimées et les rapprochements réversibles restaurés.')) {

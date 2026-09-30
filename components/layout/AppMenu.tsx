@@ -53,7 +53,7 @@ export default function AppMenu() {
       )}
 
       <div
-        className={`fixed right-0 top-0 z-[10000] h-full w-72 transform border-l border-slate-800 bg-slate-900 transition-transform duration-300 ease-in-out ${
+        className={`fixed right-0 top-0 z-[10000] flex h-full w-[min(18rem,100vw)] transform flex-col border-l border-slate-800 bg-slate-900 transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -68,7 +68,7 @@ export default function AppMenu() {
           </button>
         </div>
 
-        <div className="space-y-1 p-4">
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-4 pb-6">
           {isAdmin(userId) && (
             <MenuLink icon={Users} label="Admin" onClick={() => { closeMenu(); router.push('/admin') }} />
           )}
@@ -140,7 +140,7 @@ export default function AppMenu() {
           <MenuLink icon={LogOut} label="Se déconnecter" danger onClick={handleLogout} />
         </div>
 
-        <div className="absolute bottom-6 left-0 right-0 px-4 text-center">
+        <div className="shrink-0 border-t border-slate-800 px-4 py-4 text-center">
           {dbUsage && (
             <div className="mb-3 space-y-2 rounded-lg bg-slate-800 p-3">
               <div className="flex items-center gap-2">

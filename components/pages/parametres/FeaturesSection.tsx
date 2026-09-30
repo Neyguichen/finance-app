@@ -69,7 +69,7 @@ export default function FeaturesSection({
         return (
           <label
             key={definition.key}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-800 bg-slate-950/30 p-3"
+            className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-800 bg-slate-950/30 p-3 sm:items-center"
           >
             <Icon className="h-4 w-4 shrink-0 text-slate-400" />
             <div className="min-w-0 flex-1">
@@ -78,7 +78,7 @@ export default function FeaturesSection({
             </div>
             <input
               type="checkbox"
-              className="toggle toggle-sm toggle-primary"
+              className="toggle toggle-sm toggle-primary mt-0.5 shrink-0 sm:mt-0"
               checked={checked}
               onChange={event => setFeature(definition.key, event.target.checked)}
             />

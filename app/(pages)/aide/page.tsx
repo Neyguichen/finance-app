@@ -31,7 +31,7 @@ export default function AidePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5 p-4 pb-24">
+    <div className="mx-auto w-full max-w-4xl space-y-5 p-3 pb-24 sm:p-4">
       <header>
         <p className="text-xs uppercase tracking-wide text-blue-400">Aide & accompagnement</p>
         <h1 className="mt-1 text-2xl font-bold">Bien utiliser Neyguichen</h1>
@@ -93,7 +93,7 @@ export default function AidePage() {
           </div>
         </div>
 
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:flex">
           <button
             type="button"
             className={`btn btn-sm ${kind === 'bug' ? 'btn-primary' : 'btn-outline'}`}
