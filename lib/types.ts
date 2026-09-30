@@ -12,6 +12,12 @@ export interface Espace {
   created_at: string
   double_date?: boolean
   dashboard_stats?: Record<string, boolean>
+  features?: {
+    import_csv?: boolean
+    todo?: boolean
+    notifications?: boolean
+  }
+  onboarding_completed?: boolean
 }
 
 export interface Mois {
