@@ -10,12 +10,11 @@ type Props = {
   readOnly: boolean
   doubleDate?: boolean
   onTogglePayee: (id: string, payee: boolean, dateReelle?: string | null) => void
-  onActualAmountChange?: (id: string, montantReel: number | null) => void
   onEdit: (charge: { id: string; nom: string; montant: number; recurrentId: string | null; categorieId?: string | null; sousCategorieId?: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
 }
 
-export default function ChargeFixeCard({ charge, readOnly, doubleDate = false, onTogglePayee, onActualAmountChange, onEdit, onDelete }: Props) {
+export default function ChargeFixeCard({ charge, readOnly, doubleDate = false, onTogglePayee, onEdit, onDelete }: Props) {
   const today = localDateISO()
   return (
     <Card className="bg-slate-900 border-slate-800">
@@ -49,32 +48,15 @@ export default function ChargeFixeCard({ charge, readOnly, doubleDate = false, o
                 {doubleDate && charge.date_reelle && <span className="text-indigo-300">Payé {formatDate(charge.date_reelle)}</span>}
               </div>
             )}
-            {!readOnly && charge.payee && (
+            {!readOnly && charge.payee && doubleDate && (
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                {doubleDate && (
-                  <>
-                    <span className="text-[11px] text-slate-500">Date payée</span>
-                    <Input
-                      type="date"
-                      value={charge.date_reelle || ''}
-                      className="h-7 w-36 text-xs"
-                      onChange={e => onTogglePayee(charge.id, true, e.target.value || null)}
-                    />
-                  </>
-                )}
-                {onActualAmountChange && (
-                  <>
-                    <span className="text-[11px] text-slate-500">Montant payé</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={charge.montant_reel ?? charge.montant}
-                      className="h-7 w-28 text-xs"
-                      onChange={e => onActualAmountChange(charge.id, e.target.value === '' ? null : Number(e.target.value))}
-                    />
-                  </>
-                )}
+                <span className="text-[11px] text-slate-500">Date payée</span>
+                <Input
+                  type="date"
+                  value={charge.date_reelle || ''}
+                  className="h-7 w-36 text-xs"
+                  onChange={e => onTogglePayee(charge.id, true, e.target.value || null)}
+                />
               </div>
             )}
           </div>
