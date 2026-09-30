@@ -15,6 +15,7 @@ import {
   type ParsedCsv,
 } from '@/lib/import-csv'
 import { formatDate, formatEuro } from '@/lib/utils'
+import PageHeader from '@/components/layout/PageHeader'
 
 const natureLabels: Record<ImportNature, string> = {
   expense: 'Dépense',
