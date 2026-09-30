@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect, CSSProperties } from 'react'
+import { usePathname } from 'next/navigation'
 import EspaceSelector from '@/components/layout/EspaceSelector'
 import AppMenu from '@/components/layout/AppMenu'
 import AdminBanner from '@/components/layout/AdminBanner'
@@ -16,6 +17,8 @@ const TOP_THRESHOLD = 10
 const BOTTOM_THRESHOLD = 4
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isPublicAuthPage = pathname === '/login'
   const mainRef = useRef<HTMLDivElement>(null)
   const [headerVisible, setHeaderVisible] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
@@ -88,6 +91,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     transform: shouldHide ? `translateY(-${HEADER_H}px)` : 'translateY(0)',
     transition: 'transform 250ms ease-in-out',
     willChange: 'transform',
+  }
+
+  if (isPublicAuthPage) {
+    return (
+      <main className="h-full overflow-y-auto">
+        {children}
+      </main>
+    )
   }
 
   return (
