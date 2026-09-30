@@ -27,10 +27,21 @@ export default function EpargnePage() {
   const [section, setSection] = useState<'savings' | 'debts'>('savings')
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('view') === 'debts') {
-      setSection('debts')
+    const syncFromUrl = () => {
+      setSection(new URLSearchParams(window.location.search).get('view') === 'debts' ? 'debts' : 'savings')
     }
+    syncFromUrl()
+    window.addEventListener('popstate', syncFromUrl)
+    return () => window.removeEventListener('popstate', syncFromUrl)
   }, [])
+
+  const changeSection = (next: 'savings' | 'debts') => {
+    setSection(next)
+    const url = new URL(window.location.href)
+    if (next === 'debts') url.searchParams.set('view', 'debts')
+    else url.searchParams.delete('view')
+    window.history.replaceState({}, '', url.toString())
+  }
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
@@ -184,14 +195,14 @@ export default function EpargnePage() {
         <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/80 bg-slate-950/35 p-1">
           <button
             type="button"
-            onClick={() => setSection('savings')}
+            onClick={() => changeSection('savings')}
             className={`rounded-lg px-3 py-2 text-sm font-medium transition ${section === 'savings' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
           >
             Épargne
           </button>
           <button
             type="button"
-            onClick={() => setSection('debts')}
+            onClick={() => changeSection('debts')}
             className={`rounded-lg px-3 py-2 text-sm font-medium transition ${section === 'debts' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
           >
             Dettes & créances

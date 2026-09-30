@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 
 export function useAdminMoisData(month: string) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { isAdminViewing, adminViewEspaceId } = useApp()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -27,7 +27,7 @@ export function useAdminMoisData(month: string) {
       setData(d)
     })
     .then(() => setLoading(false), () => setLoading(false))
-  }, [isAdminViewing, adminViewEspaceId, month])
+  }, [isAdminViewing, adminViewEspaceId, month, supabase])
 
   return { data, loading }
 }

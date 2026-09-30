@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX, BarChart3, Repeat2, Settings, SlidersHorizontal } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
@@ -20,7 +20,7 @@ import CompteSection from '@/components/pages/parametres/CompteSection'
 import FeaturesSection from '@/components/pages/parametres/FeaturesSection'
 
 export default function ParametresPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { userId, espaces, espace, updateEspace, removeEspace } = useApp()
   const espaceId = espace?.id
   const { data: categories = [], create: createCat, update: updateCat, remove: removeCat } = useCategories(espaceId)
@@ -32,7 +32,7 @@ export default function ParametresPage() {
 
   useEffect(() => {
     const section = new URLSearchParams(window.location.search).get('section')
-    if (section === 'habitudes') {
+    if (section === 'habitudes' || section === 'recurrences') {
       setOpenSections(prev => ({ ...prev, habitudes: true }))
     }
   }, [])
@@ -49,7 +49,7 @@ export default function ParametresPage() {
     supabase.auth.getUser().then(({ data }) => {
       setUserEmail(data.user?.email || null)
     })
-  }, [])
+  }, [supabase])
 
   const { moisId } = useApp()
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)

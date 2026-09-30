@@ -62,7 +62,16 @@ export default function DepensesPage() {
   const effectiveBudgets: any[] = isAdminViewing ? (adminData?.budgets || []) : budgets
   const effectiveTransactions: any[] = isAdminViewing ? (adminData?.transactions || []) : transactions
   const effectiveFlat: any[] = isAdminViewing ? (adminData?.transactions || []).filter((t: any) => !t.is_split) : allFlat
-  const effectiveCharges: any[] = isAdminViewing ? (adminData?.charges_fixes || []) : charges
+  const effectiveCharges: any[] = (isAdminViewing ? (adminData?.charges_fixes || []) : charges).map((charge: any) => {
+    const category = effectiveCategories.find((item: any) => item.id === charge.categorie_id)
+    const subcategory = effectiveCategories.find((item: any) => item.id === charge.sous_categorie_id)
+    return {
+      ...charge,
+      categorie_nom: category?.nom ?? null,
+      categorie_icone: category?.icone ?? null,
+      sous_categorie_nom: subcategory?.nom ?? null,
+    }
+  })
   const parentCategories = effectiveCategories.filter((c: any) => c.actif !== false && !c.parent_id)
   const subCats = (id: string) => effectiveCategories.filter((c: any) => c.parent_id === id && c.actif !== false)
   const budget = (id: string) => Number(effectiveBudgets.find((b: any) => b.categorie_id === id)?.prevu || 0)

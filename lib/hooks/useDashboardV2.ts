@@ -28,9 +28,12 @@ export function useDashboardV2() {
   const { data: plannedSavings = [] } = usePlannedSavings(moisId)
   const enveloppesQuery = useEnveloppesAtMonth(espace?.id, month)
   const detteModel = useDettes(espace?.id)
-  const enveloppes = enveloppesQuery.data || []
-  const dettes = detteModel.data || []
-  const remboursementsDette = detteModel.remboursements.data || []
+  const enveloppes = useMemo(() => enveloppesQuery.data || [], [enveloppesQuery.data])
+  const dettes = useMemo(() => detteModel.data || [], [detteModel.data])
+  const remboursementsDette = useMemo(
+    () => detteModel.remboursements.data || [],
+    [detteModel.remboursements.data],
+  )
 
   return useMemo(() => {
     const today = localDateISO()
