@@ -12,7 +12,6 @@ import FinancialAlertEngine from '@/components/notifications/FinancialAlertEngin
 import OnboardingGuide from '@/components/onboarding/OnboardingGuide'
 import HeaderActions from '@/components/layout/HeaderActions'
 import MonthPreparationStatus from '@/components/layout/MonthPreparationStatus'
-import { useVisualViewport } from '@/lib/hooks/useVisualViewport'
 
 const HEADER_H = 60
 const SCROLL_THRESHOLD = 10
@@ -27,7 +26,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false)
   const lastScrollY = useRef(0)
   const ticking = useRef(false)
-  const visualViewport = useVisualViewport()
 
   useEffect(() => {
     const check = () => {
@@ -93,8 +91,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const headerStyle: CSSProperties = {
     height: `${HEADER_H}px`,
-    width: visualViewport.width ? `${visualViewport.width}px` : '100%',
-    marginLeft: `${visualViewport.offsetLeft}px`,
     transform: shouldHide ? `translateY(-${HEADER_H}px)` : 'translateY(0)',
     transition: 'transform 250ms ease-in-out',
     willChange: 'transform',
@@ -116,11 +112,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <div className="relative z-40" style={headerContainerStyle}>
         <header
-          className="flex min-w-0 items-center gap-2 border-b border-slate-800/70 bg-[#08111f]/92 px-2 backdrop-blur-xl sm:gap-3 sm:px-4"
+          className="flex w-full min-w-0 items-center border-b border-slate-800/70 bg-[#08111f]/92 px-2 backdrop-blur-xl sm:px-4"
           style={headerStyle}
         >
-          <BrandMark compact={isMobile} className="hidden shrink-0 sm:flex" />
-          <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <BrandMark compact={isMobile} className="hidden shrink-0 sm:flex" />
             <EspaceSelector />
           </div>
           <div className="ml-auto flex shrink-0 items-center">
