@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowUpCircle, CalendarClock, PiggyBank, Plus, ReceiptText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -14,8 +15,13 @@ const actions = [
 export default function DashboardQuickAdd() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-  return (
+  useEffect(() => setMounted(true), [])
+
+  if (!mounted) return null
+
+  return createPortal(
     <>
       {open && (
         <button
@@ -53,6 +59,7 @@ export default function DashboardQuickAdd() {
           <Plus className={`h-6 w-6 transition-transform ${open ? 'rotate-45' : ''}`} />
         </button>
       </div>
-    </>
+    </>,
+    document.body
   )
 }
