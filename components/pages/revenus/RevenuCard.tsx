@@ -39,11 +39,11 @@ export default function RevenuCard({ rev, readOnly, doubleDate = false, onToggle
                 <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900 text-purple-400">↻</span>
               )}
             </div>
-            {(rev.date_prevue || (doubleDate && rev.date_reelle)) && (
+            {(rev.date_prevue || (rev.recu && rev.date_reelle)) && (
               <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
                 <CalendarDays className="h-3 w-3" />
                 {rev.date_prevue && <span>Prévu {formatDate(rev.date_prevue)}</span>}
-                {doubleDate && rev.date_reelle && <span className="text-emerald-500">Reçu {formatDate(rev.date_reelle)}</span>}
+                {rev.recu && rev.date_reelle && <span className="text-emerald-500">Reçu {formatDate(rev.date_reelle)}</span>}
               </div>
             )}
             {!readOnly && doubleDate && rev.recu && (
