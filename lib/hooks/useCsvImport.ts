@@ -231,6 +231,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           return {
             ...row,
             status: 'duplicate',
+            decision: 'match',
             match: {
               kind: 'duplicate_expense',
               targetId: duplicateTransaction.id,
@@ -256,6 +257,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           return {
             ...row,
             status: 'duplicate',
+            decision: 'match',
             match: {
               kind: 'duplicate_fixed',
               targetId: paidFixed.id,
