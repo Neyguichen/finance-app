@@ -110,17 +110,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <OnboardingGuide />
       <AdminBanner />
 
-      <div className="relative z-40" style={headerContainerStyle}>
+      <div className="relative z-40 w-[100dvw] max-w-[100dvw]" style={headerContainerStyle}>
         <header
-          className="flex items-center gap-3 border-b border-slate-800/70 bg-[#08111f]/92 px-3 backdrop-blur-xl sm:px-4"
+          className="flex w-[100dvw] max-w-[100dvw] items-center gap-2 border-b border-slate-800/70 bg-[#08111f]/92 px-2 backdrop-blur-xl sm:gap-3 sm:px-4"
           style={headerStyle}
         >
-          <BrandMark compact={isMobile} className="shrink-0" />
+          <BrandMark compact={isMobile} className="hidden shrink-0 sm:flex" />
           <div className="min-w-0 flex-1">
             <EspaceSelector />
           </div>
-          <HeaderActions />
-          <AppMenu />
+          <div className="ml-auto flex shrink-0 items-center">
+            <HeaderActions />
+            <AppMenu />
+          </div>
         </header>
       </div>
 
