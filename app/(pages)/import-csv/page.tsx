@@ -7,6 +7,7 @@ import { useCategories } from '@/lib/hooks/useCategories'
 import { useEnveloppes } from '@/lib/hooks/useEpargne'
 import { useCsvImport, type ImportDecision, type ImportPreviewRow } from '@/lib/hooks/useCsvImport'
 import {
+  fingerprintCsv,
   mapCsvRows,
   parseCsv,
   type CsvMapping,
@@ -40,6 +41,9 @@ export default function ImportCsvPage() {
 
   const [fileName, setFileName] = useState('')
   const [fileText, setFileText] = useState('')
+  const [fileFingerprint, setFileFingerprint] = useState('')
+  const [duplicateFileBatch, setDuplicateFileBatch] = useState<{ file_name: string | null; created_at: string } | null>(null)
+  const [allowDuplicateFile, setAllowDuplicateFile] = useState(false)
   const [parsed, setParsed] = useState<ParsedCsv>({ headers: [], rows: [], delimiter: ';' })
   const [mapping, setMapping] = useState<CsvMapping>({ date: '', label: '', amount: '' })
   const [formatName, setFormatName] = useState('')
@@ -83,7 +87,22 @@ export default function ImportCsvPage() {
     setFileText(text)
     setSelectedFormatId('')
     setFormatName('')
+    setAllowDuplicateFile(false)
+    setDuplicateFileBatch(null)
     loadParsed(text)
+
+    try {
+      const fingerprint = await fingerprintCsv(text)
+      setFileFingerprint(fingerprint)
+      const previous = await importModel.checkFingerprint.mutateAsync(fingerprint)
+      setDuplicateFileBatch(previous ? {
+        file_name: previous.file_name,
+        created_at: previous.created_at,
+      } : null)
+    } catch {
+      setFileFingerprint('')
+      setDuplicateFileBatch(null)
+    }
   }
 
   const applySavedFormat = (formatId: string) => {
@@ -159,12 +178,16 @@ export default function ImportCsvPage() {
     setSelectedFormatId(saved.id)
   }
 
+  const duplicateFileBlocked = Boolean(duplicateFileBatch && !allowDuplicateFile)
+
   const confirmImport = async () => {
-    if (!fileName || preview.length === 0 || missingAssignmentCount > 0) return
+    if (!fileName || preview.length === 0 || missingAssignmentCount > 0 || duplicateFileBlocked) return
     const result = await importModel.importRows.mutateAsync({
       rows: preview,
       fileName,
       formatId: selectedFormatId || null,
+      fileFingerprint: fileFingerprint || null,
+      allowDuplicateFile,
     })
     setLastResult(result)
     setPreview([])
@@ -216,6 +239,30 @@ export default function ImportCsvPage() {
           <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
             <FileSpreadsheet className="h-4 w-4" />
             {fileName} · {parsed.rows.length} ligne(s) · séparateur {parsed.delimiter === '\t' ? 'tabulation' : `« ${parsed.delimiter} »`}
+          </div>
+        )}
+
+        {duplicateFileBatch && (
+          <div className="mt-4 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-sm text-amber-200">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium">Ce fichier semble avoir déjà été importé.</p>
+                <p className="mt-1 text-xs text-amber-300/80">
+                  Import précédent : {duplicateFileBatch.file_name || 'CSV'} le {new Date(duplicateFileBatch.created_at).toLocaleString('fr-FR')}.
+                  Tu peux continuer à l’analyser, mais l’import final restera bloqué tant que tu ne confirmes pas volontairement un réimport.
+                </p>
+                <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-warning checkbox-xs"
+                    checked={allowDuplicateFile}
+                    onChange={event => setAllowDuplicateFile(event.target.checked)}
+                  />
+                  Réimporter quand même ce fichier exact
+                </label>
+              </div>
+            </div>
           </div>
         )}
       </section>
@@ -292,7 +339,7 @@ export default function ImportCsvPage() {
             <Stat label="À créer" value={preview.filter(row => row.decision === 'create').length} />
             <Stat label="À rapprocher" value={preview.filter(row => row.decision === 'match').length} />
             <Stat label="À ignorer" value={preview.filter(row => row.decision === 'ignore').length} />
-            <Stat label="Doublons détectés" value={preview.filter(row => row.status === 'duplicate').length} />
+            <Stat label="Doublons détectés" value={preview.filter(row => row.status === 'duplicate' || row.status === 'duplicate_in_file').length} />
           </div>
 
           {invalidRows.length > 0 && (
@@ -362,6 +409,13 @@ export default function ImportCsvPage() {
                     <td>
                       {row.status === 'duplicate' ? (
                         <span className="badge badge-sm border-blue-800 bg-blue-950 text-blue-300">Déjà présent</span>
+                      ) : row.status === 'duplicate_in_file' ? (
+                        <div>
+                          <span className="badge badge-sm border-violet-800 bg-violet-950 text-violet-300">Doublon dans le CSV</span>
+                          <p className="mt-1 max-w-72 text-[10px] text-slate-500">
+                            Même nature, date, montant et libellé que la ligne {(row.duplicateOfRowIndex ?? 0) + 2}.
+                          </p>
+                        </div>
                       ) : row.status === 'fixed_candidate' ? (
                         <div>
                           <span className="badge badge-sm border-amber-800 bg-amber-950 text-amber-300">Rapprocher</span>
@@ -398,9 +452,17 @@ export default function ImportCsvPage() {
             Les correspondances détectées ne sont jamais appliquées silencieusement : la colonne <strong>Décision</strong> reste modifiable pour chaque ligne avant confirmation.
           </div>
 
+          {importModel.importRows.isError && (
+            <div className="mt-4 rounded-lg border border-red-900/60 bg-red-950/30 p-3 text-sm text-red-200">
+              {(importModel.importRows.error as Error)?.message || 'L’import n’a pas pu être finalisé.'}
+            </div>
+          )}
+
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs">
-              {missingAssignmentCount > 0 ? (
+              {duplicateFileBlocked ? (
+                <span className="text-amber-300">Réimport identique à confirmer avant validation.</span>
+              ) : missingAssignmentCount > 0 ? (
                 <span className="text-amber-300">
                   {missingCategoryCount > 0 ? `${missingCategoryCount} dépense(s) sans catégorie. ` : ''}
                   {missingEnvelopeCount > 0 ? `${missingEnvelopeCount} mouvement(s) d’épargne sans enveloppe.` : ''}
@@ -412,7 +474,7 @@ export default function ImportCsvPage() {
             <button
               type="button"
               onClick={confirmImport}
-              disabled={missingAssignmentCount > 0 || importModel.importRows.isPending}
+              disabled={duplicateFileBlocked || missingAssignmentCount > 0 || importModel.importRows.isPending}
               className="btn btn-primary"
             >
               {importModel.importRows.isPending ? 'Import en cours…' : 'Confirmer l’import'}

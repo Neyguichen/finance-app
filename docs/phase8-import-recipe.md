@@ -1,6 +1,6 @@
 # Phase 8 — Recette ciblée Import CSV
 
-Cette recette est à exécuter dès qu’un build Vercel est de nouveau disponible.
+Cette recette est à exécuter après le prochain build Vercel regroupant le bloc Phase 8.
 
 ## Mapping et lecture
 - CSV avec montant signé.
@@ -19,6 +19,13 @@ Cette recette est à exécuter dès qu’un build Vercel est de nouveau disponib
 - même date + montant + libellé proche : doublon fort.
 - charge fixe : accepter un petit écart de montant (tolérance max de 1 € ou 5 % du prévu), conserver le prévu et écrire le réel.
 - épargne : même date + montant + type → déjà présent.
+- aucun choix `Rapprocher` ne doit être exécutable sans correspondance existante.
+
+## Anti-doublon fichier
+- réimporter exactement le même fichier : avertissement avant import.
+- le réimport reste bloqué tant que l’utilisateur ne coche pas volontairement `Réimporter quand même`.
+- deux lignes identiques dans un même CSV : la seconde est marquée `Doublon dans le CSV` et ignorée par défaut.
+- l’utilisateur peut forcer la création du doublon interne s’il confirme explicitement cette décision.
 
 ## Épargne
 - versement d’épargne : enveloppe destination obligatoire.

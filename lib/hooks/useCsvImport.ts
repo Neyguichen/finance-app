@@ -8,7 +8,7 @@ import {
   type ImportNature,
   type MappedImportRow,
 } from '@/lib/import-csv'
-import { amountDistance, cents, labelsClose, plausibleFixedMatch, sameAmount, sameDateAmountLabel } from '@/lib/reconciliation'
+import { amountDistance, cents, labelsClose, normalizeFinancialLabel, plausibleFixedMatch, sameAmount, sameDateAmountLabel } from '@/lib/reconciliation'
 
 export type ImportFormat = {
   id: string
@@ -33,6 +33,7 @@ export type ImportBatch = {
   error_count: number
   created_at: string
   cancelled_at: string | null
+  file_fingerprint: string | null
 }
 
 export type ImportMatch = {
@@ -51,9 +52,10 @@ export type ImportMatch = {
 export type ImportDecision = 'create' | 'match' | 'ignore'
 
 export type ImportPreviewRow = MappedImportRow & {
-  status: 'new' | 'duplicate' | 'fixed_candidate'
+  status: 'new' | 'duplicate' | 'duplicate_in_file' | 'fixed_candidate'
   match: ImportMatch | null
   decision: ImportDecision
+  duplicateOfRowIndex?: number | null
 }
 
 function snapshotValue(value: any) {
@@ -125,6 +127,23 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['import_formats', espaceId] }),
   })
 
+  const checkFingerprint = useMutation({
+    mutationFn: async (fingerprint: string) => {
+      if (!espaceId || !fingerprint) return null
+      const { data, error } = await supabase
+        .from('import_batches')
+        .select('id, file_name, created_at, status, file_fingerprint')
+        .eq('espace_id', espaceId)
+        .eq('file_fingerprint', fingerprint)
+        .eq('status', 'imported')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) throw error
+      return data as ImportBatch | null
+    },
+  })
+
   const analyze = useMutation({
     mutationFn: async (rows: MappedImportRow[]) => {
       if (!espaceId) throw new Error('Budget manquant')
@@ -160,7 +179,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
 
       const monthById = new Map((months || []).map(month => [month.id, String(month.mois).slice(0, 10)]))
 
-      return rows.map<ImportPreviewRow>(row => {
+      const analyzed = rows.map<ImportPreviewRow>(row => {
         if (row.nature === 'ignore' || row.nature === 'savings_internal') {
           return { ...row, status: 'new', match: null, decision: 'ignore' }
         }
@@ -296,6 +315,34 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
 
         return { ...row, status: 'new', match: null, decision: 'create' }
       })
+
+      const seen = new Map<string, number>()
+      return analyzed.map(row => {
+        if (row.nature === 'ignore' || row.nature === 'savings_internal') {
+          return row
+        }
+
+        const signature = [
+          row.nature,
+          row.date,
+          Math.abs(cents(row.amount)).toFixed(2),
+          normalizeFinancialLabel(row.label),
+        ].join('|')
+
+        const firstRowIndex = seen.get(signature)
+        if (firstRowIndex != null) {
+          return {
+            ...row,
+            status: 'duplicate_in_file' as const,
+            match: null,
+            decision: 'ignore' as const,
+            duplicateOfRowIndex: firstRowIndex,
+          }
+        }
+
+        seen.set(signature, row.rowIndex)
+        return row
+      })
     },
   })
 
@@ -326,12 +373,32 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       rows,
       fileName,
       formatId,
+      fileFingerprint,
+      allowDuplicateFile,
     }: {
       rows: ImportPreviewRow[]
       fileName: string
       formatId?: string | null
+      fileFingerprint?: string | null
+      allowDuplicateFile?: boolean
     }) => {
       if (!espaceId || !userId) throw new Error('Budget ou utilisateur manquant')
+
+      if (fileFingerprint && !allowDuplicateFile) {
+        const { data: previous, error: previousError } = await supabase
+          .from('import_batches')
+          .select('id, file_name, created_at')
+          .eq('espace_id', espaceId)
+          .eq('file_fingerprint', fileFingerprint)
+          .eq('status', 'imported')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (previousError) throw previousError
+        if (previous) {
+          throw new Error('Ce fichier a déjà été importé dans ce Budget. Confirme explicitement si tu souhaites réellement le réimporter.')
+        }
+      }
 
       const { data: batch, error: batchError } = await supabase
         .from('import_batches')
@@ -339,6 +406,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           espace_id: espaceId,
           format_id: formatId || null,
           file_name: fileName,
+          file_fingerprint: fileFingerprint || null,
           row_count: rows.length,
         })
         .select()
@@ -352,6 +420,10 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
 
       for (const row of rows) {
         try {
+          if (row.decision === 'match' && !row.match) {
+            throw new Error('Rapprochement impossible : aucune opération existante n’est associée à cette ligne.')
+          }
+
           if (row.decision === 'ignore' || row.nature === 'ignore' || row.nature === 'savings_internal') {
             ignoredCount += 1
             const { error } = await supabase.from('import_batch_items').insert({
@@ -675,6 +747,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
     formats,
     history,
     saveFormat,
+    checkFingerprint,
     analyze,
     importRows,
     undoBatch,
