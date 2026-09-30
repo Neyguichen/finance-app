@@ -59,6 +59,7 @@ export interface ChargeFixeRecurrente {
   nom: string
   montant: number
   categorie_id?: string | null
+  sous_categorie_id?: string | null
   actif: boolean
   frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
   mois_debut: string | null
@@ -74,6 +75,7 @@ export interface ChargeFixe {
   montant: number
   montant_reel?: number | null
   categorie_id?: string | null
+  sous_categorie_id?: string | null
   payee: boolean
   date_prevue?: string | null
   date_reelle?: string | null

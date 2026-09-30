@@ -18,7 +18,7 @@ import { useMois } from '@/lib/hooks/useMois'
 import { useMonthPreparation, usePrepareMonth } from '@/lib/hooks/useMonthPreparation'
 import { useHabits } from '@/lib/hooks/useHabits'
 
-import { getMontantNet, localDateISO } from '@/lib/utils'
+import { localDateISO } from '@/lib/utils'
 import { useDashboardInsights } from '@/lib/hooks/useDashboardInsights'
 import { useActualCashSummary, useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
 import { useDashboardV2 } from '@/lib/hooks/useDashboardV2'
@@ -156,11 +156,14 @@ export default function DashboardPage() {
         />
 
         <ComprendreV2
-          ratioChargesRevenus={insights.ratioChargesRevenus}
-          tauxMaitrise={insights.tauxMaitrise}
-          topExpense={insights.topExpense}
+          plannedIncome={v2.plannedIncome}
+          plannedFixed={v2.plannedFixed}
+          plannedVariable={v2.plannedVariable}
+          actualVariable={v2.actualVariable}
+          projectedRemainingCashMovement={v2.projectedRemainingCashMovement}
+          experimentalRemainingCashMovement={v2.experimentalRemainingCashMovement}
+          budgetProgress={v2.budgetProgress}
           topCategory={insights.topCategory}
-          getNetAmount={getMontantNet}
         />
 
         <TodoResumeV2 />
