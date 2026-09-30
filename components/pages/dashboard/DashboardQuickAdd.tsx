@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useVisualViewport } from '@/lib/hooks/useVisualViewport'
 import { ArrowUpCircle, CalendarClock, PiggyBank, Plus, ReceiptText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -17,7 +16,6 @@ export default function DashboardQuickAdd() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const visualViewport = useVisualViewport()
 
   useEffect(() => setMounted(true), [])
 
@@ -33,7 +31,7 @@ export default function DashboardQuickAdd() {
           onClick={() => setOpen(false)}
         />
       )}
-      <div className="pointer-events-none fixed bottom-20 z-50 flex flex-col items-end gap-2" style={{ left: visualViewport.offsetLeft, width: visualViewport.width ?? undefined, paddingRight: 16 }}>
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex flex-col items-end gap-2 px-4">
         {open && actions.map(({ label, icon: Icon, href, tone }) => (
           <button
             key={href}
