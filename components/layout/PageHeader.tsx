@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 export default function PageHeader({
@@ -11,7 +12,7 @@ export default function PageHeader({
   title: string
   description?: string
   icon?: LucideIcon
-  action?: React.ReactNode
+  action?: ReactNode
 }) {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
