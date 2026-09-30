@@ -105,17 +105,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-full w-full max-w-full flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       <FinancialAlertEngine />
       <OnboardingGuide />
       <AdminBanner />
 
-      <div className="relative z-40 w-full max-w-full" style={headerContainerStyle}>
+      <div className="relative z-40" style={headerContainerStyle}>
         <header
-          className="flex w-full min-w-0 max-w-full items-center gap-1.5 border-b border-slate-800/70 bg-[#08111f]/92 px-2 backdrop-blur-xl sm:gap-3 sm:px-4"
+          className="flex items-center gap-3 border-b border-slate-800/70 bg-[#08111f]/92 px-3 backdrop-blur-xl sm:px-4"
           style={headerStyle}
         >
-          <BrandMark compact={isMobile} className="hidden shrink-0 min-[420px]:flex" />
+          <BrandMark compact={isMobile} className="shrink-0" />
           <div className="min-w-0 flex-1">
             <EspaceSelector />
           </div>
@@ -126,7 +126,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <main
         ref={mainRef}
-        className="isolate min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-20"
+        className="isolate flex-1 overflow-y-auto pb-20"
       >
         <div className="mx-auto max-w-7xl px-3 sm:px-4">
           <ReferenceBalanceSetup />
