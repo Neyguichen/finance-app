@@ -43,6 +43,12 @@ export default function RevenusPage() {
   const [editTarget, setEditTarget] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
 
+  useEffect(() => {
+    if (!isAdminViewing && moisId && new URLSearchParams(window.location.search).get('add') === '1') {
+      setFormOpen(true)
+    }
+  }, [isAdminViewing, moisId])
+
   const getEnvNom = (id: string | null) => effectiveEnveloppes.find((e: any) => e.id === id)?.nom || 'Enveloppe'
 
   // Création
