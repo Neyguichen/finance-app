@@ -20,10 +20,6 @@ export default function NotificationsPage() {
   const [family, setFamily] = useState<'all' | 'finances' | 'actions' | 'neyguichen'>('all')
   const [unreadOnly, setUnreadOnly] = useState(false)
 
-  if (isAdminViewing) {
-    return <div className="p-4 text-sm text-slate-400">Les notifications sont désactivées en vue administrateur.</div>
-  }
-
   const items = useMemo(() => {
     return (notifications.data || []).filter(item => {
       if (family !== 'all' && item.family !== family) return false
@@ -31,6 +27,10 @@ export default function NotificationsPage() {
       return true
     })
   }, [notifications.data, family, unreadOnly])
+
+  if (isAdminViewing) {
+    return <div className="p-4 text-sm text-slate-400">Les notifications sont désactivées en vue administrateur.</div>
+  }
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 p-4 pb-24">
