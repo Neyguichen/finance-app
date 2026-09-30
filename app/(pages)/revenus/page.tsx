@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { createPortal } from 'react-dom'
 import { ArrowUpCircle, Plus } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import PageHeader from '@/components/layout/PageHeader'
@@ -41,8 +42,11 @@ export default function RevenusPage() {
   } = summarizeIncome(effectiveRevenus)
 
   const [formOpen, setFormOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [editTarget, setEditTarget] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
+
+  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     if (!isAdminViewing && moisId && new URLSearchParams(window.location.search).get('add') === '1') {
