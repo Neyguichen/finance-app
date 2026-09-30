@@ -2,19 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useVisualViewport } from '@/lib/hooks/useVisualViewport'
 import { Plus } from 'lucide-react'
 
 export default function EpargneFab({ onOpenMouvement }: { onOpenMouvement: () => void }) {
   const [mounted, setMounted] = useState(false)
-  const visualViewport = useVisualViewport()
 
   useEffect(() => setMounted(true), [])
 
   if (!mounted) return null
 
   return createPortal(
-    <div className="pointer-events-none fixed bottom-20 z-50 flex justify-end" style={{ left: visualViewport.offsetLeft, width: visualViewport.width ?? undefined, paddingRight: 16 }}>
+    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex justify-end px-4">
       <button
         type="button"
         onClick={onOpenMouvement}
