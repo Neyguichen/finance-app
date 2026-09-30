@@ -42,14 +42,9 @@ export default function PrevuReelV2(props: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <Card className="nf-card-hover">
           <CardContent className="p-4 space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-medium">Revenus</p>
-                <p className="text-xs text-slate-500">Le report et les reprises d&apos;épargne sont exclus.</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold">{formatEuro(props.actualIncome)}</p>
-              </div>
+            <div>
+              <p className="font-medium">Revenus</p>
+              <p className="text-xs text-slate-500">Le report et les reprises d&apos;épargne sont exclus.</p>
             </div>
             <Line label="Reçus" planned={props.plannedIncome} actual={props.actualIncome} />
             <p className="text-xs text-slate-400">Encore attendus : <span className="font-semibold text-slate-200">{formatEuro(props.expectedIncome)}</span></p>
