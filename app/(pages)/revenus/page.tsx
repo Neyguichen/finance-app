@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useVisualViewport } from '@/lib/hooks/useVisualViewport'
 import { Plus } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
@@ -41,6 +42,7 @@ export default function RevenusPage() {
 
   const [formOpen, setFormOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const visualViewport = useVisualViewport()
   const [editTarget, setEditTarget] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
 
@@ -164,7 +166,7 @@ export default function RevenusPage() {
         </div>
 
         {!isAdminViewing && mounted && createPortal(
-          <div className="pointer-events-none fixed bottom-20 left-0 z-50 flex w-[100dvw] justify-end px-4">
+          <div className="pointer-events-none fixed bottom-20 z-50 flex justify-end" style={{ left: visualViewport.offsetLeft, width: visualViewport.width ?? undefined, paddingRight: 16 }}>
             <button
               type="button"
               onClick={() => setFormOpen(true)}
