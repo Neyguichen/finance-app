@@ -7,6 +7,7 @@ import { useApp } from '@/components/AppContext'
 import { useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
 import { useBalanceReconciliationSuggestions, type ReconciliationSuggestion } from '@/lib/hooks/useBalanceReconciliationSuggestions'
 import { useApplyReconciliationCorrection } from '@/lib/hooks/useApplyReconciliationCorrection'
+import { useNotifications } from '@/lib/hooks/useNotifications'
 import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
 
 export default function VerificationSoldePage() {
@@ -15,6 +16,7 @@ export default function VerificationSoldePage() {
   const [targetDate, setTargetDate] = useState(localDateISO())
   const [selectedSuggestion, setSelectedSuggestion] = useState<ReconciliationSuggestion | null>(null)
   const applyCorrection = useApplyReconciliationCorrection()
+  const notifications = useNotifications(espace?.id)
 
   const calculated = useBalanceAtDate(
     espace?.id,
@@ -50,6 +52,14 @@ export default function VerificationSoldePage() {
     await applyCorrection.mutateAsync({
       actions: selectedSuggestion.actions,
       validationDate: targetDate,
+    })
+    await notifications.createNotification.mutateAsync({
+      family: 'finances',
+      title: 'Correction de rapprochement appliquée',
+      message: `${selectedSuggestion.title} · impact attendu ${selectedSuggestion.effect > 0 ? '+' : ''}${formatEuro(selectedSuggestion.effect)} au ${formatDate(targetDate)}.`,
+      action_label: 'Vérifier le solde',
+      action_href: '/verification-solde',
+      dedupe_key: `balance-correction:${targetDate}:${selectedSuggestion.id}`,
     })
     setSelectedSuggestion(null)
   }

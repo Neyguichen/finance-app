@@ -1,24 +1,72 @@
 'use client'
 
-import { CheckSquare2 } from 'lucide-react'
+import Link from 'next/link'
+import { CheckSquare2, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useApp } from '@/components/AppContext'
+import { useTodos } from '@/lib/hooks/useTodos'
+import { formatDate } from '@/lib/utils'
 
 export default function TodoResumeV2() {
+  const { espace, isAdminViewing } = useApp()
+  const todos = useTodos(isAdminViewing ? undefined : espace?.id)
+  const pending = (todos.data || []).filter(item => item.status === 'todo')
+  const top = pending.slice(0, 3)
+
   return (
     <Card className="border-slate-800 bg-slate-900">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm text-slate-300">
-          <CheckSquare2 className="h-4 w-4 text-emerald-400" />
-          Todo
+        <CardTitle className="flex items-center justify-between gap-3 text-sm text-slate-300">
+          <span className="flex items-center gap-2">
+            <CheckSquare2 className="h-4 w-4 text-emerald-400" />
+            Todo
+            {pending.length > 0 && (
+              <span className="rounded-full bg-emerald-950 px-2 py-0.5 text-[10px] text-emerald-300">
+                {pending.length}
+              </span>
+            )}
+          </span>
+          {!isAdminViewing && (
+            <Link href="/todo" className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+              Voir tout
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="rounded-lg border border-dashed border-slate-700 bg-slate-950/30 p-3">
-          <p className="text-sm text-slate-300">Aucune action financière centralisée pour le moment.</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Le Dashboard réserve maintenant cet emplacement. La création, les échéances et les liens vers les opérations seront branchés avec le module Todo dédié, sans créer de table ou de données prématurément.
-          </p>
-        </div>
+        {isAdminViewing ? (
+          <p className="text-sm text-slate-500">Todo personnelle masquée en vue administrateur.</p>
+        ) : todos.isLoading ? (
+          <p className="text-sm text-slate-500">Chargement…</p>
+        ) : top.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-700 bg-slate-950/30 p-3">
+            <p className="text-sm text-slate-300">Aucune action en attente.</p>
+            <Link href="/todo" className="mt-1 inline-flex text-xs text-blue-400 hover:text-blue-300">
+              Ajouter une action
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {top.map(todo => (
+              <div key={todo.id} className="flex items-start gap-2 rounded-lg border border-slate-800 bg-slate-950/30 p-2.5">
+                <button
+                  type="button"
+                  aria-label="Marquer comme terminée"
+                  className="mt-0.5 h-4 w-4 rounded border border-slate-600 hover:border-emerald-500"
+                  onClick={() => todos.toggleTodo.mutate(todo)}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-slate-300">{todo.title}</p>
+                  {todo.due_date && <p className="mt-0.5 text-[11px] text-slate-600">Échéance {formatDate(todo.due_date)}</p>}
+                </div>
+              </div>
+            ))}
+            {pending.length > top.length && (
+              <p className="text-xs text-slate-600">+ {pending.length - top.length} autre(s) action(s)</p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

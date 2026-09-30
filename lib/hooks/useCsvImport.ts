@@ -611,6 +611,21 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         .eq('id', batch.id)
       if (updateError) throw updateError
 
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          espace_id: espaceId,
+          family: errorCount > 0 ? 'actions' : 'neyguichen',
+          title: errorCount > 0 ? 'Import CSV terminé avec anomalies' : 'Import CSV terminé',
+          message: `${createdCount} créée(s), ${matchedCount} rapprochée(s), ${ignoredCount} ignorée(s), ${errorCount} erreur(s).`,
+          action_label: 'Voir les imports',
+          action_href: '/import-csv',
+          dedupe_key: `csv-import:${batch.id}`,
+        })
+      if (notificationError && notificationError.code !== '23505') {
+        console.warn('Notification import CSV non créée:', notificationError)
+      }
+
       return { batchId: batch.id, createdCount, matchedCount, ignoredCount, errorCount }
     },
     onSuccess: () => {
@@ -626,6 +641,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications', espaceId] })
     },
   })
 
@@ -727,6 +743,21 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
         .eq('id', batchId)
       if (cancelError) throw cancelError
+
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          espace_id: espaceId,
+          family: 'neyguichen',
+          title: 'Import CSV annulé',
+          message: 'Les opérations réversibles du lot ont été restaurées ou supprimées en toute sécurité.',
+          action_label: 'Voir les imports',
+          action_href: '/import-csv',
+          dedupe_key: `csv-undo:${batchId}`,
+        })
+      if (notificationError && notificationError.code !== '23505') {
+        console.warn('Notification annulation CSV non créée:', notificationError)
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import_batches', espaceId] })
@@ -740,6 +771,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications', espaceId] })
     },
   })
 

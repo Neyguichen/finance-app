@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { Calendar, Database, Handshake, Info, LogOut, Menu, Scale, Settings, Upload, Users, X } from 'lucide-react'
+import { useNotifications } from '@/lib/hooks/useNotifications'
+import { useTodos } from '@/lib/hooks/useTodos'
+import { Bell, Calendar, CheckSquare2, Database, Handshake, Info, LogOut, Menu, Scale, Settings, Upload, Users, X } from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 
@@ -15,8 +17,11 @@ export default function AppMenu() {
   const [mounted, setMounted] = useState(false)
   const supabase = createClient()
   const router = useRouter()
-  const { userId } = useApp()
+  const { userId, espace, isAdminViewing } = useApp()
   const { data: dbUsage } = useDbUsage()
+  const notifications = useNotifications(isAdminViewing ? undefined : espace?.id)
+  const todos = useTodos(isAdminViewing ? undefined : espace?.id)
+  const pendingTodos = (todos.data || []).filter(item => item.status === 'todo').length
 
   useEffect(() => {
     setMounted(true)
@@ -82,6 +87,29 @@ export default function AppMenu() {
             router.push('/import-csv')
           }} />
 
+          {!isAdminViewing && (
+            <>
+              <MenuLink
+                icon={Bell}
+                label="Notifications"
+                badge={notifications.unreadCount}
+                onClick={() => {
+                  closeMenu()
+                  router.push('/notifications')
+                }}
+              />
+              <MenuLink
+                icon={CheckSquare2}
+                label="Todo"
+                badge={pendingTodos}
+                onClick={() => {
+                  closeMenu()
+                  router.push('/todo')
+                }}
+              />
+            </>
+          )}
+
           <MenuLink icon={Settings} label="Paramètres" onClick={() => {
             closeMenu()
             router.push('/parametres')
@@ -137,11 +165,16 @@ export default function AppMenu() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+        className="relative rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
         aria-expanded={open}
         aria-label="Ouvrir le menu"
       >
         <Menu className="h-5 w-5" />
+        {!isAdminViewing && notifications.unreadCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-blue-500 px-1 text-center text-[10px] font-bold leading-4 text-white">
+            {notifications.unreadCount > 9 ? '9+' : notifications.unreadCount}
+          </span>
+        )}
       </button>
 
       {mounted && createPortal(portal, document.body)}
@@ -149,11 +182,12 @@ export default function AppMenu() {
   )
 }
 
-function MenuLink({ icon: Icon, label, onClick, danger }: {
+function MenuLink({ icon: Icon, label, onClick, danger, badge }: {
   icon: any
   label: string
   onClick: () => void
   danger?: boolean
+  badge?: number
 }) {
   return (
     <button
@@ -165,7 +199,12 @@ function MenuLink({ icon: Icon, label, onClick, danger }: {
       }`}
     >
       <Icon className="h-4 w-4" />
-      {label}
+      <span className="flex-1 text-left">{label}</span>
+      {!!badge && badge > 0 && (
+        <span className="min-w-5 rounded-full bg-blue-950 px-1.5 py-0.5 text-center text-[10px] font-semibold text-blue-300">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </button>
   )
 }
