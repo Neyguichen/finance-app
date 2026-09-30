@@ -1,17 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Plus } from 'lucide-react'
 
 export default function EpargneFab({ onOpenMouvement }: { onOpenMouvement: () => void }) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
-
-  if (!mounted) return null
-
-  return createPortal(
+  return (
     <button
       type="button"
       onClick={onOpenMouvement}
@@ -20,7 +12,6 @@ export default function EpargneFab({ onOpenMouvement }: { onOpenMouvement: () =>
       title="Ajouter un mouvement"
     >
       <Plus className="h-6 w-6" />
-    </button>,
-    document.body
+    </button>
   )
 }
