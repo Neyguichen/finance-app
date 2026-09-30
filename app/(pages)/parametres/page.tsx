@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX, BarChart3, Repeat2 } from 'lucide-react'
+import { User, Wallet, FolderOpen, Palette, Download, Trash2, UserX, BarChart3, Repeat2, SlidersHorizontal } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
@@ -16,6 +16,7 @@ import HabitudesSection from '@/components/pages/parametres/HabitudesSection'
 import ExportSection from '@/components/pages/parametres/ExportSection'
 import DonneesSection from '@/components/pages/parametres/DonneesSection'
 import CompteSection from '@/components/pages/parametres/CompteSection'
+import FeaturesSection from '@/components/pages/parametres/FeaturesSection'
 
 export default function ParametresPage() {
   const supabase = createClient()
@@ -24,7 +25,7 @@ export default function ParametresPage() {
   const { data: categories = [], create: createCat, update: updateCat, remove: removeCat } = useCategories(espaceId)
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    profil: false, espaces: false, categories: false, habitudes: false, stats: false, apparence: false,
+    profil: false, espaces: false, categories: false, habitudes: false, stats: false, fonctions: false, apparence: false,
     export: false, donnees: false, compte: false,
   })
 
@@ -92,6 +93,16 @@ export default function ParametresPage() {
           onUpdate={async (stats) => {
             if (!espace) return
             await updateEspace(espace.id, { dashboard_stats: stats })
+          }}
+        />
+      </Section>
+
+      <Section open={openSections.fonctions} onToggle={() => toggle('fonctions')} icon={SlidersHorizontal} title="Fonctionnalités du Budget" color="text-fuchsia-400">
+        <FeaturesSection
+          espace={espace}
+          onUpdate={async (features) => {
+            if (!espace) return
+            await updateEspace(espace.id, { features })
           }}
         />
       </Section>

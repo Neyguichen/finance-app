@@ -8,7 +8,7 @@ import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
 import { useNotifications } from '@/lib/hooks/useNotifications'
 import { useTodos } from '@/lib/hooks/useTodos'
-import { Bell, Calendar, CheckSquare2, Database, Handshake, Info, LogOut, Menu, Scale, Settings, Upload, Users, X } from 'lucide-react'
+import { Bell, Calendar, CheckSquare2, CircleHelp, Database, Handshake, Info, LogOut, Menu, Scale, Settings, Upload, Users, X } from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 
@@ -19,8 +19,14 @@ export default function AppMenu() {
   const router = useRouter()
   const { userId, espace, isAdminViewing } = useApp()
   const { data: dbUsage } = useDbUsage()
-  const notifications = useNotifications(isAdminViewing ? undefined : espace?.id)
-  const todos = useTodos(isAdminViewing ? undefined : espace?.id)
+  const features = {
+    import_csv: true,
+    todo: true,
+    notifications: true,
+    ...(espace?.features || {}),
+  }
+  const notifications = useNotifications(!isAdminViewing && features.notifications ? espace?.id : undefined)
+  const todos = useTodos(!isAdminViewing && features.todo ? espace?.id : undefined)
   const pendingTodos = (todos.data || []).filter(item => item.status === 'todo').length
 
   useEffect(() => {
@@ -82,37 +88,48 @@ export default function AppMenu() {
             router.push('/verification-solde')
           }} />
 
-          <MenuLink icon={Upload} label="Importer un CSV" onClick={() => {
-            closeMenu()
-            router.push('/import-csv')
-          }} />
+          {features.import_csv && (
+            <MenuLink icon={Upload} label="Importer un CSV" onClick={() => {
+              closeMenu()
+              router.push('/import-csv')
+            }} />
+          )}
 
           {!isAdminViewing && (
             <>
-              <MenuLink
-                icon={Bell}
-                label="Notifications"
-                badge={notifications.unreadCount}
-                onClick={() => {
-                  closeMenu()
-                  router.push('/notifications')
-                }}
-              />
-              <MenuLink
-                icon={CheckSquare2}
-                label="Todo"
-                badge={pendingTodos}
-                onClick={() => {
-                  closeMenu()
-                  router.push('/todo')
-                }}
-              />
+              {features.notifications && (
+                <MenuLink
+                  icon={Bell}
+                  label="Notifications"
+                  badge={notifications.unreadCount}
+                  onClick={() => {
+                    closeMenu()
+                    router.push('/notifications')
+                  }}
+                />
+              )}
+              {features.todo && (
+                <MenuLink
+                  icon={CheckSquare2}
+                  label="Todo"
+                  badge={pendingTodos}
+                  onClick={() => {
+                    closeMenu()
+                    router.push('/todo')
+                  }}
+                />
+              )}
             </>
           )}
 
           <MenuLink icon={Settings} label="Paramètres" onClick={() => {
             closeMenu()
             router.push('/parametres')
+          }} />
+
+          <MenuLink icon={CircleHelp} label="Aide & retours" onClick={() => {
+            closeMenu()
+            router.push('/aide')
           }} />
 
           <MenuLink icon={Info} label="À propos" onClick={() => {
@@ -170,7 +187,7 @@ export default function AppMenu() {
         aria-label="Ouvrir le menu"
       >
         <Menu className="h-5 w-5" />
-        {!isAdminViewing && notifications.unreadCount > 0 && (
+        {!isAdminViewing && features.notifications && notifications.unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-blue-500 px-1 text-center text-[10px] font-bold leading-4 text-white">
             {notifications.unreadCount > 9 ? '9+' : notifications.unreadCount}
           </span>

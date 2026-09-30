@@ -9,7 +9,8 @@ import { formatDate } from '@/lib/utils'
 
 export default function TodoPage() {
   const { espace, isAdminViewing } = useApp()
-  const model = useTodos(espace?.id)
+  const enabled = espace?.features?.todo !== false
+  const model = useTodos(enabled ? espace?.id : undefined)
   const [title, setTitle] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [note, setNote] = useState('')
@@ -38,6 +39,10 @@ export default function TodoPage() {
 
   if (isAdminViewing) {
     return <div className="p-4 text-sm text-slate-400">La Todo est désactivée en vue administrateur.</div>
+  }
+
+  if (!enabled) {
+    return <div className="p-4 text-sm text-slate-400">La Todo est désactivée pour ce Budget. Tu peux la réactiver dans Paramètres → Fonctionnalités du Budget.</div>
   }
 
   return (

@@ -35,9 +35,10 @@ function guessColumn(headers: string[], terms: string[]) {
 
 export default function ImportCsvPage() {
   const { espace, userId, isAdminViewing } = useApp()
-  const { data: categories = [] } = useCategories(espace?.id)
-  const { data: envelopes = [] } = useEnveloppes(espace?.id)
-  const importModel = useCsvImport(espace?.id, userId)
+  const enabled = espace?.features?.import_csv !== false
+  const { data: categories = [] } = useCategories(enabled ? espace?.id : undefined)
+  const { data: envelopes = [] } = useEnveloppes(enabled ? espace?.id : undefined)
+  const importModel = useCsvImport(enabled ? espace?.id : undefined, userId)
 
   const [fileName, setFileName] = useState('')
   const [fileText, setFileText] = useState('')
@@ -195,6 +196,10 @@ export default function ImportCsvPage() {
 
   if (isAdminViewing) {
     return <div className="p-4 text-sm text-slate-400">L’import CSV est désactivé en vue administrateur.</div>
+  }
+
+  if (!enabled) {
+    return <div className="p-4 text-sm text-slate-400">L’import CSV est désactivé pour ce Budget. Tu peux le réactiver dans Paramètres → Fonctionnalités du Budget.</div>
   }
 
   return (

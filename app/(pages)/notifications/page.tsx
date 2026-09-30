@@ -15,8 +15,10 @@ const familyLabels = {
 
 export default function NotificationsPage() {
   const { espace, isAdminViewing } = useApp()
-  const notifications = useNotifications(espace?.id)
-  const todos = useTodos(espace?.id)
+  const notificationsEnabled = espace?.features?.notifications !== false
+  const todoEnabled = espace?.features?.todo !== false
+  const notifications = useNotifications(notificationsEnabled ? espace?.id : undefined)
+  const todos = useTodos(todoEnabled ? espace?.id : undefined)
   const [family, setFamily] = useState<'all' | 'finances' | 'actions' | 'neyguichen'>('all')
   const [unreadOnly, setUnreadOnly] = useState(false)
 
@@ -30,6 +32,10 @@ export default function NotificationsPage() {
 
   if (isAdminViewing) {
     return <div className="p-4 text-sm text-slate-400">Les notifications sont désactivées en vue administrateur.</div>
+  }
+
+  if (!notificationsEnabled) {
+    return <div className="p-4 text-sm text-slate-400">Les notifications sont désactivées pour ce Budget. Tu peux les réactiver dans Paramètres → Fonctionnalités du Budget.</div>
   }
 
   return (
@@ -154,7 +160,7 @@ export default function NotificationsPage() {
                       </Link>
                     )}
 
-                    {(() => {
+                    {todoEnabled && (() => {
                       const linkedTodo = (todos.data || []).find(todo =>
                         todo.object_type === 'notification' && todo.object_id === item.id
                       )

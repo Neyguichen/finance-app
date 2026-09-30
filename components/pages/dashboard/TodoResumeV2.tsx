@@ -9,9 +9,12 @@ import { formatDate } from '@/lib/utils'
 
 export default function TodoResumeV2() {
   const { espace, isAdminViewing } = useApp()
-  const todos = useTodos(isAdminViewing ? undefined : espace?.id)
+  const todoEnabled = espace?.features?.todo !== false
+  const todos = useTodos(!isAdminViewing && todoEnabled ? espace?.id : undefined)
   const pending = (todos.data || []).filter(item => item.status === 'todo')
   const top = pending.slice(0, 3)
+
+  if (!todoEnabled) return null
 
   return (
     <Card className="border-slate-800 bg-slate-900">

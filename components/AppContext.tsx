@@ -17,7 +17,17 @@ interface AppContextType {
   setMonth: (m: string) => void
   loading: boolean
   addEspace: (nom: string, icone?: string, soldeInitial?: number) => Promise<void>
-  updateEspace: (id: string, updates: { nom?: string; icone?: string; solde_initial?: number; solde_reference?: number | null; date_solde_reference?: string | null; double_date?: boolean; dashboard_stats?: Record<string, boolean> }) => Promise<void>
+  updateEspace: (id: string, updates: {
+    nom?: string
+    icone?: string
+    solde_initial?: number
+    solde_reference?: number | null
+    date_solde_reference?: string | null
+    double_date?: boolean
+    dashboard_stats?: Record<string, boolean>
+    features?: { import_csv?: boolean; todo?: boolean; notifications?: boolean }
+    onboarding_completed?: boolean
+  }) => Promise<void>
   removeEspace: (id: string) => Promise<void>
   refreshEspaces: () => Promise<void>
   syncing: boolean
@@ -136,7 +146,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return
     const { data } = await supabase
       .from('espaces')
-      .insert({ user_id: userId, nom, icone, ordre: espaces.length, solde_initial: soldeInitial })
+      .insert({
+        user_id: userId,
+        nom,
+        icone,
+        ordre: espaces.length,
+        solde_initial: soldeInitial,
+        onboarding_completed: false,
+        features: { import_csv: true, todo: true, notifications: true },
+      })
       .select()
       .single()
     if (data) setEspaces(prev => [...prev, data])
@@ -154,7 +172,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Mettre à jour un espace (nom, icone, solde_initial)
-  const updateEspace = async (id: string, updates: { nom?: string; icone?: string; solde_initial?: number; solde_reference?: number | null; date_solde_reference?: string | null; double_date?: boolean; dashboard_stats?: Record<string, boolean> }) => {
+  const updateEspace = async (id: string, updates: {
+    nom?: string
+    icone?: string
+    solde_initial?: number
+    solde_reference?: number | null
+    date_solde_reference?: string | null
+    double_date?: boolean
+    dashboard_stats?: Record<string, boolean>
+    features?: { import_csv?: boolean; todo?: boolean; notifications?: boolean }
+    onboarding_completed?: boolean
+  }) => {
     const { error } = await supabase.from('espaces').update(updates).eq('id', id)
     if (error) { console.error('Erreur update espace:', error); return }
     setEspaces(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e))

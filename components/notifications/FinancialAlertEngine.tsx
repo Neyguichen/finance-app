@@ -20,7 +20,14 @@ type RuleAlert = {
 
 export default function FinancialAlertEngine() {
   const { espace, moisId, month, isAdminViewing } = useApp()
-  const enabled = Boolean(espace?.id && moisId && !isAdminViewing && month === currentMonth())
+  const notificationsEnabled = espace?.features?.notifications !== false
+  const enabled = Boolean(
+    espace?.id &&
+    moisId &&
+    !isAdminViewing &&
+    notificationsEnabled &&
+    month === currentMonth()
+  )
   const charges = useChargesFixes(enabled ? moisId : undefined)
   const revenus = useRevenus(enabled ? moisId : undefined)
   const todos = useTodos(enabled ? espace?.id : undefined)

@@ -7,6 +7,7 @@ import AdminBanner from '@/components/layout/AdminBanner'
 import MobileNav from '@/components/layout/MobileNav'
 import { ReferenceBalanceSetup } from '@/components/ReferenceBalanceSetup'
 import FinancialAlertEngine from '@/components/notifications/FinancialAlertEngine'
+import OnboardingGuide from '@/components/onboarding/OnboardingGuide'
 
 const HEADER_H = 44 // hauteur du header en px
 const SCROLL_THRESHOLD = 10
@@ -150,6 +151,7 @@ export default function AppLayout({
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <FinancialAlertEngine />
+      <OnboardingGuide />
       <AdminBanner />
 
       <div style={headerContainerStyle}>
