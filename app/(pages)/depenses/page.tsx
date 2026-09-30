@@ -32,6 +32,7 @@ import DepensesFab from '@/components/pages/depenses/DepensesFab'
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const [view, setView] = useState<'planned' | 'actual'>('planned')
+  const [plannedFilter, setPlannedFilter] = useState<'fixed' | 'variable'>('fixed')
   const [actualFilter, setActualFilter] = useState<'all' | 'fixed' | 'variable'>('all')
   const [txOpen, setTxOpen] = useState(false)
   const [editTx, setEditTx] = useState<any>(null)
@@ -183,7 +184,11 @@ export default function DepensesPage() {
       </CardContent></Card>
 
       {view === 'planned' ? <>
-        <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Charges fixes prévues</h2>
+        <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/80 bg-slate-950/35 p-1">
+          <Button size="sm" variant={plannedFilter === 'fixed' ? 'default' : 'ghost'} onClick={() => setPlannedFilter('fixed')}>Charges fixes</Button>
+          <Button size="sm" variant={plannedFilter === 'variable' ? 'default' : 'ghost'} onClick={() => setPlannedFilter('variable')}>Charges variables</Button>
+        </div>
+        {plannedFilter === 'fixed' && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Charges fixes prévues</h2>
           {effectiveCharges.length === 0 ? (
             <EmptyStateV2
               icon={CalendarClock}
@@ -223,8 +228,8 @@ export default function DepensesPage() {
               </div>
             </div>
           ))}
-        </section>
-        <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Budgets variables</h2>
+        </section>}
+        {plannedFilter === 'variable' && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Budgets variables</h2>
           {parentCategories.length === 0 ? (
             <EmptyStateV2
               icon={ReceiptText}
@@ -236,10 +241,10 @@ export default function DepensesPage() {
               {parentCategories.map((cat: any) => { const subs=subCats(cat.id); const subBudgets=subs.map((sc:any)=>({id:sc.id,nom:sc.nom,icone:sc.icone,prevu:budget(sc.id),depense:spent(sc.id,true)})); return <BudgetCard key={cat.id} cat={cat} prevu={budget(cat.id)} depense={spent(cat.id)} readOnly={isAdminViewing} subCats={subBudgets} onUpsertBudget={(id,v)=>{if(moisId&&!isAdminViewing)upsertBudget.mutate({mois_id:moisId,categorie_id:id,prevu:v})}} onArchive={setArchiveTarget} /> })}
             </div>
           )}
-        </section>
+        </section>}
       </> : <>
         <div className="flex gap-2 overflow-x-auto pb-1">{(['all','fixed','variable'] as const).map(f=><Button key={f} size="sm" variant={actualFilter===f?'default':'outline'} onClick={()=>setActualFilter(f)}>{f==='all'?'Toutes':f==='fixed'?'Fixes':'Variables'}</Button>)}</div>
-        {(actualFilter==='all'||actualFilter==='fixed') && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Charges fixes</h2>{effectiveCharges.map((c:any)=><ChargeFixeCard key={c.id} charge={c} readOnly={isAdminViewing} doubleDate={espace?.double_date ?? false} onTogglePayee={(id,p,date)=>togglePayee.mutate({id,payee:p,dateReelle:date})} onActualAmountChange={(id,montant_reel)=>updateFixed.mutate({id,montant_reel})} onEdit={setEditFixed} onDelete={setDeleteFixed} />)}</section>}
+        {(actualFilter==='all'||actualFilter==='fixed') && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Charges fixes</h2>{effectiveCharges.map((c:any)=><ChargeFixeCard key={c.id} charge={c} readOnly={isAdminViewing} doubleDate={espace?.double_date ?? false} onTogglePayee={(id,p,date)=>togglePayee.mutate({id,payee:p,dateReelle:date})} onEdit={setEditFixed} onDelete={setDeleteFixed} />)}</section>}
         {(actualFilter==='all'||actualFilter==='variable') && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Transactions variables</h2>{effectiveTransactions.length===0 ? (
           <EmptyStateV2
             icon={ReceiptText}
