@@ -93,7 +93,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     height: `${HEADER_H}px`,
     transform: shouldHide ? `translateY(-${HEADER_H}px)` : 'translateY(0)',
     transition: 'transform 250ms ease-in-out',
-    willChange: 'transform',
   }
 
   if (isPublicAuthPage) {
@@ -112,7 +111,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <div className="relative z-40" style={headerContainerStyle}>
         <header
-          className="flex w-full min-w-0 items-center border-b border-slate-800/70 bg-[#08111f]/92 px-2 backdrop-blur-xl sm:px-4"
+          className="flex w-full min-w-0 items-center border-b border-slate-800/70 bg-[#08111f]/98 px-2 sm:px-4"
           style={headerStyle}
         >
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
