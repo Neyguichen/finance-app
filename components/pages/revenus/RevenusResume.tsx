@@ -21,13 +21,13 @@ export default function RevenusResume({ plannedIncome, receivedIncome, expectedI
         </div>
 
         <div className="grid grid-cols-1 gap-2 border-t border-slate-800/80 pt-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-emerald-400/10 bg-emerald-500/5 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-emerald-400/10 bg-emerald-500/5 px-3 py-3">
             <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-emerald-300/70">Actifs prévus</p>
-            <p className="mt-1 text-base font-semibold text-slate-100">{formatEuro(totalActif)}</p>
+            <p className="shrink-0 text-base font-semibold tabular-nums text-slate-100">{formatEuro(totalActif)}</p>
           </div>
-          <div className="rounded-xl border border-indigo-400/10 bg-indigo-500/5 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-indigo-400/10 bg-indigo-500/5 px-3 py-3">
             <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-indigo-300/70">Passifs prévus</p>
-            <p className="mt-1 text-base font-semibold text-slate-100">{formatEuro(totalPassif)}</p>
+            <p className="shrink-0 text-base font-semibold tabular-nums text-slate-100">{formatEuro(totalPassif)}</p>
           </div>
         </div>
 
