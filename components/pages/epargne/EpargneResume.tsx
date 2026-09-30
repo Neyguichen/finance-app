@@ -13,18 +13,18 @@ export default function EpargneResume({ totalDisponible, totalPrevus, totalEparg
 
   return (
     <Card className="nf-glow border-emerald-400/15">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex justify-between items-center">
-          <span className="font-semibold text-emerald-400">Total disponible</span>
-          <span className="font-bold text-xl text-emerald-400">{formatEuro(totalDisponible)}</span>
+      <CardContent className="space-y-5 p-5 sm:p-6">
+        <div className="flex items-end justify-between gap-4">
+          <span className="text-sm font-semibold text-emerald-400">Total disponible</span>
+          <span className="text-2xl font-bold text-emerald-400 sm:text-3xl">{formatEuro(totalDisponible)}</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm border-t border-slate-800/80 pt-3">
+        <div className="grid grid-cols-1 gap-3 border-t border-slate-800/80 pt-4 text-sm sm:grid-cols-2 sm:gap-4">
           <div>
             <p className="text-slate-500 text-xs">Prévu ce mois</p>
             <p className="font-bold text-sky-400">{formatEuro(totalPrevus)}</p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="text-slate-500 text-xs">Réel épargné</p>
             <p className="font-bold text-teal-400">{formatEuro(totalEpargne)}</p>
           </div>
@@ -34,7 +34,7 @@ export default function EpargneResume({ totalDisponible, totalPrevus, totalEparg
               {ecart > 0 ? '+' : ''}{formatEuro(ecart)}
             </p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="text-slate-500 text-xs">Repris ce mois</p>
             <p className="font-bold text-orange-400">{formatEuro(totalReprise)}</p>
           </div>
