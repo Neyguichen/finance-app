@@ -105,14 +105,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-full w-full max-w-full flex-col overflow-hidden">
       <FinancialAlertEngine />
       <OnboardingGuide />
       <AdminBanner />
 
-      <div className="relative z-40" style={headerContainerStyle}>
+      <div className="relative z-40 w-full max-w-full" style={headerContainerStyle}>
         <header
-          className="flex min-w-0 items-center gap-1.5 border-b border-slate-800/70 bg-[#08111f]/92 px-2 backdrop-blur-xl sm:gap-3 sm:px-4"
+          className="flex w-full min-w-0 max-w-full items-center gap-1.5 border-b border-slate-800/70 bg-[#08111f]/92 px-2 backdrop-blur-xl sm:gap-3 sm:px-4"
           style={headerStyle}
         >
           <BrandMark compact={isMobile} className="hidden shrink-0 min-[420px]:flex" />
