@@ -131,6 +131,8 @@ export interface Enveloppe {
   nom: string
   solde: number
   solde_initial: number
+  solde_reference?: number | null
+  date_solde_reference?: string | null
   objectif: number | null
   ordre: number
   archived: boolean

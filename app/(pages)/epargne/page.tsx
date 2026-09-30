@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { PiggyBank } from 'lucide-react'
 
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
@@ -12,6 +13,7 @@ import MouvementForm from '@/components/pages/epargne/MouvementForm'
 import MouvementCard from '@/components/pages/epargne/MouvementCard'
 import { MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
 import EpargneFab from '@/components/pages/epargne/EpargneFab'
+import EmptyStateV2 from '@/components/ui/EmptyStateV2'
 
 import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
 import { useEnveloppesAtMonth } from '@/lib/hooks/useEnveloppesAtMonth'
@@ -44,7 +46,15 @@ export default function EpargnePage() {
 
   // États dialogs
   const [openEnv, setOpenEnv] = useState(false)
-  const [editEnv, setEditEnv] = useState<{ id: string; nom: string; objectif: number | null; solde: number; solde_initial: number } | null>(null)
+  const [editEnv, setEditEnv] = useState<{
+    id: string
+    nom: string
+    objectif: number | null
+    solde: number
+    solde_initial: number
+    solde_reference?: number | null
+    date_solde_reference?: string | null
+  } | null>(null)
   const [openMvt, setOpenMvt] = useState(false)
   const [editMvt, setEditMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string | null } | null>(null)
   const [scopeMvt, setScopeMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string } | null>(null)
@@ -71,9 +81,17 @@ export default function EpargnePage() {
     setOpenEnv(false)
   }
 
-  const handleSaveEditEnv = (data: { id: string; nom: string; objectif: number | null; solde_initial: number; solde: number }) => {
+  const handleSaveEditEnv = async (data: {
+    id: string
+    nom: string
+    objectif: number | null
+    solde_initial: number
+    solde: number
+    solde_reference: number | null
+    date_solde_reference: string | null
+  }) => {
     if (isAdminViewing) return
-    updateEnv.mutateAsync(data)
+    await updateEnv.mutateAsync(data)
     setEditEnv(null)
   }
 
@@ -141,6 +159,16 @@ export default function EpargnePage() {
       <MonthSelector currentMonth={month} onChange={setMonth} />
       <div className="p-4 space-y-4">
         <h1 className="text-xl font-bold">Épargne</h1>
+
+        {!isAdminViewing && enveloppesActives.length === 0 && (
+          <EmptyStateV2
+            icon={PiggyBank}
+            title="Crée ta première enveloppe d’épargne"
+            description="Une enveloppe peut recevoir un objectif et un solde réel de référence. Le solde de référence est un stock, pas un versement mensuel."
+            actionLabel="Créer une enveloppe"
+            onAction={() => setOpenEnv(true)}
+          />
+        )}
 
         <EpargneResume
           totalDisponible={totalDisponible}
@@ -224,7 +252,15 @@ export default function EpargnePage() {
               getEnvNom={getEnvNom} onEdit={setEditMvt} onDelete={setDeleteTarget} />
           ))}
           {effectiveMouvements.length === 0 && (
-            <p className="text-center text-slate-500 text-sm py-4">Aucun mouvement ce mois</p>
+            <EmptyStateV2
+              icon={PiggyBank}
+              title="Aucun mouvement ce mois"
+              description={enveloppesActives.length > 0
+                ? "Ajoute un versement, une reprise ou un transfert uniquement lorsqu’un mouvement réel a lieu."
+                : "Crée d’abord une enveloppe. Un solde existant peut être saisi comme référence sans créer de faux mouvement."}
+              actionLabel={!isAdminViewing && enveloppesActives.length > 0 ? "Ajouter un mouvement" : undefined}
+              onAction={!isAdminViewing && enveloppesActives.length > 0 ? () => setOpenMvt(true) : undefined}
+            />
           )}
         </div>
 

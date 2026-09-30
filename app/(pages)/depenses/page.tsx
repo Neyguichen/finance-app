@@ -28,6 +28,7 @@ import SplitDialog from '@/components/pages/variables/SplitDialog'
 import { useRemboursements } from '@/lib/hooks/useRemboursements'
 import ArchiveDialog from '@/components/pages/variables/ArchiveDialog'
 import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
+import EmptyStateV2 from '@/components/ui/EmptyStateV2'
 
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
@@ -92,15 +93,43 @@ export default function DepensesPage() {
 
       {view === 'planned' ? <>
         <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Charges fixes prévues</h2>
-          {effectiveCharges.length === 0 ? <p className="text-sm text-slate-600">Aucune charge fixe prévue.</p> : effectiveCharges.map((c: any) => <div key={c.id} className="flex justify-between rounded-xl border border-slate-800 bg-slate-900 p-3"><div><p className="font-medium">{c.nom}</p>{c.date_prevue && <p className="text-xs text-slate-500">Prévu le {formatDate(c.date_prevue)}</p>}</div><span className="font-bold">{formatEuro(Number(c.montant))}</span></div>)}
+          {effectiveCharges.length === 0 ? (
+            <EmptyStateV2
+              icon={CalendarClock}
+              title="Aucune charge fixe prévue"
+              description={moisId
+                ? "Ajoute uniquement les charges que tu veux prévoir pour ce mois, ou configure tes récurrences dans les habitudes."
+                : "Ce mois n’est pas encore préparé. Prépare-le depuis le Dashboard avant d’ajouter des prévisions."}
+              actionLabel={!isAdminViewing && moisId ? "Ajouter une charge fixe" : undefined}
+              onAction={!isAdminViewing && moisId ? () => setFixedOpen(true) : undefined}
+            />
+          ) : effectiveCharges.map((c: any) => <div key={c.id} className="flex justify-between rounded-xl border border-slate-800 bg-slate-900 p-3"><div><p className="font-medium">{c.nom}</p>{c.date_prevue && <p className="text-xs text-slate-500">Prévu le {formatDate(c.date_prevue)}</p>}</div><span className="font-bold">{formatEuro(Number(c.montant))}</span></div>)}
         </section>
-        <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Budgets variables</h2><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {parentCategories.map((cat: any) => { const subs=subCats(cat.id); const subBudgets=subs.map((sc:any)=>({id:sc.id,nom:sc.nom,icone:sc.icone,prevu:budget(sc.id),depense:spent(sc.id,true)})); return <BudgetCard key={cat.id} cat={cat} prevu={budget(cat.id)} depense={spent(cat.id)} readOnly={isAdminViewing} subCats={subBudgets} onUpsertBudget={(id,v)=>{if(moisId&&!isAdminViewing)upsertBudget.mutate({mois_id:moisId,categorie_id:id,prevu:v})}} onArchive={setArchiveTarget} /> })}
-        </div></section>
+        <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Budgets variables</h2>
+          {parentCategories.length === 0 ? (
+            <EmptyStateV2
+              icon={ReceiptText}
+              title="Aucune catégorie variable"
+              description="Crée des catégories depuis Paramètres pour répartir ton budget variable sans mélanger prévision et dépense réelle."
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {parentCategories.map((cat: any) => { const subs=subCats(cat.id); const subBudgets=subs.map((sc:any)=>({id:sc.id,nom:sc.nom,icone:sc.icone,prevu:budget(sc.id),depense:spent(sc.id,true)})); return <BudgetCard key={cat.id} cat={cat} prevu={budget(cat.id)} depense={spent(cat.id)} readOnly={isAdminViewing} subCats={subBudgets} onUpsertBudget={(id,v)=>{if(moisId&&!isAdminViewing)upsertBudget.mutate({mois_id:moisId,categorie_id:id,prevu:v})}} onArchive={setArchiveTarget} /> })}
+            </div>
+          )}
+        </section>
       </> : <>
         <div className="flex gap-2 overflow-x-auto pb-1">{(['all','fixed','variable'] as const).map(f=><Button key={f} size="sm" variant={actualFilter===f?'default':'outline'} onClick={()=>setActualFilter(f)}>{f==='all'?'Toutes':f==='fixed'?'Fixes':'Variables'}</Button>)}</div>
         {(actualFilter==='all'||actualFilter==='fixed') && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Charges fixes</h2>{effectiveCharges.map((c:any)=><ChargeFixeCard key={c.id} charge={c} readOnly={isAdminViewing} doubleDate={espace?.double_date ?? false} onTogglePayee={(id,p,date)=>togglePayee.mutate({id,payee:p,dateReelle:date})} onActualAmountChange={(id,montant_reel)=>updateFixed.mutate({id,montant_reel})} onEdit={setEditFixed} onDelete={setDeleteFixed} />)}</section>}
-        {(actualFilter==='all'||actualFilter==='variable') && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Transactions variables</h2>{effectiveTransactions.length===0?<p className="text-sm text-slate-600">Aucune dépense enregistrée.</p>:effectiveTransactions.map((tx:any)=><DepenseCard key={tx.id} tx={tx} readOnly={isAdminViewing} doubleDate={espace?.double_date??false} getMontantNet={net} onEdit={setEditTx} onDelete={setDeleteTx} />)}</section>}
+        {(actualFilter==='all'||actualFilter==='variable') && <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Transactions variables</h2>{effectiveTransactions.length===0 ? (
+          <EmptyStateV2
+            icon={ReceiptText}
+            title="Aucune dépense enregistrée"
+            description={moisId ? "Ajoute une dépense réelle quand elle a eu lieu. Les budgets prévus restent séparés." : "Prépare d’abord ce mois depuis le Dashboard avant de saisir des opérations."}
+            actionLabel={!isAdminViewing && moisId ? "Ajouter une dépense" : undefined}
+            onAction={!isAdminViewing && moisId ? () => setTxOpen(true) : undefined}
+          />
+        ) : effectiveTransactions.map((tx:any)=><DepenseCard key={tx.id} tx={tx} readOnly={isAdminViewing} doubleDate={espace?.double_date??false} getMontantNet={net} onEdit={setEditTx} onDelete={setDeleteTx} />)}</section>}
       </>}
       {!isAdminViewing && moisId && <div className="fixed bottom-20 right-4 z-40 flex flex-col gap-2 items-end">
         <Button size="sm" variant="outline" onClick={() => setFixedOpen(true)}>+ Charge fixe</Button>

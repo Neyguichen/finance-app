@@ -33,9 +33,15 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
 
       const moisIds = (moisList || []).map(m => m.id)
 
-      // Aucun mois → solde 0 partout
+      // Aucun mois préparé : une référence d'épargne reste un stock lisible,
+      // sinon on conserve le comportement historique basé sur solde_initial.
       if (moisIds.length === 0) {
-        return (enveloppes || []).map(e => ({ ...e, solde: Number(e.solde_initial || 0) })) as Enveloppe[]
+        return (enveloppes || []).map(e => ({
+          ...e,
+          solde: e.solde_reference != null
+            ? Number(e.solde_reference)
+            : Number(e.solde_initial || 0),
+        })) as Enveloppe[]
       }
 
       // 3. Charger tous les mouvements jusqu'à ce mois
@@ -45,27 +51,37 @@ export function useEnveloppesAtMonth(espaceId: string | undefined, month: string
         .in('mois_id', moisIds)
       if (mvtErr) throw mvtErr
 
-      // 4. Calculer le solde cumulé par enveloppe
-      const soldeMap: Record<string, number> = {}
-      for (const mvt of (mouvements || [])) {
-        if (mvt.type === 'epargne' && mvt.enveloppe_dest_id) {
-          soldeMap[mvt.enveloppe_dest_id] = (soldeMap[mvt.enveloppe_dest_id] || 0) + Number(mvt.montant)
-        } else if (mvt.type === 'reprise' && mvt.enveloppe_source_id) {
-          soldeMap[mvt.enveloppe_source_id] = (soldeMap[mvt.enveloppe_source_id] || 0) - Number(mvt.montant)
-        } else if (mvt.type === 'transfert') {
-          if (mvt.enveloppe_source_id) {
-            soldeMap[mvt.enveloppe_source_id] = (soldeMap[mvt.enveloppe_source_id] || 0) - Number(mvt.montant)
-          }
-          if (mvt.enveloppe_dest_id) {
-            soldeMap[mvt.enveloppe_dest_id] = (soldeMap[mvt.enveloppe_dest_id] || 0) + Number(mvt.montant)
+      const targetMonthEnd = new Date(`${month}T12:00:00`)
+      targetMonthEnd.setMonth(targetMonthEnd.getMonth() + 1)
+      targetMonthEnd.setDate(0)
+      const targetEnd = targetMonthEnd.toISOString().slice(0, 10)
+
+      const allMovements = mouvements || []
+
+      return (enveloppes || []).map(e => {
+        const referenceDate = e.date_solde_reference || null
+        const canUseReference = e.solde_reference != null && referenceDate && targetEnd >= referenceDate
+        let balance = canUseReference
+          ? Number(e.solde_reference)
+          : Number(e.solde_initial || 0)
+
+        for (const mvt of allMovements) {
+          const movementDate = String(mvt.date || '')
+          if (!movementDate || movementDate > targetEnd) continue
+          if (canUseReference && movementDate <= referenceDate!) continue
+
+          if (mvt.type === 'epargne' && mvt.enveloppe_dest_id === e.id) {
+            balance += Number(mvt.montant)
+          } else if (mvt.type === 'reprise' && mvt.enveloppe_source_id === e.id) {
+            balance -= Number(mvt.montant)
+          } else if (mvt.type === 'transfert') {
+            if (mvt.enveloppe_source_id === e.id) balance -= Number(mvt.montant)
+            if (mvt.enveloppe_dest_id === e.id) balance += Number(mvt.montant)
           }
         }
-      }
 
-      return (enveloppes || []).map(e => ({
-        ...e,
-        solde: (soldeMap[e.id] || 0) + Number(e.solde_initial || 0),
-      })) as Enveloppe[]
+        return { ...e, solde: balance }
+      }) as Enveloppe[]
     },
   })
 }

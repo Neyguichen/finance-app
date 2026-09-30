@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Info, Trash2 } from 'lucide-react'
+import { Info, ReceiptText, Trash2 } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { formatEuro, pct } from '@/lib/utils'
@@ -30,6 +30,7 @@ import DepenseDeleteDialog from '@/components/pages/variables/DepenseDeleteDialo
 import SplitDialog from '@/components/pages/variables/SplitDialog'
 import ArchiveDialog from '@/components/pages/variables/ArchiveDialog'
 import VariablesFab from '@/components/pages/variables/VariablesFab'
+import EmptyStateV2 from '@/components/ui/EmptyStateV2'
 
 export default function VariablesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
@@ -293,7 +294,15 @@ export default function VariablesPage() {
         <div>
           <h2 className="text-sm font-semibold text-slate-400 mb-2">Dépenses du mois</h2>
           {effectiveTransactions.length === 0 && (
-            <p className="text-sm text-slate-600 text-center py-4">Aucune dépense ce mois-ci</p>
+            <EmptyStateV2
+              icon={ReceiptText}
+              title="Aucune dépense variable ce mois"
+              description={moisId
+                ? "Enregistre une dépense uniquement lorsqu’elle a réellement eu lieu. Les budgets prévus restent séparés."
+                : "Ce mois n’est pas encore préparé. Prépare-le depuis le Dashboard avant de saisir des opérations."}
+              actionLabel={!isAdminViewing && moisId ? "Ajouter une dépense" : undefined}
+              onAction={!isAdminViewing && moisId ? () => setTxOpen(true) : undefined}
+            />
           )}
           <div className="space-y-2">
             {effectiveTransactions.map((tx: any) => (

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { BookOpen, Bug, CheckCircle2, Lightbulb, RotateCcw } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useFeedback } from '@/lib/hooks/useFeedback'
+import MigrationV1Card from '@/components/migration/MigrationV1Card'
 
 export default function AidePage() {
   const { espace, updateEspace, isAdminViewing } = useApp()
@@ -61,6 +62,8 @@ export default function AidePage() {
           text="Neyguichen peut proposer des pistes mais ne corrige jamais silencieusement une opération financière."
         />
       </section>
+
+      <MigrationV1Card espace={espace} />
 
       {espace && (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">

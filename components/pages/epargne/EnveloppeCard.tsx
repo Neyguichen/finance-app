@@ -8,7 +8,15 @@ type Props = {
   env: any
   readOnly: boolean
   variant: 'active' | 'inactive' | 'archived'
-  onEdit?: (env: { id: string; nom: string; objectif: number | null; solde: number; solde_initial: number }) => void
+  onEdit?: (env: {
+    id: string
+    nom: string
+    objectif: number | null
+    solde: number
+    solde_initial: number
+    solde_reference?: number | null
+    date_solde_reference?: string | null
+  }) => void
   onArchive?: (id: string) => void
   onUnarchive?: (id: string) => void
 }
@@ -32,8 +40,13 @@ export default function EnveloppeCard({ env, readOnly, variant, onEdit, onArchiv
               <>
                 <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
                   onClick={() => onEdit?.({
-                    id: env.id, nom: env.nom, objectif: env.objectif,
-                    solde: Number(env.solde), solde_initial: Number(env.solde_initial) || 0,
+                    id: env.id,
+                    nom: env.nom,
+                    objectif: env.objectif,
+                    solde: Number(env.solde),
+                    solde_initial: Number(env.solde_initial) || 0,
+                    solde_reference: env.solde_reference != null ? Number(env.solde_reference) : null,
+                    date_solde_reference: env.date_solde_reference || null,
                   })}>
                   <Pencil className="w-3.5 h-3.5" />
                 </Button>
@@ -56,6 +69,11 @@ export default function EnveloppeCard({ env, readOnly, variant, onEdit, onArchiv
         <p className={`text-lg font-bold ${isActive ? 'text-emerald-400' : 'text-slate-400'}`}>
           {formatEuro(Number(env.solde))}
         </p>
+        {env.solde_reference != null && env.date_solde_reference && (
+          <p className="text-[11px] text-slate-600">
+            Référence {formatEuro(Number(env.solde_reference))} au {new Date(env.date_solde_reference + 'T12:00:00').toLocaleDateString('fr-FR')}
+          </p>
+        )}
         {isActive && env.objectif && pourcent !== null && (
           <>
             <Progress value={pourcent} className="h-2" />
