@@ -10,6 +10,8 @@ import BrandMark from '@/components/brand/BrandMark'
 import { ReferenceBalanceSetup } from '@/components/ReferenceBalanceSetup'
 import FinancialAlertEngine from '@/components/notifications/FinancialAlertEngine'
 import OnboardingGuide from '@/components/onboarding/OnboardingGuide'
+import HeaderActions from '@/components/layout/HeaderActions'
+import MonthPreparationStatus from '@/components/layout/MonthPreparationStatus'
 
 const HEADER_H = 60
 const SCROLL_THRESHOLD = 10
@@ -81,9 +83,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const shouldHide = isMobile && !headerVisible
 
   const headerContainerStyle: CSSProperties = {
-    height: `${HEADER_H}px`,
+    height: shouldHide ? '0px' : `${HEADER_H}px`,
     overflow: 'hidden',
     flexShrink: 0,
+    transition: 'height 250ms ease-in-out',
   }
 
   const headerStyle: CSSProperties = {
@@ -116,6 +119,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="min-w-0 flex-1">
             <EspaceSelector />
           </div>
+          <HeaderActions />
           <AppMenu />
         </header>
       </div>
@@ -127,6 +131,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="mx-auto max-w-7xl px-3 pt-3 sm:px-4 sm:pt-4">
           <ReferenceBalanceSetup />
         </div>
+        <MonthPreparationStatus />
         {children}
       </main>
 

@@ -73,7 +73,7 @@ export function useDashboardV2() {
       - remainingVariableBudget
       - remainingSavingsCash
 
-    const isCurrentMonth = month === today.slice(0, 7)
+    const isCurrentMonth = month.slice(0, 7) === today.slice(0, 7)
     let experimentalVariableForecast: number | null = null
     let experimentalRemainingCashMovement: number | null = null
 

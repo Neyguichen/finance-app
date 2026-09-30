@@ -7,13 +7,7 @@ import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useForm } from 'react-hook-form'
 
-const FREQUENCES = [
-  { value: 0, label: 'Ponctuel' },
-  { value: 1, label: 'Mensuel' },
-  { value: 3, label: 'Trimestriel' },
-  { value: 6, label: 'Semestriel' },
-  { value: 12, label: 'Annuel' },
-]
+type RecurrenceMode = 'once' | 'monthly' | 'custom'
 
 type Props = {
   open: boolean
@@ -23,57 +17,103 @@ type Props = {
 
 export default function RevenuForm({ open, onOpenChange, onSubmit }: Props) {
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
-  const [formFreq, setFormFreq] = useState(1)
+  const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('monthly')
+  const [customFrequency, setCustomFrequency] = useState(2)
   const { register, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: { nom: '', montant: 0, datePrevue: '' },
   })
 
+  const frequency = recurrenceMode === 'once'
+    ? 0
+    : recurrenceMode === 'monthly'
+      ? 1
+      : Math.max(2, customFrequency || 2)
+
   const handleFormSubmit = async (values: { nom: string; montant: number; datePrevue: string }) => {
-    await onSubmit({ nom: values.nom, montant: values.montant, datePrevue: values.datePrevue || null, type: formType, frequence: formFreq })
+    await onSubmit({
+      nom: values.nom,
+      montant: values.montant,
+      datePrevue: values.datePrevue || null,
+      type: formType,
+      frequence: frequency,
+    })
     reset()
     setFormType('actif')
-    setFormFreq(1)
+    setRecurrenceMode('monthly')
+    setCustomFrequency(2)
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-700">
+      <DialogContent>
         <DialogHeader><DialogTitle>Nouveau revenu</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-          <Input placeholder="Nom" {...register('nom', { required: true })} />
-          <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant" />
+          <Input placeholder="Nom du revenu" {...register('nom', { required: true })} />
+          <CalculatorInput value={watch('montant')} onChange={val => setValue('montant', val)} placeholder="Montant" />
+
           <div>
-            <label className="text-sm text-slate-400 mb-1 block">Date prévue <span className="text-xs">(facultative)</span></label>
+            <label className="mb-1 block text-sm text-slate-400">
+              Date prévue <span className="text-xs text-slate-600">(facultative)</span>
+            </label>
             <Input type="date" {...register('datePrevue')} />
           </div>
-          {/* Toggle Actif / Passif */}
+
           <div>
-            <label className="text-sm text-slate-400 mb-1 block">Type</label>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setFormType('actif')}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  formType === 'actif' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                }`}>Actif</button>
-              <button type="button" onClick={() => setFormType('passif')}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  formType === 'passif' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                }`}>Passif</button>
+            <label className="mb-1 block text-sm text-slate-400">Type</label>
+            <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
+              <button
+                type="button"
+                onClick={() => setFormType('actif')}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${formType === 'actif' ? 'bg-emerald-500/15 text-emerald-300' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                Actif
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormType('passif')}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${formType === 'passif' ? 'bg-indigo-500/15 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                Passif
+              </button>
             </div>
           </div>
-          {/* Sélecteur de fréquence */}
+
           <div>
-            <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {FREQUENCES.map(f => (
-                <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
-                  className={`py-2 rounded-lg text-xs font-medium transition-colors flex-1 min-w-[4.5rem] ${
-                    formFreq === f.value ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}>{f.label}</button>
+            <label className="mb-1 block text-sm text-slate-400">Récurrence</label>
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
+              {([
+                ['once', 'Cette fois'],
+                ['monthly', 'Tous les mois'],
+                ['custom', 'Tous les X mois'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRecurrenceMode(value)}
+                  className={`rounded-lg px-2 py-2 text-xs font-medium transition ${recurrenceMode === value ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  {label}
+                </button>
               ))}
             </div>
+            {recurrenceMode === 'custom' && (
+              <label className="mt-2 flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/30 p-2.5">
+                <span className="text-xs text-slate-500">Répéter tous les</span>
+                <input
+                  type="number"
+                  min={2}
+                  max={60}
+                  value={customFrequency}
+                  onChange={event => setCustomFrequency(Math.max(2, Number(event.target.value) || 2))}
+                  className="input input-bordered input-sm w-20 text-center"
+                />
+                <span className="text-xs text-slate-500">mois</span>
+              </label>
+            )}
           </div>
-          <Button type="submit" className="w-full">Ajouter</Button>
+
+          <Button type="submit" className="w-full">Ajouter le revenu</Button>
         </form>
       </DialogContent>
     </Dialog>

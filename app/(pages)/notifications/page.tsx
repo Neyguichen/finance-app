@@ -157,7 +157,7 @@ export default function NotificationsPage() {
                       </Link>
                     )}
 
-                    {todoEnabled && (() => {
+                    {todoEnabled && !item.dedupe_key?.startsWith('rule:todo-due:') && (() => {
                       const linkedTodo = (todos.data || []).find(todo =>
                         todo.object_type === 'notification' && todo.object_id === item.id
                       )

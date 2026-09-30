@@ -2,13 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
-
 import { useApp } from '@/components/AppContext'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { EmojiPicker } from '@/components/ui/emoji-picker'
 import MonthSelector from '@/components/layout/MonthSelector'
 import PageHeader from '@/components/layout/PageHeader'
 import WelcomeScreen from '@/components/pages/dashboard/WelcomeScreen'
@@ -31,12 +25,9 @@ import { useDashboardV2 } from '@/lib/hooks/useDashboardV2'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { month, setMonth, moisId, userId, espaces, espace, loading, addEspace, isAdminViewing } = useApp()
+  const { month, setMonth, moisId, userId, espaces, espace, loading, addEspace } = useApp()
   const monthModel = useMois(espace?.id)
   const habitsModel = useHabits(!moisId ? espace?.id : undefined)
-  const [openEspace, setOpenEspace] = useState(false)
-  const [newNom, setNewNom] = useState('')
-  const [newIcone, setNewIcone] = useState('🏠')
   const [preparationMode, setPreparationMode] = useState<'previous' | 'habits' | null>(null)
   const preparationPreview = useMonthPreparation(espace?.id, month, preparationMode)
   const prepareMonth = usePrepareMonth(espace?.id, month, userId ?? undefined)
@@ -44,11 +35,14 @@ export default function DashboardPage() {
   const insights = useDashboardInsights()
   const v2 = useDashboardV2()
   const today = localDateISO()
-  const [year, monthNumber] = month.split('-').map(Number)
-  const monthStart = `${month}-01`
+  const monthKey = month.slice(0, 7)
+  const [year, monthNumber] = monthKey.split('-').map(Number)
+  const monthStart = `${monthKey}-01`
   const monthEnd = localDateISO(new Date(year, monthNumber, 0))
   const monthOpeningDate = localDateISO(new Date(year, monthNumber - 1, 0))
-  const summaryEnd = today < monthEnd ? today : monthEnd
+  const isCurrentMonth = monthKey === today.slice(0, 7)
+  const balanceTargetDate = isCurrentMonth ? today : monthEnd
+  const summaryEnd = isCurrentMonth && today < monthEnd ? today : monthEnd
   const v2OpeningBalance = useBalanceAtDate(
     espace?.id,
     espace?.solde_reference ?? null,
@@ -60,7 +54,7 @@ export default function DashboardPage() {
     espace?.id,
     espace?.solde_reference ?? null,
     espace?.date_solde_reference ?? null,
-    today,
+    balanceTargetDate,
     espace?.double_date ?? false
   )
   const v2Summary = useActualCashSummary(espace?.id, monthStart, summaryEnd, espace?.double_date ?? false)
@@ -99,27 +93,6 @@ export default function DashboardPage() {
           eyebrow="Vue d’ensemble"
           title="Résumé"
           description="Une lecture claire de ta situation, de ce qui était prévu et de ce qui s’est réellement passé."
-          action={!isAdminViewing ? (
-            <Dialog open={openEspace} onOpenChange={setOpenEspace}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Nouveau Budget</Button>
-              </DialogTrigger>
-              <DialogContent className="mx-auto w-11/12 max-w-sm">
-                <DialogHeader><DialogTitle>Nouveau Budget</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <Input placeholder="Nom (ex. Foyer)" value={newNom} onChange={e => setNewNom(e.target.value)} />
-                  <EmojiPicker value={newIcone} onChange={setNewIcone} />
-                  <Button className="w-full" onClick={async () => {
-                    if (!newNom.trim()) return
-                    await addEspace(newNom.trim(), newIcone || undefined)
-                    setNewNom('')
-                    setNewIcone('🏠')
-                    setOpenEspace(false)
-                  }}>Créer le Budget</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          ) : undefined}
         />
 
         {!moisId && (
@@ -142,7 +115,7 @@ export default function DashboardPage() {
           onConfirm={confirmPreparation}
         />
 
-        {espace?.solde_reference != null && espace?.date_solde_reference && today >= espace.date_solde_reference && (
+        {espace?.solde_reference != null && espace?.date_solde_reference && balanceTargetDate >= espace.date_solde_reference && (
           <SituationFinanciereV2
             balance={v2Balance.data}
             openingBalance={v2OpeningBalance.data}
@@ -152,7 +125,6 @@ export default function DashboardPage() {
             today={today}
             selectedMonth={month}
             plannedMonthResult={v2.plannedMonthResult}
-            actualMonthResult={v2.actualMonthResult}
             projectedRemainingCashMovement={v2.projectedRemainingCashMovement}
             experimentalRemainingCashMovement={v2.experimentalRemainingCashMovement}
           />

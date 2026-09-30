@@ -2,13 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  ArrowUpCircle,
-  Handshake,
-  LayoutDashboard,
-  PiggyBank,
-  ReceiptText,
-} from 'lucide-react'
+import { ArrowUpCircle, LayoutDashboard, PiggyBank, ReceiptText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const links = [
@@ -16,7 +10,6 @@ const links = [
   { href: '/revenus', label: 'Revenus', icon: ArrowUpCircle },
   { href: '/depenses', label: 'Dépenses', icon: ReceiptText },
   { href: '/epargne', label: 'Épargne', icon: PiggyBank },
-  { href: '/dette', label: 'Dettes', icon: Handshake },
 ]
 
 export default function MobileNav() {
@@ -24,7 +17,7 @@ export default function MobileNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-800/80 bg-[#08111f]/94 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
-      <div className="mx-auto grid h-16 max-w-xl grid-cols-5 px-1">
+      <div className="mx-auto grid h-16 max-w-xl grid-cols-4 px-1">
         {links.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (

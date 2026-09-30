@@ -6,7 +6,7 @@ import MonthSelector from '@/components/layout/MonthSelector'
 import PageHeader from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CalendarClock, ReceiptText } from 'lucide-react'
+import { CalendarClock, Pencil, ReceiptText } from 'lucide-react'
 import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
@@ -21,7 +21,7 @@ import DepenseEditDialog from '@/components/pages/variables/DepenseEditDialog'
 import DepenseDeleteDialog from '@/components/pages/variables/DepenseDeleteDialog'
 import ChargeFixeForm from '@/components/pages/charges-fixes/ChargeFixeForm'
 import { ChargeFixeEditDialog, ChargeFixeDeleteDialog, ChargeFixeScopeDialog } from '@/components/pages/charges-fixes/ChargeFixeDialogs'
-import { Plus, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
@@ -30,6 +30,7 @@ import { useRemboursements } from '@/lib/hooks/useRemboursements'
 import ArchiveDialog from '@/components/pages/variables/ArchiveDialog'
 import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 import EmptyStateV2 from '@/components/ui/EmptyStateV2'
+import DepensesFab from '@/components/pages/depenses/DepensesFab'
 
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
@@ -109,7 +110,34 @@ export default function DepensesPage() {
               actionLabel={!isAdminViewing && moisId ? "Ajouter une charge fixe" : undefined}
               onAction={!isAdminViewing && moisId ? () => setFixedOpen(true) : undefined}
             />
-          ) : effectiveCharges.map((c: any) => <div key={c.id} className="flex justify-between rounded-xl border border-slate-800 bg-slate-900 p-3"><div><p className="font-medium">{c.nom}</p>{c.date_prevue && <p className="text-xs text-slate-500">Prévu le {formatDate(c.date_prevue)}</p>}</div><span className="font-bold">{formatEuro(Number(c.montant))}</span></div>)}
+          ) : effectiveCharges.map((c: any) => (
+            <div key={c.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800/80 bg-slate-950/35 p-3">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{c.nom}</p>
+                {c.date_prevue && <p className="text-xs text-slate-500">Prévu le {formatDate(c.date_prevue)}</p>}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="font-semibold">{formatEuro(Number(c.montant))}</span>
+                {!isAdminViewing && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-500"
+                    onClick={() => setEditFixed({
+                      id: c.id,
+                      nom: c.nom,
+                      montant: Number(c.montant),
+                      recurrentId: c.recurrent_id ?? null,
+                      categorieId: c.categorie_id ?? null,
+                    })}
+                    aria-label="Modifier la charge fixe"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
         </section>
         <section className="space-y-2"><h2 className="text-sm font-semibold text-slate-400">Budgets variables</h2>
           {parentCategories.length === 0 ? (
@@ -137,10 +165,12 @@ export default function DepensesPage() {
           />
         ) : effectiveTransactions.map((tx:any)=><DepenseCard key={tx.id} tx={tx} readOnly={isAdminViewing} doubleDate={espace?.double_date??false} getMontantNet={net} onEdit={setEditTx} onDelete={setDeleteTx} />)}</section>}
       </>}
-      {!isAdminViewing && moisId && <div className="fixed bottom-20 right-4 z-40 flex flex-col gap-2 items-end">
-        <Button size="sm" variant="outline" onClick={() => setFixedOpen(true)}>+ Charge fixe</Button>
-        <Button className="rounded-full w-14 h-14 shadow-lg" onClick={() => setTxOpen(true)} aria-label="Ajouter une dépense"><Plus className="w-6 h-6" /></Button>
-      </div>}
+      {!isAdminViewing && moisId && (
+        <DepensesFab
+          onFixed={() => setFixedOpen(true)}
+          onVariable={() => setTxOpen(true)}
+        />
+      )}
       <ChargeFixeForm open={fixedOpen} onOpenChange={setFixedOpen} categories={effectiveCategories} onSubmit={createFixedExpense} />
       <ChargeFixeEditDialog editTarget={editFixed} categories={effectiveCategories} onClose={() => setEditFixed(null)} onSave={saveFixed} />
       <ChargeFixeDeleteDialog target={deleteFixed} onClose={() => setDeleteFixed(null)} onDelete={removeFixedExpense} />

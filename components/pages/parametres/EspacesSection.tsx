@@ -63,7 +63,7 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
       <div className="space-y-2">
         {espaces.map((esp: any, idx: number) => (
           <div key={esp.id} className={`bg-slate-800 rounded-lg p-3 space-y-2 ${
-            currentEspaceId === esp.id ? 'ring-1 ring-blue-500' : ''
+            currentEspaceId === esp.id ? 'ring-1 ring-indigo-500' : ''
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -71,7 +71,7 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
                 <div>
                   <p className="font-medium">{esp.nom}</p>
                   {currentEspaceId === esp.id && (
-                    <span className="text-xs text-blue-400">Actif</span>
+                    <span className="text-xs text-indigo-300">Actif</span>
                   )}
                 </div>
               </div>
@@ -138,7 +138,7 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
 
         {espaces.length <= 1 && (
           <p className="text-xs text-slate-500 text-center">
-            Tu ne peux pas supprimer ton dernier espace.
+            Tu ne peux pas supprimer ton dernier Budget.
           </p>
         )}
       </div>
@@ -146,7 +146,7 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
       {/* Dialog édition */}
       <Dialog open={!!editTarget} onOpenChange={v => { if (!v) setEditTarget(null) }}>
         <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
-          <DialogHeader><DialogTitle>Modifier l&apos;espace</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Modifier le Budget</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Input placeholder="Nom" value={editNom} onChange={e => setEditNom(e.target.value)} />
             <EmojiPicker value={editIcone} onChange={setEditIcone} />
@@ -185,7 +185,7 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
           <div className="space-y-3">
             <div className="p-3 bg-red-950 border border-red-800 rounded-lg">
               <p className="text-sm text-red-300">
-                ⚠️ Cette action supprimera définitivement l&apos;espace et <strong>toutes ses données</strong> :
+                ⚠️ Cette action supprimera définitivement le Budget et <strong>toutes ses données</strong> :
                 revenus, charges, transactions, catégories, budgets et mouvements d&apos;épargne.
               </p>
             </div>

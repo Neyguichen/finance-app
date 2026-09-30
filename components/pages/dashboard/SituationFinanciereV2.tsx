@@ -13,7 +13,6 @@ type Props = {
   today: string
   selectedMonth: string
   plannedMonthResult: number
-  actualMonthResult: number
   projectedRemainingCashMovement: number
   experimentalRemainingCashMovement?: number | null
 }
@@ -35,7 +34,6 @@ export default function SituationFinanciereV2({
   today,
   selectedMonth,
   plannedMonthResult,
-  actualMonthResult,
   projectedRemainingCashMovement,
   experimentalRemainingCashMovement,
 }: Props) {
@@ -44,7 +42,7 @@ export default function SituationFinanciereV2({
   }
 
   const currentMonth = today.slice(0, 7)
-  const isCurrentMonth = selectedMonth === currentMonth
+  const isCurrentMonth = selectedMonth.slice(0, 7) === currentMonth
   const periodLabel = monthLabel(selectedMonth)
   const todayDate = new Date(today + 'T12:00:00')
   const monthEnd = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0, 12)
@@ -58,7 +56,7 @@ export default function SituationFinanciereV2({
     ? Number(balance) + experimentalRemainingCashMovement
     : null
   const plannedPeriodEndBalance = openingBalance == null ? null : Number(openingBalance) + plannedMonthResult
-  const actualCashMovement = summary?.netCashMovement ?? actualMonthResult
+  const actualCashMovement = summary?.netCashMovement ?? 0
   const actualPeriodEndBalance = openingBalance == null ? null : Number(openingBalance) + actualCashMovement
 
   return (
@@ -77,7 +75,7 @@ export default function SituationFinanciereV2({
 
       {!isCurrentMonth && (
         <div className="rounded-xl border border-slate-800/70 bg-slate-950/45 px-3 py-2 text-xs text-slate-400">
-          Le disponible reste calculé à aujourd&apos;hui. Les indicateurs mensuels ci-dessous concernent <span className="font-medium text-slate-200">{periodLabel}</span>.
+          Les montants ci-dessous sont arrêtés à la fin de <span className="font-medium text-slate-200">{periodLabel}</span>.
         </div>
       )}
 
@@ -115,7 +113,7 @@ export default function SituationFinanciereV2({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Card className="nf-card-hover sm:col-span-1">
             <CardContent className="p-4">
-              <p className="text-xs text-slate-400">Disponible aujourd&apos;hui</p>
+              <p className="text-xs text-slate-400">Solde fin de mois</p>
               <p className="mt-1 text-2xl font-bold">{balance == null ? '—' : formatEuro(balance)}</p>
             </CardContent>
           </Card>
@@ -166,9 +164,9 @@ export default function SituationFinanciereV2({
         </Card>
         <Card className="nf-card-hover">
           <CardContent className="p-4">
-            <p className="text-xs text-slate-400">Variation réelle du mois · {periodLabel}</p>
-            <p className="mt-1 text-xl font-bold">{formatEuro(actualMonthResult)}</p>
-            <p className="mt-1 text-[11px] text-slate-500">Le mouvement réel de trésorerie peut aussi inclure remboursements, dettes, créances et reprises d&apos;épargne.</p>
+            <p className="text-xs text-slate-400">Variation réelle de trésorerie · {periodLabel}</p>
+            <p className="mt-1 text-xl font-bold">{formatEuro(actualCashMovement)}</p>
+            <p className="mt-1 text-[11px] text-slate-500">Inclut revenus reçus, dépenses validées, remboursements, dettes/créances et mouvements d’épargne ayant réellement impacté le Budget.</p>
             {openingBalance != null && actualPeriodEndBalance != null && (
               <p className="mt-2 border-t border-slate-800 pt-2 text-[11px] text-slate-400">
                 {formatEuro(openingBalance)} au début + {formatEuro(actualCashMovement)} = <span className="font-semibold text-slate-200">{formatEuro(actualPeriodEndBalance)}</span> calculé en fin de période

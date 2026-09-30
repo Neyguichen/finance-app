@@ -21,7 +21,7 @@ import FeaturesSection from '@/components/pages/parametres/FeaturesSection'
 
 export default function ParametresPage() {
   const supabase = createClient()
-  const { userId, espaces, espace, updateEspace, removeEspace, refreshEspaces } = useApp()
+  const { userId, espaces, espace, updateEspace, removeEspace } = useApp()
   const espaceId = espace?.id
   const { data: categories = [], create: createCat, update: updateCat, remove: removeCat } = useCategories(espaceId)
 
@@ -67,7 +67,7 @@ export default function ParametresPage() {
         <ProfilSection userEmail={userEmail} />
       </Section>
 
-      <Section open={openSections.espaces} onToggle={() => toggle('espaces')} icon={Wallet} title="Espaces" color="text-emerald-400">
+      <Section open={openSections.espaces} onToggle={() => toggle('espaces')} icon={Wallet} title="Budgets" color="text-emerald-400">
         <EspacesSection
           espaces={espaces}
           currentEspaceId={espaceId}
@@ -89,7 +89,7 @@ export default function ParametresPage() {
         />
       </Section>
 
-      <Section open={openSections.habitudes} onToggle={() => toggle('habitudes')} icon={Repeat2} title="Habitudes" color="text-indigo-400">
+      <Section open={openSections.habitudes} onToggle={() => toggle('habitudes')} icon={Repeat2} title="Récurrences" color="text-indigo-400">
         <HabitudesSection espaceId={espaceId} />
       </Section>
 

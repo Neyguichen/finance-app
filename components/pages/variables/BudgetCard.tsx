@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { Check, ChevronDown, ChevronRight, Pencil, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { formatEuro, pct } from '@/lib/utils'
 
 type SubCatBudget = {
@@ -29,118 +29,106 @@ type Props = {
 
 export default function BudgetCard({ cat, prevu, depense, avgMois, inactive, readOnly, subCats = [], onUpsertBudget, onArchive }: Props) {
   const hasSubCats = subCats.length > 0
+  const [editing, setEditing] = useState(false)
   const [inputValue, setInputValue] = useState(prevu || '')
   const [expanded, setExpanded] = useState(false)
   const [subInputs, setSubInputs] = useState<Record<string, string>>({})
 
-  // Le budget de la catégorie parente reste le budget de référence.
-  // Les budgets de sous-catégories sont seulement une ventilation interne et
-  // ne doivent ni remplacer ni doubler le budget parent.
-  const effectivePrevu = prevu
-  const effectiveRatio = effectivePrevu > 0 ? pct(depense, effectivePrevu) : 0
-  const allocatedToSubCats = hasSubCats ? subCats.reduce((s, sc) => s + sc.prevu, 0) : 0
+  const ratio = prevu > 0 ? pct(depense, prevu) : 0
+  const allocated = hasSubCats ? subCats.reduce((sum, item) => sum + item.prevu, 0) : 0
+  const remaining = prevu - depense
+  const getSubInput = (item: SubCatBudget) => subInputs[item.id] ?? (item.prevu || '')
 
-  const getSubInput = (sc: SubCatBudget) => subInputs[sc.id] ?? (sc.prevu || '')
+  const saveParent = () => {
+    onUpsertBudget(cat.id, parseFloat(String(inputValue)) || 0)
+    setEditing(false)
+  }
 
   return (
-    <div className={`bg-slate-900${inactive ? '/50' : ''} border border-slate-800 rounded-xl p-3 space-y-1.5${inactive ? ' opacity-60' : ''}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 min-w-0">
-          {hasSubCats && (
-            <button type="button" onClick={() => setExpanded(!expanded)} className="text-slate-500 hover:text-slate-300 flex-shrink-0">
-              {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            </button>
-          )}
-          <span className="text-base">{cat.icone}</span>
-          <span className="text-xs font-medium truncate">{cat.nom}</span>
-        </div>
+    <div className={`rounded-xl border border-slate-800/80 bg-slate-950/35 p-3 ${inactive ? 'opacity-60' : ''}`}>
+      <div className="flex items-center gap-2">
+        {hasSubCats && (
+          <button type="button" onClick={() => setExpanded(value => !value)} className="shrink-0 text-slate-600 hover:text-slate-300">
+            {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          </button>
+        )}
+        <span className="text-base" aria-hidden="true">{cat.icone}</span>
+        <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-200">{cat.nom}</p>
+        {!inactive && (
+          <span className={`text-xs font-semibold ${remaining < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+            {remaining < 0 ? '-' : ''}{formatEuro(Math.abs(remaining))}
+          </span>
+        )}
         {!readOnly && (
-          <Button variant="ghost" size="icon" className="text-slate-600 h-5 w-5 flex-shrink-0"
-            onClick={() => onArchive({ id: cat.id, nom: cat.nom })}>
-            <Trash2 className="w-3 h-3" />
-          </Button>
+          <>
+            <button type="button" onClick={() => setEditing(value => !value)} className="rounded-md p-1 text-slate-600 hover:text-indigo-300" aria-label="Modifier le budget">
+              {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+            </button>
+            <button type="button" onClick={() => onArchive({ id: cat.id, nom: cat.nom })} className="rounded-md p-1 text-slate-700 hover:text-rose-400" aria-label="Archiver la catégorie">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </>
         )}
       </div>
 
       {!inactive && (
         <>
-          <div className="text-xs text-right">
-            {formatEuro(depense)}
-            <span className="text-slate-500"> / {formatEuro(effectivePrevu)}</span>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+            <span>{formatEuro(depense)} dépensés</span>
+            <span>{formatEuro(prevu)} prévus · {Math.round(ratio)}%</span>
           </div>
-          <div className="text-xs text-right">
-            <span className="text-slate-500">Reste </span>
-            <span className={effectivePrevu - depense >= 0 ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>
-              {formatEuro(effectivePrevu - depense)}
-            </span>
-          </div>
+          <Progress value={Math.min(Math.max(ratio, 0), 100)} className="mt-1.5 h-1" />
         </>
       )}
 
-      {avgMois !== undefined && (
-        <div className="text-xs text-right text-slate-500">
-          Moy. <span className="text-slate-400">{formatEuro(avgMois)}</span>/mois
-        </div>
-      )}
+      {avgMois !== undefined && <p className="mt-1 text-[10px] text-slate-600">Moyenne {formatEuro(avgMois)}/mois</p>}
 
-      {!inactive && <Progress value={Math.min(effectiveRatio, 100)} className="h-1" />}
-
-      {/* Le budget parent reste toujours modifiable, même avec des sous-catégories. */}
-      {!readOnly && (
-        <div className="flex gap-1">
+      {editing && !readOnly && (
+        <div className="mt-2 flex gap-2 border-t border-slate-800/70 pt-2">
           <Input
-            type="number" step="0.01"
-            className="h-6 text-xs bg-slate-800 border-slate-700 px-2 flex-1"
-            placeholder="Budget"
+            type="number"
+            step="0.01"
+            className="h-8 flex-1 text-xs"
             value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
+            onChange={event => setInputValue(event.target.value)}
           />
-          <button
-            className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-            onClick={() => onUpsertBudget(cat.id, parseFloat(String(inputValue)) || 0)}
-          >
-            ✓
-          </button>
+          <Button size="sm" className="h-8 px-3" onClick={saveParent}>
+            <Check className="h-3.5 w-3.5" />
+          </Button>
         </div>
       )}
 
-      {/* Avec sous-catégories : ventilation facultative du budget parent. */}
       {hasSubCats && (
-        <p className="text-[10px] text-slate-500 text-right">
-          Ventilé : {formatEuro(allocatedToSubCats)} sur {formatEuro(prevu)}
-        </p>
+        <p className="mt-1 text-[10px] text-slate-600">Ventilé : {formatEuro(allocated)} / {formatEuro(prevu)}</p>
       )}
+
       {hasSubCats && expanded && (
-        <div className="mt-2 space-y-1.5 border-t border-slate-800 pt-2">
-          {subCats.map(sc => {
-            const scRatio = sc.prevu > 0 ? pct(sc.depense, sc.prevu) : 0
+        <div className="mt-2 space-y-2 border-t border-slate-800/70 pt-2">
+          {subCats.map(item => {
+            const subRatio = item.prevu > 0 ? pct(item.depense, item.prevu) : 0
             return (
-              <div key={sc.id} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400 truncate">
-                    {sc.icone || '📎'} {sc.nom}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    {formatEuro(sc.depense)}
-                    <span className="text-slate-600"> / {formatEuro(sc.prevu)}</span>
-                  </span>
+              <div key={item.id} className="rounded-lg bg-slate-900/35 p-2">
+                <div className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="truncate text-slate-400">{item.icone || '📎'} {item.nom}</span>
+                  <span className="whitespace-nowrap text-slate-500">{formatEuro(item.depense)} / {formatEuro(item.prevu)}</span>
                 </div>
-                <Progress value={Math.min(scRatio, 100)} className="h-0.5" />
+                <Progress value={Math.min(Math.max(subRatio, 0), 100)} className="mt-1 h-0.5" />
                 {!readOnly && (
-                  <div className="flex gap-1">
+                  <div className="mt-1.5 flex gap-1.5">
                     <Input
-                      type="number" step="0.01"
-                      className="h-5 text-[10px] bg-slate-800 border-slate-700 px-1.5 flex-1"
-                      placeholder="Budget"
-                      value={getSubInput(sc)}
-                      onChange={e => setSubInputs(prev => ({ ...prev, [sc.id]: e.target.value }))}
+                      type="number"
+                      step="0.01"
+                      className="h-7 flex-1 text-[11px]"
+                      value={getSubInput(item)}
+                      onChange={event => setSubInputs(prev => ({ ...prev, [item.id]: event.target.value }))}
                     />
-                    <button
-                      className="h-5 px-1.5 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-                      onClick={() => onUpsertBudget(sc.id, parseFloat(String(getSubInput(sc))) || 0)}
+                    <Button
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={() => onUpsertBudget(item.id, parseFloat(String(getSubInput(item))) || 0)}
                     >
-                      ✓
-                    </button>
+                      <Check className="h-3 w-3" />
+                    </Button>
                   </div>
                 )}
               </div>

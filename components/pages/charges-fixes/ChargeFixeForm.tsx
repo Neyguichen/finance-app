@@ -7,14 +7,7 @@ import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useForm } from 'react-hook-form'
 
-const FREQUENCES = [
-  { value: 0, label: 'Ponctuel' },
-  { value: 1, label: 'Mensuel' },
-  { value: 3, label: 'Trimestriel' },
-  { value: 6, label: 'Semestriel' },
-  { value: 12, label: 'Annuel' },
-]
-
+type RecurrenceMode = 'once' | 'monthly' | 'custom'
 type CategoryOption = { id: string; nom: string; icone?: string | null; parent_id?: string | null }
 
 type Props = {
@@ -25,39 +18,82 @@ type Props = {
 }
 
 export default function ChargeFixeForm({ open, onOpenChange, categories = [], onSubmit }: Props) {
-  const [formFreq, setFormFreq] = useState(1)
+  const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('monthly')
+  const [customFrequency, setCustomFrequency] = useState(2)
   const { register, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: { nom: '', montant: 0, categorie_id: '' },
   })
 
+  const frequency = recurrenceMode === 'once'
+    ? 0
+    : recurrenceMode === 'monthly'
+      ? 1
+      : Math.max(2, customFrequency || 2)
+
   const doSubmit = async (values: { nom: string; montant: number; categorie_id?: string }) => {
-    await onSubmit({ ...values, categorie_id: values.categorie_id || null, frequence: formFreq })
+    await onSubmit({ ...values, categorie_id: values.categorie_id || null, frequence: frequency })
     reset()
-    setFormFreq(1)
+    setRecurrenceMode('monthly')
+    setCustomFrequency(2)
   }
+
+  const parentCategories = categories.filter(category => !category.parent_id)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-700">
+      <DialogContent>
         <DialogHeader><DialogTitle>Nouvelle charge fixe</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit(doSubmit)} className="space-y-4">
-          <Input placeholder="Nom (ex: Loyer)" {...register('nom', { required: true })} />
-          <CalculatorInput value={watch('montant')} onChange={(val) => setValue('montant', val)} placeholder="Montant prévu" />
-          {categories.length > 0 && <select {...register('categorie_id')} className="w-full h-10 rounded-md border border-slate-700 bg-slate-800 px-3 text-sm"><option value="">Sans catégorie</option>{categories.filter(c => !c.parent_id).map(c => <option key={c.id} value={c.id}>{c.icone ? `${c.icone} ` : ''}{c.nom}</option>)}</select>}
+          <Input placeholder="Nom (ex. Loyer)" {...register('nom', { required: true })} />
+          <CalculatorInput value={watch('montant')} onChange={val => setValue('montant', val)} placeholder="Montant prévu" />
+
+          {parentCategories.length > 0 && (
+            <select {...register('categorie_id')} className="select select-bordered w-full">
+              <option value="">Sans catégorie</option>
+              {parentCategories.map(category => (
+                <option key={category.id} value={category.id}>
+                  {category.icone ? `${category.icone} ` : ''}{category.nom}
+                </option>
+              ))}
+            </select>
+          )}
+
           <div>
-            <label className="text-sm text-slate-400 mb-1 block">Récurrence</label>
-            <div className="grid flex-wrap gap-1">
-              {FREQUENCES.map(f => (
-                <button key={f.value} type="button" onClick={() => setFormFreq(f.value)}
-                  className={`py-2 rounded-lg text-xs font-medium transition-colors flex-1 min-w-[4.5rem] ${
-                    formFreq === f.value
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}>{f.label}</button>
+            <label className="mb-1 block text-sm text-slate-400">Récurrence</label>
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
+              {([
+                ['once', 'Cette fois'],
+                ['monthly', 'Tous les mois'],
+                ['custom', 'Tous les X mois'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRecurrenceMode(value)}
+                  className={`rounded-lg px-2 py-2 text-xs font-medium transition ${recurrenceMode === value ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  {label}
+                </button>
               ))}
             </div>
+
+            {recurrenceMode === 'custom' && (
+              <label className="mt-2 flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/30 p-2.5">
+                <span className="text-xs text-slate-500">Répéter tous les</span>
+                <input
+                  type="number"
+                  min={2}
+                  max={60}
+                  value={customFrequency}
+                  onChange={event => setCustomFrequency(Math.max(2, Number(event.target.value) || 2))}
+                  className="input input-bordered input-sm w-20 text-center"
+                />
+                <span className="text-xs text-slate-500">mois</span>
+              </label>
+            )}
           </div>
-          <Button type="submit" className="w-full">Ajouter</Button>
+
+          <Button type="submit" className="w-full">Ajouter la charge fixe</Button>
         </form>
       </DialogContent>
     </Dialog>
