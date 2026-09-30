@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useState } from 'react'
 import { CalendarClock, Plus, ReceiptText } from 'lucide-react'
 
 export default function DepensesFab({
@@ -12,18 +11,13 @@ export default function DepensesFab({
   onVariable: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
 
   const choose = (action: () => void) => {
     setOpen(false)
     action()
   }
 
-  if (!mounted) return null
-
-  return createPortal(
+  return (
     <>
       {open && (
         <button
@@ -68,7 +62,6 @@ export default function DepensesFab({
           <Plus className={`h-6 w-6 transition-transform ${open ? 'rotate-45' : ''}`} />
         </button>
       </div>
-    </>,
-    document.body
+    </>
   )
 }
