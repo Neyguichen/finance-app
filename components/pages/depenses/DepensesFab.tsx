@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useVisualViewport } from '@/lib/hooks/useVisualViewport'
 import { CalendarClock, Plus, ReceiptText } from 'lucide-react'
 
 export default function DepensesFab({
@@ -14,7 +13,6 @@ export default function DepensesFab({
 }) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const visualViewport = useVisualViewport()
 
   useEffect(() => setMounted(true), [])
 
@@ -35,7 +33,7 @@ export default function DepensesFab({
           onClick={() => setOpen(false)}
         />
       )}
-      <div className="pointer-events-none fixed bottom-20 z-50 flex flex-col items-end gap-2" style={{ left: visualViewport.offsetLeft, width: visualViewport.width ?? undefined, paddingRight: 16 }}>
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex flex-col items-end gap-2 px-4">
         {open && (
           <>
             <button
