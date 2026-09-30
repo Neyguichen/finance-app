@@ -68,9 +68,11 @@ export default function RemboursementDialog({ tx, reimbursements, onClose, onCre
     <Dialog open={!!tx} onOpenChange={value => { if (!value) onClose() }}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ReceiptText className="h-4 w-4 text-emerald-300" />
-            Remboursements
+          <DialogTitle>
+            <span className="flex items-center gap-2">
+              <ReceiptText className="h-4 w-4 text-emerald-300" />
+              Remboursements
+            </span>
           </DialogTitle>
         </DialogHeader>
 
