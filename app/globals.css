@@ -22,6 +22,12 @@
   --nf-danger: #fb7185;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 * {
   border-color: var(--nf-border);
 }
