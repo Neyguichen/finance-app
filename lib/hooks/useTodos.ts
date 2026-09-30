@@ -50,6 +50,21 @@ export function useTodos(espaceId: string | undefined) {
       object_id?: string | null
     }) => {
       if (!espaceId) throw new Error('Budget manquant')
+
+      if (input.object_type && input.object_id) {
+        const { data: existing, error: existingError } = await supabase
+          .from('todos')
+          .select('*')
+          .eq('espace_id', espaceId)
+          .eq('object_type', input.object_type)
+          .eq('object_id', input.object_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (existingError) throw existingError
+        if (existing) return existing as TodoItem
+      }
+
       const { data, error } = await supabase
         .from('todos')
         .insert({

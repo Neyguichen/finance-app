@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useMemo, useState } from 'react'
 import { Archive, Bell, CheckCheck, ExternalLink, ListTodo } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useNotifications } from '@/lib/hooks/useNotifications'
@@ -16,12 +17,20 @@ export default function NotificationsPage() {
   const { espace, isAdminViewing } = useApp()
   const notifications = useNotifications(espace?.id)
   const todos = useTodos(espace?.id)
+  const [family, setFamily] = useState<'all' | 'finances' | 'actions' | 'neyguichen'>('all')
+  const [unreadOnly, setUnreadOnly] = useState(false)
 
   if (isAdminViewing) {
     return <div className="p-4 text-sm text-slate-400">Les notifications sont désactivées en vue administrateur.</div>
   }
 
-  const items = notifications.data || []
+  const items = useMemo(() => {
+    return (notifications.data || []).filter(item => {
+      if (family !== 'all' && item.family !== family) return false
+      if (unreadOnly && item.read_at) return false
+      return true
+    })
+  }, [notifications.data, family, unreadOnly])
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 p-4 pb-24">
@@ -52,6 +61,42 @@ export default function NotificationsPage() {
         <Summary label="Actives" value={items.length} />
         <Summary label="Actions liées" value={items.filter(item => item.action_href).length} />
       </div>
+
+      <section className="rounded-xl border border-slate-800 bg-slate-900 p-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            {([
+              ['all', 'Toutes'],
+              ['finances', 'Finances'],
+              ['actions', 'Actions'],
+              ['neyguichen', 'Neyguichen'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFamily(value)}
+                className={`rounded-full border px-3 py-1 text-xs ${
+                  family === value
+                    ? 'border-blue-700 bg-blue-950/50 text-blue-300'
+                    : 'border-slate-700 text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-400">
+            <input
+              type="checkbox"
+              className="checkbox checkbox-xs"
+              checked={unreadOnly}
+              onChange={event => setUnreadOnly(event.target.checked)}
+            />
+            Non lues uniquement
+          </label>
+        </div>
+      </section>
 
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
         <div className="space-y-2">
@@ -109,25 +154,33 @@ export default function NotificationsPage() {
                       </Link>
                     )}
 
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-xs"
-                      onClick={event => {
-                        event.stopPropagation()
-                        todos.createTodo.mutate({
-                          title: item.title,
-                          note: item.message,
-                          link_label: item.action_label || (item.action_href ? 'Ouvrir' : null),
-                          link_href: item.action_href,
-                          object_type: 'notification',
-                          object_id: item.id,
-                        })
-                      }}
-                      disabled={todos.createTodo.isPending}
-                    >
-                      <ListTodo className="h-3.5 w-3.5" />
-                      Ajouter à la Todo
-                    </button>
+                    {(() => {
+                      const linkedTodo = (todos.data || []).find(todo =>
+                        todo.object_type === 'notification' && todo.object_id === item.id
+                      )
+                      return (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-xs"
+                          onClick={event => {
+                            event.stopPropagation()
+                            if (linkedTodo) return
+                            todos.createTodo.mutate({
+                              title: item.title,
+                              note: item.message,
+                              link_label: item.action_label || (item.action_href ? 'Ouvrir' : null),
+                              link_href: item.action_href,
+                              object_type: 'notification',
+                              object_id: item.id,
+                            })
+                          }}
+                          disabled={todos.createTodo.isPending || !!linkedTodo}
+                        >
+                          <ListTodo className="h-3.5 w-3.5" />
+                          {linkedTodo ? 'Dans la Todo' : 'Ajouter à la Todo'}
+                        </button>
+                      )
+                    })()}
                   </div>
                 </div>
 
