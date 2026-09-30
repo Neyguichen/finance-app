@@ -74,7 +74,7 @@ export default function EspaceSelector() {
           <button
             type="button"
             onClick={() => setSelectorOpen(current => !current)}
-            className="flex h-9 w-[8.5rem] min-w-0 max-w-[8.5rem] items-center gap-2 rounded-xl sm:w-[10.5rem] sm:max-w-[10.5rem] border border-indigo-400/35 bg-gradient-to-r from-indigo-500/20 to-cyan-500/10 px-3 text-sm font-semibold text-white shadow-sm shadow-indigo-950/20 outline-none transition hover:border-indigo-300/55 hover:from-indigo-500/25 hover:to-cyan-500/15 focus:border-indigo-300/70 focus:ring-2 focus:ring-indigo-500/15 sm:max-w-[16rem]"
+            className="flex h-9 w-[8.5rem] min-w-0 max-w-[8.5rem] items-center gap-2 rounded-xl border border-indigo-400/35 bg-gradient-to-r from-indigo-500/20 to-cyan-500/10 px-3 text-sm font-semibold text-white shadow-sm shadow-indigo-950/20 outline-none transition hover:border-indigo-300/55 hover:from-indigo-500/25 hover:to-cyan-500/15 focus:border-indigo-300/70 focus:ring-2 focus:ring-indigo-500/15 sm:w-[10.5rem] sm:max-w-[10.5rem]"
             aria-haspopup="listbox"
             aria-expanded={selectorOpen}
             aria-label="Budget actif"
