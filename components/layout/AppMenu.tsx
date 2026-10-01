@@ -62,7 +62,7 @@ export default function AppMenu() {
             <MenuLink icon={Upload} label="Importer un CSV" onClick={() => go('/import-csv')} />
           )}
 
-          <MenuLink icon={CircleHelp} label="Aide et retours" onClick={() => go('/aide')} />
+          <MenuLink icon={CircleHelp} label="Aide & Support" onClick={() => go('/aide')} />
           <MenuLink icon={Info} label="À propos" onClick={() => go('/a-propos')} />
           <MenuLink icon={LogOut} label="Se déconnecter" danger onClick={handleLogout} />
         </div>
