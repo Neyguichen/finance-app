@@ -5,7 +5,20 @@ import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CalendarClock, Check, ChevronDown, ChevronRight, Clock3, Pencil, Plus, ReceiptText, Trash2, WalletCards } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  CalendarClock,
+  Check,
+  ChartPie,
+  Pencil,
+  Plus,
+  ReceiptText,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  WalletCards,
+} from 'lucide-react'
 import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
@@ -19,27 +32,22 @@ import ChargeFixeForm from '@/components/pages/charges-fixes/ChargeFixeForm'
 import { ChargeFixeEditDialog, ChargeFixeDeleteDialog, ChargeFixeScopeDialog } from '@/components/pages/charges-fixes/ChargeFixeDialogs'
 import SplitDialog from '@/components/pages/variables/SplitDialog'
 import { useRemboursements } from '@/lib/hooks/useRemboursements'
-import ArchiveDialog from '@/components/pages/variables/ArchiveDialog'
 import RemboursementDialog from '@/components/pages/variables/RemboursementDialog'
 import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 import EmptyStateV2 from '@/components/ui/EmptyStateV2'
 import DepensesFab from '@/components/pages/depenses/DepensesFab'
 
-type ActualFilter = 'all' | 'upcoming' | 'realized' | 'debited'
-type BudgetDetailTab = 'subcategories' | 'transactions'
+type ActualFilter = 'all' | 'planned' | 'validated'
 
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const [view, setView] = useState<'planned' | 'actual'>('planned')
   const [actualFilter, setActualFilter] = useState<ActualFilter>('all')
-  const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null)
-  const [budgetDetailTab, setBudgetDetailTab] = useState<BudgetDetailTab>('subcategories')
-  const [editingBudget, setEditingBudget] = useState(false)
-  const [budgetInput, setBudgetInput] = useState('')
+  const [budgetModalId, setBudgetModalId] = useState<string | null>(null)
+  const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({})
   const [txOpen, setTxOpen] = useState(false)
   const [editTx, setEditTx] = useState<any>(null)
   const [deleteTx, setDeleteTx] = useState<any>(null)
-  const [archiveTarget, setArchiveTarget] = useState<{ id: string; nom: string } | null>(null)
   const [fixedOpen, setFixedOpen] = useState(false)
   const [editFixed, setEditFixed] = useState<any>(null)
   const [deleteFixed, setDeleteFixed] = useState<any>(null)
@@ -52,7 +60,7 @@ export default function DepensesPage() {
     const requestedView = params.get('view')
     const requestedActualFilter = params.get('actualFilter')
     if (requestedView === 'planned' || requestedView === 'actual') setView(requestedView)
-    if (requestedActualFilter === 'all' || requestedActualFilter === 'upcoming' || requestedActualFilter === 'realized' || requestedActualFilter === 'debited') {
+    if (requestedActualFilter === 'all' || requestedActualFilter === 'planned' || requestedActualFilter === 'validated') {
       setActualFilter(requestedActualFilter)
     }
     if (params.get('plannedFilter') === 'variable') {
@@ -67,11 +75,11 @@ export default function DepensesPage() {
     if (add === 'variable') setTxOpen(true)
   }, [isAdminViewing, moisId])
 
-  const { data: categories = [], create: createCat, remove: archiveCat } = useCategories(espace?.id)
+  const { data: categories = [], create: createCat } = useCategories(espace?.id)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], allFlat, create: createTx, update: updateTx, remove: removeTx, split, unsplit } = useTransactions(moisId)
   const { data: charges = [], togglePayee, create: createFixed, update: updateFixed, remove: removeFixed, removeDefinitif } = useChargesFixes(moisId)
-  const { create: createFixedRecurring, update: updateFixedRecurring } = useChargesFixesRecurrentes(espace?.id)
+  const { data: fixedRecurrents = [], create: createFixedRecurring, update: updateFixedRecurring } = useChargesFixesRecurrentes(espace?.id)
   const { data: adminData } = useAdminMoisData(month)
   const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
 
@@ -93,83 +101,97 @@ export default function DepensesPage() {
   const parentCategories = effectiveCategories.filter((c: any) => c.actif !== false && !c.parent_id)
   const subCats = (id: string) => effectiveCategories.filter((c: any) => c.parent_id === id && c.actif !== false)
   const budget = (id: string) => Number(effectiveBudgets.find((b: any) => b.categorie_id === id)?.prevu || 0)
-  const net = (tx: any) => Number(tx.montant) - (tx.remboursements || []).reduce((sum: number, item: any) => sum + Number(item.montant), 0)
+  const refundTotal = (tx: any) => (tx.remboursements || []).reduce((sum: number, item: any) => sum + Number(item.montant), 0)
+  const net = (tx: any) => Number(tx.montant) - refundTotal(tx)
   const spent = (id: string, sub = false) => effectiveFlat.filter((t: any) => (sub ? t.sous_categorie_id : t.categorie_id) === id).reduce((sum: number, t: any) => sum + net(t), 0)
+
   const parentCategoryIds = new Set(parentCategories.map((c: any) => c.id))
   const parentBudgets = effectiveBudgets.filter((b: any) => parentCategoryIds.has(b.categorie_id))
   const expenseSummary = summarizeAnalyticalExpenses(effectiveCharges, parentBudgets, effectiveFlat)
-  const { plannedFixed, actualFixed: paidFixed, plannedVariable, actualVariable, plannedTotal, actualTotal } = expenseSummary
+  const { plannedFixed, plannedVariable, plannedTotal, actualTotal } = expenseSummary
   const variance = actualTotal - plannedTotal
   const actualPercent = plannedTotal > 0 ? Math.round((actualTotal / plannedTotal) * 100) : 0
-
   const fixedShare = plannedTotal > 0 ? Math.round((plannedFixed / plannedTotal) * 100) : 0
   const variableShare = plannedTotal > 0 ? Math.round((plannedVariable / plannedTotal) * 100) : 0
   const otherShare = Math.max(0, 100 - fixedShare - variableShare)
+  const today = localDateISO()
 
-  const selectedCategory = useMemo(() => {
-    if (!parentCategories.length) return null
-    return parentCategories.find((cat: any) => cat.id === selectedBudgetId)
-      || parentCategories.find((cat: any) => budget(cat.id) > 0)
-      || parentCategories[0]
-  }, [parentCategories, selectedBudgetId, effectiveBudgets])
-
-  useEffect(() => {
-    if (selectedCategory && selectedCategory.id !== selectedBudgetId) setSelectedBudgetId(selectedCategory.id)
-  }, [selectedCategory, selectedBudgetId])
-
-  const selectedBudget = selectedCategory ? budget(selectedCategory.id) : 0
-  const selectedSpent = selectedCategory ? spent(selectedCategory.id) : 0
-  const selectedRemaining = selectedBudget - selectedSpent
-  const selectedProgress = selectedBudget > 0 ? Math.min(100, Math.round((selectedSpent / selectedBudget) * 100)) : selectedSpent > 0 ? 100 : 0
-  const selectedSubcats = selectedCategory ? subCats(selectedCategory.id).map((sub: any) => ({
-    ...sub,
-    planned: budget(sub.id),
-    actual: spent(sub.id, true),
-  })) : []
-  const selectedTransactions = selectedCategory
-    ? effectiveFlat.filter((tx: any) => tx.categorie_id === selectedCategory.id).slice(0, 6)
+  const budgetModalCategory = parentCategories.find((cat: any) => cat.id === budgetModalId) || null
+  const budgetModalSubcats = budgetModalCategory ? subCats(budgetModalCategory.id) : []
+  const budgetModalTransactions = budgetModalCategory
+    ? effectiveFlat.filter((tx: any) => tx.categorie_id === budgetModalCategory.id)
     : []
 
-  const today = localDateISO()
+  const recurrenceLabel = (charge: any) => {
+    if (!charge.recurrent_id) return 'Ponctuelle'
+    const recurrent = fixedRecurrents.find((item: any) => item.id === charge.recurrent_id)
+    const frequency = Number(recurrent?.frequence_mois || 1)
+    return frequency === 1 ? 'Tous les mois' : 'Tous les ' + frequency + ' mois'
+  }
+
+  const openBudgetModal = (categoryId: string) => {
+    const category = parentCategories.find((cat: any) => cat.id === categoryId)
+    if (!category) return
+    const draft: Record<string, string> = { [category.id]: String(budget(category.id) || '') }
+    for (const sub of subCats(category.id)) draft[sub.id] = String(budget(sub.id) || '')
+    setBudgetDraft(draft)
+    setBudgetModalId(categoryId)
+  }
+
+  const saveBudgetModal = async () => {
+    if (!budgetModalCategory || !moisId || isAdminViewing) return
+    const ids = [budgetModalCategory.id, ...budgetModalSubcats.map((sub: any) => sub.id)]
+    for (const id of ids) {
+      await upsertBudget.mutateAsync({
+        mois_id: moisId,
+        categorie_id: id,
+        prevu: Number(budgetDraft[id]) || 0,
+      })
+    }
+    setBudgetModalId(null)
+  }
 
   const actualEntries = useMemo(() => {
     const fixedEntries = effectiveCharges.map((charge: any) => {
-      const date = charge.payee ? (charge.date_reelle || charge.date_prevue || month.slice(0, 7) + '-01') : (charge.date_prevue || month.slice(0, 7) + '-01')
-      const status: Exclude<ActualFilter, 'all'> = !charge.payee ? 'upcoming' : charge.date_reelle ? 'debited' : 'realized'
+      const validated = Boolean(charge.payee)
+      const date = validated ? (charge.date_reelle || charge.date_prevue || month.slice(0, 7) + '-01') : (charge.date_prevue || month.slice(0, 7) + '-01')
       return {
         id: 'fixed-' + charge.id,
         source: 'fixed' as const,
         sourceData: charge,
         date,
-        status,
+        status: validated ? 'validated' as const : 'planned' as const,
         title: charge.nom,
-        category: charge.categorie_nom || 'Charge fixe',
         subcategory: charge.sous_categorie_nom || null,
         icon: charge.categorie_icone || '🏠',
-        amount: Number(charge.payee ? (charge.montant_reel ?? charge.montant) : charge.montant),
+        amount: Number(validated ? (charge.montant_reel ?? charge.montant) : charge.montant),
+        grossAmount: Number(validated ? (charge.montant_reel ?? charge.montant) : charge.montant),
+        refund: 0,
+        info: charge.categorie_nom || 'Charge fixe',
       }
     })
 
     const transactionEntries = effectiveTransactions.map((tx: any) => {
-      const effectiveDate = tx.date_validation || tx.date
-      const status: Exclude<ActualFilter, 'all'> = tx.date_validation ? 'debited' : tx.date > today ? 'upcoming' : 'realized'
+      const validated = Boolean(tx.date_validation)
+      const reimbursement = refundTotal(tx)
       return {
         id: 'tx-' + tx.id,
         source: 'transaction' as const,
         sourceData: tx,
-        date: effectiveDate,
-        status,
+        date: validated ? tx.date_validation : tx.date,
+        status: validated ? 'validated' as const : 'planned' as const,
         title: tx.categorie?.nom || 'Sans catégorie',
-        category: tx.categorie?.nom || 'Sans catégorie',
         subcategory: tx.sous_categorie?.nom || null,
         icon: tx.categorie?.icone || '📦',
         amount: net(tx),
-        info: tx.infos || null,
+        grossAmount: Number(tx.montant),
+        refund: reimbursement,
+        info: tx.infos || 'Dépense variable',
       }
     })
 
     return [...fixedEntries, ...transactionEntries].sort((a, b) => String(b.date).localeCompare(String(a.date)))
-  }, [effectiveCharges, effectiveTransactions, month, today])
+  }, [effectiveCharges, effectiveTransactions, month])
 
   const filteredActualEntries = actualEntries.filter(entry => actualFilter === 'all' || entry.status === actualFilter)
 
@@ -180,17 +202,25 @@ export default function DepensesPage() {
     const yesterday = localDateISO(yesterdayDate)
 
     for (const entry of filteredActualEntries) {
-      const label = entry.date === today
-        ? "Aujourd'hui"
-        : entry.date === yesterday
-          ? 'Hier'
-          : formatDate(entry.date)
+      const label = entry.date === today ? "Aujourd'hui" : entry.date === yesterday ? 'Hier' : formatDate(entry.date)
       const list = groups.get(label) || []
       list.push(entry)
       groups.set(label, list)
     }
     return Array.from(groups.entries())
   }, [filteredActualEntries, today])
+
+  const toggleActualEntry = async (entry: any, checked: boolean) => {
+    if (isAdminViewing) return
+    if (entry.source === 'fixed') {
+      await togglePayee.mutateAsync({ id: entry.sourceData.id, payee: checked, dateReelle: checked ? today : undefined })
+      return
+    }
+    await updateTx.mutateAsync({
+      id: entry.sourceData.id,
+      date_validation: checked ? today : null,
+    })
+  }
 
   const createTransaction = async (data: any) => {
     if (!moisId || isAdminViewing) return
@@ -279,12 +309,6 @@ export default function DepensesPage() {
     sousCategorieId: charge.sous_categorie_id ?? null,
   })
 
-  const saveSelectedBudget = () => {
-    if (!selectedCategory || !moisId || isAdminViewing) return
-    upsertBudget.mutate({ mois_id: moisId, categorie_id: selectedCategory.id, prevu: Number(budgetInput) || 0 })
-    setEditingBudget(false)
-  }
-
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
@@ -306,9 +330,9 @@ export default function DepensesPage() {
           <Card className="border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Aperçu du mois</CardTitle></CardHeader>
             <CardContent className="grid gap-2 p-3 pt-0 sm:grid-cols-3">
-              <SummaryCard label="Dépenses prévues" value={plannedTotal} detail="100 % du mois" tone="blue" />
-              <SummaryCard label="Dépenses réelles" value={actualTotal} detail={plannedTotal > 0 ? actualPercent + ' % du prévu' : 'Aucun prévu'} tone="emerald" />
-              <SummaryCard label="Écart" value={variance} detail={variance <= 0 ? Math.abs(actualPercent - 100) + ' % sous le budget' : 'Dépassement du prévu'} tone={variance <= 0 ? 'amber' : 'rose'} signed />
+              <SummaryCard icon={ChartPie} label="Dépenses prévues" value={plannedTotal} tone="blue" />
+              <SummaryCard icon={WalletCards} label="Dépenses réelles" value={actualTotal} detail={plannedTotal > 0 ? actualPercent + ' % du prévu' : 'Aucun prévu'} tone="emerald" />
+              <SummaryCard icon={variance <= 0 ? TrendingDown : TrendingUp} label="Écart" value={variance} detail={variance <= 0 ? Math.abs(actualPercent - 100) + ' % sous le budget' : 'Dépassement du prévu'} tone={variance <= 0 ? 'amber' : 'rose'} signed />
             </CardContent>
           </Card>
 
@@ -332,168 +356,115 @@ export default function DepensesPage() {
         </div>
 
         {view === 'planned' ? (
-          <>
-            <div className="grid gap-3 xl:grid-cols-2">
-              <Card className="border-slate-800 bg-slate-900">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center justify-between gap-3 text-sm text-slate-200">
-                    <span>Dépenses récurrentes <strong className="ml-2 text-slate-100">{formatEuro(plannedFixed)}</strong></span>
-                    {!isAdminViewing && moisId && <Button size="sm" onClick={() => setFixedOpen(true)}><Plus className="mr-1 h-3.5 w-3.5" />Ajouter</Button>}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  {effectiveCharges.length === 0 ? (
-                    <EmptyStateV2 icon={CalendarClock} title="Aucune charge fixe prévue" description="Ajoute les charges que tu souhaites prévoir pour ce mois." actionLabel={!isAdminViewing && moisId ? 'Ajouter une charge fixe' : undefined} onAction={!isAdminViewing && moisId ? () => setFixedOpen(true) : undefined} />
-                  ) : (
-                    <>
-                      <div className="hidden grid-cols-[1.35fr_.65fr_.75fr_.8fr_.55fr_54px] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
-                        <span>Nom</span><span className="text-right">Montant</span><span>Récurrence</span><span>Date</span><span>Statut</span><span />
-                      </div>
-                      <div className="divide-y divide-slate-800/70">
-                        {effectiveCharges.map((charge: any) => (
-                          <div key={charge.id} className="grid gap-2 px-2 py-2.5 md:grid-cols-[1.35fr_.65fr_.75fr_.8fr_.55fr_54px] md:items-center">
-                            <div className="flex min-w-0 items-center gap-2">
-                              <span>{charge.categorie_icone || '🏠'}</span>
-                              <div className="min-w-0"><p className="truncate text-sm font-medium text-slate-200">{charge.nom}</p>{charge.categorie_nom && <p className="truncate text-[10px] text-slate-600">{charge.categorie_nom}{charge.sous_categorie_nom ? ' · ' + charge.sous_categorie_nom : ''}</p>}</div>
-                            </div>
-                            <span className="text-sm font-semibold text-slate-100 md:text-right">{formatEuro(Number(charge.montant))}</span>
-                            <span className="text-xs text-slate-500">{charge.recurrent_id ? 'Récurrente' : 'Ponctuelle'}</span>
-                            <span className="text-xs text-slate-500">{charge.date_prevue ? formatDate(charge.date_prevue) : '—'}</span>
-                            <span className={'w-fit rounded-full px-2 py-1 text-[10px] font-medium ' + (charge.payee ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-800 text-slate-400')}>{charge.payee ? 'Payée' : 'Prévue'}</span>
-                            {!isAdminViewing && <div className="flex justify-end gap-1"><button className="p-1 text-slate-600 hover:text-indigo-300" onClick={() => editFixedTarget(charge)}><Pencil className="h-3.5 w-3.5" /></button><button className="p-1 text-slate-700 hover:text-rose-400" onClick={() => setDeleteFixed({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom })}><Trash2 className="h-3.5 w-3.5" /></button></div>}
+          <div className="grid gap-3 xl:grid-cols-2">
+            <Card className="border-slate-800 bg-slate-900">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between gap-3 text-sm text-slate-200">
+                  <span>Dépenses récurrentes <strong className="ml-2 text-slate-100">{formatEuro(plannedFixed)}</strong></span>
+                  {!isAdminViewing && moisId && <Button size="sm" onClick={() => setFixedOpen(true)}><Plus className="mr-1 h-3.5 w-3.5" />Ajouter</Button>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                {effectiveCharges.length === 0 ? (
+                  <EmptyStateV2 icon={CalendarClock} title="Aucune charge fixe prévue" description="Ajoute les charges que tu souhaites prévoir pour ce mois." actionLabel={!isAdminViewing && moisId ? 'Ajouter une charge fixe' : undefined} onAction={!isAdminViewing && moisId ? () => setFixedOpen(true) : undefined} />
+                ) : (
+                  <>
+                    <div className="hidden grid-cols-[1.35fr_.65fr_.85fr_.75fr_.55fr_54px] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
+                      <span>Nom</span><span className="text-right">Montant</span><span>Récurrence</span><span>Date</span><span>Statut</span><span />
+                    </div>
+                    <div className="divide-y divide-slate-800/70">
+                      {effectiveCharges.map((charge: any) => (
+                        <div key={charge.id} className="grid gap-2 px-2 py-2.5 md:grid-cols-[1.35fr_.65fr_.85fr_.75fr_.55fr_54px] md:items-center">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span>{charge.categorie_icone || '🏠'}</span>
+                            <div className="min-w-0"><p className="truncate text-sm font-medium text-slate-200">{charge.nom}</p>{charge.categorie_nom && <p className="truncate text-[10px] text-slate-600">{charge.categorie_nom}{charge.sous_categorie_nom ? ' · ' + charge.sous_categorie_nom : ''}</p>}</div>
                           </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card id="budgets-variables" className="scroll-mt-24 border-slate-800 bg-slate-900">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center justify-between gap-3 text-sm text-slate-200">
-                    <span>Budgets variables <strong className="ml-2 text-slate-100">{formatEuro(plannedVariable)}</strong></span>
-                    {!isAdminViewing && selectedCategory && <Button size="sm" variant="outline" onClick={() => { setBudgetInput(String(selectedBudget || '')); setEditingBudget(true) }}><Pencil className="mr-1 h-3.5 w-3.5" />Modifier</Button>}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  {parentCategories.length === 0 ? (
-                    <EmptyStateV2 icon={WalletCards} title="Aucune catégorie variable" description="Crée des catégories depuis les paramètres pour préparer tes budgets variables." />
-                  ) : (
-                    <>
-                      <div className="hidden grid-cols-[1.2fr_.58fr_.58fr_.58fr_1fr] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
-                        <span>Catégorie</span><span className="text-right">Prévu</span><span className="text-right">Réel</span><span className="text-right">Reste</span><span>Progression</span>
-                      </div>
-                      <div className="divide-y divide-slate-800/70">
-                        {parentCategories.map((cat: any) => {
-                          const planned = budget(cat.id)
-                          const actual = spent(cat.id)
-                          const remaining = planned - actual
-                          const pct = planned > 0 ? Math.min(100, Math.round((actual / planned) * 100)) : actual > 0 ? 100 : 0
-                          const selected = selectedCategory?.id === cat.id
-                          return (
-                            <button key={cat.id} type="button" onClick={() => { setSelectedBudgetId(cat.id); setEditingBudget(false) }} className={'grid w-full gap-2 px-2 py-2.5 text-left transition hover:bg-slate-800/30 md:grid-cols-[1.2fr_.58fr_.58fr_.58fr_1fr] md:items-center ' + (selected ? 'bg-indigo-500/[0.06]' : '')}>
-                              <div className="flex min-w-0 items-center gap-2"><span>{cat.icone || '📂'}</span><span className="truncate text-sm font-medium text-slate-200">{cat.nom}</span></div>
-                              <span className="text-xs text-slate-300 md:text-right">{formatEuro(planned)}</span>
-                              <span className="text-xs text-slate-300 md:text-right">{formatEuro(actual)}</span>
-                              <span className={'text-xs font-medium md:text-right ' + (remaining < 0 ? 'text-rose-400' : 'text-emerald-400')}>{formatEuro(remaining)}</span>
-                              <div className="flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800"><div className={'h-full rounded-full ' + (remaining < 0 ? 'bg-rose-400' : pct >= 80 ? 'bg-amber-400' : 'bg-emerald-400')} style={{ width: pct + '%' }} /></div><span className="w-8 text-right text-[10px] text-slate-500">{pct}%</span></div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {selectedCategory && (
-              <Card className="border-slate-800 bg-slate-900">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
-                    <span className="mr-auto">Détail d’un budget variable</span>
-                    <label className="relative">
-                      <select value={selectedCategory.id} onChange={event => { setSelectedBudgetId(event.target.value); setEditingBudget(false) }} className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs text-slate-200">
-                        {parentCategories.map((cat: any) => <option key={cat.id} value={cat.id}>{cat.nom}</option>)}
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-                    </label>
-                    {!isAdminViewing && <Button size="sm" onClick={() => { setBudgetInput(String(selectedBudget || '')); setEditingBudget(true) }}>Modifier le budget</Button>}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 p-3 pt-0">
-                  <div className="grid gap-3 rounded-xl border border-slate-800/70 bg-slate-950/25 p-3 sm:grid-cols-[1.2fr_.7fr_.7fr_.7fr_1fr] sm:items-center">
-                    <div className="flex items-center gap-3"><span className="text-2xl">{selectedCategory.icone || '📂'}</span><span className="font-semibold text-slate-100">{selectedCategory.nom}</span></div>
-                    <Metric label="Prévu" value={formatEuro(selectedBudget)} />
-                    <Metric label="Réel" value={formatEuro(selectedSpent)} tone="text-emerald-300" />
-                    <Metric label="Reste" value={formatEuro(selectedRemaining)} tone={selectedRemaining < 0 ? 'text-rose-300' : 'text-slate-100'} />
-                    <div><div className="h-2 overflow-hidden rounded-full bg-slate-800"><div className={'h-full rounded-full ' + (selectedRemaining < 0 ? 'bg-rose-400' : 'bg-emerald-400')} style={{ width: selectedProgress + '%' }} /></div><p className="mt-1 text-right text-[10px] text-slate-500">{selectedProgress}%</p></div>
-                  </div>
-
-                  {editingBudget && !isAdminViewing && (
-                    <div className="flex items-center gap-2 rounded-xl border border-indigo-400/15 bg-indigo-500/5 p-3">
-                      <input type="number" step="0.01" value={budgetInput} onChange={event => setBudgetInput(event.target.value)} className="input input-bordered input-sm flex-1" />
-                      <Button size="sm" onClick={saveSelectedBudget}><Check className="mr-1 h-3.5 w-3.5" />Enregistrer</Button>
+                          <span className="text-sm font-semibold text-slate-100 md:text-right">{formatEuro(Number(charge.montant))}</span>
+                          <span className="text-xs text-slate-500">{recurrenceLabel(charge)}</span>
+                          <span className="text-xs text-slate-500">{charge.date_prevue ? formatDate(charge.date_prevue) : '—'}</span>
+                          <span className={'w-fit rounded-full px-2 py-1 text-[10px] font-medium ' + (charge.payee ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-800 text-slate-400')}>{charge.payee ? 'Validée' : 'Prévue'}</span>
+                          {!isAdminViewing && <div className="flex justify-end gap-1"><button className="p-1 text-slate-600 hover:text-indigo-300" onClick={() => editFixedTarget(charge)}><Pencil className="h-3.5 w-3.5" /></button><button className="p-1 text-slate-700 hover:text-rose-400" onClick={() => setDeleteFixed({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom })}><Trash2 className="h-3.5 w-3.5" /></button></div>}
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-                  <div className="flex gap-1 rounded-lg border border-slate-800 bg-slate-950/40 p-1 sm:w-fit">
-                    <Button size="sm" variant={budgetDetailTab === 'subcategories' ? 'default' : 'ghost'} onClick={() => setBudgetDetailTab('subcategories')}>Sous-catégories</Button>
-                    <Button size="sm" variant={budgetDetailTab === 'transactions' ? 'default' : 'ghost'} onClick={() => setBudgetDetailTab('transactions')}>Transactions récentes</Button>
-                  </div>
-
-                  {budgetDetailTab === 'subcategories' ? (
-                    selectedSubcats.length === 0 ? <p className="text-sm text-slate-600">Aucune sous-catégorie pour ce budget.</p> :
-                    <div className="overflow-x-auto rounded-xl border border-slate-800/70">
-                      <div className="min-w-[620px]">
-                        <div className="grid grid-cols-[1.2fr_.7fr_.7fr_.7fr_1fr] gap-2 border-b border-slate-800 px-3 py-2 text-[10px] uppercase tracking-wide text-slate-600"><span>Sous-catégorie</span><span className="text-right">Prévu</span><span className="text-right">Réel</span><span className="text-right">Reste</span><span>Progression</span></div>
-                        {selectedSubcats.map((sub: any) => {
-                          const remaining = sub.planned - sub.actual
-                          const pct = sub.planned > 0 ? Math.min(100, Math.round((sub.actual / sub.planned) * 100)) : sub.actual > 0 ? 100 : 0
-                          return <div key={sub.id} className="grid grid-cols-[1.2fr_.7fr_.7fr_.7fr_1fr] items-center gap-2 border-b border-slate-800/60 px-3 py-2.5 last:border-0"><span className="text-sm text-slate-200">{sub.icone || '•'} {sub.nom}</span><span className="text-right text-xs">{formatEuro(sub.planned)}</span><span className="text-right text-xs">{formatEuro(sub.actual)}</span><span className={'text-right text-xs ' + (remaining < 0 ? 'text-rose-400' : 'text-emerald-400')}>{formatEuro(remaining)}</span><div className="flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-cyan-400" style={{ width: pct + '%' }} /></div><span className="w-8 text-right text-[10px] text-slate-500">{pct}%</span></div></div>
-                        })}
-                      </div>
+            <Card id="budgets-variables" className="scroll-mt-24 border-slate-800 bg-slate-900">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-slate-200">Budgets variables <strong className="ml-2 text-slate-100">{formatEuro(plannedVariable)}</strong></CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                {parentCategories.length === 0 ? (
+                  <EmptyStateV2 icon={WalletCards} title="Aucune catégorie variable" description="Crée des catégories depuis les paramètres pour préparer tes budgets variables." />
+                ) : (
+                  <>
+                    <div className="hidden grid-cols-[1.2fr_.58fr_.58fr_.58fr_1fr] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
+                      <span>Catégorie</span><span className="text-right">Prévu</span><span className="text-right">Réel</span><span className="text-right">Reste</span><span>Progression</span>
                     </div>
-                  ) : (
-                    selectedTransactions.length === 0 ? <p className="text-sm text-slate-600">Aucune transaction pour ce budget.</p> :
-                    <div className="divide-y divide-slate-800/70 rounded-xl border border-slate-800/70">
-                      {selectedTransactions.map((tx: any) => <button key={tx.id} type="button" onClick={() => !isAdminViewing && setEditTx(tx)} className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-800/30"><span>{tx.sous_categorie?.icone || tx.categorie?.icone || '📦'}</span><div className="min-w-0 flex-1"><p className="truncate text-sm text-slate-200">{tx.sous_categorie?.nom || tx.categorie?.nom || 'Sans catégorie'}</p>{tx.infos && <p className="truncate text-[10px] text-slate-600">{tx.infos}</p>}</div><span className="text-xs text-slate-500">{formatDate(tx.date)}</span><strong className="text-sm text-rose-300">{formatEuro(net(tx))}</strong></button>)}
+                    <div className="divide-y divide-slate-800/70">
+                      {parentCategories.map((cat: any) => {
+                        const planned = budget(cat.id)
+                        const actual = spent(cat.id)
+                        const remaining = planned - actual
+                        const pct = planned > 0 ? Math.min(100, Math.round((actual / planned) * 100)) : actual > 0 ? 100 : 0
+                        return (
+                          <button key={cat.id} type="button" onClick={() => openBudgetModal(cat.id)} className="grid w-full gap-2 px-2 py-2.5 text-left transition hover:bg-slate-800/30 md:grid-cols-[1.2fr_.58fr_.58fr_.58fr_1fr] md:items-center">
+                            <div className="flex min-w-0 items-center gap-2"><span>{cat.icone || '📂'}</span><span className="truncate text-sm font-medium text-slate-200">{cat.nom}</span></div>
+                            <span className="text-xs text-slate-300 md:text-right">{formatEuro(planned)}</span>
+                            <span className="text-xs text-slate-300 md:text-right">{formatEuro(actual)}</span>
+                            <span className={'text-xs font-medium md:text-right ' + (remaining < 0 ? 'text-rose-400' : 'text-emerald-400')}>{formatEuro(remaining)}</span>
+                            <div className="flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800"><div className={'h-full rounded-full ' + (remaining < 0 ? 'bg-rose-400' : pct >= 80 ? 'bg-amber-400' : 'bg-emerald-400')} style={{ width: pct + '%' }} /></div><span className="w-8 text-right text-[10px] text-slate-500">{pct}%</span></div>
+                          </button>
+                        )
+                      })}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {([
                 ['all', 'Toutes'],
-                ['upcoming', 'À venir'],
-                ['realized', 'Réalisées'],
-                ['debited', 'Débitées'],
+                ['planned', 'Prévues'],
+                ['validated', 'Validées'],
               ] as const).map(([key, label]) => (
                 <Button key={key} size="sm" variant={actualFilter === key ? 'default' : 'outline'} onClick={() => setActualFilter(key)}>{label}</Button>
               ))}
             </div>
 
             {groupedEntries.length === 0 ? (
-              <EmptyStateV2 icon={ReceiptText} title="Aucune dépense dans ce filtre" description="Les dépenses du mois apparaîtront ici selon leur état." actionLabel={!isAdminViewing && moisId ? 'Ajouter une dépense' : undefined} onAction={!isAdminViewing && moisId ? () => setTxOpen(true) : undefined} />
+              <EmptyStateV2 icon={ReceiptText} title="Aucune dépense dans ce filtre" description="Les dépenses du mois apparaîtront ici selon leur validation." actionLabel={!isAdminViewing && moisId ? 'Ajouter une dépense' : undefined} onAction={!isAdminViewing && moisId ? () => setTxOpen(true) : undefined} />
             ) : (
               <div className="space-y-4">
                 {groupedEntries.map(([label, entries]) => (
                   <section key={label}>
                     <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</h2>
                     <div className="divide-y divide-slate-800/70 rounded-xl border border-slate-800/70 bg-slate-900">
-                      {entries.map(entry => (
+                      {entries.map((entry: any) => (
                         <div key={entry.id} className="flex items-center gap-3 px-3 py-3">
+                          {!isAdminViewing && (
+                            <Checkbox checked={entry.status === 'validated'} onCheckedChange={checked => toggleActualEntry(entry, checked)} />
+                          )}
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><StatusBadge status={entry.status} /></div>
-                            <p className="truncate text-[11px] text-slate-500">{entry.subcategory ? entry.subcategory + ' · ' : ''}{entry.source === 'fixed' ? 'Charge fixe' : (entry.info || 'Dépense variable')}</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p>
+                              <StatusBadge status={entry.status} />
+                              {entry.refund > 0 && <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-medium text-cyan-300">↻ Remboursement {formatEuro(entry.refund)}</span>}
+                            </div>
+                            <p className="truncate text-[11px] text-slate-500">{entry.subcategory ? entry.subcategory + ' · ' : ''}{entry.info}</p>
                           </div>
-                          <div className="text-right"><strong className={entry.source === 'fixed' ? 'text-purple-300' : 'text-rose-300'}>{formatEuro(entry.amount)}</strong><p className="text-[10px] text-slate-600">{formatDate(entry.date)}</p></div>
+                          <div className="text-right">
+                            <strong className={entry.source === 'fixed' ? 'text-purple-300' : 'text-rose-300'}>{formatEuro(entry.amount)}</strong>
+                            {entry.refund > 0 && <p className="text-[10px] text-slate-500 line-through">{formatEuro(entry.grossAmount)}</p>}
+                            <p className="text-[10px] text-slate-600">{formatDate(entry.date)}</p>
+                          </div>
                           {!isAdminViewing && <div className="flex shrink-0 items-center gap-1"><button className="p-1 text-slate-600 hover:text-indigo-300" onClick={() => entry.source === 'fixed' ? editFixedTarget(entry.sourceData) : setEditTx(entry.sourceData)}><Pencil className="h-3.5 w-3.5" /></button><button className="p-1 text-slate-700 hover:text-rose-400" onClick={() => entry.source === 'fixed' ? setDeleteFixed({ id: entry.sourceData.id, recurrentId: entry.sourceData.recurrent_id, nom: entry.sourceData.nom }) : setDeleteTx(entry.sourceData)}><Trash2 className="h-3.5 w-3.5" /></button></div>}
                         </div>
                       ))}
@@ -505,6 +476,65 @@ export default function DepensesPage() {
           </>
         )}
 
+        <Dialog open={!!budgetModalCategory} onOpenChange={open => { if (!open) setBudgetModalId(null) }}>
+          <DialogContent className="max-w-3xl border-slate-700 bg-slate-900">
+            {budgetModalCategory && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{budgetModalCategory.icone || '📂'} {budgetModalCategory.nom}</DialogTitle>
+                </DialogHeader>
+
+                <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+                  <section className="rounded-xl border border-slate-800 bg-slate-950/30 p-3">
+                    <label className="text-xs text-slate-500">Budget prévu</label>
+                    <input type="number" step="0.01" value={budgetDraft[budgetModalCategory.id] ?? ''} onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalCategory.id]: event.target.value }))} className="input input-bordered input-sm mt-1 w-full" disabled={isAdminViewing} />
+                    <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                      <Metric label="Dépensé" value={formatEuro(spent(budgetModalCategory.id))} />
+                      <Metric label="Reste" value={formatEuro((Number(budgetDraft[budgetModalCategory.id]) || 0) - spent(budgetModalCategory.id))} />
+                    </div>
+                  </section>
+
+                  <section>
+                    <h3 className="mb-2 text-sm font-semibold text-slate-200">Sous-catégories</h3>
+                    {budgetModalSubcats.length === 0 ? <p className="text-xs text-slate-600">Aucune sous-catégorie.</p> : (
+                      <div className="space-y-2">
+                        {budgetModalSubcats.map((sub: any) => (
+                          <div key={sub.id} className="grid gap-2 rounded-xl border border-slate-800 bg-slate-950/25 p-3 sm:grid-cols-[1fr_150px_110px] sm:items-center">
+                            <div><p className="text-sm text-slate-200">{sub.icone || '•'} {sub.nom}</p><p className="text-[10px] text-slate-600">{formatEuro(spent(sub.id, true))} dépensés</p></div>
+                            <input type="number" step="0.01" value={budgetDraft[sub.id] ?? ''} onChange={event => setBudgetDraft(prev => ({ ...prev, [sub.id]: event.target.value }))} className="input input-bordered input-sm w-full" disabled={isAdminViewing} />
+                            <p className="text-right text-xs text-slate-500">Reste {formatEuro((Number(budgetDraft[sub.id]) || 0) - spent(sub.id, true))}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  <section>
+                    <h3 className="mb-2 text-sm font-semibold text-slate-200">Transactions du mois</h3>
+                    {budgetModalTransactions.length === 0 ? <p className="text-xs text-slate-600">Aucune transaction liée ce mois.</p> : (
+                      <div className="divide-y divide-slate-800/70 rounded-xl border border-slate-800/70">
+                        {budgetModalTransactions.map((tx: any) => (
+                          <button key={tx.id} type="button" onClick={() => { if (!isAdminViewing) { setBudgetModalId(null); setEditTx(tx) } }} className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-800/30">
+                            <span>{tx.sous_categorie?.icone || tx.categorie?.icone || '📦'}</span>
+                            <div className="min-w-0 flex-1"><p className="truncate text-sm text-slate-200">{tx.sous_categorie?.nom || tx.categorie?.nom || 'Sans catégorie'}</p>{tx.infos && <p className="truncate text-[10px] text-slate-600">{tx.infos}</p>}</div>
+                            <span className="text-xs text-slate-500">{formatDate(tx.date)}</span>
+                            <div className="text-right"><strong className="text-sm text-rose-300">{formatEuro(net(tx))}</strong>{refundTotal(tx) > 0 && <p className="text-[10px] text-slate-500 line-through">{formatEuro(Number(tx.montant))}</p>}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
+
+                <div className="mt-4 flex justify-end gap-2 border-t border-slate-800 pt-3">
+                  <Button variant="ghost" onClick={() => setBudgetModalId(null)}>Annuler</Button>
+                  {!isAdminViewing && <Button onClick={saveBudgetModal} disabled={upsertBudget.isPending}><Check className="mr-1 h-4 w-4" />Enregistrer</Button>}
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {!isAdminViewing && moisId && <DepensesFab onFixed={() => setFixedOpen(true)} onVariable={() => setTxOpen(true)} />}
 
         <ChargeFixeForm open={fixedOpen} onOpenChange={setFixedOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} onSubmit={createFixedExpense} />
@@ -514,7 +544,6 @@ export default function DepensesPage() {
         <DepenseForm open={txOpen} onOpenChange={setTxOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} onSubmit={createTransaction} onSubmitSplit={createSplitTransaction} />
         <DepenseEditDialog editTx={editTx} onClose={() => setEditTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} onSave={async (data:any) => { await updateTx.mutateAsync(data); setEditTx(null) }} onRemb={(tx:any) => { setEditTx(null); setRembTx(tx) }} onSplit={(tx:any) => { setEditTx(null); setSplitTx(tx) }} onUnsplit={async(tx:any) => { await unsplit.mutateAsync(tx.id); setEditTx(null) }} />
         <DepenseDeleteDialog target={deleteTx} onClose={() => setDeleteTx(null)} onDelete={(id:string) => { removeTx.mutate(id); setDeleteTx(null) }} />
-        <ArchiveDialog target={archiveTarget} onClose={() => setArchiveTarget(null)} onArchive={(id:string) => { if (!isAdminViewing) archiveCat.mutate(id); setArchiveTarget(null) }} />
         <SplitDialog tx={splitTx} onClose={() => setSplitTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} onSave={async(parentId:string, lines:any[]) => { await split.mutateAsync({ parentId, lines }); setSplitTx(null) }} />
         <RemboursementDialog tx={rembTx} reimbursements={remboursements} onClose={() => setRembTx(null)} onCreate={data => createRemb.mutateAsync(data).then(() => undefined)} onRemove={id => removeRemb.mutateAsync(id)} />
       </div>
@@ -522,22 +551,27 @@ export default function DepensesPage() {
   )
 }
 
-function SummaryCard({ label, value, detail, tone, signed = false }: { label: string; value: number; detail: string; tone: 'blue' | 'emerald' | 'amber' | 'rose'; signed?: boolean }) {
+function SummaryCard({ icon: Icon, label, value, detail, tone, signed = false }: { icon: any; label: string; value: number; detail?: string; tone: 'blue' | 'emerald' | 'amber' | 'rose'; signed?: boolean }) {
   const styles = {
     blue: 'border-blue-400/20 bg-blue-500/[0.07] text-blue-300',
     emerald: 'border-emerald-400/20 bg-emerald-500/[0.07] text-emerald-300',
     amber: 'border-amber-400/20 bg-amber-500/[0.07] text-amber-300',
     rose: 'border-rose-400/20 bg-rose-500/[0.07] text-rose-300',
   }
-  return <div className={'rounded-xl border p-3 ' + styles[tone]}><p className="text-[11px] text-slate-400">{label}</p><p className="mt-1 text-xl font-bold">{signed && value > 0 ? '+' : ''}{formatEuro(value)}</p><p className="mt-1 text-[10px] text-slate-500">{detail}</p></div>
+  return (
+    <div className={'flex items-center gap-3 rounded-xl border p-3 ' + styles[tone]}>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-current/10"><Icon className="h-5 w-5" /></span>
+      <div className="min-w-0"><p className="text-[11px] text-slate-400">{label}</p><p className="mt-0.5 text-xl font-bold">{signed && value > 0 ? '+' : ''}{formatEuro(value)}</p>{detail && <p className="mt-0.5 text-[10px] text-slate-500">{detail}</p>}</div>
+    </div>
+  )
 }
 
-function Metric({ label, value, tone = 'text-slate-100' }: { label: string; value: string; tone?: string }) {
-  return <div><p className="text-[10px] text-slate-600">{label}</p><p className={'mt-1 text-sm font-semibold ' + tone}>{value}</p></div>
+function Metric({ label, value }: { label: string; value: string }) {
+  return <div><p className="text-[10px] text-slate-600">{label}</p><p className="mt-1 text-sm font-semibold text-slate-200">{value}</p></div>
 }
 
-function StatusBadge({ status }: { status: Exclude<ActualFilter, 'all'> }) {
-  if (status === 'upcoming') return <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-medium text-amber-300"><Clock3 className="mr-1 inline h-2.5 w-2.5" />À venir</span>
-  if (status === 'debited') return <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-medium text-emerald-300">✓ Débitée</span>
-  return <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[9px] font-medium text-blue-300">Réalisée</span>
+function StatusBadge({ status }: { status: 'planned' | 'validated' }) {
+  return status === 'validated'
+    ? <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-medium text-emerald-300">✓ Validée</span>
+    : <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-medium text-amber-300">Prévue</span>
 }
