@@ -70,29 +70,29 @@ export default function SituationFinanciereV2({
           <Card className="nf-card-hover border-emerald-400/30 bg-gradient-to-br from-emerald-500/[0.13] to-emerald-950/[0.18]">
             <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
               <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300"><WalletCards className="h-6 w-6" /></div>
-              <div className="min-w-0"><div className="flex items-center gap-1.5 text-xs font-medium text-emerald-300">Disponible aujourd&apos;hui <HelpButton id="available" /></div><p className="mt-1.5 text-2xl font-bold text-emerald-300 sm:text-[27px]">{balance == null ? '—' : formatEuro(balance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Ce que vous pouvez encore dépenser jusqu&apos;à aujourd&apos;hui.</p></div>
+              <div className="min-w-0 text-center"><div className="flex items-center gap-1.5 text-xs font-medium text-emerald-300">Disponible aujourd&apos;hui <HelpButton id="available" /></div><p className="mt-1.5 text-2xl font-bold text-emerald-300 sm:text-[27px]">{balance == null ? '—' : formatEuro(balance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Ce que vous pouvez encore dépenser jusqu&apos;à aujourd&apos;hui.</p></div>
             </CardContent>
           </Card>
 
           <Card className="nf-card-hover border-blue-400/30 bg-gradient-to-br from-blue-500/[0.12] to-blue-950/[0.18]">
             <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
               <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-400/10 text-blue-300"><Landmark className="h-6 w-6" /></div>
-              <div className="min-w-0"><div className="flex items-center gap-1.5 text-xs font-medium text-blue-300">Prévu fin de mois <HelpButton id="planned" /></div><p className="mt-1.5 text-2xl font-bold text-blue-300 sm:text-[27px]">{plannedEndBalance == null ? '—' : formatEuro(plannedEndBalance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Selon votre budget initial. Si tout se déroule comme prévu.</p></div>
+              <div className="min-w-0 text-center"><div className="flex items-center gap-1.5 text-xs font-medium text-blue-300">Prévu fin de mois <HelpButton id="planned" /></div><p className="mt-1.5 text-2xl font-bold text-blue-300 sm:text-[27px]">{plannedEndBalance == null ? '—' : formatEuro(plannedEndBalance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Selon votre budget initial. Si tout se déroule comme prévu.</p></div>
             </CardContent>
           </Card>
 
           <Card className="nf-card-hover border-fuchsia-400/30 bg-gradient-to-br from-fuchsia-500/[0.12] to-purple-950/[0.2]">
             <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
               <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-fuchsia-400/10 text-fuchsia-300"><Sparkles className="h-6 w-6" /></div>
-              <div className="min-w-0"><div className="flex items-center gap-1.5 text-xs font-medium text-fuchsia-300">Projection fin de mois <HelpButton id="projection" /></div><p className="mt-1.5 text-2xl font-bold text-fuchsia-300 sm:text-[27px]">{projectedEndBalance == null ? '—' : '≈ ' + formatEuro(projectedEndBalance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Estimation basée sur votre rythme actuel de dépenses.</p></div>
+              <div className="min-w-0 text-center"><div className="flex items-center gap-1.5 text-xs font-medium text-fuchsia-300">Projection fin de mois <HelpButton id="projection" /></div><p className="mt-1.5 text-2xl font-bold text-fuchsia-300 sm:text-[27px]">{projectedEndBalance == null ? '—' : '≈ ' + formatEuro(projectedEndBalance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Estimation basée sur votre rythme actuel de dépenses.</p></div>
             </CardContent>
           </Card>
 
           <div className="grid gap-2.5">
             <Card className="nf-card-hover">
-              <CardContent className="flex min-h-[54px] items-center justify-center gap-3 px-3 py-2.5">
-                <CalendarDays className="h-5 w-5 shrink-0 text-slate-300" />
-                <div className="min-w-0">
+              <CardContent className="grid min-h-[54px] grid-cols-[28px_1fr] items-center gap-2 px-3 py-2.5">
+                <CalendarDays className="h-5 w-5 justify-self-start text-slate-300" />
+                <div className="min-w-0 text-center">
                   <p className="text-sm font-semibold leading-none text-slate-100">{daysRemaining} jours</p>
                   <p className="mt-1 text-[10px] leading-none text-slate-500">restants</p>
                 </div>
@@ -100,9 +100,9 @@ export default function SituationFinanciereV2({
             </Card>
 
             <Card className="nf-card-hover">
-              <CardContent className="flex min-h-[54px] items-center justify-center gap-3 px-3 py-2.5">
-                <CircleDollarSign className="h-5 w-5 shrink-0 text-slate-300" />
-                <div className="min-w-0">
+              <CardContent className="grid min-h-[54px] grid-cols-[28px_1fr] items-center gap-2 px-3 py-2.5">
+                <CircleDollarSign className="h-5 w-5 justify-self-start text-slate-300" />
+                <div className="min-w-0 text-center">
                   <p className="text-sm font-semibold leading-none text-slate-100">{dailyAvailable == null ? '—' : formatEuro(dailyAvailable)}</p>
                   <p className="mt-1 text-[10px] leading-none text-slate-500">par jour</p>
                 </div>
