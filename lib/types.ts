@@ -19,6 +19,9 @@ export interface Espace {
     subcategories?: boolean
     split_transactions?: boolean
     reimbursements?: boolean
+    notification_finances?: boolean
+    notification_actions?: boolean
+    notification_neyguichen?: boolean
   }
   onboarding_completed?: boolean
 }

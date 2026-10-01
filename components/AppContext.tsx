@@ -25,7 +25,7 @@ interface AppContextType {
     date_solde_reference?: string | null
     double_date?: boolean
     dashboard_stats?: Record<string, boolean>
-    features?: { import_csv?: boolean; todo?: boolean; notifications?: boolean; subcategories?: boolean; split_transactions?: boolean; reimbursements?: boolean }
+    features?: { import_csv?: boolean; todo?: boolean; notifications?: boolean; subcategories?: boolean; split_transactions?: boolean; reimbursements?: boolean; notification_finances?: boolean; notification_actions?: boolean; notification_neyguichen?: boolean }
     onboarding_completed?: boolean
   }) => Promise<void>
   removeEspace: (id: string) => Promise<void>
@@ -153,7 +153,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ordre: espaces.length,
         solde_initial: soldeInitial,
         onboarding_completed: false,
-        features: { import_csv: true, todo: true, notifications: true, subcategories: true, split_transactions: true, reimbursements: true },
+        features: { import_csv: true, todo: true, notifications: true, subcategories: true, split_transactions: true, reimbursements: true, notification_finances: true, notification_actions: true, notification_neyguichen: true },
       })
       .select()
       .single()
@@ -180,7 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     date_solde_reference?: string | null
     double_date?: boolean
     dashboard_stats?: Record<string, boolean>
-    features?: { import_csv?: boolean; todo?: boolean; notifications?: boolean; subcategories?: boolean; split_transactions?: boolean; reimbursements?: boolean }
+    features?: { import_csv?: boolean; todo?: boolean; notifications?: boolean; subcategories?: boolean; split_transactions?: boolean; reimbursements?: boolean; notification_finances?: boolean; notification_actions?: boolean; notification_neyguichen?: boolean }
     onboarding_completed?: boolean
   }) => {
     const { error } = await supabase.from('espaces').update(updates).eq('id', id)

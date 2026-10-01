@@ -8,14 +8,16 @@ import { useNotifications } from '@/lib/hooks/useNotifications'
 export default function HeaderActions() {
   const router = useRouter()
   const { espace, isAdminViewing } = useApp()
-  const notificationsEnabled = espace?.features?.notifications !== false
-  const notifications = useNotifications(
-    !isAdminViewing && notificationsEnabled ? espace?.id : undefined
-  )
+  const allowedFamilies = ([
+    ['finances', espace?.features?.notification_finances !== false],
+    ['actions', espace?.features?.notification_actions !== false],
+    ['neyguichen', espace?.features?.notification_neyguichen !== false],
+  ] as const).filter(([, enabled]) => enabled).map(([family]) => family)
+  const notifications = useNotifications(!isAdminViewing ? espace?.id : undefined, allowedFamilies)
 
   return (
     <div className="flex shrink-0 items-center gap-1">
-      {!isAdminViewing && notificationsEnabled && (
+      {!isAdminViewing && (
         <button
           type="button"
           onClick={() => router.push('/notifications')}

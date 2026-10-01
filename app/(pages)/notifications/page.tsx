@@ -16,9 +16,13 @@ const familyLabels = {
 
 export default function NotificationsPage() {
   const { espace, isAdminViewing } = useApp()
-  const notificationsEnabled = espace?.features?.notifications !== false
   const todoEnabled = espace?.features?.todo !== false
-  const notifications = useNotifications(notificationsEnabled ? espace?.id : undefined)
+  const allowedFamilies = ([
+    ['finances', espace?.features?.notification_finances !== false],
+    ['actions', espace?.features?.notification_actions !== false],
+    ['neyguichen', espace?.features?.notification_neyguichen !== false],
+  ] as const).filter(([, enabled]) => enabled).map(([family]) => family)
+  const notifications = useNotifications(espace?.id, allowedFamilies)
   const todos = useTodos(todoEnabled ? espace?.id : undefined)
   const [family, setFamily] = useState<'all' | 'finances' | 'actions' | 'neyguichen'>('all')
   const [unreadOnly, setUnreadOnly] = useState(false)
@@ -33,10 +37,6 @@ export default function NotificationsPage() {
 
   if (isAdminViewing) {
     return <div className="p-4 text-sm text-slate-400">Les notifications sont désactivées en vue administrateur.</div>
-  }
-
-  if (!notificationsEnabled) {
-    return <div className="p-4 text-sm text-slate-400">Les notifications sont désactivées pour ce Budget. Tu peux les réactiver dans Paramètres → Fonctionnalités du Budget.</div>
   }
 
   return (
@@ -70,9 +70,9 @@ export default function NotificationsPage() {
           <div className="-mx-1 flex max-w-full gap-2 overflow-x-auto px-1 pb-1">
             {([
               ['all', 'Toutes'],
-              ['finances', 'Finances'],
-              ['actions', 'Actions'],
-              ['neyguichen', 'Neyguichen'],
+              ...(allowedFamilies.includes('finances') ? [['finances', 'Finances'] as const] : []),
+              ...(allowedFamilies.includes('actions') ? [['actions', 'Actions'] as const] : []),
+              ...(allowedFamilies.includes('neyguichen') ? [['neyguichen', 'Neyguichen'] as const] : []),
             ] as const).map(([value, label]) => (
               <button
                 key={value}

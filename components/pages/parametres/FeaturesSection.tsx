@@ -1,9 +1,9 @@
 'use client'
 
-import { Bell, CalendarCheck2, CheckSquare2, Layers3, ReceiptText, Scissors, Upload } from 'lucide-react'
+import { CalendarCheck2, CheckSquare2, Layers3, ReceiptText, Scissors } from 'lucide-react'
 import type { Espace } from '@/lib/types'
 
-type FeatureKey = 'import_csv' | 'todo' | 'notifications' | 'subcategories' | 'split_transactions' | 'reimbursements'
+type FeatureKey = 'todo' | 'subcategories' | 'split_transactions' | 'reimbursements'
 
 const groups: Array<{
   title: string
@@ -21,8 +21,6 @@ const groups: Array<{
     title: 'Modules',
     items: [
       { key: 'todo', label: 'Todo', description: 'Afficher les tâches financières et leur accès dans l’application.', icon: CheckSquare2 },
-      { key: 'notifications', label: 'Notifications', description: 'Activer les alertes automatiques et le centre de notifications.', icon: Bell },
-      { key: 'import_csv', label: 'Import CSV', description: 'Importer et rapprocher des relevés bancaires.', icon: Upload },
     ],
   },
 ]
@@ -39,9 +37,7 @@ export default function FeaturesSection({
   if (!espace) return <p className="text-sm text-slate-500">Aucun Budget sélectionné.</p>
 
   const features = {
-    import_csv: true,
     todo: true,
-    notifications: true,
     subcategories: true,
     split_transactions: true,
     reimbursements: true,

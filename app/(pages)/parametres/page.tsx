@@ -83,18 +83,42 @@ export default function ParametresPage() {
       onUpdate={async features => { if (espace) await updateEspace(espace.id, { features }) }}
       onUpdateDoubleDate={async value => { if (espace) await updateEspace(espace.id, { double_date: value }) }}
     />,
-    notifications: <div className="space-y-3">
+    notifications: <div className="space-y-4">
       <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-4">
-        <p className="text-sm font-medium text-slate-200">Centre de notifications</p>
-        <p className="mt-1 text-xs text-slate-500">Consultez les alertes financières générées pour votre budget.</p>
-        <Link href="/notifications" className="mt-3 inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-indigo-500 hover:text-indigo-300">Ouvrir les notifications <ChevronRight className="h-3.5 w-3.5" /></Link>
+        <p className="text-sm font-medium text-slate-200">Notifications à recevoir</p>
+        <p className="mt-1 text-xs text-slate-500">Choisissez les familles de notifications que vous souhaitez voir pour ce budget.</p>
+        <div className="mt-4 divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/25">
+          {([
+            ['notification_finances', 'Alertes financières', 'Échéances, revenus attendus et alertes liées à votre budget.'],
+            ['notification_actions', 'Actions & rappels', 'Tâches arrivant à échéance et actions à ne pas oublier.'],
+            ['notification_neyguichen', 'Neyguichen Finance', 'Informations produit, imports et messages de l’application.'],
+          ] as const).map(([key, label, description]) => {
+            const checked = espace?.features?.[key] !== false
+            return <label key={key} className="flex cursor-pointer items-center gap-3 p-3 transition hover:bg-slate-800/25">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-slate-200">{label}</p>
+                <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+              </div>
+              <input
+                type="checkbox"
+                className="toggle toggle-sm toggle-primary shrink-0"
+                checked={checked}
+                disabled={!espace}
+                onChange={async event => {
+                  if (!espace) return
+                  await updateEspace(espace.id, { features: { ...(espace.features || {}), [key]: event.target.checked } })
+                }}
+              />
+            </label>
+          })}
+        </div>
+        <Link href="/notifications" className="mt-4 inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-indigo-500 hover:text-indigo-300">Ouvrir le centre de notifications <ChevronRight className="h-3.5 w-3.5" /></Link>
       </div>
-      <p className="text-xs text-slate-500">L’activation générale des notifications se règle dans Fonctionnalités.</p>
     </div>,
     appearance: <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-4"><p className="text-sm font-medium text-slate-200">Thème sombre</p><p className="mt-1 text-xs text-slate-500">Le thème actuel reste la référence visuelle. Le thème clair sera ajouté lorsque l’ensemble des composants sera compatible.</p></div>,
     sharing: <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/20 p-5"><p className="text-sm font-medium text-slate-300">Partage & membres</p><p className="mt-1 text-xs text-slate-500">Cette section est prête dans la navigation, mais la gestion collaborative n’est pas encore activée. Aucun faux contrôle n’est affiché tant que le partage réel n’est pas câblé.</p></div>,
     'import-export': <div className="space-y-4">
-      {espace?.features?.import_csv !== false && <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-4"><p className="text-sm font-medium text-slate-200">Import bancaire</p><p className="mt-1 text-xs text-slate-500">Importez un relevé CSV et rapprochez les opérations avec vos données.</p><Link href="/import-csv" className="mt-3 inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-indigo-500 hover:text-indigo-300">Importer un fichier <ChevronRight className="h-3.5 w-3.5" /></Link></div>}
+      <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-4"><p className="text-sm font-medium text-slate-200">Import bancaire</p><p className="mt-1 text-xs text-slate-500">Importez un relevé CSV et rapprochez les opérations avec vos données.</p><Link href="/import-csv" className="mt-3 inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-indigo-500 hover:text-indigo-300">Importer un fichier <ChevronRight className="h-3.5 w-3.5" /></Link></div>
       <ExportSection espaceId={espace?.id} espaceNom={espace?.nom} />
     </div>,
     data: <div className="space-y-5"><DonneesSection espaceId={espace?.id} espaceNom={espace?.nom} /><div className="border-t border-slate-800 pt-5"><CompteSection userId={userId} /></div></div>,

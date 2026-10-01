@@ -20,12 +20,12 @@ type RuleAlert = {
 
 export default function FinancialAlertEngine() {
   const { espace, moisId, month, isAdminViewing } = useApp()
-  const notificationsEnabled = espace?.features?.notifications !== false
+  const financesEnabled = espace?.features?.notification_finances !== false
+  const actionsEnabled = espace?.features?.notification_actions !== false
   const enabled = Boolean(
     espace?.id &&
     moisId &&
     !isAdminViewing &&
-    notificationsEnabled &&
     month === currentMonth()
   )
   const charges = useChargesFixes(enabled ? moisId : undefined)
@@ -40,7 +40,7 @@ export default function FinancialAlertEngine() {
     const today = localDateISO()
     const next: RuleAlert[] = []
 
-    for (const charge of charges.data || []) {
+    if (financesEnabled) for (const charge of charges.data || []) {
       if (charge.payee || !charge.date_prevue || charge.date_prevue > today) continue
       next.push({
         dedupe_key: `rule:fixed-due:${charge.id}`,
@@ -52,7 +52,7 @@ export default function FinancialAlertEngine() {
       })
     }
 
-    for (const revenu of revenus.data || []) {
+    if (financesEnabled) for (const revenu of revenus.data || []) {
       if (revenu.recu || !revenu.date_prevue || revenu.date_prevue > today) continue
       next.push({
         dedupe_key: `rule:income-due:${revenu.id}`,
@@ -64,7 +64,7 @@ export default function FinancialAlertEngine() {
       })
     }
 
-    for (const todo of todos.data || []) {
+    if (actionsEnabled) for (const todo of todos.data || []) {
       if (todo.status === 'done' || !todo.due_date || todo.due_date > today) continue
       next.push({
         dedupe_key: `rule:todo-due:${todo.id}`,
@@ -77,7 +77,7 @@ export default function FinancialAlertEngine() {
     }
 
     return next
-  }, [enabled, charges.data, revenus.data, todos.data])
+  }, [enabled, financesEnabled, actionsEnabled, charges.data, revenus.data, todos.data])
 
   useEffect(() => {
     if (!enabled || charges.isLoading || revenus.isLoading || todos.isLoading || !espace?.id) return

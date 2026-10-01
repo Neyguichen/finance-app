@@ -17,7 +17,10 @@ export type NotificationItem = {
   created_at: string
 }
 
-export function useNotifications(espaceId: string | undefined) {
+export function useNotifications(
+  espaceId: string | undefined,
+  allowedFamilies?: NotificationItem['family'][]
+) {
   const supabase = createClient()
   const queryClient = useQueryClient()
 
@@ -37,7 +40,10 @@ export function useNotifications(espaceId: string | undefined) {
     },
   })
 
-  const unreadCount = (query.data || []).filter(item => !item.read_at).length
+  const filteredData = allowedFamilies
+    ? (query.data || []).filter(item => allowedFamilies.includes(item.family))
+    : (query.data || [])
+  const unreadCount = filteredData.filter(item => !item.read_at).length
 
   const markRead = useMutation({
     mutationFn: async (id: string) => {
@@ -53,12 +59,14 @@ export function useNotifications(espaceId: string | undefined) {
   const markAllRead = useMutation({
     mutationFn: async () => {
       if (!espaceId) return
-      const { error } = await supabase
+      let request = supabase
         .from('notifications')
         .update({ read_at: new Date().toISOString() })
         .eq('espace_id', espaceId)
         .is('archived_at', null)
         .is('read_at', null)
+      if (allowedFamilies?.length) request = request.in('family', allowedFamilies)
+      const { error } = await request
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications', espaceId] }),
@@ -118,6 +126,7 @@ export function useNotifications(espaceId: string | undefined) {
 
   return {
     ...query,
+    data: filteredData,
     unreadCount,
     markRead,
     markAllRead,
