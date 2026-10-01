@@ -30,12 +30,13 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       const moisMap = new Map(moisList.map(mois => [mois.id, mois.mois]))
       const monthByPrefix = new Map(moisList.map(mois => [String(mois.mois).slice(0, 7), mois.mois]))
 
-      const [revResult, charResult, txResult, mvtResult, debtResult] = await Promise.all([
+      const [revResult, charResult, txResult, mvtResult, debtResult, budgetResult] = await Promise.all([
         supabase.from('revenus').select('montant, type, recu, mois_id').in('mois_id', moisIds),
-        supabase.from('charges_fixes').select('montant, montant_reel, payee, mois_id').in('mois_id', moisIds),
-        supabase.from('transactions').select('id, montant, categorie_id, mois_id, is_split, parent_transaction_id, remboursements(montant)').in('mois_id', moisIds),
+        supabase.from('charges_fixes').select('montant, montant_reel, payee, categorie_id, sous_categorie_id, mois_id').in('mois_id', moisIds),
+        supabase.from('transactions').select('id, montant, categorie_id, sous_categorie_id, mois_id, is_split, parent_transaction_id, remboursements(montant)').in('mois_id', moisIds),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', moisIds),
         supabase.from('dettes').select('type, remboursements_dette(montant, date, impacte_budget)').eq('espace_id', espaceId!),
+        supabase.from('budgets').select('prevu, categorie_id, mois_id').in('mois_id', moisIds),
       ])
 
       if (revResult.error) throw revResult.error
@@ -43,12 +44,14 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       if (txResult.error) throw txResult.error
       if (mvtResult.error) throw mvtResult.error
       if (debtResult.error) throw debtResult.error
+      if (budgetResult.error) throw budgetResult.error
 
       const revenus = revResult.data || []
       const charges = charResult.data || []
       const transactions = txResult.data || []
       const mouvements = mvtResult.data || []
       const dettes = debtResult.data || []
+      const budgets = budgetResult.data || []
 
       type MonthData = {
         revenus: number
@@ -60,7 +63,10 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         reprises: number
         remboursementsDette: number
         remboursementsCreance: number
+        budgets: number
         catDepenses: Record<string, number>
+        catPrevues: Record<string, number>
+        subCatDepenses: Record<string, number>
       }
 
       const monthlyData: Record<string, MonthData> = {}
@@ -75,7 +81,10 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
           reprises: 0,
           remboursementsDette: 0,
           remboursementsCreance: 0,
+          budgets: 0,
           catDepenses: {},
+          catPrevues: {},
+          subCatDepenses: {},
         }
       }
 
@@ -91,7 +100,22 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         const mois = moisMap.get(charge.mois_id)
         if (mois && monthlyData[mois]) {
           monthlyData[mois].charges += Number(charge.montant)
-          if (charge.payee) monthlyData[mois].chargesReelles += Number(charge.montant_reel ?? charge.montant)
+          if (charge.categorie_id) {
+            monthlyData[mois].catPrevues[charge.categorie_id] =
+              (monthlyData[mois].catPrevues[charge.categorie_id] || 0) + Number(charge.montant)
+          }
+          if (charge.payee) {
+            const actual = Number(charge.montant_reel ?? charge.montant)
+            monthlyData[mois].chargesReelles += actual
+            if (charge.categorie_id) {
+              monthlyData[mois].catDepenses[charge.categorie_id] =
+                (monthlyData[mois].catDepenses[charge.categorie_id] || 0) + actual
+            }
+            if (charge.sous_categorie_id) {
+              monthlyData[mois].subCatDepenses[charge.sous_categorie_id] =
+                (monthlyData[mois].subCatDepenses[charge.sous_categorie_id] || 0) + actual
+            }
+          }
         }
       }
 
@@ -112,6 +136,22 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         if (transaction.categorie_id) {
           monthlyData[mois].catDepenses[transaction.categorie_id] =
             (monthlyData[mois].catDepenses[transaction.categorie_id] || 0) + net
+        }
+        if (transaction.sous_categorie_id) {
+          monthlyData[mois].subCatDepenses[transaction.sous_categorie_id] =
+            (monthlyData[mois].subCatDepenses[transaction.sous_categorie_id] || 0) + net
+        }
+      }
+
+      for (const budget of budgets) {
+        const mois = moisMap.get(budget.mois_id)
+        if (mois && monthlyData[mois]) {
+          const planned = Number(budget.prevu || 0)
+          monthlyData[mois].budgets += planned
+          if (budget.categorie_id) {
+            monthlyData[mois].catPrevues[budget.categorie_id] =
+              (monthlyData[mois].catPrevues[budget.categorie_id] || 0) + planned
+          }
         }
       }
 
@@ -157,6 +197,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         reprises: total('reprises'),
         remboursementsDette: total('remboursementsDette'),
         remboursementsCreance: total('remboursementsCreance'),
+        budgets: total('budgets'),
       }
 
       const depensesReelles = annualTotals.chargesReelles + annualTotals.depenses + annualTotals.remboursementsDette
@@ -191,12 +232,16 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       if (moisMinDepense.total === Infinity) moisMinDepense = { mois: '', total: 0 }
 
       const allCatIds = new Set<string>()
+      const allSubCatIds = new Set<string>()
       for (const data of Object.values(monthlyData)) {
         for (const categoryId of Object.keys(data.catDepenses)) allCatIds.add(categoryId)
+        for (const categoryId of Object.keys(data.catPrevues)) allCatIds.add(categoryId)
+        for (const subCategoryId of Object.keys(data.subCatDepenses)) allSubCatIds.add(subCategoryId)
       }
 
       const catAnnualStats: Record<string, {
         total: number
+        planned: number
         avg: number
         min: number
         max: number
@@ -207,13 +252,23 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         const values = months.map(month => monthlyData[month]?.catDepenses[categoryId] || 0)
         const nonZero = values.filter(value => value > 0)
         const categoryTotal = values.reduce((sum, value) => sum + value, 0)
+        const planned = months.reduce((sum, month) => sum + (monthlyData[month]?.catPrevues[categoryId] || 0), 0)
         catAnnualStats[categoryId] = {
           total: categoryTotal,
+          planned,
           avg: nonZero.length > 0 ? Math.round((categoryTotal / nonZero.length) * 100) / 100 : 0,
           min: nonZero.length > 0 ? Math.min(...nonZero) : 0,
           max: nonZero.length > 0 ? Math.max(...nonZero) : 0,
           nbMois: nonZero.length,
         }
+      }
+
+      const subCatAnnualStats: Record<string, number> = {}
+      for (const subCategoryId of Array.from(allSubCatIds)) {
+        subCatAnnualStats[subCategoryId] = months.reduce(
+          (sum, month) => sum + (monthlyData[month]?.subCatDepenses[subCategoryId] || 0),
+          0,
+        )
       }
 
       return {
@@ -227,6 +282,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         moisMaxDepense,
         moisMinDepense,
         catAnnualStats,
+        subCatAnnualStats,
         prevMonth: monthlyData[prevMonth] || null,
         prevMonthKey: prevMonth,
         nbMonths,
