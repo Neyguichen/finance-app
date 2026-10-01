@@ -198,6 +198,8 @@ export interface RemboursementDette {
 export interface RemboursementAlsh {
   id: string
   user_id: string
+  espace_id: string
+  dette_id: string | null
   lien_facture: string | null
   periode_debut: string
   periode_fin: string
