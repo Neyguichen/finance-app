@@ -157,6 +157,20 @@ export default function RevenusPage() {
     })
   }
 
+  const handleCreateMissing = async (row: import('@/lib/hooks/useIncomeHistory').IncomeRecurrenceRow, monthKey: string, monthId: string) => {
+    if (isAdminViewing) return
+    await create.mutateAsync({
+      mois_id: monthId,
+      recurrent_id: row.recurrentId,
+      type: row.type,
+      nom: row.nom,
+      montant: row.baseAmount,
+      recu: false,
+      date_prevue: null,
+      ordre: row.order,
+    })
+  }
+
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} showPreparationAction={false} />
@@ -199,7 +213,9 @@ export default function RevenusPage() {
           <RevenusAnnualRecurrence
             currentMonth={month}
             rows={history.data?.rows || []}
+            preparedMonths={history.data?.preparedMonths || {}}
             onEditOccurrence={handleAnnualEdit}
+            onCreateMissing={handleCreateMissing}
           />
         )}
 
