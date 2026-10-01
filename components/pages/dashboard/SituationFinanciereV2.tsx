@@ -90,7 +90,7 @@ export default function SituationFinanciereV2({
 
           <div className="grid gap-2.5">
             <Card className="nf-card-hover">
-              <CardContent className="flex min-h-[54px] items-center gap-3 px-3 py-2.5">
+              <CardContent className="flex min-h-[54px] items-center justify-center gap-3 px-3 py-2.5">
                 <CalendarDays className="h-5 w-5 shrink-0 text-slate-300" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold leading-none text-slate-100">{daysRemaining} jours</p>
@@ -100,7 +100,7 @@ export default function SituationFinanciereV2({
             </Card>
 
             <Card className="nf-card-hover">
-              <CardContent className="flex min-h-[54px] items-center gap-3 px-3 py-2.5">
+              <CardContent className="flex min-h-[54px] items-center justify-center gap-3 px-3 py-2.5">
                 <CircleDollarSign className="h-5 w-5 shrink-0 text-slate-300" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold leading-none text-slate-100">{dailyAvailable == null ? '—' : formatEuro(dailyAvailable)}</p>
