@@ -100,7 +100,7 @@ export default function RepartitionDepensesV2() {
                   <Pie data={rows} dataKey={mode} nameKey="name" innerRadius={58} outerRadius={88} paddingAngle={1} onClick={(data:any) => data?.id && setSelected(data.id)}>
                     {rows.map((row:any,index:number) => <Cell key={row.id} fill={palette[index % palette.length]} className="cursor-pointer" />)}
                   </Pie>
-                  <Tooltip formatter={(value:number) => formatEuro(value)} contentStyle={{backgroundColor:'#0f172a',border:'1px solid #334155',borderRadius:'10px'}} />
+                  <Tooltip formatter={(value:number) => [formatEuro(value), 'Montant']} contentStyle={{backgroundColor:'#020617',border:'1px solid #475569',borderRadius:'10px',color:'#e2e8f0'}} labelStyle={{color:'#f8fafc',fontWeight:600}} itemStyle={{color:'#e2e8f0'}} cursor={{fill:'rgba(99,102,241,0.06)'}} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><strong className="text-base">{formatEuro(total)}</strong><span className="text-[10px] text-slate-600">Total</span></div>

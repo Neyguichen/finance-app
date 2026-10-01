@@ -66,7 +66,7 @@ export default function SituationFinanciereV2({
       {loading ? (
         <Card className="nf-card-hover"><CardContent className="p-5"><span className="loading loading-spinner loading-sm" /></CardContent></Card>
       ) : isCurrentMonth ? (
-        <div className="grid gap-2.5 lg:grid-cols-[1fr_1fr_1fr_.62fr]">
+        <div className="grid gap-2.5 lg:grid-cols-[1fr_1fr_1fr_.48fr]">
           <Card className="nf-card-hover border-emerald-400/30 bg-gradient-to-br from-emerald-500/[0.13] to-emerald-950/[0.18]">
             <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
               <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300"><WalletCards className="h-6 w-6" /></div>
@@ -89,9 +89,9 @@ export default function SituationFinanciereV2({
           </Card>
 
           <Card className="nf-card-hover">
-            <CardContent className="grid min-h-[118px] grid-rows-2 divide-y divide-slate-800 p-0">
-              <div className="flex items-center gap-3 px-3"><CalendarDays className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{daysRemaining} jours</p><p className="text-[10px] text-slate-500">restants</p></div></div>
-              <div className="flex items-center gap-3 px-3"><CircleDollarSign className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{dailyAvailable == null ? '—' : formatEuro(dailyAvailable)}</p><p className="text-[10px] text-slate-500">par jour</p></div></div>
+            <CardContent className="grid min-h-[112px] grid-rows-2 divide-y divide-slate-800 p-0">
+              <div className="flex items-center justify-center gap-2 px-2"><CalendarDays className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{daysRemaining} jours</p><p className="text-[10px] text-slate-500">restants</p></div></div>
+              <div className="flex items-center justify-center gap-2 px-2"><CircleDollarSign className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{dailyAvailable == null ? '—' : formatEuro(dailyAvailable)}</p><p className="text-[10px] text-slate-500">par jour</p></div></div>
             </CardContent>
           </Card>
         </div>

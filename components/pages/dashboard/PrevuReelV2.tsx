@@ -52,7 +52,7 @@ export default function PrevuReelV2(props: Props) {
           const Icon = row.icon
           return (
             <div key={row.key}>
-              <div className="border-b border-slate-800/55 px-2 py-2.5">
+              <div className={(row.key === 'savings' ? '' : 'border-b border-slate-800/55 ') + 'px-2 py-2.5'}>
                 <div className="grid grid-cols-[1fr_auto] items-center gap-3 md:grid-cols-[1.45fr_.72fr_.72fr_.72fr_1fr]">
                   <div className="flex min-w-0 items-center gap-2"><Icon className={'h-4 w-4 shrink-0 ' + row.tone} /><span className="truncate text-sm font-semibold">{row.label}</span></div>
                   <span className="text-right text-xs text-slate-300 md:text-sm"><span className="md:hidden">{formatEuro(actual)} / </span><span className="md:hidden text-slate-500">{formatEuro(planned)}</span><span className="hidden md:inline">{formatEuro(planned)}</span></span>

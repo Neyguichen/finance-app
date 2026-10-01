@@ -42,6 +42,16 @@ export default function DepensesPage() {
   const [editFixed, setEditFixed] = useState<any>(null)
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const requestedView = params.get('view')
+    const requestedPlannedFilter = params.get('plannedFilter')
+    const requestedActualFilter = params.get('actualFilter')
+    if (requestedView === 'planned' || requestedView === 'actual') setView(requestedView)
+    if (requestedPlannedFilter === 'fixed' || requestedPlannedFilter === 'variable') setPlannedFilter(requestedPlannedFilter)
+    if (requestedActualFilter === 'all' || requestedActualFilter === 'fixed' || requestedActualFilter === 'variable') setActualFilter(requestedActualFilter)
+  }, [])
+
+  useEffect(() => {
     if (isAdminViewing || !moisId) return
     const add = new URLSearchParams(window.location.search).get('add')
     if (add === 'fixed') setFixedOpen(true)

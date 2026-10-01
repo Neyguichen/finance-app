@@ -24,7 +24,7 @@ export default function BudgetsV2({ budgets }: Props) {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between gap-3 text-base text-slate-100">
           <span>Mes budgets</span>
-          <Link href="/depenses" className="inline-flex items-center gap-1 text-xs font-normal text-slate-400 hover:text-indigo-300">
+          <Link href="/depenses?view=planned&plannedFilter=variable" className="inline-flex items-center gap-1 text-xs font-normal text-slate-400 hover:text-indigo-300">
             Voir tous les budgets <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </CardTitle>
@@ -33,7 +33,7 @@ export default function BudgetsV2({ budgets }: Props) {
         {visible.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/20 p-5 text-center">
             <p className="text-sm text-slate-400">Aucun budget variable prévu pour ce mois.</p>
-            <Link href="/depenses" className="mt-2 inline-block text-xs text-indigo-300 hover:text-indigo-200">Gérer mes budgets →</Link>
+            <Link href="/depenses?view=planned&plannedFilter=variable" className="mt-2 inline-block text-xs text-indigo-300 hover:text-indigo-200">Gérer mes budgets →</Link>
           </div>
         ) : (
           <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2">

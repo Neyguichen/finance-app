@@ -6,14 +6,13 @@ import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useApp } from '@/components/AppContext'
 import { useTodos, type TodoItem } from '@/lib/hooks/useTodos'
-import { formatDate } from '@/lib/utils'
+import { formatDate, localDateISO } from '@/lib/utils'
 
 export default function TodoResumeV2() {
   const { espace, isAdminViewing } = useApp()
   const todoEnabled = espace?.features?.todo !== false
   const todos = useTodos(!isAdminViewing && todoEnabled ? espace?.id : undefined)
   const [adding, setAdding] = useState(false)
-  const [showAll, setShowAll] = useState(false)
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -23,7 +22,8 @@ export default function TodoResumeV2() {
   const [editDueDate, setEditDueDate] = useState('')
 
   const pending = useMemo(() => (todos.data || []).filter(item => item.status === 'todo'), [todos.data])
-  const visibleTodos = showAll ? pending : pending.slice(0, 3)
+  const visibleTodos = pending.slice(0, 3)
+  const today = localDateISO()
   if (!todoEnabled) return null
 
   const addTodo = async () => {
@@ -50,11 +50,10 @@ export default function TodoResumeV2() {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between gap-3 text-base text-slate-100">
           <span>Mes tâches</span>
-          {!isAdminViewing && pending.length > 3 && (
-            <button type="button" onClick={() => setShowAll(value => !value)} className="inline-flex items-center gap-1 text-xs font-normal text-slate-400 hover:text-indigo-300">
-              {showAll ? 'Réduire' : 'Voir toutes les tâches'}
-              <ChevronRight className={'h-3.5 w-3.5 transition-transform ' + (showAll ? 'rotate-90' : '')} />
-            </button>
+          {!isAdminViewing && (
+            <Link href="/todo" className="inline-flex items-center gap-1 text-xs font-normal text-slate-400 hover:text-indigo-300">
+              Voir toutes les tâches <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           )}
         </CardTitle>
       </CardHeader>
@@ -110,7 +109,7 @@ export default function TodoResumeV2() {
                         <p className="truncate text-sm font-medium text-slate-200">{todo.title}</p>
                         {todo.link_href && <Link href={todo.link_href} className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-indigo-300"><ExternalLink className="h-3 w-3" />{todo.link_label || 'Ouvrir'}</Link>}
                       </div>
-                      {todo.due_date && <span className="shrink-0 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] text-slate-400">{formatDate(todo.due_date)}</span>}
+                      {todo.due_date && <span className={'shrink-0 rounded-md border px-2 py-1 text-[10px] ' + (todo.due_date < today ? 'border-rose-500/30 bg-rose-500/10 text-rose-300' : 'border-slate-700 bg-slate-900 text-slate-400')}>{formatDate(todo.due_date)}</span>}
                       <div className="flex shrink-0 items-center gap-0.5">
                         <button type="button" onClick={() => startEdit(todo)} className="rounded-md p-1 text-slate-600 hover:text-indigo-300" aria-label="Modifier"><Pencil className="h-3.5 w-3.5" /></button>
                         <button type="button" onClick={() => todos.deleteTodo.mutate(todo.id)} className="rounded-md p-1 text-slate-700 hover:text-rose-400" aria-label="Supprimer"><Trash2 className="h-3.5 w-3.5" /></button>
