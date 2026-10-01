@@ -1,36 +1,51 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Plus } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
 import { useMouvements, useEnveloppes } from '@/lib/hooks/useEpargne'
 import { useApp } from '@/components/AppContext'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
+import { useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
+import { useIncomeHistory, type IncomeHistoryOccurrence } from '@/lib/hooks/useIncomeHistory'
+import { localDateISO } from '@/lib/utils'
 
 import RevenusResume from '@/components/pages/revenus/RevenusResume'
-import RevenuCard from '@/components/pages/revenus/RevenuCard'
-import RepriseCard from '@/components/pages/revenus/RepriseCard'
+import RevenusTable from '@/components/pages/revenus/RevenusTable'
+import RepartitionRevenus from '@/components/pages/revenus/RepartitionRevenus'
+import EvolutionRevenus from '@/components/pages/revenus/EvolutionRevenus'
+import RevenusAnnualRecurrence from '@/components/pages/revenus/RevenusAnnualRecurrence'
 import RevenuForm from '@/components/pages/revenus/RevenuForm'
 import RevenuEditDialog from '@/components/pages/revenus/RevenuEditDialog'
 import RevenuDeleteDialog from '@/components/pages/revenus/RevenuDeleteDialog'
 import { summarizeIncome } from '@/lib/income-summary'
 
+function previousMonthEnd(month: string) {
+  const [year, monthNumber] = month.slice(0,7).split('-').map(Number)
+  return localDateISO(new Date(year, monthNumber - 1, 0, 12))
+}
+
 export default function RevenusPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
-  const { data: revenus = [], toggleRecu, create, update, remove, removeDefinitif } = useRevenus(moisId)
-  const { create: createRecurrent, update: updateRecurrent } = useRevenusRecurrents(espace?.id)
+  const { data: revenus = [], toggleRecu, create, update, updateFromMonth, remove, removeFromMonth } = useRevenus(moisId)
+  const { data: recurrents = [], create: createRecurrent } = useRevenusRecurrents(espace?.id)
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: enveloppes = [] } = useEnveloppes(espace?.id)
   const { data: adminData } = useAdminMoisData(month)
+  const history = useIncomeHistory(isAdminViewing ? undefined : espace?.id)
+  const carried = useBalanceAtDate(
+    isAdminViewing ? undefined : espace?.id,
+    espace?.solde_reference ?? null,
+    espace?.date_solde_reference ?? null,
+    previousMonthEnd(month),
+    espace?.double_date ?? false,
+  )
 
   const effectiveRevenus = isAdminViewing ? (adminData?.revenus || []) : revenus
   const effectiveMouvements = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvements
   const effectiveEnveloppes = isAdminViewing ? (adminData?.enveloppes || []) : enveloppes
 
-  const reprises = effectiveMouvements.filter((m: any) => m.type === 'reprise')
-  const totalReprises = reprises.reduce((s: number, m: any) => s + Number(m.montant), 0)
+  const reprises = effectiveMouvements.filter((movement: any) => movement.type === 'reprise')
   const {
     plannedIncome,
     receivedIncome,
@@ -40,11 +55,8 @@ export default function RevenusPage() {
   } = summarizeIncome(effectiveRevenus)
 
   const [formOpen, setFormOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const [editTarget, setEditTarget] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
-
-  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     if (!isAdminViewing && moisId && new URLSearchParams(window.location.search).get('add') === '1') {
@@ -52,7 +64,7 @@ export default function RevenusPage() {
     }
   }, [isAdminViewing, moisId])
 
-  const getEnvNom = (id: string | null) => effectiveEnveloppes.find((e: any) => e.id === id)?.nom || 'Enveloppe'
+  const getEnvNom = (id: string | null | undefined) => effectiveEnveloppes.find((envelope: any) => envelope.id === id)?.nom || 'Reprise d’épargne'
 
   const handleCreate = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null }) => {
     if (isAdminViewing || !moisId || !espace) return
@@ -68,72 +80,88 @@ export default function RevenusPage() {
         date_prevue: values.datePrevue,
         ordre: effectiveRevenus.length,
       })
-    } else {
-      const rec = await createRecurrent.mutateAsync({
-        espace_id: espace.id,
-        type: values.type,
-        nom: values.nom,
-        montant: values.montant,
-        actif: true,
-        frequence_mois: values.frequence,
-        ordre: effectiveRevenus.length,
-        mois_debut: month,
-      })
-
-      await create.mutateAsync({
-        mois_id: moisId,
-        recurrent_id: rec.id,
-        type: values.type,
-        nom: values.nom,
-        montant: values.montant,
-        recu: false,
-        date_prevue: values.datePrevue,
-        ordre: effectiveRevenus.length,
-      })
+      return
     }
+
+    const recurrent = await createRecurrent.mutateAsync({
+      espace_id: espace.id,
+      type: values.type,
+      nom: values.nom,
+      montant: values.montant,
+      actif: true,
+      frequence_mois: values.frequence,
+      ordre: effectiveRevenus.length,
+      mois_debut: month,
+    })
+
+    await create.mutateAsync({
+      mois_id: moisId,
+      recurrent_id: recurrent.id,
+      type: values.type,
+      nom: values.nom,
+      montant: values.montant,
+      recu: false,
+      date_prevue: values.datePrevue,
+      ordre: effectiveRevenus.length,
+    })
   }
 
-  const handleSaveEdit = async (data: any, scope: 'mois' | 'tous') => {
+  const handleSaveEdit = async (data: any, scope: 'mois' | 'future') => {
     if (isAdminViewing) return
 
-    await update.mutateAsync({
-      id: data.id,
+    const updates = {
       nom: data.nom,
       montant: data.montant,
       type: data.type,
       date_prevue: data.datePrevue ?? null,
-    })
-
-    if (scope === 'tous' && data.recurrentId) {
-      await updateRecurrent.mutateAsync({
-        id: data.recurrentId,
-        nom: data.nom,
-        montant: data.montant,
-        type: data.type,
-      })
     }
+
+    if (scope === 'future' && data.recurrentId) {
+      await update.mutateAsync({ id: data.id, ...updates })
+      await updateFromMonth.mutateAsync({
+        recurrentId: data.recurrentId,
+        month,
+        updates: {
+          nom: data.nom,
+          montant: data.montant,
+          type: data.type,
+        },
+      })
+      return
+    }
+
+    await update.mutateAsync({ id: data.id, ...updates })
   }
 
-  const handleDelete = (mode: 'mois' | 'definitif') => {
+  const handleDelete = async (mode: 'mois' | 'future') => {
     if (isAdminViewing || !deleteTarget) return
 
-    if (mode === 'definitif' && deleteTarget.recurrentId) {
-      removeDefinitif.mutate({
-        revenuId: deleteTarget.id,
-        recurrentId: deleteTarget.recurrentId,
-      })
+    if (mode === 'future' && deleteTarget.recurrentId) {
+      await removeFromMonth.mutateAsync({ recurrentId: deleteTarget.recurrentId, month })
     } else {
-      remove.mutate(deleteTarget.id)
+      await remove.mutateAsync(deleteTarget.id)
     }
 
     setDeleteTarget(null)
+  }
+
+  const handleAnnualEdit = (occurrence: IncomeHistoryOccurrence) => {
+    setMonth(occurrence.month)
+    setEditTarget({
+      id: occurrence.id,
+      nom: occurrence.nom,
+      montant: occurrence.montant,
+      type: occurrence.type,
+      recurrentId: occurrence.recurrentId,
+      datePrevue: occurrence.datePrevue,
+    })
   }
 
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
-      <div className="mx-auto w-full max-w-6xl space-y-4 p-3 pb-28 sm:p-4">
+      <div className="mx-auto w-full max-w-7xl space-y-4 p-3 pb-28 sm:p-4">
         <h1 className="text-xl font-bold">Revenus</h1>
 
         <RevenusResume
@@ -142,39 +170,37 @@ export default function RevenusPage() {
           expectedIncome={expectedIncome}
           totalActif={totalActif}
           totalPassif={totalPassif}
-          totalReprises={totalReprises}
+          carriedBalance={carried.data}
         />
 
-        <div className="space-y-2">
-          {effectiveRevenus.map((rev: any) => (
-            <RevenuCard
-              key={rev.id}
-              rev={rev}
-              readOnly={isAdminViewing}
-              doubleDate={espace?.double_date ?? false}
-              onToggleRecu={(id, recu, dateReelle) => toggleRecu.mutate({ id, recu, dateReelle })}
-              onEdit={setEditTarget}
-              onDelete={setDeleteTarget}
-            />
-          ))}
-
-          {reprises.map((rep: any) => (
-            <RepriseCard key={rep.id} reprise={rep} getEnvNom={getEnvNom} />
-          ))}
+        <div className="md:hidden">
+          <RepartitionRevenus revenus={effectiveRevenus as any[]} />
         </div>
 
-        {!isAdminViewing && mounted && createPortal(
-          <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex justify-end px-4">
-            <button
-              type="button"
-              onClick={() => setFormOpen(true)}
-              className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all hover:brightness-110"
-              aria-label="Ajouter un revenu"
-            >
-              <Plus className="h-6 w-6" />
-            </button>
-          </div>,
-          document.body
+        <RevenusTable
+          revenus={effectiveRevenus as any[]}
+          reprises={reprises as any[]}
+          recurrents={recurrents as any[]}
+          readOnly={isAdminViewing}
+          doubleDate={espace?.double_date ?? false}
+          getEnvNom={getEnvNom}
+          onAdd={() => setFormOpen(true)}
+          onToggleRecu={(id, recu, dateReelle) => toggleRecu.mutate({ id, recu, dateReelle })}
+          onEdit={setEditTarget}
+          onDelete={setDeleteTarget}
+        />
+
+        <div className="hidden gap-3 md:grid md:grid-cols-2">
+          <RepartitionRevenus revenus={effectiveRevenus as any[]} />
+          <EvolutionRevenus monthly={history.data?.monthly || []} loading={history.isLoading} />
+        </div>
+
+        {!isAdminViewing && (
+          <RevenusAnnualRecurrence
+            currentMonth={month}
+            rows={history.data?.rows || []}
+            onEditOccurrence={handleAnnualEdit}
+          />
         )}
 
         <RevenuForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleCreate} />

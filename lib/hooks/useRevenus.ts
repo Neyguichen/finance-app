@@ -98,6 +98,80 @@ export function useRevenus(moisId: string | undefined) {
     },
   })
 
+  const updateFromMonth = useMutation({
+    mutationFn: async ({ recurrentId, month, updates }: { recurrentId: string; month: string; updates: Partial<Revenu> }) => {
+      const targetMonth = month.length === 7 ? month + '-01' : month
+      const { data: months, error: monthsError } = await supabase
+        .from('mois')
+        .select('id')
+        .gte('mois', targetMonth)
+      if (monthsError) throw monthsError
+      const monthIds = (months || []).map(item => item.id)
+
+      if (monthIds.length) {
+        const { error: incomeError } = await supabase
+          .from('revenus')
+          .update(updates)
+          .eq('recurrent_id', recurrentId)
+          .in('mois_id', monthIds)
+        if (incomeError) throw incomeError
+      }
+
+      const recurrentUpdates: Record<string, unknown> = {}
+      if (updates.nom !== undefined) recurrentUpdates.nom = updates.nom
+      if (updates.montant !== undefined) recurrentUpdates.montant = updates.montant
+      if (updates.type !== undefined) recurrentUpdates.type = updates.type
+      const { error: recurrentError } = await supabase
+        .from('revenus_recurrents')
+        .update(recurrentUpdates)
+        .eq('id', recurrentId)
+      if (recurrentError) throw recurrentError
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['revenus'] })
+      queryClient.invalidateQueries({ queryKey: ['revenus_recurrents'] })
+      queryClient.invalidateQueries({ queryKey: ['income_history'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+    },
+  })
+
+  const removeFromMonth = useMutation({
+    mutationFn: async ({ recurrentId, month }: { recurrentId: string; month: string }) => {
+      const targetMonth = month.length === 7 ? month + '-01' : month
+      const { data: months, error: monthsError } = await supabase
+        .from('mois')
+        .select('id')
+        .gte('mois', targetMonth)
+      if (monthsError) throw monthsError
+      const monthIds = (months || []).map(item => item.id)
+
+      if (monthIds.length) {
+        const { error: incomeError } = await supabase
+          .from('revenus')
+          .delete()
+          .eq('recurrent_id', recurrentId)
+          .in('mois_id', monthIds)
+        if (incomeError) throw incomeError
+      }
+
+      const { error: recurrentError } = await supabase
+        .from('revenus_recurrents')
+        .update({ actif: false })
+        .eq('id', recurrentId)
+      if (recurrentError) throw recurrentError
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['revenus'] })
+      queryClient.invalidateQueries({ queryKey: ['revenus_recurrents'] })
+      queryClient.invalidateQueries({ queryKey: ['income_history'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+    },
+  })
+
   const toggleRecu = useMutation({
     mutationFn: async ({ id, recu, dateReelle }: { id: string; recu: boolean; dateReelle?: string | null }) => {
       const effectiveDate = recu
@@ -117,7 +191,7 @@ export function useRevenus(moisId: string | undefined) {
     },
   })
 
-  return { ...query, create, update, remove, removeDefinitif, toggleRecu }
+  return { ...query, create, update, updateFromMonth, remove, removeDefinitif, removeFromMonth, toggleRecu }
 }
 
 // Hook pour gérer les revenus récurrents (modèles par espace)
