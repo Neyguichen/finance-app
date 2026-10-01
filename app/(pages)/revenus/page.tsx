@@ -7,14 +7,13 @@ import { useMouvements, useEnveloppes } from '@/lib/hooks/useEpargne'
 import { useApp } from '@/components/AppContext'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 import { useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
-import { useIncomeHistory, type IncomeHistoryOccurrence } from '@/lib/hooks/useIncomeHistory'
+import { useIncomeHistory } from '@/lib/hooks/useIncomeHistory'
 import { localDateISO } from '@/lib/utils'
 
 import RevenusResume from '@/components/pages/revenus/RevenusResume'
 import RevenusTable from '@/components/pages/revenus/RevenusTable'
 import RepartitionRevenus from '@/components/pages/revenus/RepartitionRevenus'
 import EvolutionRevenus from '@/components/pages/revenus/EvolutionRevenus'
-import RevenusAnnualRecurrence from '@/components/pages/revenus/RevenusAnnualRecurrence'
 import RevenuForm from '@/components/pages/revenus/RevenuForm'
 import RevenuEditDialog from '@/components/pages/revenus/RevenuEditDialog'
 import RevenuDeleteDialog from '@/components/pages/revenus/RevenuDeleteDialog'
@@ -145,32 +144,6 @@ export default function RevenusPage() {
     setDeleteTarget(null)
   }
 
-  const handleAnnualEdit = (occurrence: IncomeHistoryOccurrence) => {
-    setMonth(occurrence.month)
-    setEditTarget({
-      id: occurrence.id,
-      nom: occurrence.nom,
-      montant: occurrence.montant,
-      type: occurrence.type,
-      recurrentId: occurrence.recurrentId,
-      datePrevue: occurrence.datePrevue,
-    })
-  }
-
-  const handleCreateMissing = async (row: import('@/lib/hooks/useIncomeHistory').IncomeRecurrenceRow, monthKey: string, monthId: string) => {
-    if (isAdminViewing) return
-    await create.mutateAsync({
-      mois_id: monthId,
-      recurrent_id: row.recurrentId,
-      type: row.type,
-      nom: row.nom,
-      montant: row.baseAmount,
-      recu: false,
-      date_prevue: null,
-      ordre: row.order,
-    })
-  }
-
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} showPreparationAction={false} />
@@ -208,16 +181,6 @@ export default function RevenusPage() {
           <RepartitionRevenus revenus={effectiveRevenus as any[]} />
           <EvolutionRevenus monthly={history.data?.monthly || []} loading={history.isLoading} />
         </div>
-
-        {!isAdminViewing && (
-          <RevenusAnnualRecurrence
-            currentMonth={month}
-            rows={history.data?.rows || []}
-            preparedMonths={history.data?.preparedMonths || {}}
-            onEditOccurrence={handleAnnualEdit}
-            onCreateMissing={handleCreateMissing}
-          />
-        )}
 
         <RevenuForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleCreate} />
         <RevenuEditDialog editTarget={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} />
