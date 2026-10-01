@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Pencil, Check, X, Eye, EyeOff } from 'lucide-react'
+import { Pencil, Check, X, Eye, EyeOff, LogOut } from 'lucide-react'
 
 type Props = {
   userEmail: string | null
@@ -98,6 +98,11 @@ export default function ProfilSection({ userEmail }: Props) {
       setPasswordMsg({ type: 'success', text: 'Mot de passe modifié avec succès.' })
       setTimeout(resetPasswordForm, 2000)
     }
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
   }
 
   return (
@@ -228,6 +233,19 @@ export default function ProfilSection({ userEmail }: Props) {
             {passwordMsg.text}
           </p>
         )}
+      </div>
+
+      <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-slate-200">Session</p>
+            <p className="mt-0.5 text-xs text-slate-500">Fermer la session sur cet appareil.</p>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5 text-red-400 hover:text-red-300" onClick={handleLogout}>
+            <LogOut className="h-3.5 w-3.5" />
+            Se déconnecter
+          </Button>
+        </div>
       </div>
     </div>
   )

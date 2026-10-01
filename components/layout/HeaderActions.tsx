@@ -1,13 +1,14 @@
 'use client'
 
-import { Bell, Settings } from 'lucide-react'
+import { Bell, CircleHelp, Settings, Shield } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/components/AppContext'
 import { useNotifications } from '@/lib/hooks/useNotifications'
+import { isAdmin } from '@/lib/utils'
 
 export default function HeaderActions() {
   const router = useRouter()
-  const { espace, isAdminViewing } = useApp()
+  const { espace, isAdminViewing, userId } = useApp()
   const allowedFamilies = ([
     ['finances', espace?.features?.notification_finances !== false],
     ['actions', espace?.features?.notification_actions !== false],
@@ -32,6 +33,26 @@ export default function HeaderActions() {
           )}
         </button>
       )}
+      <button
+        type="button"
+        onClick={() => router.push('/aide')}
+        className="relative rounded-xl p-2 text-slate-400 transition hover:bg-slate-800/60 hover:text-white"
+        aria-label="Aide et support"
+      >
+        <CircleHelp className="h-5 w-5" />
+      </button>
+
+      {isAdmin(userId) && !isAdminViewing && (
+        <button
+          type="button"
+          onClick={() => router.push('/admin')}
+          className="relative rounded-xl p-2 text-slate-400 transition hover:bg-slate-800/60 hover:text-white"
+          aria-label="Administration"
+        >
+          <Shield className="h-5 w-5" />
+        </button>
+      )}
+
       <button
         type="button"
         onClick={() => router.push('/parametres')}

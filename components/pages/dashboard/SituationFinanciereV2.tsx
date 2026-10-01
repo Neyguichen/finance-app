@@ -1,7 +1,8 @@
 'use client'
 
-import { CalendarDays, CircleDollarSign, Info, Landmark, Sparkles, TrendingDown, TrendingUp, WalletCards } from 'lucide-react'
+import { CalendarDays, CircleDollarSign, Info, Landmark, Scale, Sparkles, TrendingDown, TrendingUp, WalletCards } from 'lucide-react'
 import { useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatEuro } from '@/lib/utils'
 import type { CashSummary } from '@/lib/financial-engine'
@@ -70,7 +71,11 @@ export default function SituationFinanciereV2({
           <Card className="nf-card-hover border-emerald-400/30 bg-gradient-to-br from-emerald-500/[0.13] to-emerald-950/[0.18]">
             <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
               <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300"><WalletCards className="h-6 w-6" /></div>
-              <div className="min-w-0 text-center"><div className="flex items-center gap-1.5 text-xs font-medium text-emerald-300">Disponible aujourd&apos;hui <HelpButton id="available" /></div><p className="mt-1.5 text-2xl font-bold text-emerald-300 sm:text-[27px]">{balance == null ? '—' : formatEuro(balance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Ce que vous pouvez encore dépenser jusqu&apos;à aujourd&apos;hui.</p></div>
+              <div className="min-w-0 text-center"><div className="flex items-center gap-1.5 text-xs font-medium text-emerald-300">Disponible aujourd&apos;hui <HelpButton id="available" /></div><p className="mt-1.5 text-2xl font-bold text-emerald-300 sm:text-[27px]">{balance == null ? '—' : formatEuro(balance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Ce que vous pouvez encore dépenser jusqu&apos;à aujourd&apos;hui.</p>
+                <Link href="/verification-solde" className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium text-emerald-300/80 hover:text-emerald-200">
+                  <Scale className="h-3 w-3" />Vérifier le solde
+                </Link>
+              </div>
             </CardContent>
           </Card>
 

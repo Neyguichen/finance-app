@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Eye, Receipt } from 'lucide-react'
+import { ArrowLeft, Database, Eye, Receipt } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 import { isAdmin } from '@/lib/utils'
@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useDbUsage } from '@/lib/hooks/useDbUsage'
 
 type UserRow = { id: string; email: string; created_at: string }
 type EspaceRow = { id: string; nom: string; icone: string }
@@ -19,6 +20,7 @@ export default function AdminPage() {
   const { userId, setAdminViewUserId, setAdminViewEspaceId } = useApp()
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
+  const { data: dbUsage } = useDbUsage()
 
   // Étape 2 : sélection d'espace
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null)
@@ -93,8 +95,29 @@ export default function AdminPage() {
 
       {/* Outils admin (uniquement si pas en sélection d'espace) */}
       {!selectedUser && (
-        <div>
+        <div className="space-y-3">
           <h2 className="text-sm font-semibold text-slate-400 mb-2">Outils admin</h2>
+          {dbUsage && (
+            <Card className="bg-slate-900 border-slate-800">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <Database className="w-5 h-5 text-sky-400" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">Consommation de la base de données</p>
+                    <p className="text-xs text-slate-500">{dbUsage.size_mb} Mo utilisés sur {dbUsage.limit_mb} Mo</p>
+                  </div>
+                  <span className={'text-sm font-semibold ' + (dbUsage.percent > 80 ? 'text-red-400' : dbUsage.percent > 60 ? 'text-yellow-400' : 'text-emerald-400')}>
+                    {dbUsage.percent}%
+                  </span>
+                </div>
+                <progress
+                  className={'progress mt-3 h-2 w-full ' + (dbUsage.percent > 80 ? 'progress-error' : dbUsage.percent > 60 ? 'progress-warning' : 'progress-success')}
+                  value={dbUsage.percent}
+                  max={100}
+                />
+              </CardContent>
+            </Card>
+          )}
           <Card
             className="bg-slate-900 border-slate-800 cursor-pointer hover:bg-slate-800 transition"
             onClick={() => router.push('/admin/remboursements-alsh')}

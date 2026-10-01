@@ -526,11 +526,16 @@ export default function AidePage() {
             <div className="divide-y divide-slate-800">
               <InfoRow icon={Sparkles} label="Nouveautés de la version" detail={`Version ${APP_VERSION}`} onClick={() => document.getElementById('updates')?.scrollIntoView({ behavior: 'smooth' })} />
               {aboutArticles.map(article => <InfoRow key={article.id} icon={article.icon} label={article.title} detail={article.description} onClick={() => openArticle(article.id)} />)}
-              <Link href="/a-propos" className="flex items-center gap-3 py-3 text-left">
-                <CircleHelp className="h-4 w-4 shrink-0 text-indigo-300" />
-                <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-slate-300">À propos de Neyguichen</span><span className="block truncate text-[10px] text-slate-600">Version, contact et informations techniques</span></span>
-                <ChevronRight className="h-3.5 w-3.5 text-slate-700" />
-              </Link>
+              <div className="py-3">
+                <div className="flex items-center gap-3">
+                  <CircleHelp className="h-4 w-4 shrink-0 text-indigo-300" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-medium text-slate-300">Neyguichen Finances</span>
+                    <span className="block text-[10px] text-slate-600">Version {APP_VERSION} · Next.js · Supabase · Vercel</span>
+                  </span>
+                </div>
+                <p className="mt-2 pl-7 text-[10px] leading-4 text-slate-600">Application de gestion budgétaire personnelle conçue pour suivre le prévu, le réel, l’épargne, les dettes et les tendances financières.</p>
+              </div>
             </div>
           </HelpSection>
         </aside>

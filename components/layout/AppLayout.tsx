@@ -3,7 +3,6 @@
 import { useRef, useState, useEffect, CSSProperties } from 'react'
 import { usePathname } from 'next/navigation'
 import EspaceSelector from '@/components/layout/EspaceSelector'
-import AppMenu from '@/components/layout/AppMenu'
 import AdminBanner from '@/components/layout/AdminBanner'
 import MobileNav from '@/components/layout/MobileNav'
 import BrandMark from '@/components/brand/BrandMark'
@@ -120,7 +119,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="ml-auto flex shrink-0 items-center">
             <HeaderActions />
-            <AppMenu />
           </div>
         </header>
       </div>
