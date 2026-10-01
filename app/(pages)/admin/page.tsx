@@ -126,7 +126,7 @@ export default function AdminPage() {
               <Receipt className="w-5 h-5 text-emerald-400" />
               <div>
                 <p className="font-medium">Remboursements ALSH</p>
-                <p className="text-xs text-slate-500">Gérer les remboursements des familles</p>
+                <p className="text-xs text-slate-500">Suivi privé relié au moteur de créances</p>
               </div>
             </CardContent>
           </Card>

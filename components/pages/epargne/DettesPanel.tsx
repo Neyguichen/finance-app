@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Handshake, Plus, WalletCards } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,14 @@ export default function DettesPanel() {
   const [tab, setTab] = useState<'je_dois' | 'jai_prete'>('je_dois')
   const [openAdd, setOpenAdd] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const requestedTab = params.get('debtTab')
+    const requestedDebt = params.get('selectedDebt')
+    if (requestedTab === 'je_dois' || requestedTab === 'jai_prete') setTab(requestedTab)
+    if (requestedDebt) setSelectedId(requestedDebt)
+  }, [])
   const rembData = remboursements?.data || []
   const currentMonth = month.slice(0, 7)
 

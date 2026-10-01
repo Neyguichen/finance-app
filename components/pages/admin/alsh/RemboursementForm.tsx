@@ -115,6 +115,7 @@ export default function RemboursementForm({ open, onOpenChange, editItem, onSubm
           <div>
             <label className="text-xs text-slate-400">Montant (optionnel)</label>
             <Input type="number" step="0.01" placeholder="0.00" value={montant} onChange={e => setMontant(e.target.value)} />
+            <p className="mt-1 text-[10px] leading-4 text-slate-600">Dès qu’un montant est renseigné, une créance standard liée est créée dans « On me doit ».</p>
           </div>
           <div>
             <label className="text-xs text-slate-400">Note</label>

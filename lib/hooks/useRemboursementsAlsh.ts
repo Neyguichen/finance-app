@@ -4,17 +4,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { RemboursementAlsh } from '@/lib/types'
 
-export function useRemboursementsAlsh() {
+export function useRemboursementsAlsh(espaceId?: string) {
   const supabase = createClient()
   const queryClient = useQueryClient()
-  const key = ['remboursements_alsh']
+  const key = ['remboursements_alsh', espaceId]
 
   const query = useQuery({
     queryKey: key,
+    enabled: !!espaceId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('remboursements_alsh')
         .select('*')
+        .eq('espace_id', espaceId!)
         .order('periode_debut', { ascending: false })
       if (error) throw error
       return data as RemboursementAlsh[]
