@@ -72,13 +72,13 @@ export default function DashboardPage() {
       <SituationFinanciereV2 balance={v2Balance.data} openingBalance={v2OpeningBalance.data} summary={v2Summary.data} loading={v2Balance.isLoading||v2OpeningBalance.isLoading||v2Summary.isLoading} referenceDate={espace?.date_solde_reference} today={today} selectedMonth={month} plannedMonthResult={v2.plannedMonthResult} projectedRemainingCashMovement={v2.projectedRemainingCashMovement} experimentalRemainingCashMovement={v2.experimentalRemainingCashMovement} />
 
       <div className="grid gap-3 xl:grid-cols-[1.45fr_.9fr]">
-        <PrevuReelV2 plannedIncome={v2.plannedIncome} actualIncome={v2.actualIncome} expectedIncome={v2.expectedIncome} plannedFixed={v2.plannedFixed} actualFixed={v2.actualFixed} plannedVariable={v2.plannedVariable} actualVariable={v2.actualVariable} plannedSavingsDeposits={v2.plannedSavingsDeposits} actualSavingsDeposits={v2.actualSavingsDeposits} expenseReimbursements={v2Summary.data?.expenseReimbursements || 0} debtRepaymentsIn={v2Summary.data?.debtRepaymentsIn || 0} debtRepaymentsOut={v2Summary.data?.debtRepaymentsOut || 0} />
+        <PrevuReelV2 plannedIncome={v2.plannedIncome} actualIncome={v2.actualIncome} expectedIncome={v2.expectedIncome} plannedFixed={v2.plannedFixed} actualFixed={v2.actualFixed} plannedVariable={v2.plannedVariable} actualVariable={v2.actualVariable} plannedSavingsDeposits={v2.plannedSavingsDeposits} actualSavingsDeposits={v2.actualSavingsDeposits} expenseReimbursements={v2Summary.data?.expenseReimbursements || 0} />
         <RepartitionDepensesV2 />
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[1.45fr_.9fr]">
         <BudgetsV2 budgets={v2.budgetProgress} />
-        <EpargneDettesV2 savingsAvailable={v2.savingsDebtSummary.savingsAvailable} plannedSavings={v2.plannedSavingsDeposits} actualSavings={v2.actualSavingsDeposits} savingsWithdrawals={v2.savingsWithdrawals} debtRemaining={v2.savingsDebtSummary.debtRemaining} receivableRemaining={v2.savingsDebtSummary.receivableRemaining} loading={v2.savingsDebtLoading} />
+        <EpargneDettesV2 savingsAvailable={v2.savingsDebtSummary.savingsAvailable} plannedSavings={v2.plannedSavingsDeposits} actualSavings={v2.actualSavingsDeposits} savingsWithdrawals={v2.savingsWithdrawals} debtRemaining={v2.savingsDebtSummary.debtRemaining} receivableRemaining={v2.savingsDebtSummary.receivableRemaining} debtRepaymentsIn={v2Summary.data?.debtRepaymentsIn || 0} debtRepaymentsOut={v2Summary.data?.debtRepaymentsOut || 0} loading={v2.savingsDebtLoading} />
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[1.2fr_.8fr]">

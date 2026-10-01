@@ -1,6 +1,7 @@
 'use client'
 
-import { CalendarDays, Info, Landmark, Sparkles, WalletCards } from 'lucide-react'
+import { CalendarDays, CircleDollarSign, Info, Landmark, Sparkles, TrendingDown, TrendingUp, WalletCards } from 'lucide-react'
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatEuro } from '@/lib/utils'
 import type { CashSummary } from '@/lib/financial-engine'
@@ -24,16 +25,10 @@ function monthLabel(month: string) {
 }
 
 export default function SituationFinanciereV2({
-  balance,
-  openingBalance,
-  summary,
-  loading,
-  today,
-  selectedMonth,
-  plannedMonthResult,
-  projectedRemainingCashMovement,
-  experimentalRemainingCashMovement,
+  balance, openingBalance, summary, loading, today, selectedMonth, plannedMonthResult,
+  projectedRemainingCashMovement, experimentalRemainingCashMovement,
 }: Props) {
+  const [help, setHelp] = useState<'available' | 'planned' | 'projection' | null>(null)
   const currentMonth = today.slice(0, 7)
   const isCurrentMonth = selectedMonth.slice(0, 7) === currentMonth
   const periodLabel = monthLabel(selectedMonth)
@@ -41,25 +36,28 @@ export default function SituationFinanciereV2({
   const todayDate = new Date(today + 'T12:00:00')
   const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 12)
   const daysRemaining = isCurrentMonth ? Math.max(0, Math.ceil((monthEnd.getTime() - todayDate.getTime()) / 86_400_000)) : 0
-
-  const plannedEndBalance = isCurrentMonth && balance != null
-    ? Number(balance) + projectedRemainingCashMovement
-    : openingBalance == null
-      ? null
-      : Number(openingBalance) + plannedMonthResult
-
-  const projectedEndBalance = isCurrentMonth && balance != null && experimentalRemainingCashMovement != null
-    ? Number(balance) + experimentalRemainingCashMovement
-    : null
-
-  const dailyAvailable = isCurrentMonth && balance != null && daysRemaining > 0
-    ? Math.max(0, Number(balance)) / daysRemaining
-    : null
-
+  const plannedEndBalance = isCurrentMonth && balance != null ? Number(balance) + projectedRemainingCashMovement : openingBalance == null ? null : Number(openingBalance) + plannedMonthResult
+  const projectedEndBalance = isCurrentMonth && balance != null && experimentalRemainingCashMovement != null ? Number(balance) + experimentalRemainingCashMovement : null
+  const dailyAvailable = isCurrentMonth && balance != null && daysRemaining > 0 ? Math.max(0, Number(balance)) / daysRemaining : null
   const actualResult = summary?.netCashMovement ?? 0
 
+  const helpTexts = {
+    available: 'Solde calculé à partir des mouvements réellement enregistrés jusqu’à aujourd’hui.',
+    planned: 'Solde actuel + revenus encore attendus − charges fixes restantes − dépenses variables prévues restantes − épargne prévue restante.',
+    projection: 'Estimation dynamique : rythme moyen des dépenses variables observé depuis le début du mois × jours restants, puis ajout des revenus attendus et retrait des charges fixes et de l’épargne encore à venir.',
+  }
+
+  const HelpButton = ({ id }: { id: keyof typeof helpTexts }) => (
+    <span className="relative inline-flex">
+      <button type="button" aria-label="Afficher l'explication" onClick={() => setHelp(help === id ? null : id)} className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-current/35 text-current/75 transition hover:bg-white/5">
+        <Info className="h-2.5 w-2.5" />
+      </button>
+      {help === id && <span className="absolute left-0 top-6 z-20 w-64 rounded-xl border border-slate-700 bg-slate-950 p-3 text-[11px] font-normal leading-4 text-slate-300 shadow-2xl">{helpTexts[id]}</span>}
+    </span>
+  )
+
   return (
-    <section className="space-y-3">
+    <section className="space-y-2.5">
       <div className="flex items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight text-slate-100">Ma situation</h1>
         <span className="text-xs text-slate-500">{isCurrentMonth ? 'Aujourd’hui' : periodLabel}</span>
@@ -68,84 +66,41 @@ export default function SituationFinanciereV2({
       {loading ? (
         <Card className="nf-card-hover"><CardContent className="p-5"><span className="loading loading-spinner loading-sm" /></CardContent></Card>
       ) : isCurrentMonth ? (
-        <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_.68fr]">
-          <Card className="nf-card-hover border-emerald-400/20 bg-emerald-500/[0.08]">
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-center gap-2 text-xs font-medium text-emerald-300">
-                <WalletCards className="h-4 w-4" />
-                Disponible aujourd&apos;hui
-              </div>
-              <p className="mt-2 text-2xl font-bold text-emerald-300 sm:text-3xl">{balance == null ? '—' : formatEuro(balance)}</p>
-              <p className="mt-2 text-[11px] leading-4 text-slate-500">Solde calculé à partir des mouvements réellement enregistrés à ce jour.</p>
+        <div className="grid gap-2.5 lg:grid-cols-[1fr_1fr_1fr_.62fr]">
+          <Card className="nf-card-hover border-emerald-400/30 bg-gradient-to-br from-emerald-500/[0.13] to-emerald-950/[0.18]">
+            <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
+              <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300"><WalletCards className="h-6 w-6" /></div>
+              <div className="min-w-0"><div className="flex items-center gap-1.5 text-xs font-medium text-emerald-300">Disponible aujourd&apos;hui <HelpButton id="available" /></div><p className="mt-1.5 text-2xl font-bold text-emerald-300 sm:text-[27px]">{balance == null ? '—' : formatEuro(balance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Ce que vous pouvez encore dépenser jusqu&apos;à aujourd&apos;hui.</p></div>
             </CardContent>
           </Card>
 
-          <Card className="nf-card-hover border-blue-400/20 bg-blue-500/[0.07]">
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-center gap-2 text-xs font-medium text-blue-300">
-                <Landmark className="h-4 w-4" />
-                Prévu fin de mois
-              </div>
-              <p className="mt-2 text-2xl font-bold text-blue-300 sm:text-3xl">{plannedEndBalance == null ? '—' : formatEuro(plannedEndBalance)}</p>
-              <p className="mt-2 text-[11px] leading-4 text-slate-500">Solde actuel + revenus attendus − sorties et épargne encore prévues.</p>
+          <Card className="nf-card-hover border-blue-400/30 bg-gradient-to-br from-blue-500/[0.12] to-blue-950/[0.18]">
+            <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
+              <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-400/10 text-blue-300"><Landmark className="h-6 w-6" /></div>
+              <div className="min-w-0"><div className="flex items-center gap-1.5 text-xs font-medium text-blue-300">Prévu fin de mois <HelpButton id="planned" /></div><p className="mt-1.5 text-2xl font-bold text-blue-300 sm:text-[27px]">{plannedEndBalance == null ? '—' : formatEuro(plannedEndBalance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Selon votre budget initial. Si tout se déroule comme prévu.</p></div>
             </CardContent>
           </Card>
 
-          <Card className="nf-card-hover border-indigo-400/20 bg-indigo-500/[0.08]">
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-center gap-2 text-xs font-medium text-indigo-300">
-                <Sparkles className="h-4 w-4" />
-                Projection fin de mois
-                <Info className="h-3.5 w-3.5 text-indigo-300/70" aria-hidden="true" />
-              </div>
-              <p className="mt-2 text-2xl font-bold text-indigo-200 sm:text-3xl">{projectedEndBalance == null ? '—' : formatEuro(projectedEndBalance)}</p>
-              <p className="mt-2 text-[11px] leading-4 text-slate-500">
-                Estimation : rythme moyen de dépenses variables observé × jours restants, puis + revenus attendus − charges fixes − épargne à venir.
-              </p>
+          <Card className="nf-card-hover border-fuchsia-400/30 bg-gradient-to-br from-fuchsia-500/[0.12] to-purple-950/[0.2]">
+            <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
+              <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-fuchsia-400/10 text-fuchsia-300"><Sparkles className="h-6 w-6" /></div>
+              <div className="min-w-0"><div className="flex items-center gap-1.5 text-xs font-medium text-fuchsia-300">Projection fin de mois <HelpButton id="projection" /></div><p className="mt-1.5 text-2xl font-bold text-fuchsia-300 sm:text-[27px]">{projectedEndBalance == null ? '—' : '≈ ' + formatEuro(projectedEndBalance)}</p><p className="mt-1.5 text-[11px] leading-4 text-slate-400">Estimation basée sur votre rythme actuel de dépenses.</p></div>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-            <Card className="nf-card-hover">
-              <CardContent className="flex h-full min-h-24 flex-col justify-center p-4">
-                <div className="flex items-center gap-2 text-xs text-slate-400"><CalendarDays className="h-4 w-4" />Jours restants</div>
-                <p className="mt-2 text-xl font-bold text-slate-100">{daysRemaining}</p>
-              </CardContent>
-            </Card>
-            <Card className="nf-card-hover">
-              <CardContent className="flex h-full min-h-24 flex-col justify-center p-4">
-                <p className="text-xs text-slate-400">Disponible / jour</p>
-                <p className="mt-2 text-xl font-bold text-slate-100">{dailyAvailable == null ? '—' : formatEuro(dailyAvailable)}</p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="nf-card-hover">
+            <CardContent className="grid min-h-[118px] grid-rows-2 divide-y divide-slate-800 p-0">
+              <div className="flex items-center gap-3 px-3"><CalendarDays className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{daysRemaining} jours</p><p className="text-[10px] text-slate-500">restants</p></div></div>
+              <div className="flex items-center gap-3 px-3"><CircleDollarSign className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{dailyAvailable == null ? '—' : formatEuro(dailyAvailable)}</p><p className="text-[10px] text-slate-500">par jour</p></div></div>
+            </CardContent>
+          </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Card className="nf-card-hover border-blue-400/15 bg-blue-500/[0.05]">
-            <CardContent className="p-4">
-              <p className="text-xs text-slate-400">Solde fin de mois</p>
-              <p className="mt-1 text-2xl font-bold text-blue-300">{balance == null ? '—' : formatEuro(balance)}</p>
-            </CardContent>
-          </Card>
-          <Card className="nf-card-hover">
-            <CardContent className="p-4">
-              <p className="text-xs text-slate-400">Résultat réel du mois</p>
-              <p className={`mt-1 text-xl font-bold ${actualResult >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatEuro(actualResult)}</p>
-            </CardContent>
-          </Card>
-          <Card className="nf-card-hover">
-            <CardContent className="p-4">
-              <p className="text-xs text-slate-400">Revenus reçus</p>
-              <p className="mt-1 text-xl font-bold text-emerald-400">{formatEuro(summary?.earnedIncome || 0)}</p>
-            </CardContent>
-          </Card>
-          <Card className="nf-card-hover">
-            <CardContent className="p-4">
-              <p className="text-xs text-slate-400">Dépenses réelles</p>
-              <p className="mt-1 text-xl font-bold text-rose-400">{formatEuro(summary?.expenses || 0)}</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          <Card className="nf-card-hover border-blue-400/15 bg-blue-500/[0.05]"><CardContent className="flex min-h-[98px] items-center gap-3 p-4"><Landmark className="h-6 w-6 shrink-0 text-blue-300" /><div><p className="text-[11px] text-slate-400">Solde fin de mois</p><p className="mt-1 text-xl font-bold text-blue-300">{balance == null ? '—' : formatEuro(balance)}</p></div></CardContent></Card>
+          <Card className="nf-card-hover"><CardContent className="flex min-h-[98px] items-center gap-3 p-4">{actualResult >= 0 ? <TrendingUp className="h-6 w-6 shrink-0 text-emerald-400" /> : <TrendingDown className="h-6 w-6 shrink-0 text-rose-400" />}<div><p className="text-[11px] text-slate-400">Variation de trésorerie</p><p className={'mt-1 text-xl font-bold ' + (actualResult >= 0 ? 'text-emerald-400' : 'text-rose-400')}>{formatEuro(actualResult)}</p></div></CardContent></Card>
+          <Card className="nf-card-hover"><CardContent className="flex min-h-[98px] items-center gap-3 p-4"><TrendingUp className="h-6 w-6 shrink-0 text-emerald-400" /><div><p className="text-[11px] text-slate-400">Revenus reçus</p><p className="mt-1 text-xl font-bold text-emerald-400">{formatEuro(summary?.earnedIncome || 0)}</p></div></CardContent></Card>
+          <Card className="nf-card-hover"><CardContent className="flex min-h-[98px] items-center gap-3 p-4"><TrendingDown className="h-6 w-6 shrink-0 text-rose-400" /><div><p className="text-[11px] text-slate-400">Dépenses réelles</p><p className="mt-1 text-xl font-bold text-rose-400">{formatEuro(summary?.expenses || 0)}</p></div></CardContent></Card>
         </div>
       )}
     </section>
