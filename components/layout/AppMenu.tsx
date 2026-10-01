@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/AppContext'
 import { useDbUsage } from '@/lib/hooks/useDbUsage'
-import { CircleHelp, Database, Info, LogOut, Menu, Scale, Upload, Users, X } from 'lucide-react'
+import { CircleHelp, Database, Info, LogOut, Menu, Scale, Users, X } from 'lucide-react'
 import { isAdmin } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 
@@ -15,13 +15,8 @@ export default function AppMenu() {
   const [mounted, setMounted] = useState(false)
   const supabase = createClient()
   const router = useRouter()
-  const { userId, espace } = useApp()
+  const { userId } = useApp()
   const { data: dbUsage } = useDbUsage()
-  const features = {
-    import_csv: true,
-    ...(espace?.features || {}),
-  }
-
   useEffect(() => setMounted(true), [])
 
   const closeMenu = () => setOpen(false)
@@ -57,10 +52,6 @@ export default function AppMenu() {
           {isAdmin(userId) && <MenuLink icon={Users} label="Admin" onClick={() => go('/admin')} />}
 
           <MenuLink icon={Scale} label="Vérifier le solde" onClick={() => go('/verification-solde')} />
-
-          {features.import_csv !== false && (
-            <MenuLink icon={Upload} label="Importer un CSV" onClick={() => go('/import-csv')} />
-          )}
 
           <MenuLink icon={CircleHelp} label="Aide & Support" onClick={() => go('/aide')} />
           <MenuLink icon={Info} label="À propos" onClick={() => go('/a-propos')} />
