@@ -69,10 +69,10 @@ export default function DashboardPage() {
       {!moisId && <EmptyMonthV2 month={month} onPrepare={prepareEmptyMonth} onDefineHabits={()=>router.push('/parametres?section=recurrences')} hasPreviousMonth={hasPreviousMonth} hasHabits={hasHabits} loading={monthModel.isLoading||habitsModel.isLoading||monthModel.createMonth.isPending||prepareMonth.isPending} />}
       <MonthPreparationPreview open={preparationMode!==null} onOpenChange={open=>{if(!open)setPreparationMode(null)}} espaceId={espace?.id} month={month} mode={preparationMode} onConfirm={confirmPreparation} />
 
-      <SituationFinanciereV2 balance={v2Balance.data} openingBalance={v2OpeningBalance.data} summary={v2Summary.data} loading={v2Balance.isLoading||v2OpeningBalance.isLoading||v2Summary.isLoading} referenceDate={espace?.date_solde_reference} today={today} selectedMonth={month} plannedMonthResult={v2.plannedMonthResult} projectedRemainingCashMovement={v2.projectedRemainingCashMovement} />
+      <SituationFinanciereV2 balance={v2Balance.data} openingBalance={v2OpeningBalance.data} summary={v2Summary.data} loading={v2Balance.isLoading||v2OpeningBalance.isLoading||v2Summary.isLoading} referenceDate={espace?.date_solde_reference} today={today} selectedMonth={month} plannedMonthResult={v2.plannedMonthResult} projectedRemainingCashMovement={v2.projectedRemainingCashMovement} experimentalRemainingCashMovement={v2.experimentalRemainingCashMovement} />
 
       <div className="grid gap-3 xl:grid-cols-[1.45fr_.9fr]">
-        <PrevuReelV2 plannedIncome={v2.plannedIncome} actualIncome={v2.actualIncome} expectedIncome={v2.expectedIncome} plannedFixed={v2.plannedFixed} actualFixed={v2.actualFixed} plannedVariable={v2.plannedVariable} actualVariable={v2.actualVariable} plannedSavingsDeposits={v2.plannedSavingsDeposits} actualSavingsDeposits={v2.actualSavingsDeposits} />
+        <PrevuReelV2 plannedIncome={v2.plannedIncome} actualIncome={v2.actualIncome} expectedIncome={v2.expectedIncome} plannedFixed={v2.plannedFixed} actualFixed={v2.actualFixed} plannedVariable={v2.plannedVariable} actualVariable={v2.actualVariable} plannedSavingsDeposits={v2.plannedSavingsDeposits} actualSavingsDeposits={v2.actualSavingsDeposits} expenseReimbursements={v2Summary.data?.expenseReimbursements || 0} debtRepaymentsIn={v2Summary.data?.debtRepaymentsIn || 0} debtRepaymentsOut={v2Summary.data?.debtRepaymentsOut || 0} />
         <RepartitionDepensesV2 />
       </div>
 
