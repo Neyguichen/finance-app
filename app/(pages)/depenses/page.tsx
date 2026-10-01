@@ -11,6 +11,7 @@ import {
   CalendarClock,
   Check,
   ChartPie,
+  ChevronDown,
   Pencil,
   Plus,
   ReceiptText,
@@ -43,6 +44,7 @@ export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const [view, setView] = useState<'planned' | 'actual'>('planned')
   const [actualFilter, setActualFilter] = useState<ActualFilter>('all')
+  const [actualSort, setActualSort] = useState<'payment' | 'validation'>('payment')
   const [budgetModalId, setBudgetModalId] = useState<string | null>(null)
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({})
   const [txOpen, setTxOpen] = useState(false)
@@ -154,12 +156,14 @@ export default function DepensesPage() {
   const actualEntries = useMemo(() => {
     const fixedEntries = effectiveCharges.map((charge: any) => {
       const validated = Boolean(charge.payee)
-      const date = validated ? (charge.date_reelle || charge.date_prevue || month.slice(0, 7) + '-01') : (charge.date_prevue || month.slice(0, 7) + '-01')
+      const paymentDate = charge.date_prevue || charge.date_reelle || month.slice(0, 7) + '-01'
+      const validationDate = charge.date_reelle || null
       return {
         id: 'fixed-' + charge.id,
         source: 'fixed' as const,
         sourceData: charge,
-        date,
+        paymentDate,
+        validationDate,
         status: validated ? 'validated' as const : 'planned' as const,
         title: charge.nom,
         subcategory: charge.sous_categorie_nom || null,
@@ -178,7 +182,8 @@ export default function DepensesPage() {
         id: 'tx-' + tx.id,
         source: 'transaction' as const,
         sourceData: tx,
-        date: validated ? tx.date_validation : tx.date,
+        paymentDate: tx.date,
+        validationDate: tx.date_validation || null,
         status: validated ? 'validated' as const : 'planned' as const,
         title: tx.categorie?.nom || 'Sans catégorie',
         subcategory: tx.sous_categorie?.nom || null,
@@ -190,25 +195,34 @@ export default function DepensesPage() {
       }
     })
 
-    return [...fixedEntries, ...transactionEntries].sort((a, b) => String(b.date).localeCompare(String(a.date)))
+    return [...fixedEntries, ...transactionEntries]
   }, [effectiveCharges, effectiveTransactions, month])
 
   const filteredActualEntries = actualEntries.filter(entry => actualFilter === 'all' || entry.status === actualFilter)
 
+  const sortedActualEntries = useMemo(() => {
+    return [...filteredActualEntries].sort((a, b) => {
+      const aDate = actualSort === 'validation' ? (a.validationDate || a.paymentDate) : a.paymentDate
+      const bDate = actualSort === 'validation' ? (b.validationDate || b.paymentDate) : b.paymentDate
+      return String(bDate).localeCompare(String(aDate))
+    })
+  }, [filteredActualEntries, actualSort])
+
   const groupedEntries = useMemo(() => {
-    const groups = new Map<string, typeof filteredActualEntries>()
+    const groups = new Map<string, typeof sortedActualEntries>()
     const yesterdayDate = new Date(today + 'T12:00:00')
     yesterdayDate.setDate(yesterdayDate.getDate() - 1)
     const yesterday = localDateISO(yesterdayDate)
 
-    for (const entry of filteredActualEntries) {
-      const label = entry.date === today ? "Aujourd'hui" : entry.date === yesterday ? 'Hier' : formatDate(entry.date)
+    for (const entry of sortedActualEntries) {
+      const displayDate = actualSort === 'validation' ? (entry.validationDate || entry.paymentDate) : entry.paymentDate
+      const label = displayDate === today ? "Aujourd'hui" : displayDate === yesterday ? 'Hier' : formatDate(displayDate)
       const list = groups.get(label) || []
       list.push(entry)
       groups.set(label, list)
     }
     return Array.from(groups.entries())
-  }, [filteredActualEntries, today])
+  }, [sortedActualEntries, today, actualSort])
 
   const toggleActualEntry = async (entry: any, checked: boolean) => {
     if (isAdminViewing) return
@@ -369,19 +383,18 @@ export default function DepensesPage() {
                   <EmptyStateV2 icon={CalendarClock} title="Aucune charge fixe prévue" description="Ajoute les charges que tu souhaites prévoir pour ce mois." actionLabel={!isAdminViewing && moisId ? 'Ajouter une charge fixe' : undefined} onAction={!isAdminViewing && moisId ? () => setFixedOpen(true) : undefined} />
                 ) : (
                   <>
-                    <div className="hidden grid-cols-[1.35fr_.65fr_.85fr_.75fr_.55fr_54px] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
-                      <span>Nom</span><span className="text-right">Montant</span><span>Récurrence</span><span>Date</span><span>Statut</span><span />
+                    <div className="hidden grid-cols-[1.45fr_.7fr_1fr_.65fr_54px] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
+                      <span>Nom</span><span className="text-right">Montant</span><span>Récurrence</span><span>Statut</span><span />
                     </div>
                     <div className="divide-y divide-slate-800/70">
                       {effectiveCharges.map((charge: any) => (
-                        <div key={charge.id} className="grid gap-2 px-2 py-2.5 md:grid-cols-[1.35fr_.65fr_.85fr_.75fr_.55fr_54px] md:items-center">
+                        <div key={charge.id} className="grid gap-2 px-2 py-2.5 md:grid-cols-[1.45fr_.7fr_1fr_.65fr_54px] md:items-center">
                           <div className="flex min-w-0 items-center gap-2">
                             <span>{charge.categorie_icone || '🏠'}</span>
                             <div className="min-w-0"><p className="truncate text-sm font-medium text-slate-200">{charge.nom}</p>{charge.categorie_nom && <p className="truncate text-[10px] text-slate-600">{charge.categorie_nom}{charge.sous_categorie_nom ? ' · ' + charge.sous_categorie_nom : ''}</p>}</div>
                           </div>
                           <span className="text-sm font-semibold text-slate-100 md:text-right">{formatEuro(Number(charge.montant))}</span>
                           <span className="text-xs text-slate-500">{recurrenceLabel(charge)}</span>
-                          <span className="text-xs text-slate-500">{charge.date_prevue ? formatDate(charge.date_prevue) : '—'}</span>
                           <span className={'w-fit rounded-full px-2 py-1 text-[10px] font-medium ' + (charge.payee ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-800 text-slate-400')}>{charge.payee ? 'Validée' : 'Prévue'}</span>
                           {!isAdminViewing && <div className="flex justify-end gap-1"><button className="p-1 text-slate-600 hover:text-indigo-300" onClick={() => editFixedTarget(charge)}><Pencil className="h-3.5 w-3.5" /></button><button className="p-1 text-slate-700 hover:text-rose-400" onClick={() => setDeleteFixed({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom })}><Trash2 className="h-3.5 w-3.5" /></button></div>}
                         </div>
@@ -428,14 +441,29 @@ export default function DepensesPage() {
           </div>
         ) : (
           <>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {([
-                ['all', 'Toutes'],
-                ['planned', 'Prévues'],
-                ['validated', 'Validées'],
-              ] as const).map(([key, label]) => (
-                <Button key={key} size="sm" variant={actualFilter === key ? 'default' : 'outline'} onClick={() => setActualFilter(key)}>{label}</Button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {([
+                  ['all', 'Toutes'],
+                  ['planned', 'Prévues'],
+                  ['validated', 'Validées'],
+                ] as const).map(([key, label]) => (
+                  <Button key={key} size="sm" variant={actualFilter === key ? 'default' : 'outline'} onClick={() => setActualFilter(key)}>{label}</Button>
+                ))}
+              </div>
+
+              <label className="relative ml-auto">
+                <select
+                  value={actualSort}
+                  onChange={event => setActualSort(event.target.value as 'payment' | 'validation')}
+                  className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs font-medium text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-400"
+                  aria-label="Trier les dépenses"
+                >
+                  <option value="payment">Date de paiement</option>
+                  <option value="validation">Date de validation</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+              </label>
             </div>
 
             {groupedEntries.length === 0 ? (
@@ -463,7 +491,7 @@ export default function DepensesPage() {
                           <div className="text-right">
                             <strong className={entry.source === 'fixed' ? 'text-purple-300' : 'text-rose-300'}>{formatEuro(entry.amount)}</strong>
                             {entry.refund > 0 && <p className="text-[10px] text-slate-500 line-through">{formatEuro(entry.grossAmount)}</p>}
-                            <p className="text-[10px] text-slate-600">{formatDate(entry.date)}</p>
+                            <p className="text-[10px] text-slate-600">{formatDate(actualSort === 'validation' ? (entry.validationDate || entry.paymentDate) : entry.paymentDate)}</p>
                           </div>
                           {!isAdminViewing && <div className="flex shrink-0 items-center gap-1"><button className="p-1 text-slate-600 hover:text-indigo-300" onClick={() => entry.source === 'fixed' ? editFixedTarget(entry.sourceData) : setEditTx(entry.sourceData)}><Pencil className="h-3.5 w-3.5" /></button><button className="p-1 text-slate-700 hover:text-rose-400" onClick={() => entry.source === 'fixed' ? setDeleteFixed({ id: entry.sourceData.id, recurrentId: entry.sourceData.recurrent_id, nom: entry.sourceData.nom }) : setDeleteTx(entry.sourceData)}><Trash2 className="h-3.5 w-3.5" /></button></div>}
                         </div>
