@@ -16,6 +16,9 @@ export interface Espace {
     import_csv?: boolean
     todo?: boolean
     notifications?: boolean
+    subcategories?: boolean
+    split_transactions?: boolean
+    reimbursements?: boolean
   }
   onboarding_completed?: boolean
 }
