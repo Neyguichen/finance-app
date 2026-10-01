@@ -16,7 +16,7 @@ export default function MobileNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-800/80 bg-[#08111f]/98 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-800/80 bg-[#08111f]/94 pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto grid h-16 max-w-xl grid-cols-4 px-1">
         {links.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
