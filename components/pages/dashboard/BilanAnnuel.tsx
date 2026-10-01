@@ -6,7 +6,7 @@ import {
   Lightbulb, PiggyBank, ReceiptText, ShieldCheck, TrendingDown, TrendingUp, WalletCards,
 } from 'lucide-react'
 import {
-  Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart,
+  Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -238,9 +238,15 @@ export default function BilanAnnuel({
       <CardHeader className="pb-2"><CardTitle className="text-base text-slate-100">Prévu vs réel</CardTitle></CardHeader>
       <CardContent className="space-y-4 p-4 pt-1">
         <div className="grid grid-cols-3 gap-2">
-          <SmallStat label="Réel" value={formatEuro(actualExpenses)} tone="text-rose-300" />
-          <SmallStat label="Prévu" value={formatEuro(plannedExpenses)} tone="text-blue-300" />
-          <SmallStat label="Écart" value={(actualExpenses-plannedExpenses>=0?'+':'')+formatEuro(actualExpenses-plannedExpenses)} tone={actualExpenses>plannedExpenses?'text-rose-300':'text-emerald-300'} />
+          <SmallStat icon={ReceiptText} iconTone="text-rose-300" label="Réel" value={formatEuro(actualExpenses)} tone="text-rose-300" />
+          <SmallStat icon={ShieldCheck} iconTone="text-blue-300" label="Prévu" value={formatEuro(plannedExpenses)} tone="text-blue-300" />
+          <SmallStat
+            icon={BarChart3}
+            iconTone={actualExpenses > plannedExpenses ? 'text-rose-300' : 'text-emerald-300'}
+            label="Écart"
+            value={(actualExpenses-plannedExpenses>=0?'+':'')+formatEuro(actualExpenses-plannedExpenses)}
+            tone={actualExpenses>plannedExpenses?'text-rose-300':'text-emerald-300'}
+          />
         </div>
         {monthlyRows.length > 1 && <>
           <LegendRow items={[{label:'Prévu',color:'#3b82f6'},{label:'Réel',color:'#ef476f'}]} />
@@ -262,7 +268,7 @@ export default function BilanAnnuel({
       <CardContent className="space-y-4 p-4 pt-1">
         <LegendRow items={[{label:'Revenus',color:'#34d399'},{label:'Dépenses',color:'#fb7185'},{label:'Épargne nette',color:'#38bdf8'}]} />
         <div className={compact?'h-[190px]':'h-[300px]'}><ResponsiveContainer width="100%" height="100%"><LineChart data={monthlyRows}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/><XAxis dataKey="month" tick={{fontSize:10,fill:'#64748b'}}/><YAxis width={48} tick={{fontSize:10,fill:'#64748b'}}/><Tooltip contentStyle={tooltipStyle} labelStyle={{color:'#f8fafc'}} itemStyle={{color:'#e2e8f0'}} formatter={(v:number)=>formatEuro(v)}/><Line type="monotone" dataKey="revenus" stroke="#34d399" strokeWidth={2.3} dot={{r:2}} name="Revenus"/><Line type="monotone" dataKey="depenses" stroke="#fb7185" strokeWidth={2.3} dot={{r:2}} name="Dépenses"/><Line type="monotone" dataKey="epargne" stroke="#38bdf8" strokeWidth={2.3} dot={{r:2}} name="Épargne nette"/></LineChart></ResponsiveContainer></div>
-        {selectedBalance != null && <div><div className="mb-2 flex items-center justify-between gap-3"><p className="text-xs font-medium text-slate-400">Disponible fin de mois</p><LegendRow items={[{label:'Disponible',color:'#3b82f6'}]} /></div><div className={compact?'h-[100px]':'h-[150px]'}><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlyRows}><XAxis dataKey="month" tick={{fontSize:9,fill:'#64748b'}}/><Tooltip contentStyle={tooltipStyle} labelStyle={{color:'#f8fafc'}} itemStyle={{color:'#e2e8f0'}} formatter={(v:number)=>formatEuro(v)}/><Bar dataKey="disponible" fill="#3b82f6" radius={[4,4,0,0]} name="Disponible"/></BarChart></ResponsiveContainer></div></div>}
+        {selectedBalance != null && <div><div className="mb-2 flex items-center justify-between gap-3"><p className="text-xs font-medium text-slate-400">Disponible fin de mois</p><LegendRow items={[{label:'Disponible',color:'#3b82f6'}]} /></div><div className={compact?'h-[100px]':'h-[150px]'}><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlyRows}><XAxis dataKey="month" tick={{fontSize:9,fill:'#64748b'}}/><Tooltip contentStyle={tooltipStyle} labelStyle={{color:'#f8fafc'}} itemStyle={{color:'#e2e8f0'}} formatter={(v:number)=>formatEuro(v)}/><Bar dataKey="disponible" fill="#3b82f6" radius={[4,4,0,0]} name="Disponible"><LabelList dataKey="disponible" position="top" offset={8} formatter={(value:number) => { const rounded=Math.round(value); return `${rounded>=0?'+':''}${rounded} €` }} className="fill-slate-300 text-[10px]" /></Bar></BarChart></ResponsiveContainer></div></div>}
       </CardContent>
     </Card>
   )
