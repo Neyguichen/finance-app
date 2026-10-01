@@ -46,7 +46,7 @@ export function useDashboardTrends(espaceId?: string) {
           else row.remboursementsRecus += Number(r.montant)
         }
       })
-      return [...byMonth.values()]
+      return Array.from(byMonth.values())
         .sort((a,b)=>a.month.localeCompare(b.month))
         .map(row => ({ ...row, resultat: row.revenus + row.remboursementsRecus - row.depenses - row.epargne - row.remboursements }))
     },
