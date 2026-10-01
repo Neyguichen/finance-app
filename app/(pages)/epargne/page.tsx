@@ -31,6 +31,8 @@ export default function EpargnePage() {
   const [sortMode, setSortMode] = useState<SortMode>('az')
   const [selectedEnvelopeId, setSelectedEnvelopeId] = useState<string | null>(null)
   const [movementType, setMovementType] = useState<MovementType>('epargne')
+  const [movementSourceId, setMovementSourceId] = useState<string | null>(null)
+  const [movementDestId, setMovementDestId] = useState<string | null>(null)
   const [openMvt, setOpenMvt] = useState(false)
   const [openEnvelope, setOpenEnvelope] = useState(false)
   const [newEnvelopeName, setNewEnvelopeName] = useState('')
@@ -116,8 +118,10 @@ export default function EpargnePage() {
     }
   }, [isAdminViewing, moisId])
 
-  const openMovement = (type:MovementType) => {
+  const openMovement = (type:MovementType, envelopeId?:string) => {
     setMovementType(type)
+    setMovementSourceId(type === 'reprise' ? (envelopeId || null) : null)
+    setMovementDestId(type === 'epargne' ? (envelopeId || null) : null)
     setOpenMvt(true)
   }
 
@@ -268,8 +272,8 @@ export default function EpargnePage() {
                   movements={(savingsHistory.data?.movements || []) as any}
                   currentMonth={month.slice(0,7)}
                   plannedMonthly={plannedFor(selectedEnvelope.id)}
-                  onSave={() => openMovement('epargne')}
-                  onWithdraw={() => openMovement('reprise')}
+                  onSave={() => openMovement('epargne', selectedEnvelope.id)}
+                  onWithdraw={() => openMovement('reprise', selectedEnvelope.id)}
                   onTransfer={() => openMovement('transfert')}
                 />
               )}
@@ -294,7 +298,16 @@ export default function EpargnePage() {
         ) : <DettesPanel />}
 
         <EnveloppeEditDialog editEnv={editEnv} onClose={() => setEditEnv(null)} onSave={handleSaveEditEnv} />
-        <MouvementForm open={openMvt} onOpenChange={setOpenMvt} enveloppesActives={activeEnvelopes} onCreateEnvelope={handleCreateEnvelopeInline} initialType={movementType} onSubmit={handleCreateMvt} />
+        <MouvementForm
+          open={openMvt}
+          onOpenChange={setOpenMvt}
+          enveloppesActives={activeEnvelopes}
+          onCreateEnvelope={handleCreateEnvelopeInline}
+          initialType={movementType}
+          initialSourceId={movementSourceId}
+          initialDestId={movementDestId}
+          onSubmit={handleCreateMvt}
+        />
         <MouvementEditDialog editMvt={editMvt} onClose={() => setEditMvt(null)} onSave={handleEditMvtSave} />
         <MouvementScopeDialog target={scopeMvt} onClose={() => setScopeMvt(null)} onSave={handleScopeEditMvt} />
         <MouvementDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDeleteMvt} />

@@ -1,6 +1,7 @@
 'use client'
 
-import { CalendarClock, PiggyBank, TrendingUp } from 'lucide-react'
+import { CalendarClock, ChevronDown, PiggyBank, TrendingUp } from 'lucide-react'
+import { useState } from 'react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatEuro, formatDate } from '@/lib/utils'
@@ -21,6 +22,7 @@ type Props = {
 export default function EnveloppeDetailPanel({
   env, movements, currentMonth, plannedMonthly, onSave, onWithdraw, onTransfer,
 }: Props) {
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'in' | 'out'>('all')
   const balance = Number(env.solde || 0)
   const objective = Number(env.objectif || 0)
   const remaining = objective > 0 ? Math.max(0, objective - balance) : null
@@ -67,8 +69,6 @@ export default function EnveloppeDetailPanel({
       })()
     : null
 
-  const latest = [...relevant].sort((a,b) => String(b.date).localeCompare(String(a.date))).slice(0, 6)
-
   const movementLabel = (movement: HistoryMovement) => {
     if (movement.type === 'epargne') return 'Épargne'
     if (movement.type === 'reprise') return 'Reprise'
@@ -80,6 +80,16 @@ export default function EnveloppeDetailPanel({
     if (movement.type === 'reprise') return -Number(movement.montant)
     return movement.enveloppe_dest_id === env.id ? Number(movement.montant) : -Number(movement.montant)
   }
+
+  const latest = [...relevant]
+    .sort((a,b) => String(b.date).localeCompare(String(a.date)))
+    .filter(movement => {
+      const amount = signedAmount(movement)
+      if (historyFilter === 'in') return amount > 0
+      if (historyFilter === 'out') return amount < 0
+      return true
+    })
+    .slice(0, 6)
 
   return (
     <Card className="nf-card-hover h-full">
@@ -129,7 +139,22 @@ export default function EnveloppeDetailPanel({
         </div>
 
         <div className="rounded-xl border border-slate-800/70 bg-slate-950/25">
-          <div className="border-b border-slate-800/70 px-3 py-2 text-xs font-semibold text-slate-300">Historique récent</div>
+          <div className="flex items-center gap-2 border-b border-slate-800/70 px-3 py-2">
+            <span className="mr-auto text-xs font-semibold text-slate-300">Historique récent</span>
+            <label className="relative">
+              <select
+                value={historyFilter}
+                onChange={event => setHistoryFilter(event.target.value as 'all' | 'in' | 'out')}
+                className="h-7 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-2.5 pr-7 text-[10px] font-medium text-slate-300 outline-none hover:border-slate-600"
+                aria-label="Filtrer l'historique"
+              >
+                <option value="all">Tous</option>
+                <option value="in">Entrées</option>
+                <option value="out">Sorties</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500" />
+            </label>
+          </div>
           {latest.length === 0 ? <p className="p-3 text-xs text-slate-600">Aucun mouvement.</p> : latest.map(movement => {
             const signed = signedAmount(movement)
             return (

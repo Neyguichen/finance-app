@@ -16,6 +16,8 @@ type Props = {
   enveloppesActives: any[]
   onCreateEnvelope?: (name: string) => Promise<{ id: string }>
   initialType?: 'epargne' | 'reprise' | 'transfert'
+  initialSourceId?: string | null
+  initialDestId?: string | null
   onSubmit: (data: {
     type: 'epargne' | 'reprise' | 'transfert'
     montant: number
@@ -26,16 +28,20 @@ type Props = {
   }) => Promise<void>
 }
 
-export default function MouvementForm({ open, onOpenChange, enveloppesActives, onCreateEnvelope, initialType = 'epargne', onSubmit }: Props) {
+export default function MouvementForm({ open, onOpenChange, enveloppesActives, onCreateEnvelope, initialType = 'epargne', initialSourceId = null, initialDestId = null, onSubmit }: Props) {
   const [type, setType] = useState<'epargne' | 'reprise' | 'transfert'>(initialType)
 
-  useEffect(() => {
-    if (open) setType(initialType)
-  }, [open, initialType])
   const [montant, setMontant] = useState(0)
   const [note, setNote] = useState('')
   const [sourceId, setSourceId] = useState('')
   const [destId, setDestId] = useState('')
+
+  useEffect(() => {
+    if (!open) return
+    setType(initialType)
+    setSourceId(initialSourceId || '')
+    setDestId(initialDestId || '')
+  }, [open, initialType, initialSourceId, initialDestId])
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('monthly')
   const [customFrequency, setCustomFrequency] = useState(2)
   const [creatingEnvelope, setCreatingEnvelope] = useState(false)
