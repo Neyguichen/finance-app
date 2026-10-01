@@ -70,7 +70,7 @@ export default function PrevuReelV2(props: Props) {
                     <span className="hidden text-right text-xs text-slate-600 md:block">—</span>
                     <span className="hidden text-right text-xs font-medium text-cyan-300 md:block">{formatEuro(props.expenseReimbursements || 0)}</span>
                     <span className="hidden text-right text-xs text-slate-600 md:block">—</span>
-                    <span className="hidden text-right text-[10px] text-slate-600 md:block">réalisé uniquement</span>
+                    <span className="hidden md:block" />
                   </div>
                 </div>
               )}

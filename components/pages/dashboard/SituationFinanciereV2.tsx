@@ -89,9 +89,9 @@ export default function SituationFinanciereV2({
           </Card>
 
           <Card className="nf-card-hover">
-            <CardContent className="grid min-h-[112px] grid-rows-2 divide-y divide-slate-800 p-0">
-              <div className="flex items-center justify-center gap-2 px-2"><CalendarDays className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{daysRemaining} jours</p><p className="text-[10px] text-slate-500">restants</p></div></div>
-              <div className="flex items-center justify-center gap-2 px-2"><CircleDollarSign className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{dailyAvailable == null ? '—' : formatEuro(dailyAvailable)}</p><p className="text-[10px] text-slate-500">par jour</p></div></div>
+            <CardContent className="flex min-h-[118px] flex-col justify-center py-3">
+              <div className="flex flex-1 items-center justify-center gap-2 border-b border-slate-800 px-2"><CalendarDays className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{daysRemaining} jours</p><p className="text-[10px] text-slate-500">restants</p></div></div>
+              <div className="flex flex-1 items-center justify-center gap-2 px-2"><CircleDollarSign className="h-5 w-5 shrink-0 text-slate-300" /><div><p className="text-sm font-semibold text-slate-100">{dailyAvailable == null ? '—' : formatEuro(dailyAvailable)}</p><p className="text-[10px] text-slate-500">par jour</p></div></div>
             </CardContent>
           </Card>
         </div>

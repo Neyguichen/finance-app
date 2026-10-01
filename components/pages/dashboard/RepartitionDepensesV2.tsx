@@ -95,15 +95,15 @@ export default function RepartitionDepensesV2() {
         ) : (
           <div className="grid gap-3 md:grid-cols-[220px_1fr]">
             <div className="relative h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <div className="relative z-10 h-full"><ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={rows} dataKey={mode} nameKey="name" innerRadius={58} outerRadius={88} paddingAngle={1} onClick={(data:any) => data?.id && setSelected(data.id)}>
                     {rows.map((row:any,index:number) => <Cell key={row.id} fill={palette[index % palette.length]} className="cursor-pointer" />)}
                   </Pie>
-                  <Tooltip formatter={(value:number) => [formatEuro(value), 'Montant']} contentStyle={{backgroundColor:'#020617',border:'1px solid #475569',borderRadius:'10px',color:'#e2e8f0'}} labelStyle={{color:'#f8fafc',fontWeight:600}} itemStyle={{color:'#e2e8f0'}} cursor={{fill:'rgba(99,102,241,0.06)'}} />
+                  <Tooltip formatter={(value:number) => [formatEuro(value), 'Montant']} contentStyle={{backgroundColor:'#020617',border:'1px solid #475569',borderRadius:'10px',color:'#e2e8f0'}} labelStyle={{color:'#f8fafc',fontWeight:600}} itemStyle={{color:'#e2e8f0'}} cursor={{fill:'rgba(99,102,241,0.06)'}} wrapperStyle={{zIndex:60,pointerEvents:'none'}} />
                 </PieChart>
-              </ResponsiveContainer>
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><strong className="text-base">{formatEuro(total)}</strong><span className="text-[10px] text-slate-600">Total</span></div>
+              </ResponsiveContainer></div>
+              <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center"><strong className="text-base">{formatEuro(total)}</strong><span className="text-[10px] text-slate-600">Total</span></div>
             </div>
 
             <div className="space-y-1">
