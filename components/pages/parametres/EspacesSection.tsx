@@ -117,22 +117,6 @@ export default function EspacesSection({ espaces, currentEspaceId, updateEspace,
                 setReferenceDate(esp.date_solde_reference || '')
               }}>{esp.solde_reference != null ? 'Modifier' : 'Définir'}</Button>
             </div>
-
-            {/* Toggle double date */}
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-700">
-              <div>
-                <p className="text-sm text-slate-300">Date de validation bancaire</p>
-                <p className="text-xs text-slate-500">Désactivée par défaut : une case à cocher suffit et la date de validation est mémorisée automatiquement. Active ce mode pour afficher et saisir séparément la date d&apos;opération et la date de validation.</p>
-              </div>
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-primary"
-                checked={!!esp.double_date}
-                onChange={async (e) => {
-                  await updateEspace(esp.id, { double_date: e.target.checked })
-                }}
-              />
-            </div>
           </div>
         ))}
 

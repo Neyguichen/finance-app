@@ -16,13 +16,14 @@ type Props = {
   espaceId: string | undefined
   createCat: any
   doubleDate?: boolean
+  subcategoriesEnabled?: boolean
   onSave: (data: { id: string; montant: number; date: string; date_validation: string | null; infos: string | null; categorie_id: string; sous_categorie_id: string | null }) => Promise<void>
   onRemb?: (tx: any) => void
   onSplit?: (tx: any) => void
   onUnsplit?: (tx: any) => void
 }
 
-export default function DepenseEditDialog({ editTx, onClose, categories, espaceId, createCat, doubleDate, onSave, onRemb, onSplit, onUnsplit }: Props) {
+export default function DepenseEditDialog({ editTx, onClose, categories, espaceId, createCat, doubleDate, subcategoriesEnabled = true, onSave, onRemb, onSplit, onUnsplit }: Props) {
   const [montant, setMontant] = useState(0)
   const [infos, setInfos] = useState('')
   const [date, setDate] = useState('')
@@ -186,7 +187,7 @@ export default function DepenseEditDialog({ editTx, onClose, categories, espaceI
                   />
                 )}
               </div>
-              {subCats.length > 0 && (
+              {subcategoriesEnabled && subCats.length > 0 && (
                 <div>
                   <label className="text-xs text-slate-400 mb-1 block">
                     Sous-catégorie <span className="text-slate-600">(optionnel)</span>

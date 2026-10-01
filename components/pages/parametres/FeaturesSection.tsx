@@ -1,42 +1,40 @@
 'use client'
 
-import { Bell, CalendarClock, CheckSquare2, Upload } from 'lucide-react'
+import { Bell, CalendarCheck2, CheckSquare2, Layers3, ReceiptText, Scissors, Upload } from 'lucide-react'
 import type { Espace } from '@/lib/types'
 
-type FeatureKey = 'import_csv' | 'todo' | 'notifications'
+type FeatureKey = 'import_csv' | 'todo' | 'notifications' | 'subcategories' | 'split_transactions' | 'reimbursements'
 
-const definitions: Array<{
-  key: FeatureKey
-  label: string
-  description: string
-  icon: any
+const groups: Array<{
+  title: string
+  items: Array<{ key: FeatureKey; label: string; description: string; icon: any }>
 }> = [
   {
-    key: 'import_csv',
-    label: 'Import CSV',
-    description: 'Importer et rapprocher des relevés bancaires.',
-    icon: Upload,
+    title: 'Dépenses',
+    items: [
+      { key: 'subcategories', label: 'Sous-catégories', description: 'Afficher et utiliser les sous-catégories dans les dépenses.', icon: Layers3 },
+      { key: 'split_transactions', label: 'Transactions divisées', description: 'Ventiler une même dépense sur plusieurs catégories.', icon: Scissors },
+      { key: 'reimbursements', label: 'Remboursements', description: 'Suivre les remboursements liés à une dépense.', icon: ReceiptText },
+    ],
   },
   {
-    key: 'todo',
-    label: 'Todo',
-    description: 'Centraliser les actions financières à traiter.',
-    icon: CheckSquare2,
-  },
-  {
-    key: 'notifications',
-    label: 'Notifications',
-    description: 'Afficher les alertes automatiques et le centre de notifications.',
-    icon: Bell,
+    title: 'Modules',
+    items: [
+      { key: 'todo', label: 'Todo', description: 'Afficher les tâches financières et leur accès dans l’application.', icon: CheckSquare2 },
+      { key: 'notifications', label: 'Notifications', description: 'Activer les alertes automatiques et le centre de notifications.', icon: Bell },
+      { key: 'import_csv', label: 'Import CSV', description: 'Importer et rapprocher des relevés bancaires.', icon: Upload },
+    ],
   },
 ]
 
 export default function FeaturesSection({
   espace,
   onUpdate,
+  onUpdateDoubleDate,
 }: {
   espace: Espace | null
   onUpdate: (features: NonNullable<Espace['features']>) => Promise<void>
+  onUpdateDoubleDate: (value: boolean) => Promise<void>
 }) {
   if (!espace) return <p className="text-sm text-slate-500">Aucun Budget sélectionné.</p>
 
@@ -44,6 +42,9 @@ export default function FeaturesSection({
     import_csv: true,
     todo: true,
     notifications: true,
+    subcategories: true,
+    split_transactions: true,
+    reimbursements: true,
     ...(espace.features || {}),
   }
 
@@ -52,39 +53,44 @@ export default function FeaturesSection({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-        <div className="flex items-start gap-2">
-          <CalendarClock className="mt-0.5 h-4 w-4 text-slate-400" />
-          <p className="text-xs text-slate-500">
-            Ces réglages sont propres au Budget <strong className="text-slate-300">{espace.nom}</strong>.
-            Désactiver un module masque son accès sans supprimer ses données.
-          </p>
-        </div>
+    <div className="space-y-5">
+      <div className="rounded-xl border border-slate-800 bg-slate-950/35 p-3 text-xs text-slate-500">
+        Ces réglages sont propres au Budget <strong className="text-slate-300">{espace.nom}</strong>. Désactiver une fonctionnalité masque son utilisation sans supprimer les données existantes.
       </div>
 
-      {definitions.map(definition => {
-        const Icon = definition.icon
-        const checked = features[definition.key] !== false
-        return (
-          <label
-            key={definition.key}
-            className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-800 bg-slate-950/30 p-3 sm:items-center"
-          >
-            <Icon className="h-4 w-4 shrink-0 text-slate-400" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-200">{definition.label}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{definition.description}</p>
-            </div>
-            <input
-              type="checkbox"
-              className="toggle toggle-sm toggle-primary mt-0.5 shrink-0 sm:mt-0"
-              checked={checked}
-              onChange={event => setFeature(definition.key, event.target.checked)}
-            />
-          </label>
-        )
-      })}
+      <section>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Dates & validation</h3>
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/30 p-3">
+          <CalendarCheck2 className="h-4 w-4 shrink-0 text-indigo-300" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-slate-200">Date de validation bancaire</p>
+            <p className="mt-0.5 text-xs text-slate-500">Saisir séparément la date de paiement et la date de validation bancaire.</p>
+          </div>
+          <input type="checkbox" className="toggle toggle-sm toggle-primary shrink-0" checked={!!espace.double_date} onChange={event => onUpdateDoubleDate(event.target.checked)} />
+        </label>
+      </section>
+
+      {groups.map(group => (
+        <section key={group.title}>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{group.title}</h3>
+          <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/25">
+            {group.items.map(definition => {
+              const Icon = definition.icon
+              const checked = features[definition.key] !== false
+              return (
+                <label key={definition.key} className="flex cursor-pointer items-center gap-3 p-3 transition hover:bg-slate-800/25">
+                  <Icon className="h-4 w-4 shrink-0 text-slate-400" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-200">{definition.label}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{definition.description}</p>
+                  </div>
+                  <input type="checkbox" className="toggle toggle-sm toggle-primary shrink-0" checked={checked} onChange={event => setFeature(definition.key, event.target.checked)} />
+                </label>
+              )
+            })}
+          </div>
+        </section>
+      ))}
     </div>
   )
 }

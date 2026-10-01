@@ -85,6 +85,10 @@ export default function DepensesPage() {
   const { data: adminData } = useAdminMoisData(month)
   const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
 
+  const subcategoriesEnabled = espace?.features?.subcategories !== false
+  const splitEnabled = espace?.features?.split_transactions !== false
+  const reimbursementsEnabled = espace?.features?.reimbursements !== false
+
   const effectiveCategories: any[] = isAdminViewing ? (adminData?.categories || []) : categories
   const effectiveBudgets: any[] = isAdminViewing ? (adminData?.budgets || []) : budgets
   const effectiveTransactions: any[] = isAdminViewing ? (adminData?.transactions || []) : transactions
@@ -101,7 +105,7 @@ export default function DepensesPage() {
   })
 
   const parentCategories = effectiveCategories.filter((c: any) => c.actif !== false && !c.parent_id)
-  const subCats = (id: string) => effectiveCategories.filter((c: any) => c.parent_id === id && c.actif !== false)
+  const subCats = (id: string) => subcategoriesEnabled ? effectiveCategories.filter((c: any) => c.parent_id === id && c.actif !== false) : []
   const budget = (id: string) => Number(effectiveBudgets.find((b: any) => b.categorie_id === id)?.prevu || 0)
   const refundTotal = (tx: any) => (tx.remboursements || []).reduce((sum: number, item: any) => sum + Number(item.montant), 0)
   const net = (tx: any) => Number(tx.montant) - refundTotal(tx)
@@ -569,11 +573,11 @@ export default function DepensesPage() {
         <ChargeFixeEditDialog editTarget={editFixed} categories={effectiveCategories} onClose={() => setEditFixed(null)} onSave={saveFixed} />
         <ChargeFixeDeleteDialog target={deleteFixed} onClose={() => setDeleteFixed(null)} onDelete={removeFixedExpense} />
         <ChargeFixeScopeDialog target={scopeFixed} onClose={() => setScopeFixed(null)} onSave={saveFixedScope} />
-        <DepenseForm open={txOpen} onOpenChange={setTxOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} onSubmit={createTransaction} onSubmitSplit={createSplitTransaction} />
-        <DepenseEditDialog editTx={editTx} onClose={() => setEditTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} onSave={async (data:any) => { await updateTx.mutateAsync(data); setEditTx(null) }} onRemb={(tx:any) => { setEditTx(null); setRembTx(tx) }} onSplit={(tx:any) => { setEditTx(null); setSplitTx(tx) }} onUnsplit={async(tx:any) => { await unsplit.mutateAsync(tx.id); setEditTx(null) }} />
+        <DepenseForm open={txOpen} onOpenChange={setTxOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} subcategoriesEnabled={subcategoriesEnabled} splitEnabled={splitEnabled} onSubmit={createTransaction} onSubmitSplit={splitEnabled ? createSplitTransaction : undefined} />
+        <DepenseEditDialog editTx={editTx} onClose={() => setEditTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} subcategoriesEnabled={subcategoriesEnabled} onSave={async (data:any) => { await updateTx.mutateAsync(data); setEditTx(null) }} onRemb={reimbursementsEnabled ? ((tx:any) => { setEditTx(null); setRembTx(tx) }) : undefined} onSplit={splitEnabled ? ((tx:any) => { setEditTx(null); setSplitTx(tx) }) : undefined} onUnsplit={splitEnabled ? (async(tx:any) => { await unsplit.mutateAsync(tx.id); setEditTx(null) }) : undefined} />
         <DepenseDeleteDialog target={deleteTx} onClose={() => setDeleteTx(null)} onDelete={(id:string) => { removeTx.mutate(id); setDeleteTx(null) }} />
-        <SplitDialog tx={splitTx} onClose={() => setSplitTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} onSave={async(parentId:string, lines:any[]) => { await split.mutateAsync({ parentId, lines }); setSplitTx(null) }} />
-        <RemboursementDialog tx={rembTx} reimbursements={remboursements} onClose={() => setRembTx(null)} onCreate={data => createRemb.mutateAsync(data).then(() => undefined)} onRemove={id => removeRemb.mutateAsync(id)} />
+        {splitEnabled && <SplitDialog tx={splitTx} onClose={() => setSplitTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} onSave={async(parentId:string, lines:any[]) => { await split.mutateAsync({ parentId, lines }); setSplitTx(null) }} />}
+        {reimbursementsEnabled && <RemboursementDialog tx={rembTx} reimbursements={remboursements} onClose={() => setRembTx(null)} onCreate={data => createRemb.mutateAsync(data).then(() => undefined)} onRemove={id => removeRemb.mutateAsync(id)} />}
       </div>
     </div>
   )

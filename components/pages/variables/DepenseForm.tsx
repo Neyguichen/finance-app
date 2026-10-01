@@ -25,11 +25,13 @@ type Props = {
   espaceId: string | undefined
   createCat: any
   doubleDate?: boolean
+  subcategoriesEnabled?: boolean
+  splitEnabled?: boolean
   onSubmit: (data: { categorie_id: string; sous_categorie_id: string | null; montant: number; date: string; date_validation: string | null; infos: string | null }) => Promise<void>
   onSubmitSplit?: (data: { categorie_id: string; montant: number; date: string; date_validation: string | null; infos: string | null }, lines: SplitLine[]) => Promise<void>
 }
 
-export default function DepenseForm({ open, onOpenChange, categories, espaceId, createCat, doubleDate, onSubmit, onSubmitSplit }: Props) {
+export default function DepenseForm({ open, onOpenChange, categories, espaceId, createCat, doubleDate, subcategoriesEnabled = true, splitEnabled = true, onSubmit, onSubmitSplit }: Props) {
   const [txCat, setTxCat] = useState('')
   const [txSubCat, setTxSubCat] = useState('')
   const [txMontant, setTxMontant] = useState(0)
@@ -125,12 +127,12 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
           <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
 
           {/* Toggle split */}
-          <button type="button"
+          {splitEnabled && <button type="button"
             onClick={() => setSplitMode(!splitMode)}
             className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors ${splitMode ? 'bg-indigo-900 text-indigo-300' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`}>
             <Scissors className="w-3 h-3" />
             {splitMode ? 'Mode split activé' : 'Splitter sur plusieurs catégories'}
-          </button>
+          </button>}
 
           {/* === MODE NORMAL === */}
           {!splitMode && (
@@ -151,7 +153,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
                     onCancel={() => setInlineCatOpen(false)} />
                 )}
               </div>
-              {txCat && (
+              {subcategoriesEnabled && txCat && (
                 <div>
                   <label className="text-xs text-slate-400 mb-1 block">Sous-catégorie <span className="text-slate-600">(optionnel)</span></label>
                   {subCats.length > 0 ? (
@@ -211,7 +213,7 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
           )}
 
           {/* === MODE SPLIT === */}
-          {splitMode && (
+          {splitEnabled && splitMode && (
             <>
               {splitLines.map((line, i) => {
                 const lineSubs = line.categorie_id ? getSubCats(line.categorie_id) : []
