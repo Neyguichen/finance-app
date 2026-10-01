@@ -37,6 +37,7 @@ import RemboursementDialog from '@/components/pages/variables/RemboursementDialo
 import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 import EmptyStateV2 from '@/components/ui/EmptyStateV2'
 import DepensesFab from '@/components/pages/depenses/DepensesFab'
+import CategorieDialog from '@/components/pages/variables/CategorieDialog'
 
 type ActualFilter = 'all' | 'planned' | 'validated'
 
@@ -56,6 +57,8 @@ export default function DepensesPage() {
   const [scopeFixed, setScopeFixed] = useState<any>(null)
   const [splitTx, setSplitTx] = useState<any>(null)
   const [rembTx, setRembTx] = useState<any>(null)
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
+  const [categoryDialogParentId, setCategoryDialogParentId] = useState<string | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -133,6 +136,27 @@ export default function DepensesPage() {
     const recurrent = fixedRecurrents.find((item: any) => item.id === charge.recurrent_id)
     const frequency = Number(recurrent?.frequence_mois || 1)
     return frequency === 1 ? 'Tous les mois' : 'Tous les ' + frequency + ' mois'
+  }
+
+  const openCategoryDialog = (parentId: string | null = null) => {
+    setCategoryDialogParentId(parentId)
+    setCategoryDialogOpen(true)
+  }
+
+  const createBudgetCategory = async (data: { nom: string; icone: string; parent_id?: string }) => {
+    if (!espace?.id || isAdminViewing) return
+    const created = await createCat.mutateAsync({
+      espace_id: espace.id,
+      nom: data.nom,
+      icone: data.icone,
+      couleur: data.parent_id ? '#64748b' : '#6366f1',
+      ordre: effectiveCategories.length,
+      actif: true,
+      parent_id: data.parent_id || null,
+    })
+    if (!data.parent_id && created?.id && moisId) {
+      await upsertBudget.mutateAsync({ mois_id: moisId, categorie_id: created.id, prevu: 0 })
+    }
   }
 
   const openBudgetModal = (categoryId: string) => {
@@ -378,7 +402,7 @@ export default function DepensesPage() {
             <Card className="border-slate-800 bg-slate-900">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between gap-3 text-sm text-slate-200">
-                  <span>Dépenses récurrentes <strong className="ml-2 text-slate-100">{formatEuro(plannedFixed)}</strong></span>
+                  <span>Dépenses récurrentes <strong className="ml-2 text-blue-300">{formatEuro(plannedFixed)}</strong></span>
                   {!isAdminViewing && moisId && <Button size="sm" onClick={() => setFixedOpen(true)}><Plus className="mr-1 h-3.5 w-3.5" />Ajouter</Button>}
                 </CardTitle>
               </CardHeader>
@@ -411,11 +435,18 @@ export default function DepensesPage() {
 
             <Card id="budgets-variables" className="scroll-mt-24 border-slate-800 bg-slate-900">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-slate-200">Budgets variables <strong className="ml-2 text-slate-100">{formatEuro(plannedVariable)}</strong></CardTitle>
+                <CardTitle className="flex items-center justify-between gap-3 text-sm text-slate-200">
+                  <span>Budgets variables <strong className="ml-2 text-emerald-300">{formatEuro(plannedVariable)}</strong></span>
+                  {!isAdminViewing && espace?.id && (
+                    <Button size="sm" onClick={() => openCategoryDialog(null)}>
+                      <Plus className="mr-1 h-3.5 w-3.5" />Ajouter une catégorie
+                    </Button>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0">
                 {parentCategories.length === 0 ? (
-                  <EmptyStateV2 icon={WalletCards} title="Aucune catégorie variable" description="Crée des catégories depuis les paramètres pour préparer tes budgets variables." />
+                  <EmptyStateV2 icon={WalletCards} title="Aucune catégorie variable" description="Ajoute une catégorie pour commencer à préparer tes budgets variables." actionLabel={!isAdminViewing && espace?.id ? 'Ajouter une catégorie' : undefined} onAction={!isAdminViewing && espace?.id ? () => openCategoryDialog(null) : undefined} />
                 ) : (
                   <>
                     <div className="hidden grid-cols-[1.2fr_.58fr_.58fr_.58fr_1fr] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
@@ -527,7 +558,14 @@ export default function DepensesPage() {
                   </section>
 
                   <section>
-                    <h3 className="mb-2 text-sm font-semibold text-slate-200">Sous-catégories</h3>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-semibold text-slate-200">Sous-catégories</h3>
+                      {!isAdminViewing && subcategoriesEnabled && (
+                        <Button size="sm" variant="outline" onClick={() => openCategoryDialog(budgetModalCategory.id)}>
+                          <Plus className="mr-1 h-3.5 w-3.5" />Ajouter une sous-catégorie
+                        </Button>
+                      )}
+                    </div>
                     {budgetModalSubcats.length === 0 ? <p className="text-xs text-slate-600">Aucune sous-catégorie.</p> : (
                       <div className="space-y-2">
                         {budgetModalSubcats.map((sub: any) => (
@@ -566,6 +604,15 @@ export default function DepensesPage() {
             )}
           </DialogContent>
         </Dialog>
+
+        <CategorieDialog
+          open={categoryDialogOpen}
+          onOpenChange={setCategoryDialogOpen}
+          categories={effectiveCategories}
+          initialParentId={categoryDialogParentId}
+          lockParent={categoryDialogParentId !== null}
+          onCreate={createBudgetCategory}
+        />
 
         {!isAdminViewing && moisId && <DepensesFab onFixed={() => setFixedOpen(true)} onVariable={() => setTxOpen(true)} />}
 

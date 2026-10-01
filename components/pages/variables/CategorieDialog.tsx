@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -10,15 +10,23 @@ type Props = {
   open: boolean
   onOpenChange: (v: boolean) => void
   categories?: any[]
+  initialParentId?: string | null
+  lockParent?: boolean
   onCreate: (data: { nom: string; icone: string; parent_id?: string }) => Promise<void>
 }
 
-export default function CategorieDialog({ open, onOpenChange, categories = [], onCreate }: Props) {
+export default function CategorieDialog({ open, onOpenChange, categories = [], initialParentId = null, lockParent = false, onCreate }: Props) {
   const [nom, setNom] = useState('')
   const [icone, setIcone] = useState('🛒')
   const [parentId, setParentId] = useState('')
 
   const parentCategories = categories.filter((c: any) => !c.parent_id && c.actif !== false)
+
+  useEffect(() => {
+    if (!open) return
+    setParentId(initialParentId || '')
+    setIcone(initialParentId ? '📎' : '🛒')
+  }, [open, initialParentId])
 
   const handleClose = (v: boolean) => {
     onOpenChange(v)
@@ -31,7 +39,7 @@ export default function CategorieDialog({ open, onOpenChange, categories = [], o
         <DialogHeader><DialogTitle>{parentId ? 'Nouvelle sous-catégorie' : 'Nouvelle catégorie'}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           {/* Sélecteur catégorie parente (optionnel) */}
-          {parentCategories.length > 0 && (
+          {!lockParent && parentCategories.length > 0 && (
             <div>
               <label className="text-xs text-slate-400 mb-1 block">
                 Rattacher à une catégorie <span className="text-slate-600">(optionnel)</span>
