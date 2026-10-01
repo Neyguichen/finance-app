@@ -9,9 +9,10 @@ import MonthPreparationAction from '@/components/layout/MonthPreparationAction'
 interface Props {
   currentMonth: string
   onChange: (month: string) => void
+  showPreparationAction?: boolean
 }
 
-export default function MonthSelector({ currentMonth, onChange }: Props) {
+export default function MonthSelector({ currentMonth, onChange, showPreparationAction = true }: Props) {
   const { syncing } = useApp()
 
   return (
@@ -34,7 +35,7 @@ export default function MonthSelector({ currentMonth, onChange }: Props) {
             </h2>
             {syncing && <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-300" />}
           </div>
-          <MonthPreparationAction />
+          {showPreparationAction && <MonthPreparationAction />}
         </div>
 
         <Button

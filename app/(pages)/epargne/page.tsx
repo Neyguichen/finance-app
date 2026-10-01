@@ -183,7 +183,7 @@ export default function EpargnePage() {
 
   return (
     <div>
-      <MonthSelector currentMonth={month} onChange={setMonth} />
+      <MonthSelector currentMonth={month} onChange={setMonth} showPreparationAction={false} />
       <div className="mx-auto max-w-6xl space-y-5 p-3 pb-24 sm:p-4">
         <PageHeader
           eyebrow="Réserves"

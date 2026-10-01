@@ -30,7 +30,7 @@ export default function MonthPreparationAction() {
           : 'inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-200 transition hover:bg-amber-500/15'}
       >
         {prepared ? <RefreshCw className="h-3 w-3" /> : <CalendarPlus className="h-3 w-3" />}
-        {prepared ? 'Actualiser les récurrences' : 'Préparer ce mois'}
+        {prepared ? 'Ajouter les nouvelles récurrences' : 'Préparer ce mois'}
       </button>
 
       <MonthPreparationPreview

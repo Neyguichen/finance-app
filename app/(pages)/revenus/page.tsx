@@ -159,7 +159,7 @@ export default function RevenusPage() {
 
   return (
     <div>
-      <MonthSelector currentMonth={month} onChange={setMonth} />
+      <MonthSelector currentMonth={month} onChange={setMonth} showPreparationAction={false} />
 
       <div className="mx-auto w-full max-w-7xl space-y-4 p-3 pb-28 sm:p-4">
         <h1 className="text-xl font-bold">Revenus</h1>
