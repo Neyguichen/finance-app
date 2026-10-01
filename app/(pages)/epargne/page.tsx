@@ -1,35 +1,42 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Handshake, PiggyBank } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { ArchiveRestore, ChevronDown, PiggyBank, Plus } from 'lucide-react'
 
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
-import PageHeader from '@/components/layout/PageHeader'
 import EpargneResume from '@/components/pages/epargne/EpargneResume'
 import EnveloppeCard from '@/components/pages/epargne/EnveloppeCard'
 import EnveloppeEditDialog from '@/components/pages/epargne/EnveloppeEditDialog'
+import EnveloppeDetailPanel from '@/components/pages/epargne/EnveloppeDetailPanel'
 import MouvementForm from '@/components/pages/epargne/MouvementForm'
-import MouvementCard from '@/components/pages/epargne/MouvementCard'
 import { MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
-import EpargneFab from '@/components/pages/epargne/EpargneFab'
-import EmptyStateV2 from '@/components/ui/EmptyStateV2'
 import DettesPanel from '@/components/pages/epargne/DettesPanel'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 
 import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
 import { useEnveloppesAtMonth } from '@/lib/hooks/useEnveloppesAtMonth'
 import { usePlannedSavings } from '@/lib/hooks/usePlannedSavings'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
-import { formatEuro } from '@/lib/utils'
+import { useSavingsHistory } from '@/lib/hooks/useSavingsHistory'
+
+type MovementType = 'epargne' | 'reprise' | 'transfert'
+type SortMode = 'az' | 'balance'
 
 export default function EpargnePage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const [section, setSection] = useState<'savings' | 'debts'>('savings')
+  const [sortMode, setSortMode] = useState<SortMode>('az')
+  const [selectedEnvelopeId, setSelectedEnvelopeId] = useState<string | null>(null)
+  const [movementType, setMovementType] = useState<MovementType>('epargne')
+  const [openMvt, setOpenMvt] = useState(false)
+  const [openEnvelope, setOpenEnvelope] = useState(false)
+  const [newEnvelopeName, setNewEnvelopeName] = useState('')
 
   useEffect(() => {
-    const syncFromUrl = () => {
-      setSection(new URLSearchParams(window.location.search).get('view') === 'debts' ? 'debts' : 'savings')
-    }
+    const syncFromUrl = () => setSection(new URLSearchParams(window.location.search).get('view') === 'debts' ? 'debts' : 'savings')
     syncFromUrl()
     window.addEventListener('popstate', syncFromUrl)
     return () => window.removeEventListener('popstate', syncFromUrl)
@@ -42,61 +49,81 @@ export default function EpargnePage() {
     else url.searchParams.delete('view')
     window.history.replaceState({}, '', url.toString())
   }
+
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
   const { data: plannedSavings = [] } = usePlannedSavings(isAdminViewing ? undefined : moisId)
   const { create: createRecurrent, update: updateRecurrent } = useEpargneRecurrentes(espace?.id)
   const { data: adminData } = useAdminMoisData(month)
+  const savingsHistory = useSavingsHistory(espace?.id)
 
   const effectiveEnveloppes = isAdminViewing ? (adminData?.enveloppes || []) : enveloppes
   const effectiveMouvements = isAdminViewing ? (adminData?.mouvements_epargne || []) : mouvements
   const effectivePlannedSavings = isAdminViewing ? [] : plannedSavings
 
-  // Classement enveloppes
-  const enveloppesActives = effectiveEnveloppes.filter((e: any) => !e.archived)
-  const enveloppesVisibles = enveloppesActives.filter((env: any) =>
-    Number(env.solde) !== 0 || (env.objectif && Number(env.objectif) > 0)
-  )
-  const enveloppesInactives = enveloppesActives.filter((env: any) =>
-    Number(env.solde) === 0 && (!env.objectif || Number(env.objectif) === 0)
-  )
-  const enveloppesArchivees = effectiveEnveloppes.filter((e: any) => e.archived)
+  const activeEnvelopes = effectiveEnveloppes.filter((env: any) => !env.archived)
+  const archivedEnvelopes = effectiveEnveloppes.filter((env: any) => env.archived)
 
-  // États dialogs
-  const [editEnv, setEditEnv] = useState<{
-    id: string
-    nom: string
-    objectif: number | null
-    solde: number
-    solde_initial: number
-    solde_reference?: number | null
-    date_solde_reference?: string | null
-  } | null>(null)
-  const [openMvt, setOpenMvt] = useState(false)
+  const sortedEnvelopes = useMemo(() => {
+    const copy = [...activeEnvelopes]
+    if (sortMode === 'balance') return copy.sort((a:any,b:any) => Number(b.solde)-Number(a.solde))
+    return copy.sort((a:any,b:any) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity:'base' }))
+  }, [activeEnvelopes, sortMode])
+
+  useEffect(() => {
+    if (!sortedEnvelopes.length) {
+      setSelectedEnvelopeId(null)
+      return
+    }
+    if (!selectedEnvelopeId || !sortedEnvelopes.some((env:any) => env.id === selectedEnvelopeId)) {
+      setSelectedEnvelopeId(sortedEnvelopes[0].id)
+    }
+  }, [sortedEnvelopes, selectedEnvelopeId])
+
+  const selectedEnvelope = sortedEnvelopes.find((env:any) => env.id === selectedEnvelopeId) || null
+
+  const totalEpargne = effectiveMouvements.filter((m:any) => m.type === 'epargne').reduce((sum:number,m:any) => sum + Number(m.montant),0)
+  const totalReprise = effectiveMouvements.filter((m:any) => m.type === 'reprise').reduce((sum:number,m:any) => sum + Number(m.montant),0)
+  const totalDisponible = activeEnvelopes.reduce((sum:number,env:any) => sum + Number(env.solde),0)
+
+  const monthlyNetFor = (envId:string) => effectiveMouvements.reduce((sum:number,m:any) => {
+    if (m.type === 'epargne' && m.enveloppe_dest_id === envId) return sum + Number(m.montant)
+    if (m.type === 'reprise' && m.enveloppe_source_id === envId) return sum - Number(m.montant)
+    if (m.type === 'transfert') {
+      if (m.enveloppe_dest_id === envId) sum += Number(m.montant)
+      if (m.enveloppe_source_id === envId) sum -= Number(m.montant)
+    }
+    return sum
+  },0)
+
+  const plannedFor = (envId:string) => effectivePlannedSavings
+    .filter((item:any) => item.enveloppe_dest_id === envId)
+    .reduce((sum:number,item:any) => sum + Number(item.montant),0)
+
+  const getEnvNom = (id:string|null) => effectiveEnveloppes.find((env:any) => env.id === id)?.nom || '—'
+
+  const [editEnv, setEditEnv] = useState<any|null>(null)
+  const [editMvt, setEditMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string|null }|null>(null)
+  const [scopeMvt, setScopeMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string }|null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id:string; recurrentId:string|null; note:string|null }|null>(null)
+  const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
     if (!isAdminViewing && moisId && new URLSearchParams(window.location.search).get('add') === 'movement') {
+      setMovementType('epargne')
       setOpenMvt(true)
     }
   }, [isAdminViewing, moisId])
-  const [editMvt, setEditMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string | null } | null>(null)
-  const [scopeMvt, setScopeMvt] = useState<{ id: string; montant: number; note: string | null; recurrentId: string } | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; recurrentId: string | null; note: string | null } | null>(null)
-  const [showArchived, setShowArchived] = useState(false)
-  const [showInactiveEnv, setShowInactiveEnv] = useState(false)
 
-  // Totaux : les prévisions viennent de la préparation du mois, les mouvements restent le réel.
-  const totalPrevus = effectivePlannedSavings.reduce((s: number, item: any) => s + Number(item.montant), 0)
-  const totalEpargne = effectiveMouvements.filter((m: any) => m.type === 'epargne').reduce((s: number, m: any) => s + Number(m.montant), 0)
-  const totalReprise = effectiveMouvements.filter((m: any) => m.type === 'reprise').reduce((s: number, m: any) => s + Number(m.montant), 0)
-  const totalDisponible = enveloppesActives.reduce((s: number, e: any) => s + Number(e.solde), 0)
+  const openMovement = (type:MovementType) => {
+    setMovementType(type)
+    setOpenMvt(true)
+  }
 
-  const getEnvNom = (id: string | null) => effectiveEnveloppes.find((e: any) => e.id === id)?.nom || '—'
-
-  // --- Handlers ---
-  const handleCreateEnvelopeInline = async (name: string) => {
-    if (isAdminViewing || !espace) throw new Error('Budget indisponible')
+  const handleCreateEnvelope = async () => {
+    const name = newEnvelopeName.trim()
+    if (!name || !espace || isAdminViewing) return
     const created = await createEnv.mutateAsync({
       espace_id: espace.id,
       nom: name,
@@ -105,27 +132,26 @@ export default function EpargnePage() {
       objectif: null,
       ordre: effectiveEnveloppes.length,
     })
-    return { id: created.id }
+    setNewEnvelopeName('')
+    setOpenEnvelope(false)
+    setSelectedEnvelopeId(created.id)
   }
 
-  const handleSaveEditEnv = async (data: {
-    id: string
-    nom: string
-    objectif: number | null
-    solde_initial: number
-    solde: number
-    solde_reference: number | null
-    date_solde_reference: string | null
-  }) => {
+  const handleCreateEnvelopeInline = async (name:string) => {
+    if (isAdminViewing || !espace) throw new Error('Budget indisponible')
+    const created = await createEnv.mutateAsync({
+      espace_id: espace.id, nom:name, solde_initial:0, solde:0, objectif:null, ordre:effectiveEnveloppes.length,
+    })
+    return { id:created.id }
+  }
+
+  const handleSaveEditEnv = async (data:any) => {
     if (isAdminViewing) return
     await updateEnv.mutateAsync(data)
     setEditEnv(null)
   }
 
-  const handleCreateMvt = async (data: {
-    type: 'epargne' | 'reprise' | 'transfert'; montant: number; note: string | null;
-    sourceId: string | null; destId: string | null; frequence: number
-  }) => {
+  const handleCreateMvt = async (data:{ type:MovementType; montant:number; note:string|null; sourceId:string|null; destId:string|null; frequence:number }) => {
     if (isAdminViewing || !moisId || !espace || data.montant <= 0) return
     if (data.type === 'reprise' && !data.sourceId) return
     if (data.type === 'epargne' && !data.destId) return
@@ -133,209 +159,156 @@ export default function EpargnePage() {
 
     if (data.frequence === 0) {
       await createMvt.mutateAsync({
-        mois_id: moisId, recurrent_id: null,
-        enveloppe_source_id: data.sourceId, enveloppe_dest_id: data.destId,
-        montant: data.montant, type: data.type, date: month, note: data.note,
+        mois_id:moisId, recurrent_id:null, enveloppe_source_id:data.sourceId, enveloppe_dest_id:data.destId,
+        montant:data.montant, type:data.type, date:month, note:data.note,
       })
     } else {
       const rec = await createRecurrent.mutateAsync({
-        espace_id: espace.id, enveloppe_dest_id: data.destId!,
-        montant: data.montant, actif: true, frequence_mois: data.frequence,
-        note: data.note, ordre: 0, mois_debut: month,
+        espace_id:espace.id, enveloppe_dest_id:data.destId!, montant:data.montant, actif:true,
+        frequence_mois:data.frequence, note:data.note, ordre:0, mois_debut:month,
       })
       await createMvt.mutateAsync({
-        mois_id: moisId, recurrent_id: rec.id,
-        enveloppe_source_id: null, enveloppe_dest_id: data.destId,
-        montant: data.montant, type: 'epargne' as const, date: month, note: data.note,
+        mois_id:moisId, recurrent_id:rec.id, enveloppe_source_id:null, enveloppe_dest_id:data.destId,
+        montant:data.montant, type:'epargne', date:month, note:data.note,
       })
     }
     setOpenMvt(false)
   }
 
-  const handleEditMvtSave = (id: string, montant: number, note: string | null, recurrentId: string | null) => {
+  const handleEditMvtSave = (id:string,montant:number,note:string|null,recurrentId:string|null) => {
     if (isAdminViewing) return
-    if (recurrentId) {
-      setScopeMvt({ id, montant, note, recurrentId })
-    } else {
-      updateMvt.mutateAsync({ id, montant, note })
-    }
+    if (recurrentId) setScopeMvt({id,montant,note,recurrentId})
+    else updateMvt.mutateAsync({id,montant,note})
     setEditMvt(null)
   }
 
-  const handleScopeEditMvt = async (scope: 'mois' | 'tous') => {
+  const handleScopeEditMvt = async (scope:'mois'|'tous') => {
     if (isAdminViewing || !scopeMvt) return
-    await updateMvt.mutateAsync({ id: scopeMvt.id, montant: scopeMvt.montant, note: scopeMvt.note })
-    if (scope === 'tous') {
-      await updateRecurrent.mutateAsync({ id: scopeMvt.recurrentId, montant: scopeMvt.montant, note: scopeMvt.note })
-    }
+    await updateMvt.mutateAsync({id:scopeMvt.id,montant:scopeMvt.montant,note:scopeMvt.note})
+    if (scope === 'tous') await updateRecurrent.mutateAsync({id:scopeMvt.recurrentId,montant:scopeMvt.montant,note:scopeMvt.note})
     setScopeMvt(null)
   }
 
-  const handleDeleteMvt = (mode: 'mois' | 'definitif') => {
+  const handleDeleteMvt = (mode:'mois'|'definitif') => {
     if (isAdminViewing || !deleteTarget) return
-    if (mode === 'definitif' && deleteTarget.recurrentId) {
-      removeDefinitif.mutate({ mouvementId: deleteTarget.id, recurrentId: deleteTarget.recurrentId })
-    } else {
-      removeMvt.mutate(deleteTarget.id)
-    }
+    if (mode === 'definitif' && deleteTarget.recurrentId) removeDefinitif.mutate({mouvementId:deleteTarget.id,recurrentId:deleteTarget.recurrentId})
+    else removeMvt.mutate(deleteTarget.id)
     setDeleteTarget(null)
   }
 
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} showPreparationAction={false} />
-      <div className="mx-auto max-w-6xl space-y-5 p-3 pb-24 sm:p-4">
-        <PageHeader
-          eyebrow="Réserves"
-          title="Épargne & dettes"
-          description="Réserves, objectifs, dettes et créances réunis dans un même espace, sans mélanger stocks et flux mensuels."
-          icon={section === 'savings' ? PiggyBank : Handshake}
-        />
-
-        <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/80 bg-slate-950/35 p-1">
-          <button
-            type="button"
-            onClick={() => changeSection('savings')}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${section === 'savings' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-          >
-            Épargne
-          </button>
-          <button
-            type="button"
-            onClick={() => changeSection('debts')}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${section === 'debts' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-          >
-            Dettes & créances
-          </button>
+      <div className="mx-auto max-w-7xl space-y-3 p-3 pb-24 sm:p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-xl font-semibold tracking-tight text-slate-100">Épargne & Dette</h1>
+          <div className="grid grid-cols-2 rounded-xl border border-slate-800/80 bg-slate-950/35 p-1">
+            <button type="button" onClick={() => changeSection('savings')} className={'rounded-lg px-5 py-2 text-sm font-medium transition ' + (section === 'savings' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300')}>Épargne</button>
+            <button type="button" onClick={() => changeSection('debts')} className={'rounded-lg px-5 py-2 text-sm font-medium transition ' + (section === 'debts' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300')}>Dette</button>
+          </div>
         </div>
 
-        <div className={section === 'savings' ? 'space-y-6' : 'hidden'}>
+        {section === 'savings' ? (
+          <div className="space-y-3">
+            <EpargneResume
+              totalDisponible={totalDisponible}
+              totalEpargne={totalEpargne}
+              totalReprise={totalReprise}
+              enveloppes={activeEnvelopes.map((env:any) => ({id:env.id,name:env.nom,balance:Number(env.solde)}))}
+              onSave={() => openMovement('epargne')}
+              onWithdraw={() => openMovement('reprise')}
+              onTransfer={() => openMovement('transfert')}
+              readOnly={isAdminViewing}
+            />
 
-        {!isAdminViewing && enveloppesActives.length === 0 && (
-          <EmptyStateV2
-            icon={PiggyBank}
-            title="Crée ta première enveloppe depuis un mouvement"
-            description="Ajoute un mouvement puis crée l’enveloppe directement dans le formulaire. Tu pourras ensuite régler son objectif et sa référence depuis sa carte."
-            actionLabel={moisId ? "Ajouter un mouvement" : undefined}
-            onAction={moisId ? () => setOpenMvt(true) : undefined}
-          />
-        )}
-
-        <EpargneResume
-          totalDisponible={totalDisponible}
-          totalPrevus={totalPrevus}
-          totalEpargne={totalEpargne}
-          totalReprise={totalReprise}
-        />
-
-        {!isAdminViewing && effectivePlannedSavings.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Prévisions d’épargne</h2>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {effectivePlannedSavings.map((item: any) => (
-                <div key={item.id} className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{getEnvNom(item.enveloppe_dest_id)}</p>
-                      {item.note && <p className="text-xs text-slate-500 truncate">{item.note}</p>}
-                    </div>
-                    <span className="font-semibold text-sky-400 whitespace-nowrap">{formatEuro(Number(item.montant))}</span>
-                  </div>
+            <div className="grid gap-3 xl:grid-cols-[1.35fr_.9fr]">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-semibold text-slate-100">Mes enveloppes d’épargne</h2>
+                  <label className="relative ml-auto">
+                    <select value={sortMode} onChange={event => setSortMode(event.target.value as SortMode)} className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs text-slate-300 outline-none">
+                      <option value="az">A → Z</option>
+                      <option value="balance">Solde</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500"/>
+                  </label>
+                  {!isAdminViewing && <Button size="sm" onClick={() => setOpenEnvelope(true)}><Plus className="mr-1 h-4 w-4"/>Nouvelle enveloppe</Button>}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Enveloppes actives */}
-        {(enveloppesActives.length > 1 || enveloppesActives.some((e: any) => e.objectif && Number(e.objectif) > 0)) && (
-          <div>
-            {enveloppesVisibles.length > 0 && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {enveloppesVisibles.map((env: any) => (
-                  <EnveloppeCard key={env.id} env={env} readOnly={isAdminViewing} variant="active"
-                    onEdit={setEditEnv} onArchive={(id) => archive.mutate(id)} />
-                ))}
-              </div>
-            )}
-            {enveloppesInactives.length > 0 && (
-              <div className="mt-2">
-                <button onClick={() => setShowInactiveEnv(!showInactiveEnv)}
-                  className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-                  {showInactiveEnv ? '▼' : '▶'} Autres enveloppes ({enveloppesInactives.length})
-                </button>
-                {showInactiveEnv && (
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-                    {enveloppesInactives.map((env: any) => (
-                      <EnveloppeCard key={env.id} env={env} readOnly={isAdminViewing} variant="inactive"
-                        onEdit={setEditEnv} onArchive={(id) => archive.mutate(id)} />
+                {sortedEnvelopes.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/20 p-8 text-center"><PiggyBank className="mx-auto h-7 w-7 text-slate-700"/><p className="mt-2 text-sm text-slate-500">Aucune enveloppe active.</p></div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
+                    {sortedEnvelopes.map((env:any) => (
+                      <EnveloppeCard
+                        key={env.id}
+                        env={env}
+                        readOnly={isAdminViewing}
+                        selected={selectedEnvelopeId === env.id}
+                        monthlyNet={monthlyNetFor(env.id)}
+                        onSelect={() => setSelectedEnvelopeId(env.id)}
+                        onEdit={setEditEnv}
+                        onArchive={id => archive.mutate(id)}
+                      />
                     ))}
                   </div>
                 )}
+
+                {archivedEnvelopes.length > 0 && (
+                  <div>
+                    <button onClick={() => setShowArchived(!showArchived)} className="text-xs text-slate-500 hover:text-slate-300">{showArchived ? '▼' : '▶'} Archivées ({archivedEnvelopes.length})</button>
+                    {showArchived && <div className="mt-2 grid gap-2 sm:grid-cols-2">{archivedEnvelopes.map((env:any) => <div key={env.id} className="flex items-center justify-between rounded-xl border border-slate-800/60 bg-slate-950/20 px-3 py-2"><div><p className="text-sm text-slate-400">{env.nom}</p><p className="text-xs text-slate-600">{Number(env.solde).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</p></div>{!isAdminViewing&&<button onClick={()=>unarchive.mutate(env.id)} className="rounded-md p-2 text-slate-500 hover:text-indigo-300" title="Désarchiver"><ArchiveRestore className="h-4 w-4"/></button>}</div>)}</div>}
+                  </div>
+                )}
               </div>
-            )}
+
+              {selectedEnvelope && (
+                <EnveloppeDetailPanel
+                  env={selectedEnvelope}
+                  movements={(savingsHistory.data?.movements || []) as any}
+                  currentMonth={month.slice(0,7)}
+                  plannedMonthly={plannedFor(selectedEnvelope.id)}
+                  onSave={() => openMovement('epargne')}
+                  onWithdraw={() => openMovement('reprise')}
+                  onTransfer={() => openMovement('transfert')}
+                />
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-800/70 bg-slate-900/50">
+              <div className="border-b border-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-200">Mouvements du mois</div>
+              {effectiveMouvements.length === 0 ? <p className="p-5 text-center text-xs text-slate-600">Aucun mouvement ce mois.</p> : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[680px] text-xs">
+                    <thead className="bg-slate-950/30 text-slate-500"><tr><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-left">Enveloppe</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-right">Montant</th><th className="px-3 py-2 text-left">Note</th><th className="w-20"></th></tr></thead>
+                    <tbody>{effectiveMouvements.map((mvt:any) => {
+                      const destination = mvt.type === 'epargne' ? getEnvNom(mvt.enveloppe_dest_id) : mvt.type === 'reprise' ? getEnvNom(mvt.enveloppe_source_id) : getEnvNom(mvt.enveloppe_source_id) + ' → ' + getEnvNom(mvt.enveloppe_dest_id)
+                      const positive = mvt.type === 'epargne'
+                      return <tr key={mvt.id} className="border-t border-slate-800/50"><td className="px-3 py-2 text-slate-500">{String(mvt.date).slice(0,10)}</td><td className="px-3 py-2 text-slate-300">{destination}</td><td className="px-3 py-2 text-slate-400">{mvt.type === 'epargne' ? 'Épargne' : mvt.type === 'reprise' ? 'Reprise' : 'Transfert'}</td><td className={'px-3 py-2 text-right font-semibold ' + (positive ? 'text-emerald-300' : mvt.type === 'reprise' ? 'text-rose-300' : 'text-cyan-300')}>{positive ? '+' : mvt.type === 'reprise' ? '−' : ''}{Number(mvt.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</td><td className="max-w-[220px] truncate px-3 py-2 text-slate-600">{mvt.note || '—'}</td><td className="px-2 py-2 text-right">{!isAdminViewing&&<><button className="px-1 text-slate-600 hover:text-indigo-300" onClick={()=>setEditMvt({id:mvt.id,montant:Number(mvt.montant),note:mvt.note||null,recurrentId:mvt.recurrent_id||null})}>✎</button><button className="px-1 text-slate-700 hover:text-rose-400" onClick={()=>setDeleteTarget({id:mvt.id,recurrentId:mvt.recurrent_id||null,note:mvt.note||null})}>×</button></>}</td></tr>
+                    })}</tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        ) : <DettesPanel />}
 
-        {/* Enveloppes archivées */}
-        {enveloppesArchivees.length > 0 && (
-          <div>
-            <button onClick={() => setShowArchived(!showArchived)}
-              className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-              {showArchived ? '▼' : '▶'} Archivées ({enveloppesArchivees.length})
-            </button>
-            {showArchived && (
-              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {enveloppesArchivees.map((env: any) => (
-                  <EnveloppeCard key={env.id} env={env} readOnly={isAdminViewing} variant="archived"
-                    onUnarchive={(id) => unarchive.mutate(id)} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Mouvements du mois */}
-        <div className="space-y-3"><h2 className="text-lg font-semibold">Mouvements du mois</h2>
-        <div className="space-y-3">
-          {effectiveMouvements.map((mvt: any) => (
-            <MouvementCard key={mvt.id} mvt={mvt} readOnly={isAdminViewing}
-              getEnvNom={getEnvNom} onEdit={setEditMvt} onDelete={setDeleteTarget} />
-          ))}
-          {effectiveMouvements.length === 0 && (
-            <EmptyStateV2
-              icon={PiggyBank}
-              title="Aucun mouvement ce mois"
-              description={enveloppesActives.length > 0
-                ? "Ajoute un versement, une reprise ou un transfert uniquement lorsqu’un mouvement réel a lieu."
-                : "Crée d’abord une enveloppe. Un solde existant peut être saisi comme référence sans créer de faux mouvement."}
-              actionLabel={!isAdminViewing && enveloppesActives.length > 0 ? "Ajouter un mouvement" : undefined}
-              onAction={!isAdminViewing && enveloppesActives.length > 0 ? () => setOpenMvt(true) : undefined}
-            />
-          )}
-        </div></div>
-
-        {/* Tous les dialogs */}
         <EnveloppeEditDialog editEnv={editEnv} onClose={() => setEditEnv(null)} onSave={handleSaveEditEnv} />
-        <MouvementForm
-          open={openMvt}
-          onOpenChange={setOpenMvt}
-          enveloppesActives={enveloppesActives}
-          onCreateEnvelope={handleCreateEnvelopeInline}
-          onSubmit={handleCreateMvt}
-        />
+        <MouvementForm open={openMvt} onOpenChange={setOpenMvt} enveloppesActives={activeEnvelopes} onCreateEnvelope={handleCreateEnvelopeInline} initialType={movementType} onSubmit={handleCreateMvt} />
         <MouvementEditDialog editMvt={editMvt} onClose={() => setEditMvt(null)} onSave={handleEditMvtSave} />
         <MouvementScopeDialog target={scopeMvt} onClose={() => setScopeMvt(null)} onSave={handleScopeEditMvt} />
         <MouvementDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDeleteMvt} />
-        </div>
 
-        {section === 'debts' && <DettesPanel />}
+        <Dialog open={openEnvelope} onOpenChange={setOpenEnvelope}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nouvelle enveloppe</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <Input value={newEnvelopeName} onChange={event => setNewEnvelopeName(event.target.value)} placeholder="Nom de l’enveloppe" onKeyDown={event => { if (event.key === 'Enter') handleCreateEnvelope() }} autoFocus />
+              <Button className="w-full" onClick={handleCreateEnvelope} disabled={!newEnvelopeName.trim() || createEnv.isPending}>{createEnv.isPending ? 'Création…' : 'Créer l’enveloppe'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* FAB */}
-      {!isAdminViewing && section === 'savings' && (
-        <EpargneFab onOpenMouvement={() => setOpenMvt(true)} />
-      )}
     </div>
   )
 }

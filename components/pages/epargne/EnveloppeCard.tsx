@@ -1,87 +1,53 @@
+'use client'
+
+import { Archive, MoreHorizontal, Pencil, PiggyBank } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Pencil, Archive, ArchiveRestore } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
 
 type Props = {
   env: any
   readOnly: boolean
-  variant: 'active' | 'inactive' | 'archived'
-  onEdit?: (env: {
-    id: string
-    nom: string
-    objectif: number | null
-    solde: number
-    solde_initial: number
-    solde_reference?: number | null
-    date_solde_reference?: string | null
-  }) => void
+  selected?: boolean
+  monthlyNet?: number
+  onSelect?: () => void
+  onEdit?: (env: any) => void
   onArchive?: (id: string) => void
-  onUnarchive?: (id: string) => void
 }
 
-export default function EnveloppeCard({ env, readOnly, variant, onEdit, onArchive, onUnarchive }: Props) {
-  const pourcent = env.objectif ? Math.min(100, Math.round((Number(env.solde) / Number(env.objectif)) * 100)) : null
-  const isActive = variant === 'active'
-  const isArchived = variant === 'archived'
-
-  const cardClass = isActive
-    ? 'bg-slate-900 border-slate-800'
-    : 'bg-slate-900/50 border-slate-800 opacity-60'
+export default function EnveloppeCard({ env, readOnly, selected, monthlyNet = 0, onSelect, onEdit, onArchive }: Props) {
+  const objective = Number(env.objectif || 0)
+  const balance = Number(env.solde || 0)
+  const percent = objective > 0 ? Math.max(0, Math.min(100, Math.round(balance / objective * 100))) : null
 
   return (
-    <Card className={cardClass}>
-      <CardContent className="space-y-3 p-4 sm:p-5">
-        <div className="flex items-center justify-between">
-          <p className="truncate text-sm font-semibold">{env.nom}</p>
-          <div className="flex items-center gap-1">
-            {!readOnly && !isArchived && (
-              <>
-                <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                  onClick={() => onEdit?.({
-                    id: env.id,
-                    nom: env.nom,
-                    objectif: env.objectif,
-                    solde: Number(env.solde),
-                    solde_initial: Number(env.solde_initial) || 0,
-                    solde_reference: env.solde_reference != null ? Number(env.solde_reference) : null,
-                    date_solde_reference: env.date_solde_reference || null,
-                  })}>
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                  onClick={() => {
-                    if (confirm(`Archiver "${env.nom}" ?`)) onArchive?.(env.id)
-                  }}>
-                  <Archive className="w-3.5 h-3.5" />
-                </Button>
-              </>
-            )}
-            {!readOnly && isArchived && (
-              <Button variant="ghost" size="icon" className="text-slate-500 h-7 w-7"
-                onClick={() => onUnarchive?.(env.id)}>
-                <ArchiveRestore className="w-3.5 h-3.5" />
-              </Button>
-            )}
-          </div>
+    <Card className={'transition ' + (selected ? 'border-emerald-400/45 bg-emerald-500/[0.05]' : 'border-slate-800 bg-slate-900/80 hover:border-slate-700')}>
+      <CardContent className="p-3">
+        <div className="flex items-start gap-3">
+          <button type="button" onClick={onSelect} className="flex min-w-0 flex-1 items-start gap-3 text-left">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300"><PiggyBank className="h-5 w-5" /></div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-100">{env.nom}</p>
+              <p className="mt-1 text-sm font-bold text-emerald-300">{formatEuro(balance)}{objective > 0 && <span className="font-normal text-slate-600"> / {formatEuro(objective)}</span>}</p>
+            </div>
+          </button>
+          {!readOnly && (
+            <div className="flex items-center gap-0.5">
+              <button type="button" title="Modifier" className="rounded-md p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-300" onClick={() => onEdit?.(env)}><Pencil className="h-3.5 w-3.5" /></button>
+              <button type="button" title="Archiver" className="rounded-md p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-300" onClick={() => { if (confirm('Archiver « ' + env.nom + ' » ?')) onArchive?.(env.id) }}><Archive className="h-3.5 w-3.5" /></button>
+              <MoreHorizontal className="hidden h-4 w-4 text-slate-700" />
+            </div>
+          )}
         </div>
-        <p className={`text-xl font-bold ${isActive ? 'text-emerald-400' : 'text-slate-400'}`}>
-          {formatEuro(Number(env.solde))}
+
+        {percent !== null && (
+          <div className="mt-3">
+            <div className="flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-emerald-400" style={{width:String(percent)+'%'}} /></div><span className="w-8 text-right text-[10px] font-medium text-slate-400">{percent}%</span></div>
+          </div>
+        )}
+
+        <p className={'mt-2 text-[10px] ' + (monthlyNet >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+          {monthlyNet >= 0 ? '+' : '−'}{formatEuro(Math.abs(monthlyNet))} ce mois
         </p>
-        {env.solde_reference != null && env.date_solde_reference && (
-          <p className="text-[11px] text-slate-600">
-            Référence {formatEuro(Number(env.solde_reference))} au {new Date(env.date_solde_reference + 'T12:00:00').toLocaleDateString('fr-FR')}
-          </p>
-        )}
-        {isActive && env.objectif && pourcent !== null && (
-          <>
-            <Progress value={pourcent} className="h-2.5" />
-            <p className="text-xs text-slate-500">
-              {pourcent}% — Objectif {formatEuro(Number(env.objectif))}
-            </p>
-          </>
-        )}
       </CardContent>
     </Card>
   )

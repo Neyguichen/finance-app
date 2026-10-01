@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ type Props = {
   onOpenChange: (open: boolean) => void
   enveloppesActives: any[]
   onCreateEnvelope?: (name: string) => Promise<{ id: string }>
+  initialType?: 'epargne' | 'reprise' | 'transfert'
   onSubmit: (data: {
     type: 'epargne' | 'reprise' | 'transfert'
     montant: number
@@ -25,8 +26,12 @@ type Props = {
   }) => Promise<void>
 }
 
-export default function MouvementForm({ open, onOpenChange, enveloppesActives, onCreateEnvelope, onSubmit }: Props) {
-  const [type, setType] = useState<'epargne' | 'reprise' | 'transfert'>('epargne')
+export default function MouvementForm({ open, onOpenChange, enveloppesActives, onCreateEnvelope, initialType = 'epargne', onSubmit }: Props) {
+  const [type, setType] = useState<'epargne' | 'reprise' | 'transfert'>(initialType)
+
+  useEffect(() => {
+    if (open) setType(initialType)
+  }, [open, initialType])
   const [montant, setMontant] = useState(0)
   const [note, setNote] = useState('')
   const [sourceId, setSourceId] = useState('')
