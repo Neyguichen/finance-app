@@ -36,7 +36,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         supabase.from('transactions').select('id, montant, categorie_id, sous_categorie_id, mois_id, is_split, parent_transaction_id, remboursements(montant)').in('mois_id', moisIds),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', moisIds),
         supabase.from('dettes').select('type, remboursements_dette(montant, date, impacte_budget)').eq('espace_id', espaceId!),
-        supabase.from('budgets').select('prevu, categorie_id, mois_id').in('mois_id', moisIds),
+        supabase.from('budgets').select('prevu, categorie_id, mois_id, categorie:categories(parent_id)').in('mois_id', moisIds),
       ])
 
       if (revResult.error) throw revResult.error
@@ -67,6 +67,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         catDepenses: Record<string, number>
         catPrevues: Record<string, number>
         subCatDepenses: Record<string, number>
+        subCatPrevues: Record<string, number>
       }
 
       const monthlyData: Record<string, MonthData> = {}
@@ -85,6 +86,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
           catDepenses: {},
           catPrevues: {},
           subCatDepenses: {},
+          subCatPrevues: {},
         }
       }
 
@@ -103,6 +105,10 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
           if (charge.categorie_id) {
             monthlyData[mois].catPrevues[charge.categorie_id] =
               (monthlyData[mois].catPrevues[charge.categorie_id] || 0) + Number(charge.montant)
+          }
+          if (charge.sous_categorie_id) {
+            monthlyData[mois].subCatPrevues[charge.sous_categorie_id] =
+              (monthlyData[mois].subCatPrevues[charge.sous_categorie_id] || 0) + Number(charge.montant)
           }
           if (charge.payee) {
             const actual = Number(charge.montant_reel ?? charge.montant)
@@ -149,8 +155,16 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
           const planned = Number(budget.prevu || 0)
           monthlyData[mois].budgets += planned
           if (budget.categorie_id) {
-            monthlyData[mois].catPrevues[budget.categorie_id] =
-              (monthlyData[mois].catPrevues[budget.categorie_id] || 0) + planned
+            const budgetCategory = (budget as any).categorie
+            if (budgetCategory?.parent_id) {
+              monthlyData[mois].catPrevues[budgetCategory.parent_id] =
+                (monthlyData[mois].catPrevues[budgetCategory.parent_id] || 0) + planned
+              monthlyData[mois].subCatPrevues[budget.categorie_id] =
+                (monthlyData[mois].subCatPrevues[budget.categorie_id] || 0) + planned
+            } else {
+              monthlyData[mois].catPrevues[budget.categorie_id] =
+                (monthlyData[mois].catPrevues[budget.categorie_id] || 0) + planned
+            }
           }
         }
       }
@@ -184,7 +198,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
 
       const months = Object.keys(monthlyData).sort()
       const nbMonths = months.length
-      const total = (field: keyof Omit<MonthData, 'catDepenses'>) =>
+      const total = (field: keyof Omit<MonthData, 'catDepenses' | 'catPrevues' | 'subCatDepenses' | 'subCatPrevues'>) =>
         months.reduce((sum, month) => sum + Number(monthlyData[month][field]), 0)
 
       const annualTotals = {
@@ -263,12 +277,21 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         }
       }
 
-      const subCatAnnualStats: Record<string, number> = {}
+      const subCatAnnualStats: Record<string, { total: number; planned: number }> = {}
+      for (const data of Object.values(monthlyData)) {
+        for (const subCategoryId of Object.keys(data.subCatPrevues)) allSubCatIds.add(subCategoryId)
+      }
       for (const subCategoryId of Array.from(allSubCatIds)) {
-        subCatAnnualStats[subCategoryId] = months.reduce(
-          (sum, month) => sum + (monthlyData[month]?.subCatDepenses[subCategoryId] || 0),
-          0,
-        )
+        subCatAnnualStats[subCategoryId] = {
+          total: months.reduce(
+            (sum, month) => sum + (monthlyData[month]?.subCatDepenses[subCategoryId] || 0),
+            0,
+          ),
+          planned: months.reduce(
+            (sum, month) => sum + (monthlyData[month]?.subCatPrevues[subCategoryId] || 0),
+            0,
+          ),
+        }
       }
 
       return {

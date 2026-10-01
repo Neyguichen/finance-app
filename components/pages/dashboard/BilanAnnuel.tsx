@@ -58,11 +58,31 @@ function KpiCard({ icon:Icon, label, value, previous, compareYear, tone, inverse
   </Card>
 }
 
-function SmallStat({ label, value, help, tone='text-slate-100' }:{ label:string; value:string; help?:string; tone?:string }) {
+function SmallStat({ label, value, help, tone='text-slate-100', icon:Icon, iconTone='text-slate-400' }:{ label:string; value:string; help?:string; tone?:string; icon?:any; iconTone?:string }) {
   return <div className="rounded-xl border border-slate-800/70 bg-slate-950/25 p-3">
-    <p className="text-[10px] text-slate-500">{label}</p>
-    <p className={`mt-1 text-sm font-semibold ${tone}`}>{value}</p>
-    {help && <p className="mt-1 text-[10px] text-slate-600">{help}</p>}
+    <div className="flex items-start gap-2.5">
+      {Icon && <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900/80 ${iconTone}`}><Icon className="h-4 w-4" /></div>}
+      <div className="min-w-0">
+        <p className="text-[10px] text-slate-500">{label}</p>
+        <p className={`mt-1 truncate text-sm font-semibold ${tone}`}>{value}</p>
+        {help && <p className="mt-1 text-[10px] text-slate-600">{help}</p>}
+      </div>
+    </div>
+  </div>
+}
+
+function LegendRow({ items }:{ items:Array<{label:string;color:string}> }) {
+  return <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
+    {items.map(item => <span key={item.label} className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor:item.color}} />{item.label}</span>)}
+  </div>
+}
+
+function PieTooltip({ active, payload }:{ active?:boolean; payload?:any[] }) {
+  if (!active || !payload?.length) return null
+  const item = payload[0]
+  return <div className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 shadow-2xl">
+    <p className="text-xs font-semibold text-slate-100">{item?.name || 'Dépense'}</p>
+    <p className="mt-1 text-sm font-bold text-slate-100">{formatEuro(Number(item?.value || 0))}</p>
   </div>
 }
 
@@ -113,12 +133,28 @@ export default function BilanAnnuel({
   const subCategoryRows = useMemo(() => {
     if (!selectedCategory) return []
     const parentTotal = categoryRows.find(row => row.id === selectedCategory)?.actual || 0
+    const parentPlanned = categoryRows.find(row => row.id === selectedCategory)?.planned || 0
     const children = categories.filter((c:any) => c.parent_id === selectedCategory)
-      .map((c:any) => ({ id:c.id, name:c.nom, icon:c.icone || '•', actual:Number(yearData?.subCatAnnualStats?.[c.id] || 0) }))
-      .filter((row:any) => row.actual > 0)
+      .map((c:any) => ({
+        id:c.id,
+        name:c.nom,
+        icon:c.icone || '•',
+        actual:Number(yearData?.subCatAnnualStats?.[c.id]?.total || 0),
+        planned:Number(yearData?.subCatAnnualStats?.[c.id]?.planned || 0),
+      }))
+      .filter((row:any) => row.actual > 0 || row.planned > 0)
       .sort((a:any,b:any) => b.actual - a.actual)
-    const used = children.reduce((sum:number,row:any) => sum + row.actual,0)
-    if (parentTotal > used + 0.01) children.push({ id:'uncategorized', name:'Sans sous-catégorie', icon:'•', actual:parentTotal-used })
+    const usedActual = children.reduce((sum:number,row:any) => sum + row.actual,0)
+    const usedPlanned = children.reduce((sum:number,row:any) => sum + row.planned,0)
+    if (parentTotal > usedActual + 0.01 || parentPlanned > usedPlanned + 0.01) {
+      children.push({
+        id:'uncategorized',
+        name:'Sans sous-catégorie',
+        icon:'•',
+        actual:Math.max(0,parentTotal-usedActual),
+        planned:Math.max(0,parentPlanned-usedPlanned),
+      })
+    }
     return children
   }, [selectedCategory, categories, yearData, categoryRows])
 
@@ -176,8 +212,8 @@ export default function BilanAnnuel({
       </CardHeader>
       <CardContent className={`grid gap-4 p-4 pt-1 ${detailed ? 'lg:grid-cols-[300px_1fr]' : 'md:grid-cols-[220px_1fr]'}`}>
         <div className={`relative ${detailed ? 'h-[280px]' : 'h-[220px]'}`}>
-          {distributionRows.length ? <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={distributionRows} dataKey={selectedCategory?'actual':'actual'} nameKey="name" innerRadius={detailed?72:58} outerRadius={detailed?112:88} paddingAngle={1} onClick={(entry:any) => { if(!selectedCategory && entry?.id) setSelectedCategory(entry.id) }}>{distributionRows.map((row,index)=><Cell key={row.id} fill={palette[index%palette.length]} className={!selectedCategory?'cursor-pointer':''}/>)}</Pie><Tooltip contentStyle={tooltipStyle} formatter={(v:number) => formatEuro(v)} /></PieChart></ResponsiveContainer> : null}
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><strong className="text-base">{formatEuro(distributionTotal)}</strong><span className="text-[10px] text-slate-600">{selectedCategory?'Sous-catégories':'Dépenses'}</span></div>
+          {distributionRows.length ? <div className="relative z-10 h-full"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={distributionRows} dataKey="actual" nameKey="name" innerRadius={detailed?72:58} outerRadius={detailed?112:88} paddingAngle={1} onClick={(entry:any) => { if(!selectedCategory && entry?.id) setSelectedCategory(entry.id) }}>{distributionRows.map((row,index)=><Cell key={row.id} fill={palette[index%palette.length]} className={!selectedCategory?'cursor-pointer':''}/>)}</Pie><Tooltip content={<PieTooltip />} wrapperStyle={{zIndex:60,pointerEvents:'none'}} /></PieChart></ResponsiveContainer></div> : null}
+          <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center"><strong className="text-base">{formatEuro(distributionTotal)}</strong><span className="text-[10px] text-slate-600">{selectedCategory?'Sous-catégories':'Dépenses'}</span></div>
         </div>
         <div className="space-y-1 self-center">
           {distributionRows.slice(0,detailed?12:7).map((row:any,index:number) => {
@@ -206,7 +242,10 @@ export default function BilanAnnuel({
           <SmallStat label="Prévu" value={formatEuro(plannedExpenses)} tone="text-blue-300" />
           <SmallStat label="Écart" value={(actualExpenses-plannedExpenses>=0?'+':'')+formatEuro(actualExpenses-plannedExpenses)} tone={actualExpenses>plannedExpenses?'text-rose-300':'text-emerald-300'} />
         </div>
-        {monthlyRows.length > 1 && <div className={compact?'h-[180px]':'h-[280px]'}><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlyRows}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/><XAxis dataKey="month" tick={{fontSize:10,fill:'#64748b'}}/><YAxis width={48} tick={{fontSize:10,fill:'#64748b'}}/><Tooltip contentStyle={tooltipStyle} formatter={(v:number)=>formatEuro(v)}/><Bar dataKey="prevu" fill="#3b82f6" radius={[3,3,0,0]} name="Prévu"/><Bar dataKey="depenses" fill="#ef476f" radius={[3,3,0,0]} name="Réel"/></BarChart></ResponsiveContainer></div>}
+        {monthlyRows.length > 1 && <>
+          <LegendRow items={[{label:'Prévu',color:'#3b82f6'},{label:'Réel',color:'#ef476f'}]} />
+          <div className={compact?'h-[180px]':'h-[280px]'}><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlyRows}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/><XAxis dataKey="month" tick={{fontSize:10,fill:'#64748b'}}/><YAxis width={48} tick={{fontSize:10,fill:'#64748b'}}/><Tooltip contentStyle={tooltipStyle} labelStyle={{color:'#f8fafc'}} itemStyle={{color:'#e2e8f0'}} formatter={(v:number)=>formatEuro(v)}/><Bar dataKey="prevu" fill="#3b82f6" radius={[3,3,0,0]} name="Prévu"/><Bar dataKey="depenses" fill="#ef476f" radius={[3,3,0,0]} name="Réel"/></BarChart></ResponsiveContainer></div>
+        </>}
         <div>
           <p className="mb-2 text-xs font-medium text-slate-400">Top des écarts</p>
           <div className="divide-y divide-slate-800/60">
@@ -221,8 +260,9 @@ export default function BilanAnnuel({
     <Card className="nf-card-hover">
       <CardHeader className="pb-2"><CardTitle className="text-base text-slate-100">Comment évolue ma situation ?</CardTitle></CardHeader>
       <CardContent className="space-y-4 p-4 pt-1">
-        <div className={compact?'h-[190px]':'h-[300px]'}><ResponsiveContainer width="100%" height="100%"><LineChart data={monthlyRows}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/><XAxis dataKey="month" tick={{fontSize:10,fill:'#64748b'}}/><YAxis width={48} tick={{fontSize:10,fill:'#64748b'}}/><Tooltip contentStyle={tooltipStyle} formatter={(v:number)=>formatEuro(v)}/><Line type="monotone" dataKey="revenus" stroke="#34d399" strokeWidth={2.3} dot={{r:2}} name="Revenus"/><Line type="monotone" dataKey="depenses" stroke="#fb7185" strokeWidth={2.3} dot={{r:2}} name="Dépenses"/><Line type="monotone" dataKey="epargne" stroke="#38bdf8" strokeWidth={2.3} dot={{r:2}} name="Épargne nette"/></LineChart></ResponsiveContainer></div>
-        {selectedBalance != null && <div><p className="mb-2 text-xs font-medium text-slate-400">Disponible fin de mois</p><div className={compact?'h-[100px]':'h-[150px]'}><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlyRows}><XAxis dataKey="month" tick={{fontSize:9,fill:'#64748b'}}/><Tooltip contentStyle={tooltipStyle} formatter={(v:number)=>formatEuro(v)}/><Bar dataKey="disponible" fill="#3b82f6" radius={[4,4,0,0]} name="Disponible"/></BarChart></ResponsiveContainer></div></div>}
+        <LegendRow items={[{label:'Revenus',color:'#34d399'},{label:'Dépenses',color:'#fb7185'},{label:'Épargne nette',color:'#38bdf8'}]} />
+        <div className={compact?'h-[190px]':'h-[300px]'}><ResponsiveContainer width="100%" height="100%"><LineChart data={monthlyRows}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/><XAxis dataKey="month" tick={{fontSize:10,fill:'#64748b'}}/><YAxis width={48} tick={{fontSize:10,fill:'#64748b'}}/><Tooltip contentStyle={tooltipStyle} labelStyle={{color:'#f8fafc'}} itemStyle={{color:'#e2e8f0'}} formatter={(v:number)=>formatEuro(v)}/><Line type="monotone" dataKey="revenus" stroke="#34d399" strokeWidth={2.3} dot={{r:2}} name="Revenus"/><Line type="monotone" dataKey="depenses" stroke="#fb7185" strokeWidth={2.3} dot={{r:2}} name="Dépenses"/><Line type="monotone" dataKey="epargne" stroke="#38bdf8" strokeWidth={2.3} dot={{r:2}} name="Épargne nette"/></LineChart></ResponsiveContainer></div>
+        {selectedBalance != null && <div><div className="mb-2 flex items-center justify-between gap-3"><p className="text-xs font-medium text-slate-400">Disponible fin de mois</p><LegendRow items={[{label:'Disponible',color:'#3b82f6'}]} /></div><div className={compact?'h-[100px]':'h-[150px]'}><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlyRows}><XAxis dataKey="month" tick={{fontSize:9,fill:'#64748b'}}/><Tooltip contentStyle={tooltipStyle} labelStyle={{color:'#f8fafc'}} itemStyle={{color:'#e2e8f0'}} formatter={(v:number)=>formatEuro(v)}/><Bar dataKey="disponible" fill="#3b82f6" radius={[4,4,0,0]} name="Disponible"/></BarChart></ResponsiveContainer></div></div>}
       </CardContent>
     </Card>
   )
@@ -240,12 +280,12 @@ export default function BilanAnnuel({
     <Card className="nf-card-hover">
       <CardHeader className="pb-2"><CardTitle className="text-base text-slate-100">Mes principales statistiques</CardTitle></CardHeader>
       <CardContent className="grid gap-2 p-3 pt-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <SmallStat label="Dépense moyenne / mois" value={formatEuro(avgExpense)} />
-        <SmallStat label="Revenu moyen / mois" value={formatEuro(avgIncome)} />
-        <SmallStat label="Taux d’épargne" value={Number(yearData?.tauxEpargne || 0).toFixed(1).replace('.',',')+' %'} />
-        <SmallStat label="Charges fixes" value={fixedShare.toFixed(1).replace('.',',')+' %'} help="des revenus reçus" />
-        <SmallStat label="Catégorie principale" value={topCategory ? `${topCategory.icon} ${topCategory.name}` : '—'} help={topCategory?formatEuro(topCategory.actual):undefined} />
-        <SmallStat label="Mois le plus dépensier" value={yearData?.moisMaxDepense?.mois ? monthName(yearData.moisMaxDepense.mois) : '—'} help={yearData?.moisMaxDepense?.total?formatEuro(yearData.moisMaxDepense.total):undefined} />
+        <SmallStat icon={WalletCards} iconTone="text-cyan-300" label="Dépense moyenne / mois" value={formatEuro(avgExpense)} />
+        <SmallStat icon={TrendingUp} iconTone="text-emerald-300" label="Revenu moyen / mois" value={formatEuro(avgIncome)} />
+        <SmallStat icon={PiggyBank} iconTone="text-fuchsia-300" label="Taux d’épargne" value={Number(yearData?.tauxEpargne || 0).toFixed(1).replace('.',',')+' %'} />
+        <SmallStat icon={ReceiptText} iconTone="text-rose-300" label="Charges fixes" value={fixedShare.toFixed(1).replace('.',',')+' %'} help="des revenus reçus" />
+        <SmallStat icon={BarChart3} iconTone="text-violet-300" label="Catégorie principale" value={topCategory ? `${topCategory.icon} ${topCategory.name}` : '—'} help={topCategory?formatEuro(topCategory.actual):undefined} />
+        <SmallStat icon={CircleDollarSign} iconTone="text-blue-300" label="Mois le plus dépensier" value={yearData?.moisMaxDepense?.mois ? monthName(yearData.moisMaxDepense.mois) : '—'} help={yearData?.moisMaxDepense?.total?formatEuro(yearData.moisMaxDepense.total):undefined} />
       </CardContent>
     </Card>
   )
@@ -273,7 +313,7 @@ export default function BilanAnnuel({
       {tab === 'categories' && <>
         <Distribution detailed />
         <Card className="nf-card-hover"><CardHeader className="pb-2"><CardTitle className="text-base text-slate-100">Détail par catégorie</CardTitle></CardHeader><CardContent className="overflow-x-auto p-4 pt-1">
-          <table className="w-full min-w-[650px] text-xs"><thead><tr className="border-b border-slate-800 text-slate-500"><th className="py-2 text-left">Catégorie</th><th className="text-right">Prévu</th><th className="text-right">Réel</th><th className="text-right">Écart</th><th className="text-right">% des dépenses</th></tr></thead><tbody>{categoryRows.map(row=>{const diff=row.actual-row.planned;return <tr key={row.id} className="border-b border-slate-800/60"><td className="py-2.5 text-slate-200">{row.icon} {row.name}</td><td className="text-right text-slate-500">{formatEuro(row.planned)}</td><td className="text-right text-slate-200">{formatEuro(row.actual)}</td><td className={`text-right ${diff>0?'text-rose-400':'text-emerald-400'}`}>{diff>=0?'+':''}{formatEuro(diff)}</td><td className="text-right text-slate-500">{distributionTotal>0?Math.round(row.actual/distributionTotal*100):0}%</td></tr>})}</tbody></table>
+          <table className="w-full min-w-[650px] text-xs"><thead><tr className="border-b border-slate-800 text-slate-500"><th className="py-2 text-left">{selectedCategory ? 'Sous-catégorie' : 'Catégorie'}</th><th className="text-right">Prévu</th><th className="text-right">Réel</th><th className="text-right">Écart</th><th className="text-right">% des dépenses</th></tr></thead><tbody>{(selectedCategory ? subCategoryRows : categoryRows).map((row:any)=>{const planned=Number(row.planned||0);const actual=Number(row.actual||0);const diff=actual-planned;return <tr key={row.id} className="border-b border-slate-800/60"><td className="py-2.5 text-slate-200">{row.icon} {row.name}</td><td className="text-right text-slate-500">{formatEuro(planned)}</td><td className="text-right text-slate-200">{formatEuro(actual)}</td><td className={`text-right ${diff>0?'text-rose-400':'text-emerald-400'}`}>{diff>=0?'+':''}{formatEuro(diff)}</td><td className="text-right text-slate-500">{distributionTotal>0?Math.round(actual/distributionTotal*100):0}%</td></tr>})}</tbody></table>
         </CardContent></Card>
       </>}
 
