@@ -135,7 +135,11 @@ export default function ImportedTransactionsValidationPage() {
     if (source.decision === 'review') return true
     if (source.decision === 'ignore' || nature === 'ignore') return false
     if (source.decision === 'match' && source.match) return false
-    if (nature === 'expense') return !source.categoryId
+    if (nature === 'expense') {
+      if (!source.categoryId) return true
+      if (source.expenseType === 'fixed' && !source.recurrenceId && Number(source.recurrenceFrequency || 0) < 1) return true
+    }
+    if (nature === 'income' && source.incomeRecurring && !source.recurrenceId && Number(source.recurrenceFrequency || 0) < 1) return true
     if (nature === 'savings_deposit' || nature === 'savings_withdrawal') return !source.envelopeId
     if (nature === 'expense_reimbursement') {
       if (!source.reimbursementTransactionId && !source.reimbursementPendingItemId) return true
@@ -416,6 +420,20 @@ export default function ImportedTransactionsValidationPage() {
           const validatedDuplicate = source.status === 'duplicate'
           const csvDuplicate = source.status === 'duplicate_in_file'
           const fixedCandidate = source.status === 'fixed_candidate'
+          const incomeRecurrences = importModel.recurrenceCandidates.data?.income || []
+          const fixedRecurrences = importModel.recurrenceCandidates.data?.fixed || []
+          const suggestedIncomeRecurrence = row.nature === 'income' && !source.recurrenceId
+            ? incomeRecurrences.find((candidate: any) =>
+                Math.abs(Number(candidate.montant) - Math.abs(Number(source.amount || 0))) < 0.01 &&
+                (normalize(candidate.nom).includes(normalize(source.label)) || normalize(source.label).includes(normalize(candidate.nom)))
+              )
+            : null
+          const suggestedFixedRecurrence = row.nature === 'expense' && !source.recurrenceId
+            ? fixedRecurrences.find((candidate: any) =>
+                Math.abs(Number(candidate.montant) - Math.abs(Number(source.amount || 0))) < 0.01 &&
+                (normalize(candidate.nom).includes(normalize(source.label)) || normalize(source.label).includes(normalize(candidate.nom)))
+              )
+            : null
 
           return (
             <article key={row.id} className={`rounded-xl border p-3 ${rowHasIssue(row) ? 'border-amber-800/60 bg-amber-950/10' : 'border-slate-800 bg-slate-900'}`}>
@@ -500,6 +518,76 @@ export default function ImportedTransactionsValidationPage() {
 
                   {row.nature === 'expense' && (
                     <>
+                      <Field label="Type de dépense">
+                        <select
+                          className="select select-bordered select-xs w-full bg-slate-950"
+                          value={source.expenseType || 'variable'}
+                          disabled={!pending}
+                          onChange={event => {
+                            const expenseType = event.target.value as 'variable' | 'fixed'
+                            savePending(row, {
+                              expenseType,
+                              recurrenceId: expenseType === 'fixed' ? source.recurrenceId || null : null,
+                              recurrenceFrequency: expenseType === 'fixed' ? source.recurrenceFrequency || 1 : null,
+                            })
+                          }}
+                        >
+                          <option value="variable">Dépense variable</option>
+                          <option value="fixed">Charge fixe</option>
+                        </select>
+                      </Field>
+
+                      {source.expenseType === 'fixed' && (
+                        <>
+                          <Field label="Récurrence">
+                            <select
+                              className="select select-bordered select-xs w-full bg-slate-950"
+                              value={source.recurrenceId ? `existing:${source.recurrenceId}` : 'new'}
+                              disabled={!pending}
+                              onChange={event => {
+                                const value = event.target.value
+                                if (value === 'new') {
+                                  savePending(row, { recurrenceId: null, recurrenceFrequency: source.recurrenceFrequency || 1 })
+                                  return
+                                }
+                                const id = value.replace('existing:', '')
+                                const recurrent = fixedRecurrences.find((candidate: any) => candidate.id === id)
+                                savePending(row, {
+                                  recurrenceId: id,
+                                  recurrenceFrequency: Number(recurrent?.frequence_mois || 1),
+                                  categoryId: recurrent?.categorie_id || source.categoryId || null,
+                                  subcategoryId: recurrent?.sous_categorie_id || source.subcategoryId || null,
+                                })
+                              }}
+                            >
+                              <option value="new">Créer une nouvelle récurrence</option>
+                              {fixedRecurrences.map((candidate: any) => (
+                                <option key={candidate.id} value={`existing:${candidate.id}`}>
+                                  {candidate.nom} · {candidate.frequence_mois === 1 ? 'Tous les mois' : `Tous les ${candidate.frequence_mois} mois`}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+
+                          {!source.recurrenceId && (
+                            <Field label="Fréquence">
+                              <select
+                                className="select select-bordered select-xs w-full bg-slate-950"
+                                value={String(source.recurrenceFrequency || 1)}
+                                disabled={!pending}
+                                onChange={event => savePending(row, { recurrenceFrequency: Number(event.target.value) })}
+                              >
+                                <option value="1">Tous les mois</option>
+                                <option value="2">Tous les 2 mois</option>
+                                <option value="3">Tous les 3 mois</option>
+                                <option value="6">Tous les 6 mois</option>
+                                <option value="12">Tous les 12 mois</option>
+                              </select>
+                            </Field>
+                          )}
+                        </>
+                      )}
+
                       <Field label="Catégorie">
                         <div className="flex gap-1">
                           <select className="select select-bordered select-xs min-w-0 flex-1 bg-slate-950" value={categoryId} disabled={!pending} onChange={event => savePending(row, { categoryId: event.target.value || null, subcategoryId: null })}>
@@ -623,12 +711,66 @@ export default function ImportedTransactionsValidationPage() {
                   )}
 
                   {row.nature === 'income' && (
-                    <Field label="Type de revenu">
-                      <select className="select select-bordered select-xs w-full bg-slate-950" value={source.incomeType || 'actif'} disabled={!pending} onChange={event => savePending(row, { incomeType: event.target.value as 'actif' | 'passif' })}>
-                        <option value="actif">Actif</option>
-                        <option value="passif">Passif</option>
-                      </select>
-                    </Field>
+                    <>
+                      <Field label="Type de revenu">
+                        <select className="select select-bordered select-xs w-full bg-slate-950" value={source.incomeType || 'actif'} disabled={!pending} onChange={event => savePending(row, { incomeType: event.target.value as 'actif' | 'passif' })}>
+                          <option value="actif">Actif</option>
+                          <option value="passif">Passif</option>
+                        </select>
+                      </Field>
+
+                      <Field label="Récurrence">
+                        <select
+                          className="select select-bordered select-xs w-full bg-slate-950"
+                          value={source.incomeRecurring ? (source.recurrenceId ? `existing:${source.recurrenceId}` : 'new') : 'none'}
+                          disabled={!pending}
+                          onChange={event => {
+                            const value = event.target.value
+                            if (value === 'none') {
+                              savePending(row, { incomeRecurring: false, recurrenceId: null, recurrenceFrequency: null })
+                              return
+                            }
+                            if (value === 'new') {
+                              savePending(row, { incomeRecurring: true, recurrenceId: null, recurrenceFrequency: source.recurrenceFrequency || 1 })
+                              return
+                            }
+                            const id = value.replace('existing:', '')
+                            const recurrent = incomeRecurrences.find((candidate: any) => candidate.id === id)
+                            savePending(row, {
+                              incomeRecurring: true,
+                              recurrenceId: id,
+                              recurrenceFrequency: Number(recurrent?.frequence_mois || 1),
+                              incomeType: recurrent?.type || source.incomeType || 'actif',
+                            })
+                          }}
+                        >
+                          <option value="none">Ponctuel</option>
+                          <option value="new">Créer une nouvelle récurrence</option>
+                          {incomeRecurrences.map((candidate: any) => (
+                            <option key={candidate.id} value={`existing:${candidate.id}`}>
+                              {candidate.nom} · {candidate.frequence_mois === 1 ? 'Tous les mois' : `Tous les ${candidate.frequence_mois} mois`}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+
+                      {source.incomeRecurring && !source.recurrenceId && (
+                        <Field label="Fréquence">
+                          <select
+                            className="select select-bordered select-xs w-full bg-slate-950"
+                            value={String(source.recurrenceFrequency || 1)}
+                            disabled={!pending}
+                            onChange={event => savePending(row, { recurrenceFrequency: Number(event.target.value) })}
+                          >
+                            <option value="1">Tous les mois</option>
+                            <option value="2">Tous les 2 mois</option>
+                            <option value="3">Tous les 3 mois</option>
+                            <option value="6">Tous les 6 mois</option>
+                            <option value="12">Tous les 12 mois</option>
+                          </select>
+                        </Field>
+                      )}
+                    </>
                   )}
 
                   <Field label="Note" className="lg:col-span-2">
@@ -666,6 +808,35 @@ export default function ImportedTransactionsValidationPage() {
 
               {(duplicatePending || validatedDuplicate || csvDuplicate || fixedCandidate || rowNeedsAssignment(row)) && (
                 <div className="mt-3 flex flex-wrap gap-2 pl-0 text-[11px] xl:pl-7">
+                  {suggestedIncomeRecurrence && !source.incomeRecurring && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-800/50 bg-indigo-950/30 px-2 py-1 text-indigo-300"
+                      onClick={() => savePending(row, {
+                        incomeRecurring: true,
+                        recurrenceId: suggestedIncomeRecurrence.id,
+                        recurrenceFrequency: Number(suggestedIncomeRecurrence.frequence_mois || 1),
+                        incomeType: suggestedIncomeRecurrence.type || source.incomeType || 'actif',
+                      })}
+                    >
+                      ↻ Récurrence détectée : {suggestedIncomeRecurrence.nom}
+                    </button>
+                  )}
+                  {suggestedFixedRecurrence && source.expenseType !== 'fixed' && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-800/50 bg-indigo-950/30 px-2 py-1 text-indigo-300"
+                      onClick={() => savePending(row, {
+                        expenseType: 'fixed',
+                        recurrenceId: suggestedFixedRecurrence.id,
+                        recurrenceFrequency: Number(suggestedFixedRecurrence.frequence_mois || 1),
+                        categoryId: suggestedFixedRecurrence.categorie_id || source.categoryId || null,
+                        subcategoryId: suggestedFixedRecurrence.sous_categorie_id || source.subcategoryId || null,
+                      })}
+                    >
+                      ↻ Charge fixe détectée : {suggestedFixedRecurrence.nom}
+                    </button>
+                  )}
                   {duplicatePending && <Issue icon={Copy} text="Doublon potentiel avec une autre transaction à valider" />}
                   {validatedDuplicate && <Issue icon={Copy} text={source.match?.detail || 'Doublon potentiel avec une transaction déjà validée'} />}
                   {csvDuplicate && <Issue icon={Copy} text="Doublon détecté dans le fichier importé" />}
