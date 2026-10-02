@@ -405,16 +405,6 @@ export default function DepensesPage() {
               <ReceiptText className="mr-2 h-4 w-4" />Réelles
             </Button>
           </div>
-          {!isAdminViewing && moisId && (
-            <div className="ml-auto hidden items-center gap-2 md:flex">
-              <Button size="sm" variant="outline" onClick={() => setFixedOpen(true)}>
-                <CalendarClock className="mr-1.5 h-4 w-4" />Charge fixe
-              </Button>
-              <Button size="sm" onClick={() => setTxOpen(true)}>
-                <Plus className="mr-1.5 h-4 w-4" />Dépense variable
-              </Button>
-            </div>
-          )}
         </div>
 
         <div className="grid gap-3 xl:grid-cols-[1.65fr_.85fr]">
@@ -465,7 +455,7 @@ export default function DepensesPage() {
               </CardHeader>
               <CardContent className="p-3 pt-0">
                 {effectiveCharges.length === 0 ? (
-                  <EmptyStateV2 icon={CalendarClock} title="Aucune charge fixe prévue" description="Ajoute les charges que tu souhaites prévoir pour ce mois." actionLabel={!isAdminViewing && moisId ? 'Ajouter une charge fixe' : undefined} onAction={!isAdminViewing && moisId ? () => setFixedOpen(true) : undefined} />
+                  <EmptyStateV2 icon={CalendarClock} title="Aucune charge fixe prévue" description="Ajoute les charges que tu souhaites prévoir pour ce mois." />
                 ) : (
                   <>
                     <div className="hidden grid-cols-[1.45fr_.7fr_1fr_.65fr_54px] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
@@ -510,7 +500,7 @@ export default function DepensesPage() {
               </CardHeader>
               <CardContent className="p-3 pt-0">
                 {parentCategories.length === 0 ? (
-                  <EmptyStateV2 icon={WalletCards} title="Aucune catégorie variable" description="Ajoute une catégorie pour commencer à préparer tes budgets variables." actionLabel={!isAdminViewing && espace?.id ? 'Ajouter une catégorie' : undefined} onAction={!isAdminViewing && espace?.id ? () => openCategoryDialog(null) : undefined} />
+                  <EmptyStateV2 icon={WalletCards} title="Aucune catégorie variable" description="Ajoute une catégorie pour commencer à préparer tes budgets variables." />
                 ) : (
                   <>
                     <div className="hidden grid-cols-[1.2fr_.58fr_.58fr_.58fr_1fr] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
