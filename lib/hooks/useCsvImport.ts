@@ -478,7 +478,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           title: 'Import bancaire à vérifier',
           message: `${rows.length} opération(s) ont été enregistrée(s). Tu peux les classer maintenant ou reprendre plus tard.`,
           action_label: 'Valider les opérations',
-          action_href: `/import-csv/validation?batch=${batch.id}`,
+          action_href: '/import-csv/validation',
           dedupe_key: `csv-review:${batch.id}`,
         })
       if (notificationError && notificationError.code !== '23505') {
