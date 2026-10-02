@@ -463,7 +463,14 @@ export default function DepensesPage() {
                     </div>
                     <div className="divide-y divide-slate-800/70">
                       {effectiveCharges.map((charge: any) => (
-                        <div key={charge.id} className="grid gap-2 px-2 py-2.5 md:grid-cols-[1.45fr_.7fr_1fr_.65fr_54px] md:items-center">
+                        <div
+                          key={charge.id}
+                          role={!isAdminViewing ? 'button' : undefined}
+                          tabIndex={!isAdminViewing ? 0 : undefined}
+                          onClick={() => { if (!isAdminViewing) editFixedTarget(charge) }}
+                          onKeyDown={event => { if (!isAdminViewing && (event.key === 'Enter' || event.key === ' ')) editFixedTarget(charge) }}
+                          className="grid cursor-pointer gap-2 px-2 py-2.5 transition hover:bg-slate-800/30 md:grid-cols-[1.45fr_.7fr_1fr_.65fr_54px] md:items-center"
+                        >
                           <div className="flex min-w-0 items-center gap-2">
                             <span>{charge.categorie_icone || '🏠'}</span>
                             <div className="min-w-0"><p className="truncate text-sm font-medium text-slate-200">{charge.nom}</p>{charge.categorie_nom && <p className="truncate text-[10px] text-slate-600">{charge.categorie_nom}{charge.sous_categorie_nom ? ' · ' + charge.sous_categorie_nom : ''}</p>}</div>
@@ -471,7 +478,7 @@ export default function DepensesPage() {
                           <span className="text-sm font-semibold text-slate-100 md:text-right">{formatEuro(Number(charge.montant))}</span>
                           <span className="text-xs text-slate-500">{recurrenceLabel(charge)}</span>
                           <span className={'w-fit rounded-full px-2 py-1 text-[10px] font-medium ' + (charge.payee ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-800 text-slate-400')}>{charge.payee ? 'Validée' : 'Prévue'}</span>
-                          {!isAdminViewing && <div className="flex justify-end gap-1"><button className="p-1 text-slate-600 hover:text-indigo-300" onClick={() => editFixedTarget(charge)}><Pencil className="h-3.5 w-3.5" /></button><button className="p-1 text-slate-700 hover:text-rose-400" onClick={() => setDeleteFixed({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom })}><Trash2 className="h-3.5 w-3.5" /></button></div>}
+                          {!isAdminViewing && <div className="flex justify-end"><button aria-label="Supprimer" className="p-1 text-slate-700 hover:text-rose-400" onClick={event => { event.stopPropagation(); setDeleteFixed({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom }) }}><Trash2 className="h-3.5 w-3.5" /></button></div>}
                         </div>
                       ))}
                     </div>
