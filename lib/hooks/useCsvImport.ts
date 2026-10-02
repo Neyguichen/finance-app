@@ -124,6 +124,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         .select('id, mois_id, montant, date, date_validation, infos, parent_transaction_id, remboursements(montant)')
         .in('mois_id', monthIds)
         .is('parent_transaction_id', null)
+        .not('date_validation', 'is', null)
         .order('date_validation', { ascending: false, nullsFirst: false })
         .limit(500)
       if (error) throw error
