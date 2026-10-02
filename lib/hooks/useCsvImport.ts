@@ -106,6 +106,38 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
     },
   })
 
+  const reimbursementCandidates = useQuery({
+    queryKey: ['import_reimbursement_candidates', espaceId],
+    enabled: !!espaceId,
+    queryFn: async () => {
+      const { data: months, error: monthsError } = await supabase
+        .from('mois')
+        .select('id')
+        .eq('espace_id', espaceId!)
+      if (monthsError) throw monthsError
+
+      const monthIds = (months || []).map(month => month.id)
+      if (monthIds.length === 0) return []
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('id, mois_id, montant, date, date_validation, infos, parent_transaction_id, remboursements(montant)')
+        .in('mois_id', monthIds)
+        .is('parent_transaction_id', null)
+        .order('date_validation', { ascending: false, nullsFirst: false })
+        .limit(500)
+      if (error) throw error
+
+      return (data || []).map((transaction: any) => ({
+        ...transaction,
+        reimbursed: (transaction.remboursements || []).reduce(
+          (sum: number, reimbursement: any) => sum + Number(reimbursement.montant || 0),
+          0,
+        ),
+      }))
+    },
+  })
+
   const saveFormat = useMutation({
     mutationFn: async ({ name, delimiter, mapping }: { name: string; delimiter: string; mapping: CsvMapping }) => {
       if (!espaceId) throw new Error('Budget manquant')
@@ -201,7 +233,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       const monthById = new Map((months || []).map(month => [month.id, String(month.mois).slice(0, 10)]))
 
       const analyzed = rows.map<ImportPreviewRow>(row => {
-        if (row.nature === 'ignore' || row.nature === 'savings_internal') {
+        if (row.nature === 'ignore') {
           return { ...row, status: 'new', match: null, decision: 'ignore' }
         }
 
@@ -276,6 +308,10 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               },
             }
           }
+          return { ...row, status: 'new', match: null, decision: 'create' }
+        }
+
+        if (row.nature === 'expense_reimbursement') {
           return { ...row, status: 'new', match: null, decision: 'create' }
         }
 
@@ -357,7 +393,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
 
       const seen = new Map<string, number>()
       return analyzed.map(row => {
-        if (row.nature === 'ignore' || row.nature === 'savings_internal') {
+        if (row.nature === 'ignore') {
           return row
         }
 
@@ -560,7 +596,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         throw new Error('Cette opération a un doublon ou un rapprochement potentiel : choisis explicitement Créer, Rapprocher ou Ignorer avant de la valider.')
       }
 
-      if (row.decision === 'ignore' || nature === 'ignore' || nature === 'savings_internal') {
+      if (row.decision === 'ignore' || nature === 'ignore') {
         const { error } = await supabase
           .from('import_batch_items')
           .update({ action: 'ignored', reviewed_at: new Date().toISOString() })
@@ -618,7 +654,53 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       let targetTable = ''
       let created: any = null
 
-      if (nature === 'income') {
+      if (nature === 'expense_reimbursement') {
+        let transactionId = row.reimbursementTransactionId || null
+
+        if (!transactionId && row.reimbursementPendingItemId) {
+          const { data: linkedItem, error: linkedItemError } = await supabase
+            .from('import_batch_items')
+            .select('action, target_table, target_id')
+            .eq('id', row.reimbursementPendingItemId)
+            .single()
+          if (linkedItemError) throw linkedItemError
+          if (linkedItem.action !== 'created' || linkedItem.target_table !== 'transactions' || !linkedItem.target_id) {
+            throw new Error('La dépense liée est encore en attente de validation. Valide d’abord cette dépense, puis le remboursement.')
+          }
+          transactionId = linkedItem.target_id
+        }
+
+        if (!transactionId) {
+          throw new Error('Choisis la dépense concernée avant de valider ce remboursement.')
+        }
+
+        const [transactionResult, existingResult] = await Promise.all([
+          supabase.from('transactions').select('id, montant').eq('id', transactionId).single(),
+          supabase.from('remboursements').select('montant').eq('transaction_id', transactionId),
+        ])
+        if (transactionResult.error) throw transactionResult.error
+        if (existingResult.error) throw existingResult.error
+
+        const gross = Number(transactionResult.data.montant)
+        const alreadyReimbursed = (existingResult.data || []).reduce(
+          (sum, reimbursement) => sum + Number(reimbursement.montant || 0),
+          0,
+        )
+        const reimbursementAmount = Math.abs(Number(row.amount))
+        if (alreadyReimbursed + reimbursementAmount - gross > 0.005) {
+          throw new Error(`Le total des remboursements ne peut pas dépasser la dépense initiale (${gross.toFixed(2)} €).`)
+        }
+
+        const { data, error } = await supabase.from('remboursements').insert({
+          transaction_id: transactionId,
+          montant: reimbursementAmount,
+          note: row.note ? `${row.label} — ${row.note}` : row.label,
+          date: row.date,
+        }).select('*').single()
+        if (error) throw error
+        targetTable = 'remboursements'
+        created = data
+      } else if (nature === 'income') {
         const { data, error } = await supabase.from('revenus').insert({
           mois_id: month.id,
           recurrent_id: null,
@@ -691,6 +773,8 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       queryClient.invalidateQueries({ queryKey: ['charges_fixes'] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['transactions-flat'] })
+      queryClient.invalidateQueries({ queryKey: ['remboursements'] })
+      queryClient.invalidateQueries({ queryKey: ['import_reimbursement_candidates', espaceId] })
       queryClient.invalidateQueries({ queryKey: ['mouvements'] })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
@@ -956,6 +1040,14 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             .maybeSingle()
           if (error) throw error
           current = data
+        } else if (item.target_table === 'remboursements') {
+          const { data, error } = await supabase
+            .from('remboursements')
+            .select('id, transaction_id, montant, note, date')
+            .eq('id', item.target_id)
+            .maybeSingle()
+          if (error) throw error
+          current = data
         } else if (item.target_table === 'mouvements_epargne') {
           const { data, error } = await supabase
             .from('mouvements_epargne')
@@ -992,6 +1084,9 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             if (error) throw error
           } else if (item.target_table === 'mouvements_epargne') {
             const { error } = await supabase.from('mouvements_epargne').delete().eq('id', item.target_id)
+            if (error) throw error
+          } else if (item.target_table === 'remboursements') {
+            const { error } = await supabase.from('remboursements').delete().eq('id', item.target_id)
             if (error) throw error
           }
         } else if (
@@ -1048,6 +1143,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
   return {
     formats,
     history,
+    reimbursementCandidates,
     saveFormat,
     checkFingerprint,
     analyze,
