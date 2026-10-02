@@ -369,7 +369,7 @@ export default function ImportedTransactionsValidationPage() {
                       value={source.operationDate || source.date || ''}
                       disabled={!pending}
                       onChange={event => setRows(current => current.map(item => item.id === row.id ? { ...item, analysis: { ...source, operationDate: event.target.value } } : item))}
-                      onBlur={() => pending && savePending(row, { operationDate: (row.analysis || row.raw).operationDate })}
+                      onBlur={event => pending && savePending(row, { operationDate: event.target.value })}
                     />
                   </Field>
 
@@ -380,7 +380,7 @@ export default function ImportedTransactionsValidationPage() {
                       value={source.date || ''}
                       disabled={!pending}
                       onChange={event => setRows(current => current.map(item => item.id === row.id ? { ...item, analysis: { ...source, date: event.target.value } } : item))}
-                      onBlur={() => pending && savePending(row, { date: (row.analysis || row.raw).date })}
+                      onBlur={event => pending && savePending(row, { date: event.target.value })}
                     />
                   </Field>
 
@@ -390,7 +390,7 @@ export default function ImportedTransactionsValidationPage() {
                       value={source.label || ''}
                       disabled={!pending}
                       onChange={event => setRows(current => current.map(item => item.id === row.id ? { ...item, analysis: { ...source, label: event.target.value } } : item))}
-                      onBlur={() => pending && savePending(row, { label: (row.analysis || row.raw).label })}
+                      onBlur={event => pending && savePending(row, { label: event.target.value })}
                     />
                   </Field>
 
@@ -402,7 +402,7 @@ export default function ImportedTransactionsValidationPage() {
                       value={source.amount ?? ''}
                       disabled={!pending}
                       onChange={event => setRows(current => current.map(item => item.id === row.id ? { ...item, analysis: { ...source, amount: Number(event.target.value) } } : item))}
-                      onBlur={() => pending && savePending(row, { amount: Number((row.analysis || row.raw).amount) })}
+                      onBlur={event => pending && savePending(row, { amount: Number(event.target.value) })}
                     />
                   </Field>
 
@@ -463,7 +463,7 @@ export default function ImportedTransactionsValidationPage() {
                       value={source.note || ''}
                       disabled={!pending}
                       onChange={event => setRows(current => current.map(item => item.id === row.id ? { ...item, analysis: { ...source, note: event.target.value } } : item))}
-                      onBlur={() => pending && savePending(row, { note: (row.analysis || row.raw).note })}
+                      onBlur={event => pending && savePending(row, { note: event.target.value })}
                     />
                   </Field>
                 </div>
