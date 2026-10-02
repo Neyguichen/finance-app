@@ -1,6 +1,6 @@
 'use client'
 
-import { Archive, MoreHorizontal, Pencil, PiggyBank } from 'lucide-react'
+import { Archive, PiggyBank } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatEuro } from '@/lib/utils'
 
@@ -10,11 +10,10 @@ type Props = {
   selected?: boolean
   monthlyNet?: number
   onSelect?: () => void
-  onEdit?: (env: any) => void
   onArchive?: (id: string) => void
 }
 
-export default function EnveloppeCard({ env, readOnly, selected, monthlyNet = 0, onSelect, onEdit, onArchive }: Props) {
+export default function EnveloppeCard({ env, readOnly, selected, monthlyNet = 0, onSelect, onArchive }: Props) {
   const objective = Number(env.objectif || 0)
   const balance = Number(env.solde || 0)
   const percent = objective > 0 ? Math.max(0, Math.min(100, Math.round(balance / objective * 100))) : null
@@ -31,11 +30,7 @@ export default function EnveloppeCard({ env, readOnly, selected, monthlyNet = 0,
             </div>
           </button>
           {!readOnly && (
-            <div className="flex items-center gap-0.5">
-              <button type="button" title="Modifier" className="rounded-md p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-300" onClick={() => onEdit?.(env)}><Pencil className="h-3.5 w-3.5" /></button>
-              <button type="button" title="Archiver" className="rounded-md p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-300" onClick={() => { if (confirm('Archiver « ' + env.nom + ' » ?')) onArchive?.(env.id) }}><Archive className="h-3.5 w-3.5" /></button>
-              <MoreHorizontal className="hidden h-4 w-4 text-slate-700" />
-            </div>
+            <button type="button" title="Archiver" className="rounded-md p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-300" onClick={event => { event.stopPropagation(); if (confirm('Archiver « ' + env.nom + ' » ?')) onArchive?.(env.id) }}><Archive className="h-3.5 w-3.5" /></button>
           )}
         </div>
 
