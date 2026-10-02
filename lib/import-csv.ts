@@ -51,6 +51,10 @@ export type MappedImportRow = {
   reimbursementTransactionId?: string | null
   reimbursementPendingItemId?: string | null
   reimbursementExpenseLabel?: string | null
+  expenseType?: 'variable' | 'fixed'
+  incomeRecurring?: boolean
+  recurrenceFrequency?: number | null
+  recurrenceId?: string | null
 }
 
 function splitCsvLine(line: string, delimiter: string) {
@@ -230,6 +234,10 @@ export function mapCsvRows(
       reimbursementTransactionId: null,
       reimbursementPendingItemId: null,
       reimbursementExpenseLabel: null,
+      expenseType: 'variable',
+      incomeRecurring: false,
+      recurrenceFrequency: null,
+      recurrenceId: null,
     })
   })
 
