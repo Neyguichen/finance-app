@@ -77,10 +77,26 @@ export default function ImportedTransactionsValidationPage() {
       if (analyzed[index]) byItemId.set(item.id, analyzed[index])
     })
 
-    setRows(loaded.map((item: any) => ({
+    const nextRows = loaded.map((item: any) => ({
       ...item,
       analysis: item.action === 'pending' ? byItemId.get(item.id) || item.raw : undefined,
-    })))
+    }))
+
+    setRows(current => {
+      if (current.length === 0) return nextRows
+
+      // Keep every already displayed transaction at the same visual position.
+      // Saves and duplicate re-analysis must never make a row jump while the
+      // user is editing it. Newly imported rows are appended afterwards.
+      const nextById = new Map(nextRows.map((item: any) => [item.id, item]))
+      const stable = current
+        .map(item => nextById.get(item.id))
+        .filter(Boolean) as ReviewRow[]
+      const knownIds = new Set(stable.map(item => item.id))
+      const appended = nextRows.filter((item: any) => !knownIds.has(item.id))
+
+      return [...stable, ...appended]
+    })
   }
 
   useEffect(() => {
