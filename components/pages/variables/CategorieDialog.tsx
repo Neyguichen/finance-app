@@ -14,10 +14,11 @@ type Props = {
   categories?: any[]
   initialParentId?: string | null
   lockParent?: boolean
-  onCreate: (data: { nom: string; icone: string; parent_id?: string }) => Promise<void>
+  onCreate: (data: { nom: string; icone: string; parent_id?: string }) => Promise<any>
+  onCreated?: (created: any) => void
 }
 
-export default function CategorieDialog({ open, onOpenChange, categories = [], initialParentId = null, lockParent = false, onCreate }: Props) {
+export default function CategorieDialog({ open, onOpenChange, categories = [], initialParentId = null, lockParent = false, onCreate, onCreated }: Props) {
   const [nom, setNom] = useState('')
   const [icone, setIcone] = useState('🛒')
   const [parentId, setParentId] = useState('')
@@ -47,7 +48,8 @@ export default function CategorieDialog({ open, onOpenChange, categories = [], i
     if (!nom.trim() || saving) return
     setSaving(true)
     try {
-      await onCreate({ nom: nom.trim(), icone, ...(parentId ? { parent_id: parentId } : {}) })
+      const created = await onCreate({ nom: nom.trim(), icone, ...(parentId ? { parent_id: parentId } : {}) })
+      onCreated?.(created)
       reset()
       onOpenChange(false)
     } finally {
