@@ -209,6 +209,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         const amount = Math.abs(cents(row.amount))
 
         const pendingDuplicate = (pendingItems || []).find((item: any) => {
+          if (item.id === (row as any)._pendingItemId) return false
           const pending = item.raw || {}
           return pending.date === row.date &&
             sameAmount(pending.amount, row.amount) &&
