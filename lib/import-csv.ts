@@ -1,7 +1,10 @@
 import { normalizeFinancialLabel } from '@/lib/reconciliation'
 
 export type CsvMapping = {
+  // Date bancaire / de validation. Obligatoire pour un relevé bancaire.
   date: string
+  // Date d'opération facultative. Si absente, on réutilise la date bancaire.
+  operationDate?: string
   label: string
   amount?: string
   debit?: string
@@ -24,7 +27,10 @@ export type ImportNature =
 
 export type MappedImportRow = {
   rowIndex: number
+  // Date bancaire / validation.
   date: string
+  // Date de l'opération. Égale à date si le fichier ne fournit qu'une date.
+  operationDate: string
   label: string
   amount: number
   nature: ImportNature
@@ -133,6 +139,9 @@ export function mapCsvRows(
 
   rows.forEach((row, index) => {
     const date = parseImportDate(row[mapping.date] || '')
+    const operationDate = mapping.operationDate
+      ? parseImportDate(row[mapping.operationDate] || '')
+      : date
     const label = (row[mapping.label] || '').trim()
 
     let amount: number | null = null
@@ -148,6 +157,10 @@ export function mapCsvRows(
       invalid.push({ rowIndex: index, reason: 'Date illisible' })
       return
     }
+    if (mapping.operationDate && !operationDate) {
+      invalid.push({ rowIndex: index, reason: 'Date d’opération illisible' })
+      return
+    }
     if (!label) {
       invalid.push({ rowIndex: index, reason: 'Libellé vide' })
       return
@@ -160,6 +173,7 @@ export function mapCsvRows(
     valid.push({
       rowIndex: index,
       date,
+      operationDate: operationDate || date,
       label,
       amount,
       nature: amount > 0 ? 'income' : 'expense',
