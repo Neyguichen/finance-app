@@ -229,6 +229,13 @@ export default function ImportCsvPage() {
       )}
 
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="mb-4 flex justify-end">
+          <Link href="/aide?article=import" className="inline-flex items-center gap-1.5 text-xs text-cyan-300 hover:text-cyan-200">
+            <BookOpen className="h-4 w-4" />
+            Voir le fonctionnement de l’import
+          </Link>
+        </div>
+
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
           <label className="flex-1">
             <span className="mb-1 block text-sm text-slate-300">Fichier CSV</span>
@@ -288,17 +295,11 @@ export default function ImportCsvPage() {
 
       {parsed.headers.length > 0 && (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="font-semibold">Associer les colonnes</h2>
-              <p className="mt-1 max-w-3xl text-xs text-slate-500">
-                Seuls la date bancaire, le libellé et le montant sont indispensables. Les autres informations peuvent être récupérées si ton fichier les contient, ou complétées plus tard dans l’écran de validation.
-              </p>
-            </div>
-            <Link href="/aide?article=import" className="inline-flex shrink-0 items-center gap-1.5 text-xs text-cyan-300 hover:text-cyan-200">
-              <BookOpen className="h-4 w-4" />
-              Voir les colonnes possibles
-            </Link>
+          <div>
+            <h2 className="font-semibold">Associer les colonnes</h2>
+            <p className="mt-1 max-w-3xl text-xs text-slate-500">
+              Seuls la date bancaire, le libellé et le montant sont indispensables. Les autres informations peuvent être récupérées si ton fichier les contient, ou complétées plus tard dans l’écran de validation.
+            </p>
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -390,7 +391,7 @@ export default function ImportCsvPage() {
                 </tr>
               </thead>
               <tbody>
-                {preview.slice(0, 100).map(row => (
+                {preview.slice(0, 25).map(row => (
                   <tr key={row.rowIndex}>
                     <td>{formatDate(row.operationDate || row.date)}</td>
                     <td>{formatDate(row.date)}</td>
@@ -415,9 +416,9 @@ export default function ImportCsvPage() {
             </table>
           </div>
 
-          {preview.length > 100 && (
+          {preview.length > 25 && (
             <p className="mt-2 text-xs text-slate-500">
-              Les 100 premières lignes sont affichées ici. Les {preview.length} lignes exploitables seront bien enregistrées.
+              Les 25 premières lignes sont affichées ici. Les {preview.length} lignes exploitables seront bien enregistrées.
             </p>
           )}
 
