@@ -135,7 +135,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         .select('id, file_name, created_at, status, file_fingerprint')
         .eq('espace_id', espaceId)
         .eq('file_fingerprint', fingerprint)
-        .eq('status', 'imported')
+        .in('status', ['reviewing', 'completed'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
