@@ -131,10 +131,14 @@ export default function ImportedTransactionsValidationPage() {
     const source = row.analysis || row.raw
     const nature = row.nature as ImportNature
     if (source.decision === 'review') return true
-    if (source.decision === 'ignore' || nature === 'ignore' || nature === 'savings_internal') return false
+    if (source.decision === 'ignore' || nature === 'ignore') return false
     if (source.decision === 'match' && source.match) return false
     if (nature === 'expense') return !source.categoryId
     if (nature === 'savings_deposit' || nature === 'savings_withdrawal') return !source.envelopeId
+    if (nature === 'expense_reimbursement') {
+      if (!source.reimbursementTransactionId && !source.reimbursementPendingItemId) return true
+      if (source.reimbursementPendingItemId && rows.some(candidate => candidate.id === source.reimbursementPendingItemId && candidate.action === 'pending')) return true
+    }
     return false
   }
 
@@ -336,6 +340,7 @@ export default function ImportedTransactionsValidationPage() {
                 <option value="income">Revenu</option>
                 <option value="savings_deposit">Versement épargne</option>
                 <option value="savings_withdrawal">Reprise épargne</option>
+                <option value="expense_reimbursement">Remboursement d’une dépense</option>
                 <option value="ignore">Ignorer</option>
               </select>
             </Field>
@@ -458,7 +463,7 @@ export default function ImportedTransactionsValidationPage() {
                       <option value="income">Revenu</option>
                       <option value="savings_deposit">Versement épargne</option>
                       <option value="savings_withdrawal">Reprise épargne</option>
-                      <option value="savings_internal">Transfert interne</option>
+                      <option value="expense_reimbursement">Remboursement d’une dépense</option>
                       <option value="ignore">Ignorer</option>
                     </select>
                   </Field>
@@ -485,6 +490,82 @@ export default function ImportedTransactionsValidationPage() {
                       <select className="select select-bordered select-xs w-full bg-slate-950" value={source.envelopeId || ''} disabled={!pending} onChange={event => savePending(row, { envelopeId: event.target.value || null })}>
                         <option value="">À choisir…</option>
                         {envelopes.filter(envelope => !envelope.archived).map(envelope => <option key={envelope.id} value={envelope.id}>{envelope.nom}</option>)}
+                      </select>
+                    </Field>
+                  )}
+
+                  {row.nature === 'expense_reimbursement' && (
+                    <Field label="Dépense remboursée" className="lg:col-span-2">
+                      <select
+                        className="select select-bordered select-xs w-full bg-slate-950"
+                        value={
+                          source.reimbursementPendingItemId
+                            ? `pending:${source.reimbursementPendingItemId}`
+                            : source.reimbursementTransactionId
+                              ? `transaction:${source.reimbursementTransactionId}`
+                              : ''
+                        }
+                        disabled={!pending}
+                        onChange={event => {
+                          const [kind, id] = event.target.value.split(':')
+                          if (!id) {
+                            savePending(row, {
+                              reimbursementPendingItemId: null,
+                              reimbursementTransactionId: null,
+                              reimbursementExpenseLabel: null,
+                            })
+                            return
+                          }
+
+                          if (kind === 'pending') {
+                            const expenseRow = rows.find(candidate => candidate.id === id)
+                            const expenseSource = expenseRow?.analysis || expenseRow?.raw || {}
+                            savePending(row, {
+                              reimbursementPendingItemId: id,
+                              reimbursementTransactionId: null,
+                              reimbursementExpenseLabel: expenseSource.label || 'Dépense importée',
+                            })
+                          } else {
+                            const transaction = (importModel.reimbursementCandidates.data || []).find((candidate: any) => candidate.id === id)
+                            savePending(row, {
+                              reimbursementPendingItemId: null,
+                              reimbursementTransactionId: id,
+                              reimbursementExpenseLabel: transaction?.infos || 'Dépense validée',
+                            })
+                          }
+                        }}
+                      >
+                        <option value="">Choisir la dépense…</option>
+                        {source.reimbursementPendingItemId && !rows.some(candidate => candidate.id === source.reimbursementPendingItemId) && (
+                          <option value={`pending:${source.reimbursementPendingItemId}`}>
+                            {source.reimbursementExpenseLabel || 'Dépense importée liée'}
+                          </option>
+                        )}
+                        {rows.some(candidate => candidate.action === 'pending' && candidate.nature === 'expense' && candidate.id !== row.id) && (
+                          <optgroup label="Dépenses à valider">
+                            {rows
+                              .filter(candidate => candidate.action === 'pending' && candidate.nature === 'expense' && candidate.id !== row.id)
+                              .map(candidate => {
+                                const expenseSource = candidate.analysis || candidate.raw || {}
+                                return (
+                                  <option key={candidate.id} value={`pending:${candidate.id}`}>
+                                    {expenseSource.date || ''} · {expenseSource.label || 'Dépense'} · {formatEuro(Math.abs(Number(expenseSource.amount || 0)))}
+                                  </option>
+                                )
+                              })}
+                          </optgroup>
+                        )}
+                        {(importModel.reimbursementCandidates.data || []).some((candidate: any) => Number(candidate.montant) - Number(candidate.reimbursed || 0) > 0.005) && (
+                          <optgroup label="Dépenses validées">
+                            {(importModel.reimbursementCandidates.data || [])
+                              .filter((candidate: any) => Number(candidate.montant) - Number(candidate.reimbursed || 0) > 0.005)
+                              .map((candidate: any) => (
+                                <option key={candidate.id} value={`transaction:${candidate.id}`}>
+                                  {candidate.date_validation || candidate.date || ''} · {candidate.infos || 'Dépense'} · reste {formatEuro(Math.max(0, Number(candidate.montant) - Number(candidate.reimbursed || 0)))}
+                                </option>
+                              ))}
+                          </optgroup>
+                        )}
                       </select>
                     </Field>
                   )}
@@ -537,7 +618,10 @@ export default function ImportedTransactionsValidationPage() {
                   {validatedDuplicate && <Issue icon={Copy} text={source.match?.detail || 'Doublon potentiel avec une transaction déjà validée'} />}
                   {csvDuplicate && <Issue icon={Copy} text="Doublon détecté dans le fichier importé" />}
                   {fixedCandidate && <Issue icon={AlertTriangle} text={source.match?.detail || 'Rapprochement possible avec une charge fixe'} />}
-                  {rowNeedsAssignment(row) && <Issue icon={AlertTriangle} text="Affectation nécessaire avant validation" />}
+                  {row.nature === 'expense_reimbursement' && source.reimbursementPendingItemId && rows.some(candidate => candidate.id === source.reimbursementPendingItemId && candidate.action === 'pending') && (
+                    <Issue icon={AlertTriangle} text="La dépense liée doit être validée avant son remboursement" />
+                  )}
+                  {rowNeedsAssignment(row) && !(row.nature === 'expense_reimbursement' && source.reimbursementPendingItemId) && <Issue icon={AlertTriangle} text="Affectation nécessaire avant validation" />}
                 </div>
               )}
             </article>
