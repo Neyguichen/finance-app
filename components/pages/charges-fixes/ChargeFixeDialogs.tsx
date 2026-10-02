@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { FolderTree, ReceiptText, Repeat2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FormActions, FormField, FormSection } from '@/components/ui/form-layout'
 
 type CategoryOption = { id: string; nom: string; icone?: string | null; parent_id?: string | null; actif?: boolean }
 
-// --- DIALOG D'ÉDITION ---
 type EditProps = {
   editTarget: {
     id: string
@@ -37,12 +38,11 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], onClose, onS
   const [sousCategorieId, setSousCategorieId] = useState('')
 
   useEffect(() => {
-    if (editTarget) {
-      setNom(editTarget.nom)
-      setMontant(Number(editTarget.montant))
-      setCategorieId(editTarget.categorieId || '')
-      setSousCategorieId(editTarget.sousCategorieId || '')
-    }
+    if (!editTarget) return
+    setNom(editTarget.nom)
+    setMontant(Number(editTarget.montant))
+    setCategorieId(editTarget.categorieId || '')
+    setSousCategorieId(editTarget.sousCategorieId || '')
   }, [editTarget])
 
   const parents = useMemo(
@@ -59,49 +59,60 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], onClose, onS
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Modifier la charge fixe</DialogTitle>
+          <DialogDescription>Modifiez son libellé, son montant ou son classement.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-[1.4fr_1fr]">
-            <Input placeholder="Nom" value={nom} onChange={event => setNom(event.target.value)} />
-            <CalculatorInput value={montant} onChange={setMontant} placeholder="Montant prévu" />
-          </div>
+          <FormSection title="Charge fixe" icon={<ReceiptText className="h-4 w-4" />}>
+            <FormField label="Nom">
+              <Input placeholder="Nom" value={nom} onChange={event => setNom(event.target.value)} />
+            </FormField>
+            <FormField label="Montant prévu">
+              <CalculatorInput value={montant} onChange={setMontant} placeholder="0,00 €" />
+            </FormField>
+          </FormSection>
 
-          <div className="rounded-xl border border-slate-800/70 bg-slate-950/30 p-3 space-y-3">
-            <select
-              value={categorieId}
-              onChange={event => {
-                setCategorieId(event.target.value)
-                setSousCategorieId('')
-              }}
-              className="select select-bordered w-full"
-            >
-              <option value="">Sans catégorie</option>
-              {parents.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.icone ? `${category.icone} ` : ''}{category.nom}
-                </option>
-              ))}
-            </select>
-
-            {categorieId && (
+          <FormSection title="Classement" icon={<FolderTree className="h-4 w-4" />}>
+            <FormField label="Catégorie">
               <select
-                value={sousCategorieId}
-                onChange={event => setSousCategorieId(event.target.value)}
-                className="select select-bordered w-full"
+                value={categorieId}
+                onChange={event => {
+                  setCategorieId(event.target.value)
+                  setSousCategorieId('')
+                }}
+                className="select select-bordered w-full rounded-xl border-slate-700/80 bg-slate-950/70 text-slate-100"
               >
-                <option value="">Aucune sous-catégorie</option>
-                {subs.map(category => (
+                <option value="">Sans catégorie</option>
+                {parents.map(category => (
                   <option key={category.id} value={category.id}>
                     {category.icone ? `${category.icone} ` : ''}{category.nom}
                   </option>
                 ))}
               </select>
-            )}
-          </div>
+            </FormField>
 
+            {categorieId && (
+              <FormField label="Sous-catégorie" hint="Facultatif">
+                <select
+                  value={sousCategorieId}
+                  onChange={event => setSousCategorieId(event.target.value)}
+                  className="select select-bordered w-full rounded-xl border-slate-700/80 bg-slate-950/70 text-slate-100"
+                >
+                  <option value="">Aucune sous-catégorie</option>
+                  {subs.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.icone ? `${category.icone} ` : ''}{category.nom}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
+          </FormSection>
+        </div>
+
+        <FormActions>
+          <Button variant="ghost" onClick={onClose}>Annuler</Button>
           <Button
-            className="w-full"
             disabled={!nom.trim() || montant <= 0}
             onClick={() => onSave(
               editTarget!.id,
@@ -114,8 +125,7 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], onClose, onS
           >
             Enregistrer
           </Button>
-          <Button className="w-full" variant="ghost" onClick={onClose}>Annuler</Button>
-        </div>
+        </FormActions>
       </DialogContent>
     </Dialog>
   )
@@ -130,21 +140,24 @@ type DeleteProps = {
 export function ChargeFixeDeleteDialog({ target, onClose, onDelete }: DeleteProps) {
   return (
     <Dialog open={!!target} onOpenChange={value => { if (!value) onClose() }}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Supprimer &laquo; {target?.nom} &raquo; ?</DialogTitle>
+          <DialogTitle>Supprimer « {target?.nom} » ?</DialogTitle>
+          <DialogDescription>Choisissez si vous retirez seulement l’occurrence actuelle ou la charge récurrente.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <Button className="w-full" variant="outline" onClick={() => onDelete('mois')}>
-            Ce mois seulement
-          </Button>
+        <div className="grid gap-3">
+          <button type="button" onClick={() => onDelete('mois')} className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4 text-left hover:border-slate-700">
+            <span className="block text-sm font-semibold text-slate-100">Ce mois seulement</span>
+            <span className="mt-1 block text-xs text-slate-500">La charge reviendra selon sa récurrence.</span>
+          </button>
           {target?.recurrentId && (
-            <Button className="w-full bg-rose-600 text-white hover:bg-rose-700" onClick={() => onDelete('definitif')}>
-              Définitivement (ne plus reporter)
-            </Button>
+            <button type="button" onClick={() => onDelete('definitif')} className="rounded-2xl border border-rose-500/25 bg-rose-500/10 p-4 text-left hover:bg-rose-500/15">
+              <span className="block text-sm font-semibold text-rose-300">Arrêter définitivement</span>
+              <span className="mt-1 block text-xs text-slate-500">La charge ne sera plus reportée.</span>
+            </button>
           )}
-          <Button className="w-full" variant="ghost" onClick={onClose}>Annuler</Button>
         </div>
+        <FormActions><Button variant="ghost" onClick={onClose}>Annuler</Button></FormActions>
       </DialogContent>
     </Dialog>
   )
@@ -166,22 +179,22 @@ type ScopeProps = {
 export function ChargeFixeScopeDialog({ target, onClose, onSave }: ScopeProps) {
   return (
     <Dialog open={!!target} onOpenChange={value => { if (!value) onClose() }}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Modifier « {target?.nom} »</DialogTitle>
+          <DialogTitle>Appliquer la modification</DialogTitle>
+          <DialogDescription>« {target?.nom} » est une charge récurrente.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <p className="text-sm text-slate-500">
-            Tu peux appliquer la modification uniquement à ce mois, ou également au modèle récurrent pour les prochains mois.
-          </p>
-          <Button className="w-full" variant="outline" onClick={() => onSave('mois')}>
-            Ce mois seulement
-          </Button>
-          <Button className="w-full" onClick={() => onSave('tous')}>
-            Ce mois et les prochains
-          </Button>
-          <Button className="w-full" variant="ghost" onClick={onClose}>Annuler</Button>
+        <div className="grid gap-3">
+          <button type="button" onClick={() => onSave('mois')} className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4 text-left hover:border-slate-700">
+            <span className="block text-sm font-semibold text-slate-100">Ce mois seulement</span>
+            <span className="mt-1 block text-xs text-slate-500">Les prochains mois conserveront le modèle actuel.</span>
+          </button>
+          <button type="button" onClick={() => onSave('tous')} className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-4 text-left hover:bg-indigo-500/15">
+            <span className="flex items-center gap-2 text-sm font-semibold text-indigo-200"><Repeat2 className="h-4 w-4" /> Ce mois et les prochains</span>
+            <span className="mt-1 block text-xs text-slate-500">Le modèle récurrent sera mis à jour.</span>
+          </button>
         </div>
+        <FormActions><Button variant="ghost" onClick={onClose}>Annuler</Button></FormActions>
       </DialogContent>
     </Dialog>
   )
