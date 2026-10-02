@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
@@ -285,16 +284,15 @@ const updates = [
 export default function AidePage() {
   const { espace, updateEspace, isAdminViewing } = useApp()
   const feedback = useFeedback(espace?.id)
-  const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
   const [articleId, setArticleId] = useState<string | null>(null)
 
   useEffect(() => {
-    const requestedArticle = searchParams.get('article')
+    const requestedArticle = new URLSearchParams(window.location.search).get('article')
     if (requestedArticle && articles.some(article => article.id === requestedArticle)) {
       setArticleId(requestedArticle)
     }
-  }, [searchParams])
+  }, [])
   const [feedbackKind, setFeedbackKind] = useState<'bug' | 'suggestion' | null>(null)
   const [message, setMessage] = useState('')
   const [page, setPage] = useState('')
