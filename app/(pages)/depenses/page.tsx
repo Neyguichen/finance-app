@@ -132,6 +132,11 @@ export default function DepensesPage() {
   const budgetModalTransactions = budgetModalCategory
     ? effectiveFlat.filter((tx: any) => tx.categorie_id === budgetModalCategory.id)
     : []
+  const subBudgetTotal = budgetModalSubcats.reduce((sum: number, sub: any) => sum + (Number(budgetDraft[sub.id]) || 0), 0)
+  const isSubBudgetMode = subBudgetTotal > 0
+  const effectiveParentBudgetDraft = isSubBudgetMode
+    ? subBudgetTotal
+    : (Number(budgetDraft[budgetModalCategory?.id || '']) || 0)
 
   const recurrenceLabel = (charge: any) => {
     if (!charge.recurrent_id) return 'Ponctuelle'
@@ -164,22 +169,30 @@ export default function DepensesPage() {
   const openBudgetModal = (categoryId: string) => {
     const category = parentCategories.find((cat: any) => cat.id === categoryId)
     if (!category) return
-    const draft: Record<string, string> = { [category.id]: String(budget(category.id) || '') }
-    for (const sub of subCats(category.id)) draft[sub.id] = String(budget(sub.id) || '')
+    const children = subCats(category.id)
+    const childTotal = children.reduce((sum: number, sub: any) => sum + budget(sub.id), 0)
+    const draft: Record<string, string> = {
+      [category.id]: String(childTotal > 0 ? childTotal : (budget(category.id) || '')),
+    }
+    for (const sub of children) draft[sub.id] = String(budget(sub.id) || '')
     setBudgetDraft(draft)
     setBudgetModalId(categoryId)
   }
 
   const saveBudgetModal = async () => {
     if (!budgetModalCategory || !moisId || isAdminViewing) return
-    const ids = [budgetModalCategory.id, ...budgetModalSubcats.map((sub: any) => sub.id)]
-    for (const id of ids) {
+    for (const sub of budgetModalSubcats) {
       await upsertBudget.mutateAsync({
         mois_id: moisId,
-        categorie_id: id,
-        prevu: Number(budgetDraft[id]) || 0,
+        categorie_id: sub.id,
+        prevu: Number(budgetDraft[sub.id]) || 0,
       })
     }
+    await upsertBudget.mutateAsync({
+      mois_id: moisId,
+      categorie_id: budgetModalCategory.id,
+      prevu: effectiveParentBudgetDraft,
+    })
     setBudgetModalId(null)
   }
 
@@ -559,11 +572,22 @@ export default function DepensesPage() {
 
                 <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
                   <section className="rounded-xl border border-slate-800 bg-slate-950/30 p-3">
-                    <label className="text-xs text-slate-500">Budget prévu</label>
-                    <input type="number" step="0.01" value={budgetDraft[budgetModalCategory.id] ?? ''} onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalCategory.id]: event.target.value }))} className="input input-bordered input-sm mt-1 w-full" disabled={isAdminViewing} />
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-xs text-slate-500">{isSubBudgetMode ? 'Budget total calculé' : 'Budget prévu'}</label>
+                      {isSubBudgetMode && <span className="rounded-full bg-indigo-500/10 px-2 py-1 text-[10px] font-medium text-indigo-300">Somme des sous-budgets</span>}
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={isSubBudgetMode ? String(subBudgetTotal) : (budgetDraft[budgetModalCategory.id] ?? '')}
+                      onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalCategory.id]: event.target.value }))}
+                      className="input input-bordered input-sm mt-1 w-full disabled:cursor-not-allowed disabled:opacity-70"
+                      disabled={isAdminViewing || isSubBudgetMode}
+                    />
+                    {isSubBudgetMode && <p className="mt-1.5 text-[11px] leading-4 text-slate-600">Le budget principal est calculé automatiquement dès qu’un budget est défini sur une sous-catégorie. Remettez les sous-budgets à 0 pour revenir à un budget global.</p>}
                     <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                       <Metric label="Dépensé" value={formatEuro(spent(budgetModalCategory.id))} />
-                      <Metric label="Reste" value={formatEuro((Number(budgetDraft[budgetModalCategory.id]) || 0) - spent(budgetModalCategory.id))} />
+                      <Metric label="Reste" value={formatEuro(effectiveParentBudgetDraft - spent(budgetModalCategory.id))} />
                     </div>
                   </section>
 
