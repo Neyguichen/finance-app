@@ -25,7 +25,7 @@ export type ImportBatch = {
   espace_id: string
   format_id: string | null
   file_name: string | null
-  status: 'imported' | 'cancelled'
+  status: 'reviewing' | 'completed' | 'cancelled'
   row_count: number
   created_count: number
   matched_count: number
@@ -387,16 +387,16 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       if (fileFingerprint && !allowDuplicateFile) {
         const { data: previous, error: previousError } = await supabase
           .from('import_batches')
-          .select('id, file_name, created_at')
+          .select('id, file_name, created_at, status')
           .eq('espace_id', espaceId)
           .eq('file_fingerprint', fileFingerprint)
-          .eq('status', 'imported')
+          .in('status', ['reviewing', 'completed'])
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
         if (previousError) throw previousError
         if (previous) {
-          throw new Error('Ce fichier a déjà été importé dans ce Budget. Confirme explicitement si tu souhaites réellement le réimporter.')
+          throw new Error('Ce fichier a déjà été enregistré dans ce Budget. Confirme explicitement si tu souhaites réellement le réimporter.')
         }
       }
 
@@ -408,225 +408,238 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           file_name: fileName,
           file_fingerprint: fileFingerprint || null,
           row_count: rows.length,
+          status: 'reviewing',
+          created_count: 0,
+          matched_count: 0,
+          ignored_count: 0,
+          error_count: 0,
         })
         .select()
         .single()
       if (batchError) throw batchError
 
-      let createdCount = 0
-      let matchedCount = 0
-      let ignoredCount = 0
-      let errorCount = 0
+      const staged = rows.map(row => ({
+        batch_id: batch.id,
+        row_index: row.rowIndex,
+        nature: row.nature,
+        action: 'pending',
+        raw: row,
+      }))
 
-      for (const row of rows) {
-        try {
-          if (row.decision === 'match' && !row.match) {
-            throw new Error('Rapprochement impossible : aucune opération existante n’est associée à cette ligne.')
-          }
-
-          if (row.decision === 'ignore' || row.nature === 'ignore' || row.nature === 'savings_internal') {
-            ignoredCount += 1
-            const { error } = await supabase.from('import_batch_items').insert({
-              batch_id: batch.id,
-              row_index: row.rowIndex,
-              nature: row.nature,
-              action: 'ignored',
-              raw: row,
-            })
-            if (error) throw error
-            continue
-          }
-
-          if (row.decision === 'match' && row.status === 'duplicate' && row.match) {
-            matchedCount += 1
-            const targetTable =
-              row.match.kind === 'duplicate_income'
-                ? 'revenus'
-                : row.match.kind === 'duplicate_fixed'
-                  ? 'charges_fixes'
-                  : row.match.kind === 'duplicate_savings'
-                    ? 'mouvements_epargne'
-                    : 'transactions'
-            const { error } = await supabase.from('import_batch_items').insert({
-              batch_id: batch.id,
-              row_index: row.rowIndex,
-              nature: row.nature,
-              action: 'matched',
-              target_table: targetTable,
-              target_id: row.match.targetId,
-              raw: row,
-            })
-            if (error) throw error
-            continue
-          }
-
-          if (row.decision === 'match' && row.status === 'fixed_candidate' && row.match?.kind === 'fixed_candidate') {
-            const { data: updatedFixed, error: fixedError } = await supabase
-              .from('charges_fixes')
-              .update({
-                payee: true,
-                montant_reel: Math.abs(row.amount),
-                date_reelle: row.date,
-              })
-              .eq('id', row.match.targetId)
-              .select('id, payee, montant_reel, date_reelle')
-              .single()
-            if (fixedError) throw fixedError
-
-            const { error: itemError } = await supabase.from('import_batch_items').insert({
-              batch_id: batch.id,
-              row_index: row.rowIndex,
-              nature: 'expense',
-              action: 'matched',
-              target_table: 'charges_fixes',
-              target_id: row.match.targetId,
-              before_state: row.match.beforeState || null,
-              after_state: updatedFixed,
-              raw: row,
-            })
-            if (itemError) throw itemError
-            matchedCount += 1
-            continue
-          }
-
-          const month = await getOrCreateMonth(row.date)
-
-          if (row.nature === 'income') {
-            const { data: created, error } = await supabase
-              .from('revenus')
-              .insert({
-                mois_id: month.id,
-                recurrent_id: null,
-                type: row.incomeType || 'actif',
-                nom: row.note ? `${row.label} — ${row.note}` : row.label,
-                montant: Math.abs(row.amount),
-                recu: true,
-                date_prevue: row.operationDate || row.date,
-                date_reelle: row.date,
-                ordre: 0,
-              })
-              .select('id, mois_id, recurrent_id, type, nom, montant, recu, date_prevue, date_reelle, ordre')
-              .single()
-            if (error) throw error
-
-            const { error: itemError } = await supabase.from('import_batch_items').insert({
-              batch_id: batch.id,
-              row_index: row.rowIndex,
-              nature: 'income',
-              action: 'created',
-              target_table: 'revenus',
-              target_id: created.id,
-              after_state: created,
-              raw: row,
-            })
-            if (itemError) throw itemError
-            createdCount += 1
-            continue
-          }
-
-          if (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') {
-            if (!row.envelopeId) throw new Error('Enveloppe requise pour créer le mouvement d’épargne')
-            const isDeposit = row.nature === 'savings_deposit'
-            const { data: created, error } = await supabase
-              .from('mouvements_epargne')
-              .insert({
-                mois_id: month.id,
-                recurrent_id: null,
-                enveloppe_source_id: isDeposit ? null : row.envelopeId,
-                enveloppe_dest_id: isDeposit ? row.envelopeId : null,
-                montant: Math.abs(row.amount),
-                type: isDeposit ? 'epargne' : 'reprise',
-                date: row.date,
-                note: row.note ? `${row.label} — ${row.note}` : row.label,
-              })
-              .select('id, mois_id, recurrent_id, enveloppe_source_id, enveloppe_dest_id, montant, type, date, note')
-              .single()
-            if (error) throw error
-
-            const { error: itemError } = await supabase.from('import_batch_items').insert({
-              batch_id: batch.id,
-              row_index: row.rowIndex,
-              nature: row.nature,
-              action: 'created',
-              target_table: 'mouvements_epargne',
-              target_id: created.id,
-              after_state: created,
-              raw: row,
-            })
-            if (itemError) throw itemError
-            createdCount += 1
-            continue
-          }
-
-          if (!row.categoryId) throw new Error('Catégorie requise pour créer une dépense')
-
-          const { data: created, error } = await supabase
-            .from('transactions')
-            .insert({
-              mois_id: month.id,
-              categorie_id: row.categoryId,
-              sous_categorie_id: row.subcategoryId || null,
-              date: row.operationDate || row.date,
-              date_validation: row.date,
-              montant: Math.abs(row.amount),
-              infos: row.note ? `${row.label} — ${row.note}` : row.label,
-              is_split: false,
-            })
-            .select('id, mois_id, categorie_id, sous_categorie_id, date, date_validation, montant, infos, is_split, parent_transaction_id')
-            .single()
-          if (error) throw error
-
-          const { error: itemError } = await supabase.from('import_batch_items').insert({
-            batch_id: batch.id,
-            row_index: row.rowIndex,
-            nature: 'expense',
-            action: 'created',
-            target_table: 'transactions',
-            target_id: created.id,
-            after_state: created,
-            raw: row,
-          })
-          if (itemError) throw itemError
-          createdCount += 1
-        } catch (error: any) {
-          errorCount += 1
-          await supabase.from('import_batch_items').insert({
-            batch_id: batch.id,
-            row_index: row.rowIndex,
-            nature: row.nature as ImportNature,
-            action: 'error',
-            raw: { ...row, error: error?.message || 'Erreur inconnue' },
-          })
-        }
+      if (staged.length > 0) {
+        const { error: itemsError } = await supabase.from('import_batch_items').insert(staged)
+        if (itemsError) throw itemsError
       }
-
-      const { error: updateError } = await supabase
-        .from('import_batches')
-        .update({
-          created_count: createdCount,
-          matched_count: matchedCount,
-          ignored_count: ignoredCount,
-          error_count: errorCount,
-        })
-        .eq('id', batch.id)
-      if (updateError) throw updateError
 
       const { error: notificationError } = await supabase
         .from('notifications')
         .insert({
           espace_id: espaceId,
-          family: errorCount > 0 ? 'actions' : 'neyguichen',
-          title: errorCount > 0 ? 'Import CSV terminé avec anomalies' : 'Import CSV terminé',
-          message: `${createdCount} créée(s), ${matchedCount} rapprochée(s), ${ignoredCount} ignorée(s), ${errorCount} erreur(s).`,
-          action_label: 'Voir les imports',
-          action_href: '/import-csv',
-          dedupe_key: `csv-import:${batch.id}`,
+          family: 'actions',
+          title: 'Import bancaire à vérifier',
+          message: `${rows.length} opération(s) ont été enregistrée(s). Tu peux les classer maintenant ou reprendre plus tard.`,
+          action_label: 'Valider les opérations',
+          action_href: `/import-csv/validation?batch=${batch.id}`,
+          dedupe_key: `csv-review:${batch.id}`,
         })
       if (notificationError && notificationError.code !== '23505') {
         console.warn('Notification import CSV non créée:', notificationError)
       }
 
-      return { batchId: batch.id, createdCount, matchedCount, ignoredCount, errorCount }
+      return {
+        batchId: batch.id,
+        createdCount: 0,
+        matchedCount: 0,
+        ignoredCount: 0,
+        errorCount: 0,
+        pendingCount: rows.length,
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import_batches', espaceId] })
+      queryClient.invalidateQueries({ queryKey: ['notifications', espaceId] })
+    },
+  })
+
+  async function refreshBatchProgress(batchId: string) {
+    const { data: items, error } = await supabase
+      .from('import_batch_items')
+      .select('action')
+      .eq('batch_id', batchId)
+    if (error) throw error
+
+    const createdCount = (items || []).filter(item => item.action === 'created').length
+    const matchedCount = (items || []).filter(item => item.action === 'matched').length
+    const ignoredCount = (items || []).filter(item => item.action === 'ignored').length
+    const errorCount = (items || []).filter(item => item.action === 'error').length
+    const pendingCount = (items || []).filter(item => item.action === 'pending').length
+
+    const { error: updateError } = await supabase
+      .from('import_batches')
+      .update({
+        status: pendingCount === 0 ? 'completed' : 'reviewing',
+        created_count: createdCount,
+        matched_count: matchedCount,
+        ignored_count: ignoredCount,
+        error_count: errorCount,
+      })
+      .eq('id', batchId)
+    if (updateError) throw updateError
+
+    return { createdCount, matchedCount, ignoredCount, errorCount, pendingCount }
+  }
+
+  const updatePendingItem = useMutation({
+    mutationFn: async ({
+      itemId,
+      nature,
+      raw,
+    }: {
+      itemId: string
+      nature: ImportNature
+      raw: Record<string, any>
+    }) => {
+      const { data, error } = await supabase
+        .from('import_batch_items')
+        .update({ nature, raw })
+        .eq('id', itemId)
+        .eq('action', 'pending')
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+  })
+
+  const validatePendingItem = useMutation({
+    mutationFn: async (item: any) => {
+      if (!item || item.action !== 'pending') return null
+      const row = item.raw as ImportPreviewRow
+      const nature = item.nature as ImportNature
+
+      if (row.decision === 'ignore' || nature === 'ignore' || nature === 'savings_internal') {
+        const { error } = await supabase
+          .from('import_batch_items')
+          .update({ action: 'ignored', reviewed_at: new Date().toISOString() })
+          .eq('id', item.id)
+        if (error) throw error
+        await refreshBatchProgress(item.batch_id)
+        return { action: 'ignored' }
+      }
+
+      if (row.decision === 'match' && row.match) {
+        const targetTable =
+          row.match.kind === 'duplicate_income'
+            ? 'revenus'
+            : row.match.kind === 'duplicate_fixed' || row.match.kind === 'fixed_candidate'
+              ? 'charges_fixes'
+              : row.match.kind === 'duplicate_savings'
+                ? 'mouvements_epargne'
+                : 'transactions'
+
+        let afterState: Record<string, any> | null = null
+        let beforeState = row.match.beforeState || null
+
+        if (row.status === 'fixed_candidate' && row.match.kind === 'fixed_candidate') {
+          const { data: updatedFixed, error: fixedError } = await supabase
+            .from('charges_fixes')
+            .update({
+              payee: true,
+              montant_reel: Math.abs(row.amount),
+              date_reelle: row.date,
+            })
+            .eq('id', row.match.targetId)
+            .select('*')
+            .single()
+          if (fixedError) throw fixedError
+          afterState = updatedFixed
+        }
+
+        const { error } = await supabase
+          .from('import_batch_items')
+          .update({
+            action: 'matched',
+            target_table: targetTable,
+            target_id: row.match.targetId,
+            before_state: beforeState,
+            after_state: afterState,
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq('id', item.id)
+        if (error) throw error
+        await refreshBatchProgress(item.batch_id)
+        return { action: 'matched' }
+      }
+
+      const month = await getOrCreateMonth(row.date)
+      let targetTable = ''
+      let created: any = null
+
+      if (nature === 'income') {
+        const { data, error } = await supabase.from('revenus').insert({
+          mois_id: month.id,
+          recurrent_id: null,
+          type: row.incomeType || 'actif',
+          nom: row.note ? `${row.label} — ${row.note}` : row.label,
+          montant: Math.abs(row.amount),
+          recu: true,
+          date_prevue: row.operationDate || row.date,
+          date_reelle: row.date,
+          ordre: 0,
+        }).select('*').single()
+        if (error) throw error
+        targetTable = 'revenus'
+        created = data
+      } else if (nature === 'savings_deposit' || nature === 'savings_withdrawal') {
+        if (!row.envelopeId) throw new Error('Choisis une enveloppe avant de valider ce mouvement d’épargne.')
+        const isDeposit = nature === 'savings_deposit'
+        const { data, error } = await supabase.from('mouvements_epargne').insert({
+          mois_id: month.id,
+          recurrent_id: null,
+          enveloppe_source_id: isDeposit ? null : row.envelopeId,
+          enveloppe_dest_id: isDeposit ? row.envelopeId : null,
+          montant: Math.abs(row.amount),
+          type: isDeposit ? 'epargne' : 'reprise',
+          date: row.date,
+          note: row.note ? `${row.label} — ${row.note}` : row.label,
+        }).select('*').single()
+        if (error) throw error
+        targetTable = 'mouvements_epargne'
+        created = data
+      } else if (nature === 'expense') {
+        if (!row.categoryId) throw new Error('Choisis une catégorie avant de valider cette dépense.')
+        const { data, error } = await supabase.from('transactions').insert({
+          mois_id: month.id,
+          categorie_id: row.categoryId,
+          sous_categorie_id: row.subcategoryId || null,
+          date: row.operationDate || row.date,
+          date_validation: row.date,
+          montant: Math.abs(row.amount),
+          infos: row.note ? `${row.label} — ${row.note}` : row.label,
+          is_split: false,
+        }).select('*').single()
+        if (error) throw error
+        targetTable = 'transactions'
+        created = data
+      } else {
+        throw new Error('Nature non prise en charge.')
+      }
+
+      const { error: itemError } = await supabase
+        .from('import_batch_items')
+        .update({
+          nature,
+          action: 'created',
+          target_table: targetTable,
+          target_id: created.id,
+          after_state: created,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', item.id)
+      if (itemError) throw itemError
+
+      await refreshBatchProgress(item.batch_id)
+      return { action: 'created', targetTable, targetId: created.id }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import_batches', espaceId] })
@@ -637,14 +650,10 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       queryClient.invalidateQueries({ queryKey: ['transactions-flat'] })
       queryClient.invalidateQueries({ queryKey: ['mouvements'] })
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
-      queryClient.invalidateQueries({ queryKey: ['enveloppes_at_month'] })
-      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
-      queryClient.invalidateQueries({ queryKey: ['notifications', espaceId] })
     },
   })
-
 
   const loadBatchItems = useMutation({
     mutationFn: async (batchId: string) => {
@@ -970,6 +979,8 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
     analyze,
     importRows,
     loadBatchItems,
+    updatePendingItem,
+    validatePendingItem,
     updateImportedTarget,
     reclassifyImportedItem,
     undoBatch,
