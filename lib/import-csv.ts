@@ -41,6 +41,7 @@ export type MappedImportRow = {
   amount: number
   nature: ImportNature
   categoryId?: string | null
+  subcategoryId?: string | null
   envelopeId?: string | null
   categoryName?: string | null
   subcategoryName?: string | null
@@ -216,6 +217,7 @@ export function mapCsvRows(
       amount,
       nature,
       categoryId: null,
+      subcategoryId: null,
       envelopeId: null,
       categoryName,
       subcategoryName,
