@@ -28,7 +28,7 @@ export type ImportNature =
   | 'income'
   | 'savings_deposit'
   | 'savings_withdrawal'
-  | 'savings_internal'
+  | 'expense_reimbursement'
   | 'ignore'
 
 export type MappedImportRow = {
@@ -48,6 +48,8 @@ export type MappedImportRow = {
   note?: string | null
   incomeType?: 'actif' | 'passif' | null
   envelopeName?: string | null
+  reimbursementTransactionId?: string | null
+  reimbursementPendingItemId?: string | null
 }
 
 function splitCsvLine(line: string, delimiter: string) {
@@ -194,12 +196,12 @@ export function mapCsvRows(
     let nature: ImportNature = amount > 0 ? 'income' : 'expense'
     if (natureRaw) {
       const normalizedNature = natureRaw.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      if (normalizedNature.includes('epargne') || normalizedNature.includes('saving')) {
+      if (normalizedNature.includes('remboursement') || normalizedNature.includes('refund') || normalizedNature.includes('reimbursement')) {
+        nature = 'expense_reimbursement'
+      } else if (normalizedNature.includes('epargne') || normalizedNature.includes('saving')) {
         nature = normalizedNature.includes('reprise') || normalizedNature.includes('retrait') || normalizedNature.includes('withdraw')
           ? 'savings_withdrawal'
-          : normalizedNature.includes('transfert') || normalizedNature.includes('transfer')
-            ? 'savings_internal'
-            : 'savings_deposit'
+          : 'savings_deposit'
       } else if (normalizedNature.includes('revenu') || normalizedNature.includes('income') || normalizedNature.includes('credit')) {
         nature = 'income'
       } else if (normalizedNature.includes('depense') || normalizedNature.includes('expense') || normalizedNature.includes('debit')) {
@@ -224,6 +226,8 @@ export function mapCsvRows(
       note,
       incomeType,
       envelopeName,
+      reimbursementTransactionId: null,
+      reimbursementPendingItemId: null,
     })
   })
 
