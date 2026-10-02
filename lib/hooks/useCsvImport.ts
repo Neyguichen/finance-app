@@ -106,6 +106,33 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
     },
   })
 
+  const recurrenceCandidates = useQuery({
+    queryKey: ['import_recurrence_candidates', espaceId],
+    enabled: !!espaceId,
+    queryFn: async () => {
+      const [incomeResult, fixedResult] = await Promise.all([
+        supabase
+          .from('revenus_recurrents')
+          .select('*')
+          .eq('espace_id', espaceId!)
+          .eq('actif', true)
+          .order('ordre'),
+        supabase
+          .from('charges_fixes_recurrentes')
+          .select('*')
+          .eq('espace_id', espaceId!)
+          .eq('actif', true)
+          .order('ordre'),
+      ])
+      if (incomeResult.error) throw incomeResult.error
+      if (fixedResult.error) throw fixedResult.error
+      return {
+        income: incomeResult.data || [],
+        fixed: fixedResult.data || [],
+      }
+    },
+  })
+
   const reimbursementCandidates = useQuery({
     queryKey: ['import_reimbursement_candidates', espaceId],
     enabled: !!espaceId,
@@ -1144,6 +1171,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
   return {
     formats,
     history,
+    recurrenceCandidates,
     reimbursementCandidates,
     saveFormat,
     checkFingerprint,
