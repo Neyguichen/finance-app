@@ -405,6 +405,16 @@ export default function DepensesPage() {
               <ReceiptText className="mr-2 h-4 w-4" />Réelles
             </Button>
           </div>
+          {!isAdminViewing && moisId && (
+            <div className="ml-auto hidden items-center gap-2 md:flex">
+              <Button size="sm" variant="outline" onClick={() => setFixedOpen(true)}>
+                <CalendarClock className="mr-1.5 h-4 w-4" />Charge fixe
+              </Button>
+              <Button size="sm" onClick={() => setTxOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" />Dépense variable
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-3 xl:grid-cols-[1.65fr_.85fr]">
