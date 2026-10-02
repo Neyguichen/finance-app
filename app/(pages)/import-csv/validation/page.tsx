@@ -32,7 +32,9 @@ function labelSimilarity(left: string | null | undefined, right: string | null |
   const b = new Set(normalize(right).split(/\s+/).filter(token => token.length >= 3))
   if (a.size === 0 || b.size === 0) return 0
   let common = 0
-  for (const token of a) if (b.has(token)) common += 1
+  a.forEach(token => {
+    if (b.has(token)) common += 1
+  })
   return common / Math.max(a.size, b.size)
 }
 
