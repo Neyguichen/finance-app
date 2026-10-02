@@ -497,8 +497,8 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               .insert({
                 mois_id: month.id,
                 recurrent_id: null,
-                type: 'actif',
-                nom: row.label,
+                type: row.incomeType || 'actif',
+                nom: row.note ? `${row.label} — ${row.note}` : row.label,
                 montant: Math.abs(row.amount),
                 recu: true,
                 date_prevue: row.operationDate || row.date,
@@ -537,7 +537,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
                 montant: Math.abs(row.amount),
                 type: isDeposit ? 'epargne' : 'reprise',
                 date: row.date,
-                note: row.label,
+                note: row.note ? `${row.label} — ${row.note}` : row.label,
               })
               .select('id, mois_id, recurrent_id, enveloppe_source_id, enveloppe_dest_id, montant, type, date, note')
               .single()
@@ -565,11 +565,11 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             .insert({
               mois_id: month.id,
               categorie_id: row.categoryId,
-              sous_categorie_id: null,
+              sous_categorie_id: row.subcategoryId || null,
               date: row.operationDate || row.date,
               date_validation: row.date,
               montant: Math.abs(row.amount),
-              infos: row.label,
+              infos: row.note ? `${row.label} — ${row.note}` : row.label,
               is_split: false,
             })
             .select('id, mois_id, categorie_id, sous_categorie_id, date, date_validation, montant, infos, is_split, parent_transaction_id')
