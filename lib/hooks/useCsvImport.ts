@@ -49,7 +49,7 @@ export type ImportMatch = {
   beforeState?: Record<string, any>
 }
 
-export type ImportDecision = 'create' | 'match' | 'ignore'
+export type ImportDecision = 'create' | 'match' | 'ignore' | 'review'
 
 export type ImportPreviewRow = MappedImportRow & {
   status: 'new' | 'duplicate' | 'duplicate_in_file' | 'fixed_candidate'
@@ -204,7 +204,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             return {
               ...row,
               status: 'duplicate',
-              decision: 'match',
+              decision: 'review',
               match: {
                 kind: 'duplicate_income',
                 targetId: duplicate.id,
@@ -228,7 +228,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             return {
               ...row,
               status: 'duplicate',
-              decision: 'match',
+              decision: 'review',
               match: {
                 kind: 'duplicate_savings',
                 targetId: duplicateSavings.id,
@@ -335,7 +335,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
             ...row,
             status: 'duplicate_in_file' as const,
             match: null,
-            decision: 'ignore' as const,
+            decision: 'review' as const,
             duplicateOfRowIndex: firstRowIndex,
           }
         }
@@ -529,6 +529,10 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       if (!item || item.action !== 'pending') return null
       const row = item.raw as ImportPreviewRow
       const nature = item.nature as ImportNature
+
+      if (row.decision === 'review') {
+        throw new Error('Cette opération a un doublon ou un rapprochement potentiel : choisis explicitement Créer, Rapprocher ou Ignorer avant de la valider.')
+      }
 
       if (row.decision === 'ignore' || nature === 'ignore' || nature === 'savings_internal') {
         const { error } = await supabase
