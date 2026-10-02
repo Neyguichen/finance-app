@@ -63,6 +63,7 @@ export default function ImportCsvPage() {
     () => (importModel.history.data || []).filter(batch => batch.status === 'reviewing'),
     [importModel.history.data]
   )
+  const activeImport = reviewingBatches[0] || null
 
   const loadParsed = (text: string, delimiter?: string) => {
     const result = parseCsv(text, delimiter)
@@ -229,8 +230,9 @@ export default function ImportCsvPage() {
             <input
               type="file"
               accept=".csv,text/csv"
+              disabled={Boolean(activeImport)}
               onChange={event => handleFile(event.target.files?.[0])}
-              className="file-input file-input-bordered w-full bg-slate-950"
+              className="file-input file-input-bordered w-full bg-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
 
@@ -239,6 +241,7 @@ export default function ImportCsvPage() {
             <select
               className="select select-bordered w-full bg-slate-950"
               value={selectedFormatId}
+              disabled={Boolean(activeImport)}
               onChange={event => applySavedFormat(event.target.value)}
             >
               <option value="">Nouveau format</option>
@@ -248,6 +251,12 @@ export default function ImportCsvPage() {
             </select>
           </label>
         </div>
+
+        {activeImport && (
+          <div className="mt-3 rounded-lg border border-amber-800/60 bg-amber-950/20 p-3 text-xs text-amber-200">
+            Termine ou annule l’import <strong>{activeImport.file_name || 'en cours'}</strong> avant d’enregistrer un nouveau fichier.
+          </div>
+        )}
 
         {fileName && (
           <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
@@ -280,7 +289,7 @@ export default function ImportCsvPage() {
         )}
       </section>
 
-      {parsed.headers.length > 0 && (
+      {!activeImport && parsed.headers.length > 0 && (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -346,7 +355,7 @@ export default function ImportCsvPage() {
         </section>
       )}
 
-      {(preview.length > 0 || invalidRows.length > 0) && (
+      {!activeImport && (preview.length > 0 || invalidRows.length > 0) && (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
           <div>
             <h2 className="font-semibold">Prévisualisation du fichier</h2>
