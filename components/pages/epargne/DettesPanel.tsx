@@ -36,8 +36,12 @@ export default function DettesPanel() {
   const currentMonth = month.slice(0, 7)
 
   const getReste = (dette: Dette) => {
-    const total = rembData.filter(r => r.dette_id === dette.id).reduce((sum, r) => sum + Number(r.montant), 0)
-    return Math.max(0, Number(dette.montant) - total)
+    const repayments = rembData.filter(r => r.dette_id === dette.id)
+    const repaid = repayments.reduce(
+      (sum, r) => sum + Number(dette.mode === 'credit' ? (r.capital_rembourse || 0) : r.montant),
+      0,
+    )
+    return Math.max(0, Number(dette.montant) - repaid)
   }
 
   const active = dettes.filter(dette => !dette.archived && dette.type === tab)
@@ -48,6 +52,9 @@ export default function DettesPanel() {
     .reduce((sum, r) => sum + Number(r.montant), 0)
 
   const estimatedMonthly = active.reduce((sum, dette) => {
+    if (dette.mode === 'credit' && Number(dette.mensualite || 0) > 0) {
+      return sum + Number(dette.mensualite || 0) + Number(dette.assurance_mensuelle || 0)
+    }
     if (!dette.date_echeance) return sum
     const end = new Date(dette.date_echeance + 'T12:00:00')
     const now = new Date(month.slice(0,7) + '-01T12:00:00')
@@ -68,6 +75,12 @@ export default function DettesPanel() {
     personne: string
     montant: number
     date_echeance: string | null
+    mode?: 'simple' | 'credit'
+    taux_annuel?: number | null
+    mensualite?: number | null
+    assurance_mensuelle?: number | null
+    date_debut?: string | null
+    duree_mois?: number | null
   }) => {
     if (!espace || isAdminViewing) return
     const created = await create.mutateAsync({ espace_id: espace.id, type: tab, ...data })
@@ -137,7 +150,7 @@ export default function DettesPanel() {
                     {active.map(dette => {
                       const reste = getReste(dette)
                       const selectedRow = selected?.id === dette.id
-                      return <tr key={dette.id} onClick={() => setSelectedId(dette.id)} className={'cursor-pointer border-t border-slate-800/60 transition hover:bg-slate-800/30 ' + (selectedRow ? 'bg-indigo-500/[0.06]' : '')}><td className="px-3 py-2.5 font-medium text-slate-200">{dette.titre}</td><td className="px-3 py-2.5 text-slate-500">{dette.personne}</td><td className="px-3 py-2.5 text-right font-semibold text-slate-200">{formatEuro(reste)}</td><td className="px-3 py-2.5 text-right text-slate-500">{dette.date_echeance ? formatDate(dette.date_echeance) : '—'}</td><td className="px-3 py-2.5 text-right"><span className={'rounded-md px-2 py-1 text-[10px] ' + (reste <= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{reste <= 0 ? 'Soldé' : 'En cours'}</span></td></tr>
+                      return <tr key={dette.id} onClick={() => setSelectedId(dette.id)} className={'cursor-pointer border-t border-slate-800/60 transition hover:bg-slate-800/30 ' + (selectedRow ? 'bg-indigo-500/[0.06]' : '')}><td className="px-3 py-2.5 font-medium text-slate-200"><span>{dette.titre}</span>{dette.mode === 'credit' && <span className="ml-2 rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-medium text-indigo-300">Crédit</span>}</td><td className="px-3 py-2.5 text-slate-500">{dette.personne}</td><td className="px-3 py-2.5 text-right font-semibold text-slate-200">{formatEuro(reste)}</td><td className="px-3 py-2.5 text-right text-slate-500">{dette.date_echeance ? formatDate(dette.date_echeance) : '—'}</td><td className="px-3 py-2.5 text-right"><span className={'rounded-md px-2 py-1 text-[10px] ' + (reste <= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{reste <= 0 ? 'Soldé' : 'En cours'}</span></td></tr>
                     })}
                   </tbody>
                 </table>
