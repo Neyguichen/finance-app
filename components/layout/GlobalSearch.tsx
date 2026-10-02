@@ -10,6 +10,7 @@ import {
   PiggyBank,
   ReceiptText,
   Search,
+  SlidersHorizontal,
   Undo2,
   WalletCards,
   X,
@@ -28,6 +29,48 @@ const kindMeta = {
   envelope: { label: 'Enveloppe', icon: WalletCards, tone: 'text-amber-300 bg-amber-500/10' },
   saving: { label: 'Épargne', icon: PiggyBank, tone: 'text-violet-300 bg-violet-500/10' },
 } satisfies Record<GlobalSearchResult['kind'], { label: string; icon: typeof Search; tone: string }>
+
+
+type SearchFilter = 'all' | GlobalSearchResult['kind']
+
+const filterOptions: Array<{ value: SearchFilter; label: string }> = [
+  { value: 'all', label: 'Tout' },
+  { value: 'income', label: 'Revenus' },
+  { value: 'fixed', label: 'Charges fixes' },
+  { value: 'expense', label: 'Dépenses' },
+  { value: 'reimbursement', label: 'Remboursements' },
+  { value: 'debt', label: 'Dettes / créances' },
+  { value: 'envelope', label: 'Enveloppes' },
+  { value: 'saving', label: 'Épargne' },
+]
+
+function SearchFilters({
+  value,
+  onChange,
+}: {
+  value: SearchFilter
+  onChange: (value: SearchFilter) => void
+}) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto border-b border-slate-800/80 px-2 py-2 scrollbar-none">
+      {filterOptions.map(option => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={
+            'shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium transition ' +
+            (value === option.value
+              ? 'border-indigo-500 bg-indigo-500 text-white'
+              : 'border-slate-800 bg-slate-950/50 text-slate-500 hover:border-slate-700 hover:text-slate-300')
+          }
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 function SearchResults({
   results,
@@ -103,6 +146,7 @@ export default function GlobalSearch() {
   const [debounced, setDebounced] = useState('')
   const [open, setOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [filter, setFilter] = useState<SearchFilter>('all')
   const desktopRef = useRef<HTMLDivElement>(null)
   const search = useGlobalSearch(!isAdminViewing ? espace?.id : undefined, debounced)
 
@@ -135,13 +179,17 @@ export default function GlobalSearch() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  const results = useMemo(() => search.data || [], [search.data])
+  const results = useMemo(() => {
+    const all = search.data || []
+    return filter === 'all' ? all : all.filter(result => result.kind === filter)
+  }, [search.data, filter])
 
   const selectResult = (result: GlobalSearchResult) => {
     if (result.month) setMonth(result.month)
     setOpen(false)
     setMobileOpen(false)
     setQuery('')
+    setFilter('all')
     router.push(result.href)
   }
 
@@ -166,6 +214,11 @@ export default function GlobalSearch() {
 
         {open && (
           <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-2xl border border-slate-800 bg-[#0b1627] shadow-2xl shadow-black/40">
+            <div className="flex items-center gap-2 border-b border-slate-800/80 px-3 py-2 text-[10px] font-medium text-slate-500">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filtrer les résultats
+            </div>
+            <SearchFilters value={filter} onChange={setFilter} />
             <SearchResults results={results} loading={search.isFetching} query={query} onSelect={selectResult} />
           </div>
         )}
@@ -198,6 +251,7 @@ export default function GlobalSearch() {
             )}
             <button type="button" onClick={() => setMobileOpen(false)} className="text-xs font-medium text-indigo-300">Fermer</button>
           </div>
+          <SearchFilters value={filter} onChange={setFilter} />
           <SearchResults results={results} loading={search.isFetching} query={query} onSelect={selectResult} />
         </div>,
         document.body,
