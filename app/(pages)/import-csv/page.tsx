@@ -80,6 +80,12 @@ export default function ImportCsvPage() {
       amount: guessColumn(result.headers, ['montant', 'amount', 'somme']),
       debit: guessColumn(result.headers, ['debit']),
       credit: guessColumn(result.headers, ['credit']),
+      category: guessColumn(result.headers, ['categorie', 'category']),
+      subcategory: guessColumn(result.headers, ['sous categorie', 'sous-categorie', 'subcategory']),
+      nature: guessColumn(result.headers, ['nature', 'type operation', 'type']),
+      note: guessColumn(result.headers, ['note', 'commentaire', 'memo complementaire']),
+      incomeType: guessColumn(result.headers, ['type revenu', 'revenu actif', 'revenu passif']),
+      envelope: guessColumn(result.headers, ['enveloppe', 'epargne', 'savings envelope']),
     }
     setMapping(nextMapping)
     setPreview([])
@@ -127,11 +133,38 @@ export default function ImportCsvPage() {
   const buildPreview = async () => {
     const result = mapCsvRows(parsed.rows, mapping)
     setInvalidRows(result.invalid)
-    const analyzed = await importModel.analyze.mutateAsync(result.valid)
-    setPreview(analyzed.map(row => ({
-      ...row,
-      categoryId: row.nature === 'expense' && defaultCategory ? defaultCategory : row.categoryId,
-    })))
+
+    const normalize = (value: string | null | undefined) =>
+      (value || '').trim().toLocaleLowerCase('fr-FR').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+    const enriched = result.valid.map(row => {
+      const parent = row.categoryName
+        ? categories.find(category => !category.parent_id && normalize(category.nom) === normalize(row.categoryName))
+        : null
+      const subcategory = row.subcategoryName
+        ? categories.find(category =>
+            category.parent_id === (parent?.id || null) &&
+            normalize(category.nom) === normalize(row.subcategoryName)
+          )
+        : null
+      const envelope = row.envelopeName
+        ? envelopes.find(item => !item.archived && normalize(item.nom) === normalize(row.envelopeName))
+        : null
+
+      return {
+        ...row,
+        categoryId: row.nature === 'expense'
+          ? (parent?.id || (defaultCategory || row.categoryId))
+          : row.categoryId,
+        subcategoryId: row.nature === 'expense' ? (subcategory?.id || null) : null,
+        envelopeId: (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal')
+          ? (envelope?.id || row.envelopeId)
+          : row.envelopeId,
+      }
+    })
+
+    const analyzed = await importModel.analyze.mutateAsync(enriched)
+    setPreview(analyzed)
     setLastResult(null)
   }
 
@@ -298,6 +331,12 @@ export default function ImportCsvPage() {
             <ColumnSelect label="Montant (+ / −)" headers={parsed.headers} value={mapping.amount || ''} onChange={value => setMapping(current => ({ ...current, amount: value, debit: value ? '' : current.debit, credit: value ? '' : current.credit }))} />
             <ColumnSelect label="Débit" headers={parsed.headers} value={mapping.debit || ''} onChange={value => setMapping(current => ({ ...current, debit: value, amount: value ? '' : current.amount }))} />
             <ColumnSelect label="Crédit" headers={parsed.headers} value={mapping.credit || ''} onChange={value => setMapping(current => ({ ...current, credit: value, amount: value ? '' : current.amount }))} />
+            <ColumnSelect label="Catégorie" headers={parsed.headers} value={mapping.category || ''} onChange={value => setMapping(current => ({ ...current, category: value }))} />
+            <ColumnSelect label="Sous-catégorie" headers={parsed.headers} value={mapping.subcategory || ''} onChange={value => setMapping(current => ({ ...current, subcategory: value }))} />
+            <ColumnSelect label="Nature" headers={parsed.headers} value={mapping.nature || ''} onChange={value => setMapping(current => ({ ...current, nature: value }))} />
+            <ColumnSelect label="Note / information complémentaire" headers={parsed.headers} value={mapping.note || ''} onChange={value => setMapping(current => ({ ...current, note: value }))} />
+            <ColumnSelect label="Type de revenu" headers={parsed.headers} value={mapping.incomeType || ''} onChange={value => setMapping(current => ({ ...current, incomeType: value }))} />
+            <ColumnSelect label="Enveloppe d’épargne" headers={parsed.headers} value={mapping.envelope || ''} onChange={value => setMapping(current => ({ ...current, envelope: value }))} />
           </div>
 
           <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/35 p-3 text-[11px] leading-5 text-slate-500">
