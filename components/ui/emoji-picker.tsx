@@ -65,7 +65,7 @@ const EMOJI_OPTIONS = [
   '🌟', '✨', '💎', '🌈', '🎯', '⭐', '🔵', '🟢', '🟡', '🟠',
 ]
 
-const UNIQUE_EMOJI_OPTIONS = [...new Set(EMOJI_OPTIONS)]
+const UNIQUE_EMOJI_OPTIONS = Array.from(new Set(EMOJI_OPTIONS))
 
 interface EmojiPickerProps {
   value: string
