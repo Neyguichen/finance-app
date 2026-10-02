@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -177,21 +178,27 @@ const articles: Article[] = [
   {
     id: 'import',
     title: 'Import bancaire',
-    description: 'Importer, enrichir, rapprocher et vérifier tes relevés CSV.',
+    description: 'Importer un relevé CSV puis valider les opérations progressivement.',
     category: 'feature',
     icon: Import,
     duration: '8 min',
-    keywords: ['csv', 'import', 'banque', 'rapprochement', 'date validation', 'date opération', 'débit', 'crédit', 'catégorie', 'sous-catégorie', 'épargne', 'lot'],
+    keywords: ['csv', 'import', 'banque', 'rapprochement', 'date validation', 'date opération', 'débit', 'crédit', 'catégorie', 'sous-catégorie', 'épargne', 'validation'],
     sections: [
-      { title: '1. Choisir le fichier', body: 'Exporte tes opérations depuis ta banque au format CSV puis charge le fichier dans Neyguichen. Un fichier exemple complet est disponible directement sur la page d’import. Il illustre les deux dates, les montants, les catégories, la nature, les notes, le type de revenu et l’enveloppe d’épargne.' },
-      { title: '2. Associer les dates', body: 'La date bancaire / de validation est la date de référence du relevé. Si ton fichier ne fournit qu’une seule date, associe-la à « Date bancaire / validation » : Neyguichen l’utilisera aussi comme date d’opération. Si le fichier fournit deux dates, associe séparément « Date d’opération » et « Date bancaire / validation ».' },
-      { title: '3. Associer les montants', body: 'Si ton fichier contient une seule colonne avec les dépenses en négatif et les entrées en positif, utilise « Montant (+ / −) ». Si la banque fournit deux colonnes séparées, laisse ce champ vide et associe « Débit » et « Crédit ».' },
-      { title: '4. Associer les informations complémentaires', body: 'Tu peux aussi associer, lorsqu’elles existent dans le fichier, les colonnes Catégorie, Sous-catégorie, Nature, Note / information complémentaire, Type de revenu et Enveloppe d’épargne. Ces champs restent facultatifs : ils servent surtout à préremplir et accélérer la revue.' },
-      { title: '5. Reconnaissance des catégories et enveloppes', body: 'Quand une catégorie, une sous-catégorie ou une enveloppe porte exactement le même nom que dans Neyguichen, elle peut être préaffectée automatiquement. Sinon, la ligne reste à compléter pendant la prévisualisation ou dans la revue après import.' },
-      { title: '6. Prévisualiser avant import', body: 'La prévisualisation permet de contrôler la nature de chaque ligne, les affectations, les doublons et les propositions de rapprochement. Une correspondance proposée n’est jamais appliquée silencieusement : tu gardes la main sur la décision finale.' },
-      { title: '7. Vérifier les opérations importées', body: 'Après l’import, ouvre « Historique des imports » puis « Vérifier les opérations ». Tu retrouves toutes les lignes du lot sans parcourir les mois une par une. Tu peux modifier les dates, le libellé, le montant, la catégorie, la sous-catégorie, le type de revenu ou l’enveloppe.' },
-      { title: '8. Modifier en lot et reclasser', body: 'La vue de revue permet de sélectionner plusieurs opérations ou tout le lot pour appliquer une catégorie, une sous-catégorie, une enveloppe ou une nature commune. Une reclassification Dépense ↔ Revenu ↔ Épargne modifie réellement la nature comptable de l’opération afin de conserver des analyses cohérentes.' },
-      { title: '9. Mémoriser le format', body: 'Une fois les colonnes correctement associées, donne un nom au format. Neyguichen mémorise cette correspondance pour les prochains exports de la même banque.' },
+      { title: 'Principe', body: 'Neyguichen sépare l’import du classement. Le fichier est d’abord analysé puis enregistré dans une file « Transactions importées à valider ». Les lignes de cette file n’impactent pas encore les revenus, dépenses, épargne ou statistiques tant qu’elles ne sont pas validées.' },
+      { title: 'Un seul import à la fois', body: 'Un Budget ne peut avoir qu’un seul import en cours. Tant qu’il reste des transactions à valider, un nouveau fichier ne peut pas être importé. Termine ou annule le lot en cours avant d’en charger un autre.' },
+      { title: 'Colonnes obligatoires', body: 'Date bancaire / validation : date à laquelle l’opération apparaît comme validée par la banque. Libellé : texte décrivant l’opération. Montant : soit une colonne « Montant (+ / −) » avec dépenses négatives et entrées positives, soit deux colonnes séparées Débit et Crédit.' },
+      { title: 'Date d’opération — facultative', body: 'Valeur attendue : une date lisible, par exemple 02/10/2026 ou 2026-10-02. Si elle n’existe pas, Neyguichen reprend automatiquement la Date bancaire / validation comme date d’opération.' },
+      { title: 'Catégorie — facultative', body: 'Valeur attendue : le nom exact d’une catégorie existante du Budget, par exemple « Alimentation ». Si le nom correspond, la catégorie est préaffectée ; sinon elle pourra être choisie dans l’écran de validation.' },
+      { title: 'Sous-catégorie — facultative', body: 'Valeur attendue : le nom exact d’une sous-catégorie appartenant à la catégorie indiquée, par exemple « Courses ». Elle reste modifiable avant validation.' },
+      { title: 'Nature — facultative', body: 'Valeurs reconnues : Dépense, Revenu, Versement épargne, Reprise épargne, Transfert interne ou Ignorer. Si la nature est absente, Neyguichen propose par défaut Revenu pour un montant positif et Dépense pour un montant négatif.' },
+      { title: 'Note — facultative', body: 'Valeur attendue : texte libre. Elle complète le libellé et pourra être corrigée dans la file de validation.' },
+      { title: 'Type de revenu — facultatif', body: 'Valeurs reconnues : Actif ou Passif. Ce champ n’est utilisé que lorsque la ligne est classée en Revenu.' },
+      { title: 'Enveloppe d’épargne — facultative', body: 'Valeur attendue : le nom exact d’une enveloppe existante. Ce champ est utilisé pour les versements et reprises d’épargne.' },
+      { title: 'Prévisualisation', body: 'La prévisualisation vérifie surtout que les dates, libellés et montants sont lisibles. Il n’est pas nécessaire de classer toutes les lignes à ce stade. Les doublons potentiels avec les opérations déjà validées et les doublons internes au fichier sont signalés.' },
+      { title: 'Transactions importées à valider', body: 'Après enregistrement, toutes les lignes sont conservées dans un écran dédié. Tu peux modifier date d’opération, date de validation, libellé, montant, nature, catégorie, sous-catégorie, note, type de revenu ou enveloppe. Chaque modification est sauvegardée pour pouvoir reprendre plus tard.' },
+      { title: 'Détection des doublons pendant la validation', body: 'La file est de nouveau analysée avant validation : Neyguichen signale les correspondances avec les opérations déjà validées et les doublons potentiels entre les transactions encore à valider du lot courant.' },
+      { title: 'Validation individuelle, en lot ou globale', body: 'Tu peux valider une ligne, sélectionner plusieurs lignes pour leur appliquer une affectation commune, ou valider toutes les opérations suffisamment renseignées. Les lignes incomplètes restent dans la file pour être traitées plus tard.' },
+      { title: 'Format mémorisé', body: 'Les associations de colonnes peuvent être enregistrées sous un nom afin de retrouver automatiquement le même mapping lors du prochain export de cette banque.' },
     ],
   },
   {
@@ -278,8 +285,16 @@ const updates = [
 export default function AidePage() {
   const { espace, updateEspace, isAdminViewing } = useApp()
   const feedback = useFeedback(espace?.id)
+  const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
   const [articleId, setArticleId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const requestedArticle = searchParams.get('article')
+    if (requestedArticle && articles.some(article => article.id === requestedArticle)) {
+      setArticleId(requestedArticle)
+    }
+  }, [searchParams])
   const [feedbackKind, setFeedbackKind] = useState<'bug' | 'suggestion' | null>(null)
   const [message, setMessage] = useState('')
   const [page, setPage] = useState('')
