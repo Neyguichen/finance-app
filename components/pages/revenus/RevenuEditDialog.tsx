@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { CalendarDays, Coins, Repeat2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FormActions, FormField, FormSection, SegmentedControl } from '@/components/ui/form-layout'
 
 type EditTarget = {
   id: string
@@ -40,10 +42,10 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
   }, [editTarget])
 
   const handleSaveClick = () => {
-    if (!editTarget) return
+    if (!editTarget || !editNom.trim() || editMontant <= 0) return
     const data = {
       id: editTarget.id,
-      nom: editNom,
+      nom: editNom.trim(),
       montant: editMontant,
       type: editType,
       recurrentId: editTarget.recurrentId,
@@ -70,37 +72,64 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
   return (
     <>
       <Dialog open={!!editTarget && !scopeOpen} onOpenChange={open => { if (!open) onClose() }}>
-        <DialogContent className="border-slate-700 bg-slate-900">
-          <DialogHeader><DialogTitle>Modifier le revenu</DialogTitle></DialogHeader>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier le revenu</DialogTitle>
+            <DialogDescription>Ajustez les informations de cette entrée sans modifier son historique.</DialogDescription>
+          </DialogHeader>
+
           <div className="space-y-4">
-            <Input placeholder="Nom" value={editNom} onChange={event => setEditNom(event.target.value)} />
-            <CalculatorInput value={editMontant} onChange={setEditMontant} placeholder="Montant" />
-            <div>
-              <label className="mb-1 block text-sm text-slate-400">Date prévue <span className="text-xs">(facultative)</span></label>
-              <Input type="date" value={editDatePrevue} onChange={event => setEditDatePrevue(event.target.value)} />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm text-slate-400">Type</label>
-              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
-                <button type="button" onClick={() => setEditType('actif')} className={'rounded-lg px-3 py-2 text-sm font-medium transition ' + (editType === 'actif' ? 'bg-emerald-500/15 text-emerald-300' : 'text-slate-500 hover:text-slate-300')}>Actif</button>
-                <button type="button" onClick={() => setEditType('passif')} className={'rounded-lg px-3 py-2 text-sm font-medium transition ' + (editType === 'passif' ? 'bg-indigo-500/15 text-indigo-300' : 'text-slate-500 hover:text-slate-300')}>Passif</button>
-              </div>
-            </div>
-            <Button className="w-full" onClick={handleSaveClick}>Enregistrer</Button>
-            <Button className="w-full" variant="ghost" onClick={onClose}>Annuler</Button>
+            <FormSection title="Revenu" icon={<Coins className="h-4 w-4" />}>
+              <FormField label="Nom">
+                <Input placeholder="Nom du revenu" value={editNom} onChange={event => setEditNom(event.target.value)} />
+              </FormField>
+              <FormField label="Montant">
+                <CalculatorInput value={editMontant} onChange={setEditMontant} placeholder="0,00 €" />
+              </FormField>
+            </FormSection>
+
+            <FormSection title="Type" description="Cette information reste secondaire dans l’affichage." icon={<Repeat2 className="h-4 w-4" />}>
+              <SegmentedControl
+                value={editType}
+                onChange={setEditType}
+                options={[
+                  { value: 'actif', label: 'Actif', description: 'Lié à une activité ou un travail' },
+                  { value: 'passif', label: 'Passif', description: 'Revenu reçu sans activité directe' },
+                ]}
+              />
+            </FormSection>
+
+            <FormSection title="Date prévue" icon={<CalendarDays className="h-4 w-4" />}>
+              <FormField label="Date de réception" hint="Facultatif">
+                <Input type="date" value={editDatePrevue} onChange={event => setEditDatePrevue(event.target.value)} />
+              </FormField>
+            </FormSection>
           </div>
+
+          <FormActions>
+            <Button variant="ghost" onClick={onClose}>Annuler</Button>
+            <Button disabled={!editNom.trim() || editMontant <= 0} onClick={handleSaveClick}>Enregistrer</Button>
+          </FormActions>
         </DialogContent>
       </Dialog>
 
       <Dialog open={scopeOpen} onOpenChange={open => { if (!open) { setScopeOpen(false); onClose() } }}>
-        <DialogContent className="border-slate-700 bg-slate-900">
-          <DialogHeader><DialogTitle>Appliquer la modification à…</DialogTitle></DialogHeader>
-          <p className="text-sm text-slate-400">Choisissez si cette modification concerne uniquement l’occurrence sélectionnée ou également toutes celles qui suivent.</p>
-          <div className="space-y-3">
-            <Button className="w-full" variant="outline" onClick={() => handleScopeChoice('mois')}>Cette occurrence uniquement</Button>
-            <Button className="w-full bg-blue-600 text-white hover:bg-blue-700" onClick={() => handleScopeChoice('future')}>Cette occurrence et les suivantes</Button>
-            <Button className="w-full" variant="ghost" onClick={() => { setScopeOpen(false); onClose() }}>Annuler</Button>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Appliquer la modification</DialogTitle>
+            <DialogDescription>Ce revenu est récurrent. Choisissez la portée de la modification.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <button type="button" onClick={() => handleScopeChoice('mois')} className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4 text-left transition hover:border-slate-700 hover:bg-slate-950/55">
+              <span className="block text-sm font-semibold text-slate-100">Cette occurrence uniquement</span>
+              <span className="mt-1 block text-xs leading-5 text-slate-500">Les prochaines occurrences conserveront leurs valeurs actuelles.</span>
+            </button>
+            <button type="button" onClick={() => handleScopeChoice('future')} className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-4 text-left transition hover:bg-indigo-500/15">
+              <span className="block text-sm font-semibold text-indigo-200">Cette occurrence et les suivantes</span>
+              <span className="mt-1 block text-xs leading-5 text-slate-500">La récurrence sera mise à jour à partir de cette occurrence.</span>
+            </button>
           </div>
+          <FormActions><Button variant="ghost" onClick={() => { setScopeOpen(false); onClose() }}>Annuler</Button></FormActions>
         </DialogContent>
       </Dialog>
     </>
