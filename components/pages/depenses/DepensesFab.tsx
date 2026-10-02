@@ -33,7 +33,7 @@ export default function DepensesFab({
           onClick={() => setOpen(false)}
         />
       )}
-      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex flex-col items-end gap-2 px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 md:hidden flex flex-col items-end gap-2 px-4">
         {open && (
           <>
             <button
