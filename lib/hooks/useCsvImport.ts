@@ -52,10 +52,12 @@ export type ImportMatch = {
 export type ImportDecision = 'create' | 'match' | 'ignore' | 'review'
 
 export type ImportPreviewRow = MappedImportRow & {
-  status: 'new' | 'duplicate' | 'duplicate_in_file' | 'fixed_candidate'
+  status: 'new' | 'duplicate' | 'duplicate_pending' | 'duplicate_in_file' | 'fixed_candidate'
   match: ImportMatch | null
   decision: ImportDecision
   duplicateOfRowIndex?: number | null
+  duplicatePendingItemId?: string | null
+  duplicatePendingFileName?: string | null
 }
 
 function snapshotValue(value: any) {
@@ -177,6 +179,25 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       if (transactionResult.error) throw transactionResult.error
       if (savingsResult.error) throw savingsResult.error
 
+      const { data: reviewingBatches, error: reviewingError } = await supabase
+        .from('import_batches')
+        .select('id, file_name')
+        .eq('espace_id', espaceId)
+        .eq('status', 'reviewing')
+      if (reviewingError) throw reviewingError
+
+      const reviewingIds = (reviewingBatches || []).map(batch => batch.id)
+      const { data: pendingItems, error: pendingError } = reviewingIds.length > 0
+        ? await supabase
+            .from('import_batch_items')
+            .select('id, batch_id, raw')
+            .in('batch_id', reviewingIds)
+            .eq('action', 'pending')
+        : { data: [], error: null }
+      if (pendingError) throw pendingError
+
+      const batchNameById = new Map((reviewingBatches || []).map(batch => [batch.id, batch.file_name]))
+
       const monthById = new Map((months || []).map(month => [month.id, String(month.mois).slice(0, 10)]))
 
       const analyzed = rows.map<ImportPreviewRow>(row => {
@@ -186,6 +207,23 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
 
         const monthStart = monthStartFromDate(row.date)
         const amount = Math.abs(cents(row.amount))
+
+        const pendingDuplicate = (pendingItems || []).find((item: any) => {
+          const pending = item.raw || {}
+          return pending.date === row.date &&
+            sameAmount(pending.amount, row.amount) &&
+            labelsClose(pending.label || '', row.label)
+        })
+        if (pendingDuplicate) {
+          return {
+            ...row,
+            status: 'duplicate_pending' as const,
+            decision: 'review' as const,
+            match: null,
+            duplicatePendingItemId: pendingDuplicate.id,
+            duplicatePendingFileName: batchNameById.get(pendingDuplicate.batch_id) || null,
+          }
+        }
 
         if (row.nature === 'income') {
           const duplicate = (incomeResult.data || []).find((income: any) =>
@@ -250,7 +288,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           return {
             ...row,
             status: 'duplicate',
-            decision: 'match',
+            decision: 'review',
             match: {
               kind: 'duplicate_expense',
               targetId: duplicateTransaction.id,
@@ -276,7 +314,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           return {
             ...row,
             status: 'duplicate',
-            decision: 'match',
+            decision: 'review',
             match: {
               kind: 'duplicate_fixed',
               targetId: paidFixed.id,
@@ -296,7 +334,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
           return {
             ...row,
             status: 'fixed_candidate',
-            decision: 'match',
+            decision: 'review',
             match: {
               kind: 'fixed_candidate',
               targetId: fixedCandidate.id,
@@ -383,19 +421,6 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       allowDuplicateFile?: boolean
     }) => {
       if (!espaceId || !userId) throw new Error('Budget ou utilisateur manquant')
-
-      const { data: activeBatch, error: activeBatchError } = await supabase
-        .from('import_batches')
-        .select('id, file_name, created_at')
-        .eq('espace_id', espaceId)
-        .eq('status', 'reviewing')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (activeBatchError) throw activeBatchError
-      if (activeBatch) {
-        throw new Error('Un import est déjà en cours de validation. Termine ou annule cet import avant d’en enregistrer un nouveau.')
-      }
 
       if (fileFingerprint && !allowDuplicateFile) {
         const { data: previous, error: previousError } = await supabase
@@ -669,6 +694,37 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+    },
+  })
+
+  const loadPendingItems = useMutation({
+    mutationFn: async () => {
+      if (!espaceId) return []
+
+      const { data: batches, error: batchesError } = await supabase
+        .from('import_batches')
+        .select('id, file_name, created_at, status')
+        .eq('espace_id', espaceId)
+        .eq('status', 'reviewing')
+        .order('created_at', { ascending: true })
+      if (batchesError) throw batchesError
+
+      const ids = (batches || []).map(batch => batch.id)
+      if (ids.length === 0) return []
+
+      const { data: items, error } = await supabase
+        .from('import_batch_items')
+        .select('*')
+        .in('batch_id', ids)
+        .eq('action', 'pending')
+        .order('created_at', { ascending: true })
+      if (error) throw error
+
+      const batchById = new Map((batches || []).map(batch => [batch.id, batch]))
+      return (items || []).map(item => ({
+        ...item,
+        batch: batchById.get(item.batch_id) || null,
+      }))
     },
   })
 
@@ -995,6 +1051,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
     checkFingerprint,
     analyze,
     importRows,
+    loadPendingItems,
     loadBatchItems,
     updatePendingItem,
     validatePendingItem,
