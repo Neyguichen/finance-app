@@ -145,6 +145,7 @@ export function useDettes(espaceId: string | undefined) {
         .update(updates)
         .eq('id', id)
       if (error) throw error
+      await recalculateCreditRepayments(id)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
