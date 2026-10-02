@@ -12,7 +12,6 @@ import {
   Check,
   ChartPie,
   ChevronDown,
-  Pencil,
   Plus,
   ReceiptText,
   Trash2,
@@ -228,9 +227,11 @@ export default function DepensesPage() {
         paymentDate: tx.date,
         validationDate: tx.date_validation || null,
         status: validated ? 'validated' as const : 'planned' as const,
-        title: tx.categorie?.nom || 'Sans catégorie',
-        subcategory: tx.sous_categorie?.nom || null,
-        icon: tx.categorie?.icone || '📦',
+        title: tx.is_split && tx.children?.length ? 'Dépense répartie' : (tx.categorie?.nom || 'Sans catégorie'),
+        subcategory: tx.is_split && tx.children?.length
+          ? tx.children.map((child: any) => child.categorie?.nom || 'Sans catégorie').filter((name: string, index: number, all: string[]) => all.indexOf(name) === index).join(' · ')
+          : (tx.sous_categorie?.nom || null),
+        icon: tx.is_split && tx.children?.length ? '✂️' : (tx.categorie?.icone || '📦'),
         amount: net(tx),
         grossAmount: Number(tx.montant),
         refund: reimbursement,
@@ -365,6 +366,29 @@ export default function DepensesPage() {
     categorieId: charge.categorie_id ?? null,
     sousCategorieId: charge.sous_categorie_id ?? null,
   })
+
+  useEffect(() => {
+    if (isAdminViewing) return
+    const params = new URLSearchParams(window.location.search)
+    const focusTxId = params.get('focus')
+    const reimbursementTxId = params.get('reimbursement')
+    const focusFixedId = params.get('focusFixed')
+
+    if (focusTxId || reimbursementTxId || focusFixedId) setView('actual')
+
+    if (focusTxId) {
+      const transaction = effectiveTransactions.find((item: any) => item.id === focusTxId || item.children?.some((child: any) => child.id === focusTxId))
+      if (transaction) setEditTx(transaction)
+    }
+    if (reimbursementTxId) {
+      const transaction = effectiveTransactions.find((item: any) => item.id === reimbursementTxId)
+      if (transaction) setRembTx(transaction)
+    }
+    if (focusFixedId) {
+      const charge = effectiveCharges.find((item: any) => item.id === focusFixedId)
+      if (charge) editFixedTarget(charge)
+    }
+  }, [isAdminViewing, effectiveTransactions, effectiveCharges])
 
   return (
     <div>
@@ -533,25 +557,60 @@ export default function DepensesPage() {
                     <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</h2>
                     <div className="divide-y divide-slate-800/70 rounded-xl border border-slate-800/70 bg-slate-900">
                       {entries.map((entry: any) => (
-                        <div key={entry.id} className="flex items-center gap-3 px-3 py-3">
+                        <div
+                          key={entry.id}
+                          role={!isAdminViewing ? 'button' : undefined}
+                          tabIndex={!isAdminViewing ? 0 : undefined}
+                          onClick={() => {
+                            if (isAdminViewing) return
+                            if (entry.source === 'fixed') editFixedTarget(entry.sourceData)
+                            else setEditTx(entry.sourceData)
+                          }}
+                          onKeyDown={event => {
+                            if (isAdminViewing || (event.key !== 'Enter' && event.key !== ' ')) return
+                            if (entry.source === 'fixed') editFixedTarget(entry.sourceData)
+                            else setEditTx(entry.sourceData)
+                          }}
+                          className="flex cursor-pointer items-center gap-3 px-3 py-3 transition hover:bg-slate-800/30"
+                        >
                           {!isAdminViewing && (
-                            <Checkbox checked={entry.status === 'validated'} onCheckedChange={checked => toggleActualEntry(entry, checked)} />
+                            <span onClick={event => event.stopPropagation()}>
+                              <Checkbox checked={entry.status === 'validated'} onCheckedChange={checked => toggleActualEntry(entry, checked)} />
+                            </span>
                           )}
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p>
                               <StatusBadge status={entry.status} />
-                              {entry.refund > 0 && <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-medium text-cyan-300">↻ Remboursement {formatEuro(entry.refund)}</span>}
+                              {entry.sourceData?.is_split && entry.sourceData?.children?.length > 0 && (
+                                <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[9px] font-medium text-indigo-300">{entry.sourceData.children.length} répartitions</span>
+                              )}
                             </div>
                             <p className="truncate text-[11px] text-slate-500">{entry.subcategory ? entry.subcategory + ' · ' : ''}{entry.info}</p>
+                            {entry.refund > 0 && (
+                              <p className="mt-1 text-[10px] text-slate-500">
+                                {formatEuro(entry.grossAmount)} dépensés · <span className="text-emerald-400">{formatEuro(entry.refund)} remboursés</span> · coût net {formatEuro(entry.amount)}
+                              </p>
+                            )}
                           </div>
                           <div className="text-right">
                             <strong className={entry.source === 'fixed' ? 'text-purple-300' : 'text-rose-300'}>{formatEuro(entry.amount)}</strong>
-                            {entry.refund > 0 && <p className="text-[10px] text-slate-500 line-through">{formatEuro(entry.grossAmount)}</p>}
                             <p className="text-[10px] text-slate-600">{formatDate(actualSort === 'validation' ? (entry.validationDate || entry.paymentDate) : entry.paymentDate)}</p>
                           </div>
-                          {!isAdminViewing && <div className="flex shrink-0 items-center gap-1"><button className="p-1 text-slate-600 hover:text-indigo-300" onClick={() => entry.source === 'fixed' ? editFixedTarget(entry.sourceData) : setEditTx(entry.sourceData)}><Pencil className="h-3.5 w-3.5" /></button><button className="p-1 text-slate-700 hover:text-rose-400" onClick={() => entry.source === 'fixed' ? setDeleteFixed({ id: entry.sourceData.id, recurrentId: entry.sourceData.recurrent_id, nom: entry.sourceData.nom }) : setDeleteTx(entry.sourceData)}><Trash2 className="h-3.5 w-3.5" /></button></div>}
+                          {!isAdminViewing && (
+                            <button
+                              className="shrink-0 p-1 text-slate-700 hover:text-rose-400"
+                              aria-label="Supprimer"
+                              onClick={event => {
+                                event.stopPropagation()
+                                if (entry.source === 'fixed') setDeleteFixed({ id: entry.sourceData.id, recurrentId: entry.sourceData.recurrent_id, nom: entry.sourceData.nom })
+                                else setDeleteTx(entry.sourceData)
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
