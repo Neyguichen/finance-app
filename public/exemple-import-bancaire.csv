@@ -1,4 +1,6 @@
-Date opération;Date validation;Libellé;Débit;Crédit
-01/10/2026;02/10/2026;CARREFOUR MARKET;72,34;
-01/10/2026;02/10/2026;SALAIRE;;2350,00
-02/10/2026;02/10/2026;EDF;94,12;
+Date opération;Date validation;Libellé;Débit;Crédit;Catégorie;Sous-catégorie;Nature;Note;Type revenu;Enveloppe épargne
+01/10/2026;02/10/2026;CARREFOUR MARKET;72,34;;Alimentation;Courses;Dépense;Courses de la semaine;;
+01/10/2026;02/10/2026;SALAIRE;;2350,00;;;Revenu;Salaire mensuel;Actif;
+02/10/2026;02/10/2026;EDF;94,12;;Logement;Énergie;Dépense;Facture électricité;;
+03/10/2026;03/10/2026;VIREMENT VERS EPARGNE;200,00;;;;Versement épargne;Épargne vacances;;Vacances
+04/10/2026;04/10/2026;VIREMENT DEPUIS EPARGNE;;50,00;;;Reprise épargne;Reprise pour dépense exceptionnelle;;Vacances
