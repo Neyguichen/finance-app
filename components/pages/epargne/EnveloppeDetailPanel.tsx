@@ -17,10 +17,11 @@ type Props = {
   onSave: () => void
   onWithdraw: () => void
   onTransfer: () => void
+  onEdit?: () => void
 }
 
 export default function EnveloppeDetailPanel({
-  env, movements, currentMonth, plannedMonthly, onSave, onWithdraw, onTransfer,
+  env, movements, currentMonth, plannedMonthly, onSave, onWithdraw, onTransfer, onEdit,
 }: Props) {
   const [historyFilter, setHistoryFilter] = useState<'all' | 'in' | 'out'>('all')
   const balance = Number(env.solde || 0)
@@ -94,7 +95,10 @@ export default function EnveloppeDetailPanel({
   return (
     <Card className="nf-card-hover h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg text-slate-100"><PiggyBank className="h-5 w-5 text-emerald-300" />{env.nom}</CardTitle>
+        <button type="button" onClick={onEdit} className={"w-full text-left " + (onEdit ? "cursor-pointer" : "cursor-default")}>
+          <CardTitle className="flex items-center gap-2 text-lg text-slate-100"><PiggyBank className="h-5 w-5 text-emerald-300" />{env.nom}</CardTitle>
+          {onEdit && <p className="mt-1 text-[10px] text-slate-600">Cliquer pour modifier l’enveloppe</p>}
+        </button>
       </CardHeader>
       <CardContent className="space-y-3 p-3 pt-1">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
