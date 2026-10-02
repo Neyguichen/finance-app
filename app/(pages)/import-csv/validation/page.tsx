@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, ArrowLeft, Check, CheckCircle2, Copy, Filter, Search } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, CheckCircle2, Copy, Filter, Plus, Search } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useEnveloppes } from '@/lib/hooks/useEpargne'
 import { useCsvImport, type ImportPreviewRow } from '@/lib/hooks/useCsvImport'
 import type { ImportNature } from '@/lib/import-csv'
 import { formatEuro } from '@/lib/utils'
+import CategorieDialog from '@/components/pages/variables/CategorieDialog'
 
 type ReviewRow = any & {
   analysis?: ImportPreviewRow
@@ -26,7 +27,7 @@ export default function ImportedTransactionsValidationPage() {
   }, [])
   const { espace, userId, isAdminViewing } = useApp()
   const importModel = useCsvImport(espace?.id, userId)
-  const { data: categories = [] } = useCategories(espace?.id)
+  const { data: categories = [], create: createCategory } = useCategories(espace?.id)
   const { data: envelopes = [] } = useEnveloppes(espace?.id)
 
   const [rows, setRows] = useState<ReviewRow[]>([])
@@ -39,6 +40,7 @@ export default function ImportedTransactionsValidationPage() {
   const [bulkSubcategory, setBulkSubcategory] = useState('')
   const [bulkEnvelope, setBulkEnvelope] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+  const [categoryDialog, setCategoryDialog] = useState<{ rowId: string; parentId: string | null } | null>(null)
 
   const batch = useMemo(() => {
     if (!requestedBatchId) return null
@@ -242,6 +244,34 @@ export default function ImportedTransactionsValidationPage() {
 
     await refresh()
     setMessage(`${selected.length} opération(s) mise(s) à jour.`)
+  }
+
+  const createCategoryFromReview = async (data: { nom: string; icone: string; parent_id?: string }) => {
+    if (!espace?.id || !categoryDialog) return
+    const created = await createCategory.mutateAsync({
+      espace_id: espace.id,
+      nom: data.nom,
+      icone: data.icone,
+      couleur: data.parent_id ? '#64748b' : '#6366f1',
+      ordre: categories.length,
+      actif: true,
+      parent_id: data.parent_id || null,
+    })
+
+    const row = rows.find(item => item.id === categoryDialog.rowId)
+    if (row) {
+      if (data.parent_id) {
+        await savePending(row, {
+          categoryId: data.parent_id,
+          subcategoryId: created.id,
+        })
+      } else {
+        await savePending(row, {
+          categoryId: created.id,
+          subcategoryId: null,
+        })
+      }
+    }
   }
 
   if (isAdminViewing) {
@@ -471,16 +501,38 @@ export default function ImportedTransactionsValidationPage() {
                   {row.nature === 'expense' && (
                     <>
                       <Field label="Catégorie">
-                        <select className="select select-bordered select-xs w-full bg-slate-950" value={categoryId} disabled={!pending} onChange={event => savePending(row, { categoryId: event.target.value || null, subcategoryId: null })}>
-                          <option value="">À choisir…</option>
-                          {activeParents.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
-                        </select>
+                        <div className="flex gap-1">
+                          <select className="select select-bordered select-xs min-w-0 flex-1 bg-slate-950" value={categoryId} disabled={!pending} onChange={event => savePending(row, { categoryId: event.target.value || null, subcategoryId: null })}>
+                            <option value="">À choisir…</option>
+                            {activeParents.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
+                          </select>
+                          <button
+                            type="button"
+                            className="btn btn-square btn-outline btn-xs"
+                            disabled={!pending}
+                            title="Créer une catégorie"
+                            onClick={() => setCategoryDialog({ rowId: row.id, parentId: null })}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </Field>
                       <Field label="Sous-catégorie">
-                        <select className="select select-bordered select-xs w-full bg-slate-950" value={source.subcategoryId || ''} disabled={!pending || !categoryId} onChange={event => savePending(row, { subcategoryId: event.target.value || null })}>
-                          <option value="">Sans sous-catégorie</option>
-                          {subcategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
-                        </select>
+                        <div className="flex gap-1">
+                          <select className="select select-bordered select-xs min-w-0 flex-1 bg-slate-950" value={source.subcategoryId || ''} disabled={!pending || !categoryId} onChange={event => savePending(row, { subcategoryId: event.target.value || null })}>
+                            <option value="">Sans sous-catégorie</option>
+                            {subcategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
+                          </select>
+                          <button
+                            type="button"
+                            className="btn btn-square btn-outline btn-xs"
+                            disabled={!pending || !categoryId}
+                            title="Créer une sous-catégorie"
+                            onClick={() => setCategoryDialog({ rowId: row.id, parentId: categoryId })}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </Field>
                     </>
                   )}
@@ -634,6 +686,15 @@ export default function ImportedTransactionsValidationPage() {
           </div>
         )}
       </section>
+
+      <CategorieDialog
+        open={Boolean(categoryDialog)}
+        onOpenChange={open => !open && setCategoryDialog(null)}
+        categories={categories}
+        initialParentId={categoryDialog?.parentId || null}
+        lockParent={Boolean(categoryDialog?.parentId)}
+        onCreate={createCategoryFromReview}
+      />
     </div>
   )
 }
