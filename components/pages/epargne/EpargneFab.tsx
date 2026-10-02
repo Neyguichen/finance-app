@@ -12,7 +12,7 @@ export default function EpargneFab({ onOpenMouvement }: { onOpenMouvement: () =>
   if (!mounted) return null
 
   return createPortal(
-    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex justify-end px-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 md:hidden flex justify-end px-4">
       <button
         type="button"
         onClick={onOpenMouvement}
