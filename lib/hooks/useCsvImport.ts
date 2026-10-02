@@ -501,7 +501,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
                 nom: row.label,
                 montant: Math.abs(row.amount),
                 recu: true,
-                date_prevue: row.date,
+                date_prevue: row.operationDate || row.date,
                 date_reelle: row.date,
                 ordre: 0,
               })
@@ -566,7 +566,7 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
               mois_id: month.id,
               categorie_id: row.categoryId,
               sous_categorie_id: null,
-              date: row.date,
+              date: row.operationDate || row.date,
               date_validation: row.date,
               montant: Math.abs(row.amount),
               infos: row.label,
