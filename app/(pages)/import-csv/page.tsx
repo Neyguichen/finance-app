@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, FileSpreadsheet, RotateCcw, Save, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, RotateCcw, Save, Upload } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useEnveloppes } from '@/lib/hooks/useEpargne'
@@ -69,8 +69,13 @@ export default function ImportCsvPage() {
   const loadParsed = (text: string, delimiter?: string) => {
     const result = parseCsv(text, delimiter)
     setParsed(result)
+    const guessedOperationDate = guessColumn(result.headers, ['date operation', 'date transaction', 'operation date'])
+    const guessedValidationDate =
+      guessColumn(result.headers, ['date valeur', 'date comptable', 'date validation', 'validation date']) ||
+      guessColumn(result.headers, ['date'])
     const nextMapping: CsvMapping = {
-      date: guessColumn(result.headers, ['date', 'operation', 'compta', 'valeur']),
+      date: guessedValidationDate || guessedOperationDate,
+      operationDate: guessedOperationDate && guessedOperationDate !== guessedValidationDate ? guessedOperationDate : '',
       label: guessColumn(result.headers, ['libelle', 'description', 'intitule', 'label', 'memo']),
       amount: guessColumn(result.headers, ['montant', 'amount', 'somme']),
       debit: guessColumn(result.headers, ['debit']),
@@ -275,15 +280,28 @@ export default function ImportCsvPage() {
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
           <h2 className="font-semibold">Associer les colonnes</h2>
           <p className="mt-1 text-xs text-slate-500">
-            Neyguichen ne cherche pas à reconnaître ta banque. Tu choisis simplement quelles colonnes correspondent aux données nécessaires.
+            Associe les colonnes de ton export bancaire. Si ton fichier ne contient qu’une seule date, utilise-la comme <strong className="text-slate-300">Date bancaire / validation</strong> : Neyguichen l’utilisera aussi comme date d’opération.
           </p>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <ColumnSelect label="Date" required headers={parsed.headers} value={mapping.date} onChange={value => setMapping(current => ({ ...current, date: value }))} />
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <a href="/exemple-import-bancaire.csv" download className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-cyan-300 transition hover:border-cyan-500/40 hover:bg-cyan-500/5">
+              <Download className="h-3.5 w-3.5" />
+              Télécharger un fichier exemple
+            </a>
+            <span className="text-slate-600">Le format peut ensuite être mémorisé pour les prochains imports.</span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ColumnSelect label="Date bancaire / validation" required headers={parsed.headers} value={mapping.date} onChange={value => setMapping(current => ({ ...current, date: value }))} />
+            <ColumnSelect label="Date d’opération" headers={parsed.headers} value={mapping.operationDate || ''} onChange={value => setMapping(current => ({ ...current, operationDate: value }))} />
             <ColumnSelect label="Libellé" required headers={parsed.headers} value={mapping.label} onChange={value => setMapping(current => ({ ...current, label: value }))} />
-            <ColumnSelect label="Montant signé" headers={parsed.headers} value={mapping.amount || ''} onChange={value => setMapping(current => ({ ...current, amount: value, debit: value ? '' : current.debit, credit: value ? '' : current.credit }))} />
+            <ColumnSelect label="Montant (+ / −)" headers={parsed.headers} value={mapping.amount || ''} onChange={value => setMapping(current => ({ ...current, amount: value, debit: value ? '' : current.debit, credit: value ? '' : current.credit }))} />
             <ColumnSelect label="Débit" headers={parsed.headers} value={mapping.debit || ''} onChange={value => setMapping(current => ({ ...current, debit: value, amount: value ? '' : current.amount }))} />
             <ColumnSelect label="Crédit" headers={parsed.headers} value={mapping.credit || ''} onChange={value => setMapping(current => ({ ...current, credit: value, amount: value ? '' : current.amount }))} />
+          </div>
+
+          <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/35 p-3 text-[11px] leading-5 text-slate-500">
+            <span className="font-medium text-slate-300">Montant (+ / −)</span> correspond à une colonne unique contenant les débits en négatif et les crédits en positif. Si ta banque fournit deux colonnes séparées, laisse ce champ vide et associe simplement <span className="text-slate-300">Débit</span> et <span className="text-slate-300">Crédit</span>.
           </div>
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -356,10 +374,11 @@ export default function ImportCsvPage() {
           )}
 
           <div className="mt-4 overflow-x-auto rounded-lg border border-slate-800">
-            <table className="table table-sm min-w-[900px]">
+            <table className="table table-sm min-w-[1040px]">
               <thead>
                 <tr>
-                  <th>Date</th>
+                  <th>Date opération</th>
+                  <th>Date validation</th>
                   <th>Libellé</th>
                   <th className="text-right">Montant</th>
                   <th>Nature</th>
@@ -371,6 +390,7 @@ export default function ImportCsvPage() {
               <tbody>
                 {preview.slice(0, 200).map(row => (
                   <tr key={row.rowIndex}>
+                    <td>{formatDate(row.operationDate || row.date)}</td>
                     <td>{formatDate(row.date)}</td>
                     <td className="max-w-72 truncate" title={row.label}>{row.label}</td>
                     <td className={`text-right font-medium ${row.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
