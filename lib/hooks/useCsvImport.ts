@@ -384,6 +384,19 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
     }) => {
       if (!espaceId || !userId) throw new Error('Budget ou utilisateur manquant')
 
+      const { data: activeBatch, error: activeBatchError } = await supabase
+        .from('import_batches')
+        .select('id, file_name, created_at')
+        .eq('espace_id', espaceId)
+        .eq('status', 'reviewing')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (activeBatchError) throw activeBatchError
+      if (activeBatch) {
+        throw new Error('Un import est déjà en cours de validation. Termine ou annule cet import avant d’en enregistrer un nouveau.')
+      }
+
       if (fileFingerprint && !allowDuplicateFile) {
         const { data: previous, error: previousError } = await supabase
           .from('import_batches')
