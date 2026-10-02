@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, RotateCcw, Save, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, Eye, FileSpreadsheet, RotateCcw, Save, Upload } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useEnveloppes } from '@/lib/hooks/useEpargne'
@@ -54,6 +54,13 @@ export default function ImportCsvPage() {
   const [invalidRows, setInvalidRows] = useState<Array<{ rowIndex: number; reason: string }>>([])
   const [defaultCategory, setDefaultCategory] = useState('')
   const [lastResult, setLastResult] = useState<{ createdCount: number; matchedCount: number; ignoredCount: number; errorCount: number } | null>(null)
+  const [reviewBatchId, setReviewBatchId] = useState<string | null>(null)
+  const [reviewRows, setReviewRows] = useState<any[]>([])
+  const [selectedReviewIds, setSelectedReviewIds] = useState<string[]>([])
+  const [bulkNature, setBulkNature] = useState<ImportNature | ''>('')
+  const [bulkCategory, setBulkCategory] = useState('')
+  const [bulkSubcategory, setBulkSubcategory] = useState('')
+  const [bulkEnvelope, setBulkEnvelope] = useState('')
 
   const previewPeriod = useMemo(() => {
     if (preview.length === 0) return null
@@ -219,6 +226,96 @@ export default function ImportCsvPage() {
   }
 
   const duplicateFileBlocked = Boolean(duplicateFileBatch && !allowDuplicateFile)
+
+  const reviewSubcategories = useMemo(
+    () => categories.filter(category => category.parent_id === bulkCategory && category.actif !== false),
+    [categories, bulkCategory]
+  )
+
+  const loadReview = async (batchId: string) => {
+    const rows = await importModel.loadBatchItems.mutateAsync(batchId)
+    setReviewBatchId(batchId)
+    setReviewRows(rows)
+    setSelectedReviewIds([])
+  }
+
+  const refreshReview = async () => {
+    if (!reviewBatchId) return
+    const rows = await importModel.loadBatchItems.mutateAsync(reviewBatchId)
+    setReviewRows(rows)
+  }
+
+  const updateReviewTarget = async (row: any, patch: Record<string, any>) => {
+    if (!row.target_table || !row.target_id) return
+    await importModel.updateImportedTarget.mutateAsync({
+      itemId: row.id,
+      targetTable: row.target_table,
+      targetId: row.target_id,
+      patch,
+    })
+    await refreshReview()
+  }
+
+  const reclassifyReviewRow = async (row: any, nature: ImportNature, overrides?: {
+    categoryId?: string | null
+    subcategoryId?: string | null
+    envelopeId?: string | null
+  }) => {
+    if (nature === row.nature) return
+    await importModel.reclassifyImportedItem.mutateAsync({
+      item: row,
+      nature,
+      categoryId: overrides?.categoryId ?? row.target?.categorie_id ?? null,
+      subcategoryId: overrides?.subcategoryId ?? row.target?.sous_categorie_id ?? null,
+      envelopeId: overrides?.envelopeId ??
+        row.target?.enveloppe_dest_id ??
+        row.target?.enveloppe_source_id ??
+        null,
+      incomeType: row.target?.type === 'passif' ? 'passif' : 'actif',
+    })
+    await refreshReview()
+  }
+
+  const applyBulkReview = async () => {
+    const selected = reviewRows.filter(row => selectedReviewIds.includes(row.id))
+    for (const row of selected) {
+      if (bulkNature && bulkNature !== row.nature) {
+        await importModel.reclassifyImportedItem.mutateAsync({
+          item: row,
+          nature: bulkNature,
+          categoryId: bulkCategory || row.target?.categorie_id || null,
+          subcategoryId: bulkSubcategory || null,
+          envelopeId: bulkEnvelope || row.target?.enveloppe_dest_id || row.target?.enveloppe_source_id || null,
+          incomeType: row.target?.type === 'passif' ? 'passif' : 'actif',
+        })
+        continue
+      }
+
+      if (row.target_table === 'transactions' && bulkCategory) {
+        await importModel.updateImportedTarget.mutateAsync({
+          itemId: row.id,
+          targetTable: row.target_table,
+          targetId: row.target_id,
+          patch: {
+            categorie_id: bulkCategory,
+            sous_categorie_id: bulkSubcategory || null,
+          },
+        })
+      } else if (row.target_table === 'mouvements_epargne' && bulkEnvelope) {
+        const isDeposit = row.nature === 'savings_deposit'
+        await importModel.updateImportedTarget.mutateAsync({
+          itemId: row.id,
+          targetTable: row.target_table,
+          targetId: row.target_id,
+          patch: {
+            enveloppe_source_id: isDeposit ? null : bulkEnvelope,
+            enveloppe_dest_id: isDeposit ? bulkEnvelope : null,
+          },
+        })
+      }
+    }
+    await refreshReview()
+  }
 
   const confirmImport = async () => {
     if (!fileName || preview.length === 0 || missingAssignmentCount > 0 || duplicateFileBlocked) return
@@ -587,24 +684,271 @@ export default function ImportCsvPage() {
                 </p>
               </div>
               {batch.status === 'imported' && (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline w-full sm:w-auto"
-                  disabled={importModel.undoBatch.isPending}
-                  onClick={() => {
-                    if (window.confirm('Annuler ce lot ? Les opérations créées par cet import seront supprimées et les rapprochements réversibles restaurés.')) {
-                      importModel.undoBatch.mutate(batch.id)
-                    }
-                  }}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Annuler le lot
-                </button>
+                <div className="flex w-full gap-2 sm:w-auto">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary flex-1 sm:flex-none"
+                    onClick={() => loadReview(batch.id)}
+                    disabled={importModel.loadBatchItems.isPending}
+                  >
+                    <Eye className="h-4 w-4" />
+                    Vérifier les opérations
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline flex-1 sm:flex-none"
+                    disabled={importModel.undoBatch.isPending}
+                    onClick={() => {
+                      if (window.confirm('Annuler ce lot ? Les opérations créées par cet import seront supprimées et les rapprochements réversibles restaurés.')) {
+                        importModel.undoBatch.mutate(batch.id)
+                      }
+                    }}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Annuler
+                  </button>
+                </div>
               )}
             </div>
           ))}
         </div>
+
       </section>
+
+      {reviewBatchId && (
+        <section className="rounded-xl border border-indigo-500/20 bg-slate-900 p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="font-semibold">Opérations importées à vérifier</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                {reviewRows.length} ligne(s) dans ce lot. Les modifications sont appliquées directement aux opérations comptables existantes.
+              </p>
+            </div>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setReviewBatchId(null); setReviewRows([]); setSelectedReviewIds([]) }}>
+              Fermer
+            </button>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/35 p-3">
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="flex items-center gap-2 pb-2 text-xs text-slate-400">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-xs"
+                  checked={reviewRows.length > 0 && selectedReviewIds.length === reviewRows.filter(row => row.action === 'created').length}
+                  onChange={event => setSelectedReviewIds(event.target.checked ? reviewRows.filter(row => row.action === 'created').map(row => row.id) : [])}
+                />
+                Tout sélectionner
+              </label>
+
+              <label className="min-w-44">
+                <span className="mb-1 block text-[10px] text-slate-500">Nature en lot</span>
+                <select className="select select-bordered select-sm w-full bg-slate-950" value={bulkNature} onChange={e => setBulkNature(e.target.value as ImportNature | '')}>
+                  <option value="">Ne pas modifier</option>
+                  <option value="expense">Dépense</option>
+                  <option value="income">Revenu</option>
+                  <option value="savings_deposit">Versement épargne</option>
+                  <option value="savings_withdrawal">Reprise épargne</option>
+                </select>
+              </label>
+
+              <label className="min-w-44">
+                <span className="mb-1 block text-[10px] text-slate-500">Catégorie en lot</span>
+                <select className="select select-bordered select-sm w-full bg-slate-950" value={bulkCategory} onChange={e => { setBulkCategory(e.target.value); setBulkSubcategory('') }}>
+                  <option value="">Ne pas modifier</option>
+                  {activeParentCategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
+                </select>
+              </label>
+
+              <label className="min-w-44">
+                <span className="mb-1 block text-[10px] text-slate-500">Sous-catégorie en lot</span>
+                <select className="select select-bordered select-sm w-full bg-slate-950" value={bulkSubcategory} onChange={e => setBulkSubcategory(e.target.value)} disabled={!bulkCategory}>
+                  <option value="">Aucune / ne pas modifier</option>
+                  {reviewSubcategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
+                </select>
+              </label>
+
+              <label className="min-w-44">
+                <span className="mb-1 block text-[10px] text-slate-500">Enveloppe en lot</span>
+                <select className="select select-bordered select-sm w-full bg-slate-950" value={bulkEnvelope} onChange={e => setBulkEnvelope(e.target.value)}>
+                  <option value="">Ne pas modifier</option>
+                  {envelopes.filter(envelope => !envelope.archived).map(envelope => <option key={envelope.id} value={envelope.id}>{envelope.nom}</option>)}
+                </select>
+              </label>
+
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                disabled={selectedReviewIds.length === 0 || importModel.updateImportedTarget.isPending || importModel.reclassifyImportedItem.isPending}
+                onClick={applyBulkReview}
+              >
+                Appliquer à {selectedReviewIds.length || 0} opération(s)
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {reviewRows.map(row => {
+              const target = row.target
+              const isCreated = row.action === 'created'
+              const isExpense = row.target_table === 'transactions'
+              const isIncome = row.target_table === 'revenus'
+              const isSavings = row.target_table === 'mouvements_epargne'
+              const parentId = target?.categorie_id || ''
+              const subcategories = categories.filter(category => category.parent_id === parentId && category.actif !== false)
+              const envelopeId = target?.enveloppe_dest_id || target?.enveloppe_source_id || ''
+              const label = target?.infos || target?.nom || target?.note || row.raw?.label || 'Opération'
+              const amount = Number(target?.montant ?? target?.montant_reel ?? row.raw?.amount ?? 0)
+              const operationDate = target?.date ?? target?.date_prevue ?? row.raw?.operationDate ?? row.raw?.date ?? ''
+              const validationDate = target?.date_validation ?? target?.date_reelle ?? row.raw?.date ?? ''
+              return (
+                <div key={row.id} className="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                    <div className="pt-1">
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-xs"
+                        disabled={!isCreated}
+                        checked={selectedReviewIds.includes(row.id)}
+                        onChange={event => setSelectedReviewIds(current => event.target.checked ? [...current, row.id] : current.filter(id => id !== row.id))}
+                      />
+                    </div>
+
+                    <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-2 xl:grid-cols-6">
+                      <label className="xl:col-span-2">
+                        <span className="mb-1 block text-[10px] text-slate-600">Libellé / note</span>
+                        <input
+                          className="input input-bordered input-sm w-full bg-slate-950"
+                          defaultValue={label}
+                          disabled={!target}
+                          onBlur={e => {
+                            if (!target || e.target.value === label) return
+                            const patch = isExpense ? { infos: e.target.value } : isIncome ? { nom: e.target.value } : isSavings ? { note: e.target.value } : {}
+                            updateReviewTarget(row, patch)
+                          }}
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1 block text-[10px] text-slate-600">Montant</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="input input-bordered input-sm w-full bg-slate-950"
+                          defaultValue={amount}
+                          disabled={!target}
+                          onBlur={e => {
+                            const value = Number(e.target.value)
+                            if (!Number.isFinite(value) || value === amount) return
+                            updateReviewTarget(row, isExpense || isIncome || isSavings ? { montant: Math.abs(value) } : { montant_reel: Math.abs(value) })
+                          }}
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1 block text-[10px] text-slate-600">Date opération</span>
+                        <input
+                          type="date"
+                          className="input input-bordered input-sm w-full bg-slate-950"
+                          defaultValue={operationDate || ''}
+                          disabled={!target || isSavings}
+                          onBlur={e => {
+                            if (!target || !e.target.value || e.target.value === operationDate) return
+                            updateReviewTarget(row, isExpense ? { date: e.target.value } : isIncome ? { date_prevue: e.target.value } : {})
+                          }}
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1 block text-[10px] text-slate-600">Date validation</span>
+                        <input
+                          type="date"
+                          className="input input-bordered input-sm w-full bg-slate-950"
+                          defaultValue={validationDate || ''}
+                          disabled={!target}
+                          onBlur={e => {
+                            if (!target || !e.target.value || e.target.value === validationDate) return
+                            updateReviewTarget(row, isExpense ? { date_validation: e.target.value } : isIncome ? { date_reelle: e.target.value } : isSavings ? { date: e.target.value } : { date_reelle: e.target.value })
+                          }}
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1 block text-[10px] text-slate-600">Nature</span>
+                        <select
+                          className="select select-bordered select-sm w-full bg-slate-950"
+                          value={row.nature}
+                          disabled={!isCreated}
+                          onChange={e => reclassifyReviewRow(row, e.target.value as ImportNature)}
+                        >
+                          <option value="expense">Dépense</option>
+                          <option value="income">Revenu</option>
+                          <option value="savings_deposit">Versement épargne</option>
+                          <option value="savings_withdrawal">Reprise épargne</option>
+                          <option value="savings_internal" disabled>Transfert interne</option>
+                          <option value="ignore" disabled>Ignorer</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2 pl-0 lg:pl-7">
+                    {isExpense && (
+                      <>
+                        <select
+                          className="select select-bordered select-xs min-w-48 bg-slate-950"
+                          value={parentId}
+                          onChange={e => updateReviewTarget(row, { categorie_id: e.target.value, sous_categorie_id: null })}
+                        >
+                          <option value="">Catégorie…</option>
+                          {activeParentCategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
+                        </select>
+                        <select
+                          className="select select-bordered select-xs min-w-48 bg-slate-950"
+                          value={target?.sous_categorie_id || ''}
+                          disabled={!parentId}
+                          onChange={e => updateReviewTarget(row, { sous_categorie_id: e.target.value || null })}
+                        >
+                          <option value="">Sans sous-catégorie</option>
+                          {subcategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
+                        </select>
+                      </>
+                    )}
+
+                    {isIncome && (
+                      <select
+                        className="select select-bordered select-xs min-w-40 bg-slate-950"
+                        value={target?.type || 'actif'}
+                        onChange={e => updateReviewTarget(row, { type: e.target.value })}
+                      >
+                        <option value="actif">Revenu actif</option>
+                        <option value="passif">Revenu passif</option>
+                      </select>
+                    )}
+
+                    {isSavings && (
+                      <select
+                        className="select select-bordered select-xs min-w-48 bg-slate-950"
+                        value={envelopeId}
+                        onChange={e => updateReviewTarget(row, row.nature === 'savings_deposit'
+                          ? { enveloppe_source_id: null, enveloppe_dest_id: e.target.value }
+                          : { enveloppe_source_id: e.target.value, enveloppe_dest_id: null })}
+                      >
+                        <option value="">Enveloppe…</option>
+                        {envelopes.filter(envelope => !envelope.archived).map(envelope => <option key={envelope.id} value={envelope.id}>{envelope.nom}</option>)}
+                      </select>
+                    )}
+
+                    <span className="badge badge-sm badge-outline">
+                      {row.action === 'created' ? 'Créée par import' : row.action === 'matched' ? 'Rapprochée' : row.action === 'ignored' ? 'Ignorée' : 'Erreur'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
