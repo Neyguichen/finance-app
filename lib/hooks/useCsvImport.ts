@@ -645,6 +645,193 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
     },
   })
 
+
+  const loadBatchItems = useMutation({
+    mutationFn: async (batchId: string) => {
+      const { data: items, error } = await supabase
+        .from('import_batch_items')
+        .select('*')
+        .eq('batch_id', batchId)
+        .order('row_index', { ascending: true })
+      if (error) throw error
+
+      const byTable = new Map<string, string[]>()
+      for (const item of items || []) {
+        if (!item.target_table || !item.target_id) continue
+        const list = byTable.get(item.target_table) || []
+        list.push(item.target_id)
+        byTable.set(item.target_table, list)
+      }
+
+      const targets = new Map<string, any>()
+      const loaders = Array.from(byTable.entries()).map(async ([table, ids]) => {
+        let query = supabase.from(table as any).select('*').in('id', ids)
+        const { data, error: targetError } = await query
+        if (targetError) throw targetError
+        for (const row of data || []) targets.set(`${table}:${row.id}`, row)
+      })
+      await Promise.all(loaders)
+
+      return (items || []).map(item => ({
+        ...item,
+        target: item.target_table && item.target_id
+          ? targets.get(`${item.target_table}:${item.target_id}`) || null
+          : null,
+      }))
+    },
+  })
+
+  const updateImportedTarget = useMutation({
+    mutationFn: async ({
+      itemId,
+      targetTable,
+      targetId,
+      patch,
+    }: {
+      itemId: string
+      targetTable: string
+      targetId: string
+      patch: Record<string, any>
+    }) => {
+      const allowedByTable: Record<string, string[]> = {
+        transactions: ['montant', 'date', 'date_validation', 'infos', 'categorie_id', 'sous_categorie_id'],
+        revenus: ['montant', 'nom', 'type', 'date_prevue', 'date_reelle'],
+        mouvements_epargne: ['montant', 'date', 'note', 'enveloppe_source_id', 'enveloppe_dest_id'],
+        charges_fixes: ['montant_reel', 'date_reelle', 'categorie_id', 'sous_categorie_id'],
+      }
+      const allowed = allowedByTable[targetTable] || []
+      const clean = Object.fromEntries(Object.entries(patch).filter(([key]) => allowed.includes(key)))
+      if (Object.keys(clean).length === 0) return null
+
+      const { data, error } = await supabase.from(targetTable as any).update(clean).eq('id', targetId).select('*').single()
+      if (error) throw error
+
+      const { error: itemError } = await supabase
+        .from('import_batch_items')
+        .update({ after_state: data })
+        .eq('id', itemId)
+      if (itemError) throw itemError
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['revenus'] })
+      queryClient.invalidateQueries({ queryKey: ['charges_fixes'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions-flat'] })
+      queryClient.invalidateQueries({ queryKey: ['mouvements'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+    },
+  })
+
+  const reclassifyImportedItem = useMutation({
+    mutationFn: async ({
+      item,
+      nature,
+      categoryId,
+      subcategoryId,
+      envelopeId,
+      incomeType,
+    }: {
+      item: any
+      nature: ImportNature
+      categoryId?: string | null
+      subcategoryId?: string | null
+      envelopeId?: string | null
+      incomeType?: 'actif' | 'passif'
+    }) => {
+      if (item.action !== 'created' || !item.target_table || !item.target_id || !item.target) {
+        throw new Error('Seules les opérations créées par cet import peuvent être reclassées ici.')
+      }
+
+      const current = item.target
+      const amount = Math.abs(Number(current.montant ?? current.montant_reel ?? item.raw?.amount ?? 0))
+      const operationDate = current.date ?? current.date_prevue ?? item.raw?.operationDate ?? item.raw?.date
+      const validationDate = current.date_validation ?? current.date_reelle ?? item.raw?.date ?? operationDate
+      const label = current.infos ?? current.nom ?? current.note ?? item.raw?.label ?? 'Opération importée'
+      const monthId = current.mois_id
+      if (!monthId) throw new Error('Mois de l’opération introuvable.')
+
+      let targetTable = ''
+      let created: any = null
+
+      if (nature === 'expense') {
+        if (!categoryId) throw new Error('Une catégorie est requise pour reclasser en dépense.')
+        const { data, error } = await supabase.from('transactions').insert({
+          mois_id: monthId,
+          categorie_id: categoryId,
+          sous_categorie_id: subcategoryId || null,
+          date: operationDate,
+          date_validation: validationDate,
+          montant: amount,
+          infos: label,
+          is_split: false,
+        }).select('*').single()
+        if (error) throw error
+        targetTable = 'transactions'
+        created = data
+      } else if (nature === 'income') {
+        const { data, error } = await supabase.from('revenus').insert({
+          mois_id: monthId,
+          recurrent_id: null,
+          type: incomeType || 'actif',
+          nom: label,
+          montant: amount,
+          recu: true,
+          date_prevue: operationDate,
+          date_reelle: validationDate,
+          ordre: 0,
+        }).select('*').single()
+        if (error) throw error
+        targetTable = 'revenus'
+        created = data
+      } else if (nature === 'savings_deposit' || nature === 'savings_withdrawal') {
+        if (!envelopeId) throw new Error('Une enveloppe est requise pour reclasser en épargne.')
+        const isDeposit = nature === 'savings_deposit'
+        const { data, error } = await supabase.from('mouvements_epargne').insert({
+          mois_id: monthId,
+          recurrent_id: null,
+          enveloppe_source_id: isDeposit ? null : envelopeId,
+          enveloppe_dest_id: isDeposit ? envelopeId : null,
+          montant: amount,
+          type: isDeposit ? 'epargne' : 'reprise',
+          date: validationDate,
+          note: label,
+        }).select('*').single()
+        if (error) throw error
+        targetTable = 'mouvements_epargne'
+        created = data
+      } else {
+        throw new Error('Cette nature ne peut pas être appliquée après import.')
+      }
+
+      const { error: deleteError } = await supabase.from(item.target_table as any).delete().eq('id', item.target_id)
+      if (deleteError) {
+        await supabase.from(targetTable as any).delete().eq('id', created.id)
+        throw deleteError
+      }
+
+      const { error: itemError } = await supabase.from('import_batch_items').update({
+        nature,
+        target_table: targetTable,
+        target_id: created.id,
+        after_state: created,
+      }).eq('id', item.id)
+      if (itemError) throw itemError
+
+      return created
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['revenus'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions-flat'] })
+      queryClient.invalidateQueries({ queryKey: ['mouvements'] })
+      queryClient.invalidateQueries({ queryKey: ['enveloppes'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+    },
+  })
+
   const undoBatch = useMutation({
     mutationFn: async (batchId: string) => {
       const { data: batch, error: batchError } = await supabase
@@ -782,6 +969,9 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
     checkFingerprint,
     analyze,
     importRows,
+    loadBatchItems,
+    updateImportedTarget,
+    reclassifyImportedItem,
     undoBatch,
   }
 }
