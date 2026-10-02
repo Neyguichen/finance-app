@@ -9,6 +9,7 @@ import EpargneResume from '@/components/pages/epargne/EpargneResume'
 import EnveloppeCard from '@/components/pages/epargne/EnveloppeCard'
 import EnveloppeEditDialog from '@/components/pages/epargne/EnveloppeEditDialog'
 import EnveloppeForm from '@/components/pages/epargne/EnveloppeForm'
+import SavingsInitializationDialog from '@/components/pages/epargne/SavingsInitializationDialog'
 import EnveloppeDetailPanel from '@/components/pages/epargne/EnveloppeDetailPanel'
 import MouvementForm from '@/components/pages/epargne/MouvementForm'
 import { MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
@@ -34,6 +35,7 @@ export default function EpargnePage() {
   const [movementDestId, setMovementDestId] = useState<string | null>(null)
   const [openMvt, setOpenMvt] = useState(false)
   const [openEnvelope, setOpenEnvelope] = useState(false)
+  const [openSavingsInitialization, setOpenSavingsInitialization] = useState(false)
 
   useEffect(() => {
     const syncFromUrl = () => {
@@ -151,6 +153,17 @@ export default function EpargnePage() {
     return { id:created.id }
   }
 
+  const handleInitializeSavings = async (date: string, balances: Array<{ id: string; balance: number }>) => {
+    if (isAdminViewing) return
+    for (const item of balances) {
+      await updateEnv.mutateAsync({
+        id: item.id,
+        solde_reference: item.balance,
+        date_solde_reference: date,
+      })
+    }
+  }
+
   const handleSaveEditEnv = async (data:any) => {
     if (isAdminViewing) return
     await updateEnv.mutateAsync(data)
@@ -238,7 +251,12 @@ export default function EpargnePage() {
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500"/>
                   </label>
-                  {!isAdminViewing && <Button size="sm" onClick={() => setOpenEnvelope(true)}><Plus className="mr-1 h-4 w-4"/>Nouvelle enveloppe</Button>}
+                  {!isAdminViewing && (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setOpenSavingsInitialization(true)}>Initialiser l’épargne</Button>
+                      <Button size="sm" onClick={() => setOpenEnvelope(true)}><Plus className="mr-1 h-4 w-4"/>Nouvelle enveloppe</Button>
+                    </div>
+                  )}
                 </div>
 
                 {sortedEnvelopes.length === 0 ? (
@@ -315,6 +333,12 @@ export default function EpargnePage() {
         <MouvementDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDeleteMvt} />
 
         <EnveloppeForm open={openEnvelope} onOpenChange={setOpenEnvelope} onSubmit={handleCreateEnvelope} />
+        <SavingsInitializationDialog
+          open={openSavingsInitialization}
+          onOpenChange={setOpenSavingsInitialization}
+          envelopes={activeEnvelopes as any[]}
+          onSave={handleInitializeSavings}
+        />
       </div>
     </div>
   )
