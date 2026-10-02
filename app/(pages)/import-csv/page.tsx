@@ -1,30 +1,22 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Download, Eye, FileSpreadsheet, RotateCcw, Save, Upload } from 'lucide-react'
+import { AlertTriangle, BookOpen, CheckCircle2, Eye, FileSpreadsheet, RotateCcw, Save, Upload } from 'lucide-react'
+
 import { useApp } from '@/components/AppContext'
+import PageHeader from '@/components/layout/PageHeader'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useEnveloppes } from '@/lib/hooks/useEpargne'
-import { useCsvImport, type ImportDecision, type ImportPreviewRow } from '@/lib/hooks/useCsvImport'
+import { useCsvImport, type ImportPreviewRow } from '@/lib/hooks/useCsvImport'
 import {
   fingerprintCsv,
   mapCsvRows,
   parseCsv,
   type CsvMapping,
-  type ImportNature,
   type ParsedCsv,
 } from '@/lib/import-csv'
 import { formatDate, formatEuro } from '@/lib/utils'
-import PageHeader from '@/components/layout/PageHeader'
-
-const natureLabels: Record<ImportNature, string> = {
-  expense: 'Dépense',
-  income: 'Revenu',
-  savings_deposit: 'Versement épargne',
-  savings_withdrawal: 'Reprise épargne',
-  savings_internal: 'Transfert interne neutre',
-  ignore: 'Ignorer',
-}
 
 function guessColumn(headers: string[], terms: string[]) {
   const normalized = headers.map(header => ({
@@ -52,15 +44,14 @@ export default function ImportCsvPage() {
   const [selectedFormatId, setSelectedFormatId] = useState('')
   const [preview, setPreview] = useState<ImportPreviewRow[]>([])
   const [invalidRows, setInvalidRows] = useState<Array<{ rowIndex: number; reason: string }>>([])
-  const [defaultCategory, setDefaultCategory] = useState('')
-  const [lastResult, setLastResult] = useState<{ createdCount: number; matchedCount: number; ignoredCount: number; errorCount: number } | null>(null)
-  const [reviewBatchId, setReviewBatchId] = useState<string | null>(null)
-  const [reviewRows, setReviewRows] = useState<any[]>([])
-  const [selectedReviewIds, setSelectedReviewIds] = useState<string[]>([])
-  const [bulkNature, setBulkNature] = useState<ImportNature | ''>('')
-  const [bulkCategory, setBulkCategory] = useState('')
-  const [bulkSubcategory, setBulkSubcategory] = useState('')
-  const [bulkEnvelope, setBulkEnvelope] = useState('')
+  const [lastResult, setLastResult] = useState<{
+    batchId: string
+    pendingCount: number
+    createdCount: number
+    matchedCount: number
+    ignoredCount: number
+    errorCount: number
+  } | null>(null)
 
   const previewPeriod = useMemo(() => {
     if (preview.length === 0) return null
@@ -68,19 +59,21 @@ export default function ImportCsvPage() {
     return { start: dates[0], end: dates[dates.length - 1] }
   }, [preview])
 
-  const activeParentCategories = useMemo(
-    () => categories.filter(category => category.actif !== false && !category.parent_id),
-    [categories]
+  const reviewingBatches = useMemo(
+    () => (importModel.history.data || []).filter(batch => batch.status === 'reviewing'),
+    [importModel.history.data]
   )
 
   const loadParsed = (text: string, delimiter?: string) => {
     const result = parseCsv(text, delimiter)
     setParsed(result)
+
     const guessedOperationDate = guessColumn(result.headers, ['date operation', 'date transaction', 'operation date'])
     const guessedValidationDate =
       guessColumn(result.headers, ['date valeur', 'date comptable', 'date validation', 'validation date']) ||
       guessColumn(result.headers, ['date'])
-    const nextMapping: CsvMapping = {
+
+    setMapping({
       date: guessedValidationDate || guessedOperationDate,
       operationDate: guessedOperationDate && guessedOperationDate !== guessedValidationDate ? guessedOperationDate : '',
       label: guessColumn(result.headers, ['libelle', 'description', 'intitule', 'label', 'memo']),
@@ -93,8 +86,8 @@ export default function ImportCsvPage() {
       note: guessColumn(result.headers, ['note', 'commentaire', 'memo complementaire']),
       incomeType: guessColumn(result.headers, ['type revenu', 'revenu actif', 'revenu passif']),
       envelope: guessColumn(result.headers, ['enveloppe', 'epargne', 'savings envelope']),
-    }
-    setMapping(nextMapping)
+    })
+
     setPreview([])
     setInvalidRows([])
     setLastResult(null)
@@ -129,6 +122,7 @@ export default function ImportCsvPage() {
     setSelectedFormatId(formatId)
     const format = importModel.formats.data?.find(item => item.id === formatId)
     if (!format || !fileText) return
+
     const reparsed = parseCsv(fileText, format.delimiter)
     setParsed(reparsed)
     setMapping(format.mapping)
@@ -148,9 +142,9 @@ export default function ImportCsvPage() {
       const parent = row.categoryName
         ? categories.find(category => !category.parent_id && normalize(category.nom) === normalize(row.categoryName))
         : null
-      const subcategory = row.subcategoryName
+      const subcategory = row.subcategoryName && parent
         ? categories.find(category =>
-            category.parent_id === (parent?.id || null) &&
+            category.parent_id === parent.id &&
             normalize(category.nom) === normalize(row.subcategoryName)
           )
         : null
@@ -160,13 +154,9 @@ export default function ImportCsvPage() {
 
       return {
         ...row,
-        categoryId: row.nature === 'expense'
-          ? (parent?.id || (defaultCategory || row.categoryId))
-          : row.categoryId,
-        subcategoryId: row.nature === 'expense' ? (subcategory?.id || null) : null,
-        envelopeId: (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal')
-          ? (envelope?.id || row.envelopeId)
-          : row.envelopeId,
+        categoryId: parent?.id || row.categoryId,
+        subcategoryId: subcategory?.id || row.subcategoryId,
+        envelopeId: envelope?.id || row.envelopeId,
       }
     })
 
@@ -174,46 +164,6 @@ export default function ImportCsvPage() {
     setPreview(analyzed)
     setLastResult(null)
   }
-
-  const updateRow = (rowIndex: number, changes: Partial<ImportPreviewRow>) => {
-    setPreview(current => current.map(row => {
-      if (row.rowIndex !== rowIndex) return row
-      const natureChanged = changes.nature && changes.nature !== row.nature
-      return {
-        ...row,
-        ...changes,
-        ...(natureChanged ? {
-          status: 'new' as const,
-          match: null,
-          decision: changes.nature === 'ignore' || changes.nature === 'savings_internal' ? 'ignore' as const : 'create' as const,
-          categoryId: changes.nature === 'expense' ? row.categoryId : null,
-          envelopeId: changes.nature === 'savings_deposit' || changes.nature === 'savings_withdrawal' ? row.envelopeId : null,
-        } : {}),
-      }
-    }))
-  }
-
-  const applyDefaultCategory = (categoryId: string) => {
-    setDefaultCategory(categoryId)
-    setPreview(current => current.map(row =>
-      row.nature === 'expense' && row.decision === 'create'
-        ? { ...row, categoryId }
-        : row
-    ))
-  }
-
-  const missingCategoryCount = preview.filter(
-    row => row.nature === 'expense' && row.decision === 'create' && !row.categoryId
-  ).length
-
-  const missingEnvelopeCount = preview.filter(
-    row =>
-      (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') &&
-      row.decision === 'create' &&
-      !row.envelopeId
-  ).length
-
-  const missingAssignmentCount = missingCategoryCount + missingEnvelopeCount
 
   const saveCurrentFormat = async () => {
     if (!formatName.trim()) return
@@ -227,98 +177,8 @@ export default function ImportCsvPage() {
 
   const duplicateFileBlocked = Boolean(duplicateFileBatch && !allowDuplicateFile)
 
-  const reviewSubcategories = useMemo(
-    () => categories.filter(category => category.parent_id === bulkCategory && category.actif !== false),
-    [categories, bulkCategory]
-  )
-
-  const loadReview = async (batchId: string) => {
-    const rows = await importModel.loadBatchItems.mutateAsync(batchId)
-    setReviewBatchId(batchId)
-    setReviewRows(rows)
-    setSelectedReviewIds([])
-  }
-
-  const refreshReview = async () => {
-    if (!reviewBatchId) return
-    const rows = await importModel.loadBatchItems.mutateAsync(reviewBatchId)
-    setReviewRows(rows)
-  }
-
-  const updateReviewTarget = async (row: any, patch: Record<string, any>) => {
-    if (!row.target_table || !row.target_id) return
-    await importModel.updateImportedTarget.mutateAsync({
-      itemId: row.id,
-      targetTable: row.target_table,
-      targetId: row.target_id,
-      patch,
-    })
-    await refreshReview()
-  }
-
-  const reclassifyReviewRow = async (row: any, nature: ImportNature, overrides?: {
-    categoryId?: string | null
-    subcategoryId?: string | null
-    envelopeId?: string | null
-  }) => {
-    if (nature === row.nature) return
-    await importModel.reclassifyImportedItem.mutateAsync({
-      item: row,
-      nature,
-      categoryId: overrides?.categoryId ?? row.target?.categorie_id ?? null,
-      subcategoryId: overrides?.subcategoryId ?? row.target?.sous_categorie_id ?? null,
-      envelopeId: overrides?.envelopeId ??
-        row.target?.enveloppe_dest_id ??
-        row.target?.enveloppe_source_id ??
-        null,
-      incomeType: row.target?.type === 'passif' ? 'passif' : 'actif',
-    })
-    await refreshReview()
-  }
-
-  const applyBulkReview = async () => {
-    const selected = reviewRows.filter(row => selectedReviewIds.includes(row.id))
-    for (const row of selected) {
-      if (bulkNature && bulkNature !== row.nature) {
-        await importModel.reclassifyImportedItem.mutateAsync({
-          item: row,
-          nature: bulkNature,
-          categoryId: bulkCategory || row.target?.categorie_id || null,
-          subcategoryId: bulkSubcategory || null,
-          envelopeId: bulkEnvelope || row.target?.enveloppe_dest_id || row.target?.enveloppe_source_id || null,
-          incomeType: row.target?.type === 'passif' ? 'passif' : 'actif',
-        })
-        continue
-      }
-
-      if (row.target_table === 'transactions' && bulkCategory) {
-        await importModel.updateImportedTarget.mutateAsync({
-          itemId: row.id,
-          targetTable: row.target_table,
-          targetId: row.target_id,
-          patch: {
-            categorie_id: bulkCategory,
-            sous_categorie_id: bulkSubcategory || null,
-          },
-        })
-      } else if (row.target_table === 'mouvements_epargne' && bulkEnvelope) {
-        const isDeposit = row.nature === 'savings_deposit'
-        await importModel.updateImportedTarget.mutateAsync({
-          itemId: row.id,
-          targetTable: row.target_table,
-          targetId: row.target_id,
-          patch: {
-            enveloppe_source_id: isDeposit ? null : bulkEnvelope,
-            enveloppe_dest_id: isDeposit ? bulkEnvelope : null,
-          },
-        })
-      }
-    }
-    await refreshReview()
-  }
-
   const confirmImport = async () => {
-    if (!fileName || preview.length === 0 || missingAssignmentCount > 0 || duplicateFileBlocked) return
+    if (!fileName || preview.length === 0 || duplicateFileBlocked) return
     const result = await importModel.importRows.mutateAsync({
       rows: preview,
       fileName,
@@ -343,9 +203,24 @@ export default function ImportCsvPage() {
       <PageHeader
         eyebrow="Rapprochement"
         title="Importer un relevé CSV"
-        description="Confronte Neyguichen à la réalité bancaire avec une prévisualisation obligatoire, des choix explicites et un contrôle anti-doublon."
+        description="Enregistre ton relevé bancaire, puis classe et valide les opérations à ton rythme dans un écran dédié."
         icon={FileSpreadsheet}
       />
+
+      {reviewingBatches.length > 0 && (
+        <section className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium text-indigo-200">{reviewingBatches.length} import(s) en cours de validation</p>
+              <p className="mt-1 text-xs text-slate-400">Ton travail est enregistré. Tu peux reprendre la validation quand tu veux.</p>
+            </div>
+            <Link href={`/import-csv/validation?batch=${reviewingBatches[0].id}`} className="btn btn-primary btn-sm">
+              <Eye className="h-4 w-4" />
+              Reprendre la validation
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
@@ -386,10 +261,9 @@ export default function ImportCsvPage() {
             <div className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <div className="flex-1">
-                <p className="font-medium">Ce fichier semble avoir déjà été importé.</p>
+                <p className="font-medium">Ce fichier semble avoir déjà été enregistré.</p>
                 <p className="mt-1 text-xs text-amber-300/80">
                   Import précédent : {duplicateFileBatch.file_name || 'CSV'} le {new Date(duplicateFileBatch.created_at).toLocaleString('fr-FR')}.
-                  Tu peux continuer à l’analyser, mais l’import final restera bloqué tant que tu ne confirmes pas volontairement un réimport.
                 </p>
                 <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs">
                   <input
@@ -398,7 +272,7 @@ export default function ImportCsvPage() {
                     checked={allowDuplicateFile}
                     onChange={event => setAllowDuplicateFile(event.target.checked)}
                   />
-                  Réimporter quand même ce fichier exact
+                  Enregistrer quand même ce fichier exact
                 </label>
               </div>
             </div>
@@ -408,17 +282,17 @@ export default function ImportCsvPage() {
 
       {parsed.headers.length > 0 && (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h2 className="font-semibold">Associer les colonnes</h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Associe les colonnes de ton export bancaire. Si ton fichier ne contient qu’une seule date, utilise-la comme <strong className="text-slate-300">Date bancaire / validation</strong> : Neyguichen l’utilisera aussi comme date d’opération.
-          </p>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <a href="/exemple-import-bancaire.csv" download className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-cyan-300 transition hover:border-cyan-500/40 hover:bg-cyan-500/5">
-              <Download className="h-3.5 w-3.5" />
-              Télécharger un fichier exemple
-            </a>
-            <span className="text-slate-600">Le format peut ensuite être mémorisé pour les prochains imports.</span>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="font-semibold">Associer les colonnes</h2>
+              <p className="mt-1 max-w-3xl text-xs text-slate-500">
+                Seuls la date bancaire, le libellé et le montant sont indispensables. Les autres informations peuvent être récupérées si ton fichier les contient, ou complétées plus tard dans l’écran de validation.
+              </p>
+            </div>
+            <Link href="/aide?article=import" className="inline-flex shrink-0 items-center gap-1.5 text-xs text-cyan-300 hover:text-cyan-200">
+              <BookOpen className="h-4 w-4" />
+              Voir les colonnes possibles
+            </Link>
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -437,7 +311,7 @@ export default function ImportCsvPage() {
           </div>
 
           <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/35 p-3 text-[11px] leading-5 text-slate-500">
-            <span className="font-medium text-slate-300">Montant (+ / −)</span> correspond à une colonne unique contenant les débits en négatif et les crédits en positif. Si ta banque fournit deux colonnes séparées, laisse ce champ vide et associe simplement <span className="text-slate-300">Débit</span> et <span className="text-slate-300">Crédit</span>.
+            Si ton relevé ne contient qu’une seule date, associe-la à <span className="font-medium text-slate-300">Date bancaire / validation</span> : elle sera également utilisée comme date d’opération. Pour les montants, utilise soit une colonne <span className="text-slate-300">Montant (+ / −)</span>, soit les deux colonnes <span className="text-slate-300">Débit</span> et <span className="text-slate-300">Crédit</span>.
           </div>
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -474,35 +348,24 @@ export default function ImportCsvPage() {
 
       {(preview.length > 0 || invalidRows.length > 0) && (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="font-semibold">Prévisualisation obligatoire</h2>
-              <p className="mt-1 text-xs text-slate-500">
-                {preview.length} ligne(s) exploitable(s), {invalidRows.length} ligne(s) invalide(s)
-                {previewPeriod ? ` · période du ${formatDate(previewPeriod.start)} au ${formatDate(previewPeriod.end)}` : ''}.
-              </p>
-            </div>
-            <label className="min-w-56">
-              <span className="mb-1 block text-xs text-slate-400">Catégorie par défaut des nouvelles dépenses</span>
-              <select className="select select-bordered select-sm w-full bg-slate-950" value={defaultCategory} onChange={event => applyDefaultCategory(event.target.value)}>
-                <option value="">À choisir ligne par ligne</option>
-                {activeParentCategories.map(category => (
-                  <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>
-                ))}
-              </select>
-            </label>
+          <div>
+            <h2 className="font-semibold">Prévisualisation du fichier</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              {preview.length} ligne(s) exploitable(s), {invalidRows.length} ligne(s) invalide(s)
+              {previewPeriod ? ` · période du ${formatDate(previewPeriod.start)} au ${formatDate(previewPeriod.end)}` : ''}.
+            </p>
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-4">
-            <Stat label="À créer" value={preview.filter(row => row.decision === 'create').length} />
-            <Stat label="À rapprocher" value={preview.filter(row => row.decision === 'match').length} />
-            <Stat label="À ignorer" value={preview.filter(row => row.decision === 'ignore').length} />
+            <Stat label="Lignes à enregistrer" value={preview.length} />
+            <Stat label="Correspondances proposées" value={preview.filter(row => Boolean(row.match)).length} />
             <Stat label="Doublons détectés" value={preview.filter(row => row.status === 'duplicate' || row.status === 'duplicate_in_file').length} />
+            <Stat label="Lignes invalides" value={invalidRows.length} />
           </div>
 
           {invalidRows.length > 0 && (
             <div className="mt-4 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-xs text-amber-200">
-              <div className="flex items-center gap-2 font-medium"><AlertTriangle className="h-4 w-4" /> Certaines lignes ne pourront pas être importées.</div>
+              <div className="flex items-center gap-2 font-medium"><AlertTriangle className="h-4 w-4" /> Certaines lignes ne pourront pas être enregistrées.</div>
               <p className="mt-1 text-amber-300/70">
                 Premières erreurs : {invalidRows.slice(0, 5).map(item => `ligne ${item.rowIndex + 2} : ${item.reason}`).join(' · ')}
               </p>
@@ -510,95 +373,35 @@ export default function ImportCsvPage() {
           )}
 
           <div className="mt-4 overflow-x-auto rounded-lg border border-slate-800">
-            <table className="table table-sm min-w-[1040px]">
+            <table className="table table-sm min-w-[780px]">
               <thead>
                 <tr>
                   <th>Date opération</th>
                   <th>Date validation</th>
                   <th>Libellé</th>
                   <th className="text-right">Montant</th>
-                  <th>Nature</th>
-                  <th>Affectation</th>
                   <th>Analyse</th>
-                  <th>Décision</th>
                 </tr>
               </thead>
               <tbody>
-                {preview.slice(0, 200).map(row => (
+                {preview.slice(0, 100).map(row => (
                   <tr key={row.rowIndex}>
                     <td>{formatDate(row.operationDate || row.date)}</td>
                     <td>{formatDate(row.date)}</td>
-                    <td className="max-w-72 truncate" title={row.label}>{row.label}</td>
+                    <td className="max-w-[34rem] truncate" title={row.label}>{row.label}</td>
                     <td className={`text-right font-medium ${row.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {row.amount >= 0 ? '+' : ''}{formatEuro(row.amount)}
-                    </td>
-                    <td>
-                      <select
-                        className="select select-bordered select-xs bg-slate-950"
-                        value={row.nature}
-                        onChange={event => updateRow(row.rowIndex, { nature: event.target.value as ImportNature })}
-                      >
-                        {Object.entries(natureLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                      </select>
-                    </td>
-                    <td>
-                      {row.nature === 'expense' && row.decision === 'create' ? (
-                        <select
-                          className="select select-bordered select-xs min-w-40 bg-slate-950"
-                          value={row.categoryId || ''}
-                          onChange={event => updateRow(row.rowIndex, { categoryId: event.target.value || null })}
-                        >
-                          <option value="">Catégorie…</option>
-                          {activeParentCategories.map(category => (
-                            <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>
-                          ))}
-                        </select>
-                      ) : (row.nature === 'savings_deposit' || row.nature === 'savings_withdrawal') && row.decision === 'create' ? (
-                        <select
-                          className="select select-bordered select-xs min-w-40 bg-slate-950"
-                          value={row.envelopeId || ''}
-                          onChange={event => updateRow(row.rowIndex, { envelopeId: event.target.value || null })}
-                        >
-                          <option value="">Enveloppe…</option>
-                          {envelopes.filter(envelope => !envelope.archived).map(envelope => (
-                            <option key={envelope.id} value={envelope.id}>{envelope.nom}</option>
-                          ))}
-                        </select>
-                      ) : <span className="text-xs text-slate-600">—</span>}
                     </td>
                     <td>
                       {row.status === 'duplicate' ? (
                         <span className="badge badge-sm border-blue-800 bg-blue-950 text-blue-300">Déjà présent</span>
                       ) : row.status === 'duplicate_in_file' ? (
-                        <div>
-                          <span className="badge badge-sm border-violet-800 bg-violet-950 text-violet-300">Doublon dans le CSV</span>
-                          <p className="mt-1 max-w-72 text-[10px] text-slate-500">
-                            Même nature, date, montant et libellé que la ligne {(row.duplicateOfRowIndex ?? 0) + 2}.
-                          </p>
-                        </div>
+                        <span className="badge badge-sm border-violet-800 bg-violet-950 text-violet-300">Doublon CSV</span>
                       ) : row.status === 'fixed_candidate' ? (
-                        <div>
-                          <span className="badge badge-sm border-amber-800 bg-amber-950 text-amber-300">Rapprocher</span>
-                          <p className="mt-1 max-w-72 text-[10px] text-slate-500">{row.match?.label}</p>
-                        </div>
-                      ) : row.nature === 'savings_internal' ? (
-                        <span className="text-xs text-slate-500">Neutre pour le solde du Budget</span>
-                      ) : row.nature === 'ignore' ? (
-                        <span className="text-xs text-slate-600">Ignorée</span>
+                        <span className="badge badge-sm border-amber-800 bg-amber-950 text-amber-300">Rapprochement possible</span>
                       ) : (
-                        <span className="badge badge-sm border-emerald-800 bg-emerald-950 text-emerald-300">Nouvelle</span>
+                        <span className="badge badge-sm border-slate-700 bg-slate-900 text-slate-400">À valider</span>
                       )}
-                    </td>
-                    <td>
-                      <select
-                        className="select select-bordered select-xs min-w-44 bg-slate-950"
-                        value={row.decision}
-                        onChange={event => updateRow(row.rowIndex, { decision: event.target.value as ImportDecision })}
-                      >
-                        <option value="create">Créer une opération</option>
-                        {row.match && <option value="match">Rapprocher / conserver l’existante</option>}
-                        <option value="ignore">Ignorer cette ligne</option>
-                      </select>
                     </td>
                   </tr>
                 ))}
@@ -606,38 +409,33 @@ export default function ImportCsvPage() {
             </table>
           </div>
 
-          {preview.length > 200 && <p className="mt-2 text-xs text-slate-500">Les 200 premières lignes sont affichées, mais les {preview.length} lignes seront traitées.</p>}
+          {preview.length > 100 && (
+            <p className="mt-2 text-xs text-slate-500">
+              Les 100 premières lignes sont affichées ici. Les {preview.length} lignes exploitables seront bien enregistrées.
+            </p>
+          )}
 
-          <div className="mt-4 rounded-lg border border-blue-900/60 bg-blue-950/20 p-3 text-xs text-blue-200">
-            Les correspondances détectées ne sont jamais appliquées silencieusement : la colonne <strong>Décision</strong> reste modifiable pour chaque ligne avant confirmation.
+          <div className="mt-4 rounded-lg border border-indigo-900/60 bg-indigo-950/20 p-3 text-xs leading-5 text-indigo-200">
+            Cette étape sert uniquement à vérifier que le fichier est correctement lu. <strong>Tu n’as plus besoin de classer les opérations maintenant.</strong> Après l’enregistrement, chaque ligne sera conservée dans « Transactions importées à valider » et ton avancement sera sauvegardé automatiquement.
           </div>
 
           {importModel.importRows.isError && (
             <div className="mt-4 rounded-lg border border-red-900/60 bg-red-950/30 p-3 text-sm text-red-200">
-              {(importModel.importRows.error as Error)?.message || 'L’import n’a pas pu être finalisé.'}
+              {(importModel.importRows.error as Error)?.message || 'L’import n’a pas pu être enregistré.'}
             </div>
           )}
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs">
-              {duplicateFileBlocked ? (
-                <span className="text-amber-300">Réimport identique à confirmer avant validation.</span>
-              ) : missingAssignmentCount > 0 ? (
-                <span className="text-amber-300">
-                  {missingCategoryCount > 0 ? `${missingCategoryCount} dépense(s) sans catégorie. ` : ''}
-                  {missingEnvelopeCount > 0 ? `${missingEnvelopeCount} mouvement(s) d’épargne sans enveloppe.` : ''}
-                </span>
-              ) : (
-                <span className="text-emerald-400">Prévisualisation prête à être confirmée.</span>
-              )}
-            </div>
+            <span className={duplicateFileBlocked ? 'text-xs text-amber-300' : 'text-xs text-emerald-400'}>
+              {duplicateFileBlocked ? 'Réimport identique à confirmer avant enregistrement.' : 'Le fichier peut être enregistré et classé plus tard.'}
+            </span>
             <button
               type="button"
               onClick={confirmImport}
-              disabled={duplicateFileBlocked || missingAssignmentCount > 0 || importModel.importRows.isPending}
+              disabled={duplicateFileBlocked || preview.length === 0 || importModel.importRows.isPending}
               className="btn btn-primary w-full sm:w-auto"
             >
-              {importModel.importRows.isPending ? 'Import en cours…' : 'Confirmer l’import'}
+              {importModel.importRows.isPending ? 'Enregistrement…' : `Enregistrer les ${preview.length} opérations`}
             </button>
           </div>
         </section>
@@ -647,308 +445,75 @@ export default function ImportCsvPage() {
         <section className="rounded-xl border border-emerald-800/60 bg-emerald-950/20 p-4">
           <div className="flex items-center gap-2 font-semibold text-emerald-300">
             <CheckCircle2 className="h-5 w-5" />
-            Import terminé
+            Import enregistré
           </div>
           <p className="mt-2 text-sm text-slate-300">
-            {lastResult.createdCount} créée(s) · {lastResult.matchedCount} rapprochée(s) · {lastResult.ignoredCount} ignorée(s) · {lastResult.errorCount} erreur(s).
+            {lastResult.pendingCount} opération(s) sont maintenant sauvegardées et peuvent être validées immédiatement ou plus tard.
           </p>
+          <Link href={`/import-csv/validation?batch=${lastResult.batchId}`} className="btn btn-primary btn-sm mt-3">
+            <Eye className="h-4 w-4" />
+            Valider les opérations
+          </Link>
         </section>
       )}
 
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
         <h2 className="font-semibold">Historique des imports</h2>
         <p className="mt-1 text-xs text-slate-500">
-          Un lot peut être annulé uniquement de manière sûre : Neyguichen supprime les opérations créées par ce lot et restaure les charges fixes qu&apos;il avait rapprochées.
+          Les imports en cours peuvent être repris à tout moment. Un lot terminé conserve le lien vers les opérations réellement créées ou rapprochées.
         </p>
 
         {importModel.undoBatch.isError && (
           <div className="mt-4 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-sm text-amber-200">
-            L’annulation a été refusée car le lot n’est plus strictement réversible. Une opération créée ou rapprochée par cet import a probablement été modifiée ensuite.
+            L’annulation a été refusée car au moins une opération déjà validée a été modifiée après l’import.
           </div>
         )}
 
         <div className="mt-4 space-y-2">
           {(importModel.history.data || []).length === 0 ? (
             <p className="text-sm text-slate-600">Aucun import pour ce Budget.</p>
-          ) : (importModel.history.data || []).map(batch => (
-            <div key={batch.id} className="flex flex-col gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium">{batch.file_name || 'Import CSV'}</p>
-                  <span className={`badge badge-sm ${batch.status === 'cancelled' ? 'badge-ghost' : 'badge-outline'}`}>
-                    {batch.status === 'cancelled' ? 'Annulé' : 'Importé'}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">
-                  {new Date(batch.created_at).toLocaleString('fr-FR')} · {batch.created_count} créée(s) · {batch.matched_count} rapprochée(s) · {batch.ignored_count} ignorée(s)
-                </p>
-              </div>
-              {batch.status === 'imported' && (
-                <div className="flex w-full gap-2 sm:w-auto">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary flex-1 sm:flex-none"
-                    onClick={() => loadReview(batch.id)}
-                    disabled={importModel.loadBatchItems.isPending}
-                  >
-                    <Eye className="h-4 w-4" />
-                    Vérifier les opérations
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline flex-1 sm:flex-none"
-                    disabled={importModel.undoBatch.isPending}
-                    onClick={() => {
-                      if (window.confirm('Annuler ce lot ? Les opérations créées par cet import seront supprimées et les rapprochements réversibles restaurés.')) {
-                        importModel.undoBatch.mutate(batch.id)
-                      }
-                    }}
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Annuler
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-      </section>
-
-      {reviewBatchId && (
-        <section className="rounded-xl border border-indigo-500/20 bg-slate-900 p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="font-semibold">Opérations importées à vérifier</h2>
-              <p className="mt-1 text-xs text-slate-500">
-                {reviewRows.length} ligne(s) dans ce lot. Les modifications sont appliquées directement aux opérations comptables existantes.
-              </p>
-            </div>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setReviewBatchId(null); setReviewRows([]); setSelectedReviewIds([]) }}>
-              Fermer
-            </button>
-          </div>
-
-          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/35 p-3">
-            <div className="flex flex-wrap items-end gap-2">
-              <label className="flex items-center gap-2 pb-2 text-xs text-slate-400">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-xs"
-                  checked={reviewRows.length > 0 && selectedReviewIds.length === reviewRows.filter(row => row.action === 'created').length}
-                  onChange={event => setSelectedReviewIds(event.target.checked ? reviewRows.filter(row => row.action === 'created').map(row => row.id) : [])}
-                />
-                Tout sélectionner
-              </label>
-
-              <label className="min-w-44">
-                <span className="mb-1 block text-[10px] text-slate-500">Nature en lot</span>
-                <select className="select select-bordered select-sm w-full bg-slate-950" value={bulkNature} onChange={e => setBulkNature(e.target.value as ImportNature | '')}>
-                  <option value="">Ne pas modifier</option>
-                  <option value="expense">Dépense</option>
-                  <option value="income">Revenu</option>
-                  <option value="savings_deposit">Versement épargne</option>
-                  <option value="savings_withdrawal">Reprise épargne</option>
-                </select>
-              </label>
-
-              <label className="min-w-44">
-                <span className="mb-1 block text-[10px] text-slate-500">Catégorie en lot</span>
-                <select className="select select-bordered select-sm w-full bg-slate-950" value={bulkCategory} onChange={e => { setBulkCategory(e.target.value); setBulkSubcategory('') }}>
-                  <option value="">Ne pas modifier</option>
-                  {activeParentCategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
-                </select>
-              </label>
-
-              <label className="min-w-44">
-                <span className="mb-1 block text-[10px] text-slate-500">Sous-catégorie en lot</span>
-                <select className="select select-bordered select-sm w-full bg-slate-950" value={bulkSubcategory} onChange={e => setBulkSubcategory(e.target.value)} disabled={!bulkCategory}>
-                  <option value="">Aucune / ne pas modifier</option>
-                  {reviewSubcategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
-                </select>
-              </label>
-
-              <label className="min-w-44">
-                <span className="mb-1 block text-[10px] text-slate-500">Enveloppe en lot</span>
-                <select className="select select-bordered select-sm w-full bg-slate-950" value={bulkEnvelope} onChange={e => setBulkEnvelope(e.target.value)}>
-                  <option value="">Ne pas modifier</option>
-                  {envelopes.filter(envelope => !envelope.archived).map(envelope => <option key={envelope.id} value={envelope.id}>{envelope.nom}</option>)}
-                </select>
-              </label>
-
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                disabled={selectedReviewIds.length === 0 || importModel.updateImportedTarget.isPending || importModel.reclassifyImportedItem.isPending}
-                onClick={applyBulkReview}
-              >
-                Appliquer à {selectedReviewIds.length || 0} opération(s)
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-2">
-            {reviewRows.map(row => {
-              const target = row.target
-              const isCreated = row.action === 'created'
-              const isExpense = row.target_table === 'transactions'
-              const isIncome = row.target_table === 'revenus'
-              const isSavings = row.target_table === 'mouvements_epargne'
-              const parentId = target?.categorie_id || ''
-              const subcategories = categories.filter(category => category.parent_id === parentId && category.actif !== false)
-              const envelopeId = target?.enveloppe_dest_id || target?.enveloppe_source_id || ''
-              const label = target?.infos || target?.nom || target?.note || row.raw?.label || 'Opération'
-              const amount = Number(target?.montant ?? target?.montant_reel ?? row.raw?.amount ?? 0)
-              const operationDate = target?.date ?? target?.date_prevue ?? row.raw?.operationDate ?? row.raw?.date ?? ''
-              const validationDate = target?.date_validation ?? target?.date_reelle ?? row.raw?.date ?? ''
-              return (
-                <div key={row.id} className="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-                    <div className="pt-1">
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-xs"
-                        disabled={!isCreated}
-                        checked={selectedReviewIds.includes(row.id)}
-                        onChange={event => setSelectedReviewIds(current => event.target.checked ? [...current, row.id] : current.filter(id => id !== row.id))}
-                      />
-                    </div>
-
-                    <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-2 xl:grid-cols-6">
-                      <label className="xl:col-span-2">
-                        <span className="mb-1 block text-[10px] text-slate-600">Libellé / note</span>
-                        <input
-                          className="input input-bordered input-sm w-full bg-slate-950"
-                          defaultValue={label}
-                          disabled={!target}
-                          onBlur={e => {
-                            if (!target || e.target.value === label) return
-                            const patch = isExpense ? { infos: e.target.value } : isIncome ? { nom: e.target.value } : isSavings ? { note: e.target.value } : {}
-                            updateReviewTarget(row, patch)
-                          }}
-                        />
-                      </label>
-
-                      <label>
-                        <span className="mb-1 block text-[10px] text-slate-600">Montant</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="input input-bordered input-sm w-full bg-slate-950"
-                          defaultValue={amount}
-                          disabled={!target}
-                          onBlur={e => {
-                            const value = Number(e.target.value)
-                            if (!Number.isFinite(value) || value === amount) return
-                            updateReviewTarget(row, isExpense || isIncome || isSavings ? { montant: Math.abs(value) } : { montant_reel: Math.abs(value) })
-                          }}
-                        />
-                      </label>
-
-                      <label>
-                        <span className="mb-1 block text-[10px] text-slate-600">Date opération</span>
-                        <input
-                          type="date"
-                          className="input input-bordered input-sm w-full bg-slate-950"
-                          defaultValue={operationDate || ''}
-                          disabled={!target || isSavings}
-                          onBlur={e => {
-                            if (!target || !e.target.value || e.target.value === operationDate) return
-                            updateReviewTarget(row, isExpense ? { date: e.target.value } : isIncome ? { date_prevue: e.target.value } : {})
-                          }}
-                        />
-                      </label>
-
-                      <label>
-                        <span className="mb-1 block text-[10px] text-slate-600">Date validation</span>
-                        <input
-                          type="date"
-                          className="input input-bordered input-sm w-full bg-slate-950"
-                          defaultValue={validationDate || ''}
-                          disabled={!target}
-                          onBlur={e => {
-                            if (!target || !e.target.value || e.target.value === validationDate) return
-                            updateReviewTarget(row, isExpense ? { date_validation: e.target.value } : isIncome ? { date_reelle: e.target.value } : isSavings ? { date: e.target.value } : { date_reelle: e.target.value })
-                          }}
-                        />
-                      </label>
-
-                      <label>
-                        <span className="mb-1 block text-[10px] text-slate-600">Nature</span>
-                        <select
-                          className="select select-bordered select-sm w-full bg-slate-950"
-                          value={row.nature}
-                          disabled={!isCreated}
-                          onChange={e => reclassifyReviewRow(row, e.target.value as ImportNature)}
-                        >
-                          <option value="expense">Dépense</option>
-                          <option value="income">Revenu</option>
-                          <option value="savings_deposit">Versement épargne</option>
-                          <option value="savings_withdrawal">Reprise épargne</option>
-                          <option value="savings_internal" disabled>Transfert interne</option>
-                          <option value="ignore" disabled>Ignorer</option>
-                        </select>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2 pl-0 lg:pl-7">
-                    {isExpense && (
-                      <>
-                        <select
-                          className="select select-bordered select-xs min-w-48 bg-slate-950"
-                          value={parentId}
-                          onChange={e => updateReviewTarget(row, { categorie_id: e.target.value, sous_categorie_id: null })}
-                        >
-                          <option value="">Catégorie…</option>
-                          {activeParentCategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
-                        </select>
-                        <select
-                          className="select select-bordered select-xs min-w-48 bg-slate-950"
-                          value={target?.sous_categorie_id || ''}
-                          disabled={!parentId}
-                          onChange={e => updateReviewTarget(row, { sous_categorie_id: e.target.value || null })}
-                        >
-                          <option value="">Sans sous-catégorie</option>
-                          {subcategories.map(category => <option key={category.id} value={category.id}>{category.icone || '•'} {category.nom}</option>)}
-                        </select>
-                      </>
-                    )}
-
-                    {isIncome && (
-                      <select
-                        className="select select-bordered select-xs min-w-40 bg-slate-950"
-                        value={target?.type || 'actif'}
-                        onChange={e => updateReviewTarget(row, { type: e.target.value })}
-                      >
-                        <option value="actif">Revenu actif</option>
-                        <option value="passif">Revenu passif</option>
-                      </select>
-                    )}
-
-                    {isSavings && (
-                      <select
-                        className="select select-bordered select-xs min-w-48 bg-slate-950"
-                        value={envelopeId}
-                        onChange={e => updateReviewTarget(row, row.nature === 'savings_deposit'
-                          ? { enveloppe_source_id: null, enveloppe_dest_id: e.target.value }
-                          : { enveloppe_source_id: e.target.value, enveloppe_dest_id: null })}
-                      >
-                        <option value="">Enveloppe…</option>
-                        {envelopes.filter(envelope => !envelope.archived).map(envelope => <option key={envelope.id} value={envelope.id}>{envelope.nom}</option>)}
-                      </select>
-                    )}
-
-                    <span className="badge badge-sm badge-outline">
-                      {row.action === 'created' ? 'Créée par import' : row.action === 'matched' ? 'Rapprochée' : row.action === 'ignored' ? 'Ignorée' : 'Erreur'}
+          ) : (importModel.history.data || []).map(batch => {
+            const pending = Math.max(0, batch.row_count - batch.created_count - batch.matched_count - batch.ignored_count - batch.error_count)
+            return (
+              <div key={batch.id} className="flex flex-col gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">{batch.file_name || 'Import CSV'}</p>
+                    <span className={`badge badge-sm ${batch.status === 'reviewing' ? 'border-amber-700 bg-amber-950 text-amber-300' : batch.status === 'completed' ? 'border-emerald-800 bg-emerald-950 text-emerald-300' : 'badge-ghost'}`}>
+                      {batch.status === 'reviewing' ? 'À valider' : batch.status === 'completed' ? 'Validé' : 'Annulé'}
                     </span>
                   </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {new Date(batch.created_at).toLocaleString('fr-FR')} · {pending} à valider · {batch.created_count} créée(s) · {batch.matched_count} rapprochée(s) · {batch.ignored_count} ignorée(s)
+                  </p>
                 </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
+
+                {batch.status !== 'cancelled' && (
+                  <div className="flex w-full gap-2 sm:w-auto">
+                    <Link href={`/import-csv/validation?batch=${batch.id}`} className="btn btn-sm btn-primary flex-1 sm:flex-none">
+                      <Eye className="h-4 w-4" />
+                      {batch.status === 'reviewing' ? 'Reprendre' : 'Voir'}
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline flex-1 sm:flex-none"
+                      disabled={importModel.undoBatch.isPending}
+                      onClick={() => {
+                        if (window.confirm('Annuler ce lot ? Les opérations déjà créées par cet import seront supprimées uniquement si cela peut être fait sans écraser de modifications plus récentes.')) {
+                          importModel.undoBatch.mutate(batch.id)
+                        }
+                      }}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Annuler
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
     </div>
   )
 }
