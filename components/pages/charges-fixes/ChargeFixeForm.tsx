@@ -10,7 +10,7 @@ import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { useForm } from 'react-hook-form'
 import InlineCatCreator from '@/components/pages/variables/InlineCatCreator'
 
-type RecurrenceMode = 'once' | 'monthly' | 'custom'
+type RecurrenceMode = 'monthly' | 'custom'
 type CategoryOption = {
   id: string
   nom: string
@@ -63,11 +63,9 @@ export default function ChargeFixeForm({
     [categories, categorieId],
   )
 
-  const frequency = recurrenceMode === 'once'
-    ? 0
-    : recurrenceMode === 'monthly'
-      ? 1
-      : Math.max(2, customFrequency || 2)
+  const frequency = recurrenceMode === 'monthly'
+    ? 1
+    : Math.max(2, customFrequency || 2)
 
   const resetAll = () => {
     reset()
@@ -221,9 +219,8 @@ export default function ChargeFixeForm({
 
           <div>
             <label className="mb-1 block text-sm text-slate-400">Récurrence</label>
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
+            <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
               {([
-                ['once', 'Cette fois'],
                 ['monthly', 'Tous les mois'],
                 ['custom', 'Tous les X mois'],
               ] as const).map(([value, label]) => (
