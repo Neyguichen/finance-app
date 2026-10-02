@@ -8,6 +8,9 @@ alter table public.import_batches
   add constraint import_batches_status_check
   check (status in ('reviewing','completed','cancelled'));
 
+alter table public.import_batches
+  alter column status set default 'reviewing';
+
 alter table public.import_batch_items
   drop constraint if exists import_batch_items_action_check;
 
