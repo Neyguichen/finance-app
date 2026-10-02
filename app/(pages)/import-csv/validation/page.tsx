@@ -102,6 +102,7 @@ export default function ImportedTransactionsValidationPage() {
     if (row.action !== 'pending') return false
     const source = row.analysis || row.raw
     const nature = row.nature as ImportNature
+    if (source.decision === 'review') return true
     if (source.decision === 'ignore' || nature === 'ignore' || nature === 'savings_internal') return false
     if (source.decision === 'match' && source.match) return false
     if (nature === 'expense') return !source.categoryId
@@ -470,10 +471,11 @@ export default function ImportedTransactionsValidationPage() {
                 </div>
 
                 <div className="flex min-w-44 flex-col items-stretch gap-2 xl:pt-5">
-                  {pending && source.match && (
-                    <select className="select select-bordered select-xs bg-slate-950" value={source.decision || 'create'} onChange={event => savePending(row, { decision: event.target.value as any })}>
-                      <option value="create">Créer</option>
-                      <option value="match">Rapprocher</option>
+                  {pending && (source.decision === 'review' || source.match || source.status === 'duplicate_in_file') && (
+                    <select className="select select-bordered select-xs bg-slate-950" value={source.decision || 'review'} onChange={event => savePending(row, { decision: event.target.value as any })}>
+                      <option value="review">À décider…</option>
+                      <option value="create">Créer quand même</option>
+                      {source.match && <option value="match">Rapprocher</option>}
                       <option value="ignore">Ignorer</option>
                     </select>
                   )}
