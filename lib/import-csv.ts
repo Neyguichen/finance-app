@@ -9,6 +9,12 @@ export type CsvMapping = {
   amount?: string
   debit?: string
   credit?: string
+  category?: string
+  subcategory?: string
+  nature?: string
+  note?: string
+  incomeType?: string
+  envelope?: string
 }
 
 export type ParsedCsv = {
@@ -36,6 +42,11 @@ export type MappedImportRow = {
   nature: ImportNature
   categoryId?: string | null
   envelopeId?: string | null
+  categoryName?: string | null
+  subcategoryName?: string | null
+  note?: string | null
+  incomeType?: 'actif' | 'passif' | null
+  envelopeName?: string | null
 }
 
 function splitCsvLine(line: string, delimiter: string) {
@@ -143,6 +154,15 @@ export function mapCsvRows(
       ? parseImportDate(row[mapping.operationDate] || '')
       : date
     const label = (row[mapping.label] || '').trim()
+    const categoryName = mapping.category ? (row[mapping.category] || '').trim() || null : null
+    const subcategoryName = mapping.subcategory ? (row[mapping.subcategory] || '').trim() || null : null
+    const note = mapping.note ? (row[mapping.note] || '').trim() || null : null
+    const envelopeName = mapping.envelope ? (row[mapping.envelope] || '').trim() || null : null
+    const incomeTypeRaw = mapping.incomeType ? (row[mapping.incomeType] || '').trim().toLowerCase() : ''
+    const incomeType = ['passif', 'passive', 'passif/passive'].includes(incomeTypeRaw) ? 'passif' as const
+      : ['actif', 'active', 'actif/active'].includes(incomeTypeRaw) ? 'actif' as const
+      : null
+    const natureRaw = mapping.nature ? (row[mapping.nature] || '').trim().toLowerCase() : ''
 
     let amount: number | null = null
     if (mapping.amount) {
@@ -170,15 +190,38 @@ export function mapCsvRows(
       return
     }
 
+    let nature: ImportNature = amount > 0 ? 'income' : 'expense'
+    if (natureRaw) {
+      const normalizedNature = natureRaw.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      if (normalizedNature.includes('epargne') || normalizedNature.includes('saving')) {
+        nature = normalizedNature.includes('reprise') || normalizedNature.includes('retrait') || normalizedNature.includes('withdraw')
+          ? 'savings_withdrawal'
+          : normalizedNature.includes('transfert') || normalizedNature.includes('transfer')
+            ? 'savings_internal'
+            : 'savings_deposit'
+      } else if (normalizedNature.includes('revenu') || normalizedNature.includes('income') || normalizedNature.includes('credit')) {
+        nature = 'income'
+      } else if (normalizedNature.includes('depense') || normalizedNature.includes('expense') || normalizedNature.includes('debit')) {
+        nature = 'expense'
+      } else if (normalizedNature.includes('ignor')) {
+        nature = 'ignore'
+      }
+    }
+
     valid.push({
       rowIndex: index,
       date,
       operationDate: operationDate || date,
       label,
       amount,
-      nature: amount > 0 ? 'income' : 'expense',
+      nature,
       categoryId: null,
       envelopeId: null,
+      categoryName,
+      subcategoryName,
+      note,
+      incomeType,
+      envelopeName,
     })
   })
 
