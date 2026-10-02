@@ -3,8 +3,6 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, ArrowLeft, Check, CheckCircle2, Copy, Filter, Search } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
-
 import { useApp } from '@/components/AppContext'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useEnveloppes } from '@/lib/hooks/useEpargne'
@@ -21,8 +19,11 @@ function normalize(value: string | null | undefined) {
 }
 
 export default function ImportedTransactionsValidationPage() {
-  const params = useSearchParams()
-  const requestedBatchId = params.get('batch')
+  const [requestedBatchId, setRequestedBatchId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setRequestedBatchId(new URLSearchParams(window.location.search).get('batch'))
+  }, [])
   const { espace, userId, isAdminViewing } = useApp()
   const importModel = useCsvImport(espace?.id, userId)
   const { data: categories = [] } = useCategories(espace?.id)
