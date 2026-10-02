@@ -492,9 +492,16 @@ export default function DepensesPage() {
                 <CardTitle className="flex items-center justify-between gap-3 text-sm text-slate-200">
                   <span>Budgets variables <strong className="ml-2 text-emerald-300">{formatEuro(plannedVariable)}</strong></span>
                   {!isAdminViewing && espace?.id && (
-                    <Button size="sm" onClick={() => openCategoryDialog(null)}>
-                      <Plus className="mr-1 h-3.5 w-3.5" />Ajouter une catégorie
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {moisId && (
+                        <Button size="sm" variant="outline" onClick={() => setTxOpen(true)}>
+                          <Plus className="mr-1 h-3.5 w-3.5" />Dépense variable
+                        </Button>
+                      )}
+                      <Button size="sm" onClick={() => openCategoryDialog(null)}>
+                        <Plus className="mr-1 h-3.5 w-3.5" />Ajouter une catégorie
+                      </Button>
+                    </div>
                   )}
                 </CardTitle>
               </CardHeader>
