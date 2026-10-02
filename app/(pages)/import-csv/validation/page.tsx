@@ -33,6 +33,7 @@ export default function ImportedTransactionsValidationPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [onlyIssues, setOnlyIssues] = useState(false)
+  const [fileFilter, setFileFilter] = useState('')
   const [bulkNature, setBulkNature] = useState<ImportNature | ''>('')
   const [bulkCategory, setBulkCategory] = useState('')
   const [bulkSubcategory, setBulkSubcategory] = useState('')
@@ -40,9 +41,8 @@ export default function ImportedTransactionsValidationPage() {
   const [message, setMessage] = useState<string | null>(null)
 
   const batch = useMemo(() => {
-    const all = importModel.history.data || []
-    if (requestedBatchId) return all.find(item => item.id === requestedBatchId) || null
-    return all.find(item => item.status === 'reviewing') || null
+    if (!requestedBatchId) return null
+    return (importModel.history.data || []).find(item => item.id === requestedBatchId) || null
   }, [importModel.history.data, requestedBatchId])
 
   const activeParents = useMemo(
@@ -56,24 +56,36 @@ export default function ImportedTransactionsValidationPage() {
   )
 
   const refresh = async () => {
-    if (!batch?.id) return
-    const loaded = await importModel.loadBatchItems.mutateAsync(batch.id)
+    const loaded = requestedBatchId && batch?.id
+      ? await importModel.loadBatchItems.mutateAsync(batch.id)
+      : await importModel.loadPendingItems.mutateAsync()
+
     const pending = loaded.filter((item: any) => item.action === 'pending')
 
     let analyzed: ImportPreviewRow[] = []
     if (pending.length > 0) {
-      analyzed = await importModel.analyze.mutateAsync(pending.map((item: any) => item.raw))
+      analyzed = await importModel.analyze.mutateAsync(
+        pending.map((item: any) => ({
+          ...item.raw,
+          _pendingItemId: item.id,
+        }))
+      )
     }
-    const byIndex = new Map(analyzed.map(row => [row.rowIndex, row]))
+
+    const byItemId = new Map<string, ImportPreviewRow>()
+    pending.forEach((item: any, index: number) => {
+      if (analyzed[index]) byItemId.set(item.id, analyzed[index])
+    })
+
     setRows(loaded.map((item: any) => ({
       ...item,
-      analysis: item.action === 'pending' ? byIndex.get(item.row_index) || item.raw : undefined,
+      analysis: item.action === 'pending' ? byItemId.get(item.id) || item.raw : undefined,
     })))
   }
 
   useEffect(() => {
-    if (batch?.id) refresh()
-  }, [batch?.id])
+    if (!requestedBatchId || batch?.id) refresh()
+  }, [requestedBatchId, batch?.id])
 
   const pendingRows = rows.filter(row => row.action === 'pending')
 
@@ -120,10 +132,17 @@ export default function ImportedTransactionsValidationPage() {
       source.status === 'fixed_candidate'
   }
 
+  const fileOptions = Array.from(new Map(
+    rows
+      .filter(row => row.batch?.id)
+      .map(row => [row.batch.id, row.batch.file_name || 'Import CSV'])
+  ).entries())
+
   const filteredRows = rows.filter(row => {
     const source = row.analysis || row.raw || {}
     const haystack = [source.label, source.note, source.categoryName, source.subcategoryName].join(' ').toLocaleLowerCase('fr-FR')
     if (query.trim() && !haystack.includes(query.trim().toLocaleLowerCase('fr-FR'))) return false
+    if (fileFilter && row.batch?.id !== fileFilter) return false
     if (onlyIssues && !rowHasIssue(row)) return false
     return true
   })
@@ -209,21 +228,6 @@ export default function ImportedTransactionsValidationPage() {
     return <div className="p-4 text-sm text-slate-400">La validation des imports est désactivée en vue administrateur.</div>
   }
 
-  if (!batch) {
-    return (
-      <div className="mx-auto max-w-4xl p-4">
-        <Link href="/import-csv" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white">
-          <ArrowLeft className="h-4 w-4" /> Retour aux imports
-        </Link>
-        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center">
-          <CheckCircle2 className="mx-auto h-9 w-9 text-emerald-400" />
-          <h1 className="mt-3 text-xl font-semibold">Aucun import à valider</h1>
-          <p className="mt-1 text-sm text-slate-500">Tu peux lancer un nouvel import bancaire.</p>
-        </div>
-      </div>
-    )
-  }
-
   const pendingCount = pendingRows.length
   const readyCount = pendingRows.filter(row => !rowNeedsAssignment(row)).length
   const issueCount = pendingRows.filter(rowHasIssue).length
@@ -237,7 +241,9 @@ export default function ImportedTransactionsValidationPage() {
           </Link>
           <h1 className="text-2xl font-semibold">Transactions importées à valider</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {batch.file_name || 'Import CSV'} · ton avancement est enregistré à chaque modification.
+            {requestedBatchId && batch
+              ? `${batch.file_name || 'Import CSV'} · consultation d’un lot précis.`
+              : 'File globale de toutes les transactions importées encore à valider. Ton avancement est enregistré à chaque modification.'}
           </p>
         </div>
 
@@ -266,6 +272,16 @@ export default function ImportedTransactionsValidationPage() {
               placeholder="Libellé, note, catégorie…"
             />
           </label>
+
+          {!requestedBatchId && fileOptions.length > 1 && (
+            <label>
+              <span className="mb-1 block text-xs text-slate-500">Fichier</span>
+              <select className="select select-bordered select-sm min-w-52 bg-slate-950" value={fileFilter} onChange={event => setFileFilter(event.target.value)}>
+                <option value="">Tous les fichiers</option>
+                {fileOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+              </select>
+            </label>
+          )}
 
           <label className="flex h-8 cursor-pointer items-center gap-2 text-xs text-slate-400">
             <input type="checkbox" className="checkbox checkbox-xs" checked={onlyIssues} onChange={event => setOnlyIssues(event.target.checked)} />
@@ -353,6 +369,13 @@ export default function ImportedTransactionsValidationPage() {
           return (
             <article key={row.id} className={`rounded-xl border p-3 ${rowHasIssue(row) ? 'border-amber-800/60 bg-amber-950/10' : 'border-slate-800 bg-slate-900'}`}>
               <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
+                {!requestedBatchId && row.batch?.file_name && (
+                  <div className="xl:w-36 xl:pt-5">
+                    <span className="badge badge-sm badge-ghost max-w-full truncate" title={row.batch.file_name}>
+                      {row.batch.file_name}
+                    </span>
+                  </div>
+                )}
                 <div className="pt-6">
                   <input
                     type="checkbox"
@@ -494,7 +517,7 @@ export default function ImportedTransactionsValidationPage() {
 
               {(duplicatePending || validatedDuplicate || csvDuplicate || fixedCandidate || rowNeedsAssignment(row)) && (
                 <div className="mt-3 flex flex-wrap gap-2 pl-0 text-[11px] xl:pl-7">
-                  {duplicatePending && <Issue icon={Copy} text="Doublon potentiel dans les transactions à valider" />}
+                  {duplicatePending && <Issue icon={Copy} text="Doublon potentiel avec une autre transaction à valider" />}
                   {validatedDuplicate && <Issue icon={Copy} text={source.match?.detail || 'Doublon potentiel avec une transaction déjà validée'} />}
                   {csvDuplicate && <Issue icon={Copy} text="Doublon détecté dans le fichier importé" />}
                   {fixedCandidate && <Issue icon={AlertTriangle} text={source.match?.detail || 'Rapprochement possible avec une charge fixe'} />}
