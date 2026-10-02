@@ -68,7 +68,7 @@ export function FormActions({
   className?: string
 }) {
   return (
-    <div className={cn('sticky -bottom-5 -mx-5 mt-5 flex flex-col-reverse gap-2 border-t border-slate-800/80 bg-slate-900/95 px-5 pb-5 pt-4 backdrop-blur sm:flex-row sm:justify-end', className)}>
+    <div className={cn('-mx-1 mt-5 flex flex-col-reverse gap-2 border-t border-slate-800/80 px-1 pt-4 sm:flex-row sm:justify-end', className)}>
       {children}
     </div>
   )
