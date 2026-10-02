@@ -1,9 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { CalendarDays, FileText, HandCoins, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { CalculatorInput } from '@/components/ui/calculator-input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FormActions, FormField, FormSection } from '@/components/ui/form-layout'
 
 type Props = {
   open: boolean
@@ -22,18 +25,22 @@ export default function DetteForm({ open, onOpenChange, tab, onSubmit }: Props) 
   const [titre, setTitre] = useState('')
   const [description, setDescription] = useState('')
   const [personne, setPersonne] = useState('')
-  const [montant, setMontant] = useState('')
+  const [montant, setMontant] = useState(0)
   const [dateEcheance, setDateEcheance] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const montantNumber = Number(montant)
-  const canSubmit = Boolean(
-    titre.trim() &&
-    personne.trim() &&
-    Number.isFinite(montantNumber) &&
-    montantNumber > 0,
-  )
+  const isDebt = tab === 'je_dois'
+  const canSubmit = Boolean(titre.trim() && personne.trim() && Number.isFinite(montant) && montant > 0)
+
+  const resetForm = () => {
+    setTitre('')
+    setDescription('')
+    setPersonne('')
+    setMontant(0)
+    setDateEcheance('')
+    setError(null)
+  }
 
   const handleSubmit = async () => {
     if (!canSubmit || saving) return
@@ -44,14 +51,11 @@ export default function DetteForm({ open, onOpenChange, tab, onSubmit }: Props) 
         titre: titre.trim(),
         description: description.trim() || null,
         personne: personne.trim(),
-        montant: montantNumber,
+        montant,
         date_echeance: dateEcheance || null,
       })
-      setTitre('')
-      setDescription('')
-      setPersonne('')
-      setMontant('')
-      setDateEcheance('')
+      resetForm()
+      onOpenChange(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible d’enregistrer cette dette ou créance.')
     } finally {
@@ -59,37 +63,52 @@ export default function DetteForm({ open, onOpenChange, tab, onSubmit }: Props) 
     }
   }
 
-  const isDebt = tab === 'je_dois'
-
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => {
-      if (!saving) {
-        setError(null)
-        onOpenChange(nextOpen)
-      }
+    <Dialog open={open} onOpenChange={nextOpen => {
+      if (saving) return
+      if (!nextOpen) setError(null)
+      onOpenChange(nextOpen)
     }}>
-      <DialogContent className="bg-slate-900 border-slate-700 w-11/12 max-w-sm mx-auto">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            {isDebt ? 'Nouvelle dette — Je dois' : 'Nouvelle créance — On me doit'}
-          </DialogTitle>
+          <DialogTitle>{isDebt ? 'Nouvelle dette' : 'Nouvelle créance'}</DialogTitle>
+          <DialogDescription>
+            {isDebt ? 'Enregistrez une somme que vous devez à quelqu’un.' : 'Enregistrez une somme que quelqu’un doit vous rembourser.'}
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <Input placeholder={isDebt ? 'Titre (ex : Prêt voiture)' : 'Titre (ex : Avance à un proche)'} value={titre} onChange={e => setTitre(e.target.value)} />
-          <Input placeholder="Description (optionnel)" value={description} onChange={e => setDescription(e.target.value)} />
-          <Input placeholder={isDebt ? 'À qui je dois ?' : 'Qui me doit ?'} value={personne} onChange={e => setPersonne(e.target.value)} />
-          <Input type="number" min="0.01" step="0.01" placeholder="Montant total" value={montant} onChange={e => setMontant(e.target.value)} />
-          <div>
-            <label className="text-sm text-slate-400 mb-1 block">
-              {isDebt ? 'Date de remboursement souhaitée (optionnel)' : 'Date de remboursement attendue (optionnel)'}
-            </label>
-            <Input type="date" value={dateEcheance} onChange={e => setDateEcheance(e.target.value)} />
-          </div>
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <Button className="w-full" disabled={!canSubmit || saving} onClick={handleSubmit}>
-            {saving ? 'Enregistrement…' : 'Ajouter'}
-          </Button>
+
+        <div className="space-y-4">
+          <FormSection title="Informations" description="Identifiez facilement cette dette ou créance." icon={<FileText className="h-4 w-4" />}>
+            <FormField label="Titre">
+              <Input placeholder={isDebt ? 'Ex. Prêt voiture' : 'Ex. Avance à un proche'} value={titre} onChange={e => setTitre(e.target.value)} />
+            </FormField>
+            <FormField label={isDebt ? 'À qui devez-vous cette somme ?' : 'Qui vous doit cette somme ?'}>
+              <Input placeholder="Nom de la personne ou de l’organisme" value={personne} onChange={e => setPersonne(e.target.value)} />
+            </FormField>
+          </FormSection>
+
+          <FormSection title="Montant" description="Montant total à rembourser." icon={<HandCoins className="h-4 w-4" />}>
+            <CalculatorInput value={montant} onChange={setMontant} placeholder="0,00 €" />
+          </FormSection>
+
+          <FormSection title="Échéance et note" description="Ces informations sont facultatives." icon={<CalendarDays className="h-4 w-4" />}>
+            <FormField label={isDebt ? 'Remboursement souhaité le' : 'Remboursement attendu le'} hint="Facultatif">
+              <Input type="date" value={dateEcheance} onChange={e => setDateEcheance(e.target.value)} />
+            </FormField>
+            <FormField label="Note" hint="Facultatif">
+              <Input placeholder="Ajouter un contexte ou une précision" value={description} onChange={e => setDescription(e.target.value)} />
+            </FormField>
+          </FormSection>
+
+          {error && <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-300">{error}</div>}
         </div>
+
+        <FormActions>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Annuler</Button>
+          <Button onClick={handleSubmit} disabled={!canSubmit || saving}>
+            {saving ? 'Enregistrement…' : isDebt ? 'Créer la dette' : 'Créer la créance'}
+          </Button>
+        </FormActions>
       </DialogContent>
     </Dialog>
   )
