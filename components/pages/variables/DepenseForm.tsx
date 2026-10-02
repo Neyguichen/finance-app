@@ -1,15 +1,14 @@
 'use client'
 
-import { localDateISO } from '@/lib/utils'
 import { useState } from 'react'
+import { Plus, Scissors, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { EmojiPicker } from '@/components/ui/emoji-picker'
-import { Plus, Trash2, Scissors } from 'lucide-react'
-import { formatEuro } from '@/lib/utils'
-import InlineCatCreator from './InlineCatCreator'
+import { SearchableSelect } from '@/components/ui/searchable-select'
+import CategorieDialog from './CategorieDialog'
+import { formatEuro, localDateISO } from '@/lib/utils'
 
 type SplitLine = {
   categorie_id: string
@@ -17,6 +16,11 @@ type SplitLine = {
   montant: number
   infos: string
 }
+
+type CategoryTarget =
+  | { scope: 'main'; parentId: string | null }
+  | { scope: 'split'; lineIndex: number; parentId: string | null }
+  | null
 
 type Props = {
   open: boolean
@@ -31,7 +35,18 @@ type Props = {
   onSubmitSplit?: (data: { categorie_id: string; montant: number; date: string; date_validation: string | null; infos: string | null }, lines: SplitLine[]) => Promise<void>
 }
 
-export default function DepenseForm({ open, onOpenChange, categories, espaceId, createCat, doubleDate, subcategoriesEnabled = true, splitEnabled = true, onSubmit, onSubmitSplit }: Props) {
+export default function DepenseForm({
+  open,
+  onOpenChange,
+  categories,
+  espaceId,
+  createCat,
+  doubleDate,
+  subcategoriesEnabled = true,
+  splitEnabled = true,
+  onSubmit,
+  onSubmitSplit,
+}: Props) {
   const [txCat, setTxCat] = useState('')
   const [txSubCat, setTxSubCat] = useState('')
   const [txMontant, setTxMontant] = useState(0)
@@ -39,272 +54,345 @@ export default function DepenseForm({ open, onOpenChange, categories, espaceId, 
   const [txDate, setTxDate] = useState(localDateISO())
   const [txDateValidation, setTxDateValidation] = useState('')
   const [txValidated, setTxValidated] = useState(false)
-  const [inlineCatOpen, setInlineCatOpen] = useState(false)
-
-  // Split mode
   const [splitMode, setSplitMode] = useState(false)
+  const [categoryTarget, setCategoryTarget] = useState<CategoryTarget>(null)
   const [splitLines, setSplitLines] = useState<SplitLine[]>([
     { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' },
     { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' },
   ])
 
-  // Inline sub-cat
-  const [inlineSubOpen, setInlineSubOpen] = useState(false)
-  const [newSubNom, setNewSubNom] = useState('')
-  const [newSubIcone, setNewSubIcone] = useState('📎')
-
-  const parentCategories = categories.filter((c: any) => !c.parent_id && c.actif !== false)
+  const parentCategories = categories
+    .filter((c: any) => !c.parent_id && c.actif !== false)
+    .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
   const getSubCats = (parentId: string) =>
-    categories.filter((c: any) => c.parent_id === parentId && c.actif !== false)
+    categories
+      .filter((c: any) => c.parent_id === parentId && c.actif !== false)
       .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
 
   const subCats = txCat ? getSubCats(txCat) : []
+  const parentOptions = [
+    { value: '', label: 'Sélectionner une catégorie', icon: '—' },
+    ...parentCategories.map((c: any) => ({ value: c.id, label: c.nom, icon: c.icone })),
+  ]
 
-  // Split helpers
-  const sumSplitLines = splitLines.reduce((s, l) => s + l.montant, 0)
+  const sumSplitLines = splitLines.reduce((sum, line) => sum + line.montant, 0)
   const splitRemaining = Math.round((txMontant - sumSplitLines) * 100) / 100
-  const splitValid = splitLines.length >= 2 && Math.abs(splitRemaining) < 0.01 && splitLines.every(l => l.categorie_id && l.montant > 0)
+  const splitValid = splitLines.length >= 2 && Math.abs(splitRemaining) < 0.01 && splitLines.every(line => line.categorie_id && line.montant > 0)
 
-  const updateSplitLine = (index: number, field: string, value: any) => {
-    setSplitLines(prev => prev.map((l, i) => {
-      if (i !== index) return l
-      const updated = { ...l, [field]: value }
+  const updateSplitLine = (index: number, field: keyof SplitLine, value: any) => {
+    setSplitLines(prev => prev.map((line, lineIndex) => {
+      if (lineIndex !== index) return line
+      const updated = { ...line, [field]: value }
       if (field === 'categorie_id') updated.sous_categorie_id = ''
       return updated
     }))
   }
 
-  const handleCatChange = (value: string) => {
-    if (value === '__NEW__') setInlineCatOpen(true)
-    else { setTxCat(value); setTxSubCat('') }
-  }
-
-  const handleClose = (v: boolean) => {
-    onOpenChange(v)
-    if (!v) { setInlineCatOpen(false); setSplitMode(false); setInlineSubOpen(false) }
-  }
-
   const resetForm = () => {
-    setTxMontant(0); setTxInfos(''); setTxSubCat(''); setTxDateValidation(''); setTxValidated(false)
+    setTxCat('')
+    setTxSubCat('')
+    setTxMontant(0)
+    setTxInfos('')
+    setTxDate(localDateISO())
+    setTxDateValidation('')
+    setTxValidated(false)
     setSplitMode(false)
+    setCategoryTarget(null)
     setSplitLines([
       { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' },
       { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' },
     ])
-    setInlineSubOpen(false)
+  }
+
+  const handleClose = (value: boolean) => {
+    onOpenChange(value)
+    if (!value) resetForm()
+  }
+
+  const createCategory = async (data: { nom: string; icone: string; parent_id?: string }) => {
+    if (!createCat || !espaceId) return null
+    const parent = data.parent_id ? categories.find((category: any) => category.id === data.parent_id) : null
+    return createCat.mutateAsync({
+      espace_id: espaceId,
+      nom: data.nom,
+      icone: data.icone,
+      couleur: parent?.couleur || '#6366f1',
+      ordre: categories.length,
+      parent_id: data.parent_id || null,
+      actif: true,
+    })
+  }
+
+  const applyCreatedCategory = (created: any) => {
+    if (!created?.id || !categoryTarget) return
+    if (categoryTarget.scope === 'main') {
+      if (categoryTarget.parentId) setTxSubCat(created.id)
+      else {
+        setTxCat(created.id)
+        setTxSubCat('')
+      }
+      return
+    }
+    if (categoryTarget.parentId) updateSplitLine(categoryTarget.lineIndex, 'sous_categorie_id', created.id)
+    else updateSplitLine(categoryTarget.lineIndex, 'categorie_id', created.id)
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-slate-900 border-slate-700 max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
-        <div className="space-y-4">
-          {/* Date */}
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">{doubleDate ? "Date d'opération" : 'Date'}</label>
-            <Input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} />
-          </div>
-          {!doubleDate && (
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-              <input type="checkbox" className="checkbox checkbox-sm"
-                checked={txValidated} onChange={e => {
-                  const checked = e.target.checked
-                  setTxValidated(checked)
-                  setTxDateValidation(checked ? (txDateValidation || localDateISO()) : '')
-                }} />
-              Dépense validée
-            </label>
-          )}
-          {doubleDate && (
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Date de validation bancaire <span className="text-slate-600">(optionnel)</span></label>
-              <Input type="date" value={txDateValidation} onChange={e => setTxDateValidation(e.target.value)} />
-            </div>
-          )}
-
-          {/* Montant total */}
-          <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant total" />
-          <Input placeholder="Infos (optionnel)" value={txInfos} onChange={e => setTxInfos(e.target.value)} />
-
-          {/* Toggle split */}
-          {splitEnabled && <button type="button"
-            onClick={() => setSplitMode(!splitMode)}
-            className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors ${splitMode ? 'bg-indigo-900 text-indigo-300' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`}>
-            <Scissors className="w-3 h-3" />
-            {splitMode ? 'Mode split activé' : 'Splitter sur plusieurs catégories'}
-          </button>}
-
-          {/* === MODE NORMAL === */}
-          {!splitMode && (
-            <>
-              <div className="space-y-2">
-                <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                  value={txCat} onChange={e => handleCatChange(e.target.value)}>
-                  <option value="">Catégorie...</option>
-                  {[...parentCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
-                  ))}
-                  <option value="__NEW__">➕ Nouvelle catégorie...</option>
-                </select>
-                {inlineCatOpen && espaceId && (
-                  <InlineCatCreator espaceId={espaceId} categoriesCount={categories.length}
-                    createCat={(data) => createCat.mutateAsync(data)}
-                    onCreated={(id) => { setTxCat(id); setInlineCatOpen(false) }}
-                    onCancel={() => setInlineCatOpen(false)} />
-                )}
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs text-slate-400">{doubleDate ? "Date d'opération" : 'Date'}</label>
+                <Input type="date" value={txDate} onChange={event => setTxDate(event.target.value)} />
               </div>
-              {subcategoriesEnabled && txCat && (
+              {doubleDate && (
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Sous-catégorie <span className="text-slate-600">(optionnel)</span></label>
-                  {subCats.length > 0 ? (
-                    <select className="select select-bordered w-full bg-slate-800 border-slate-700"
-                      value={txSubCat} onChange={e => {
-                        if (e.target.value === '__NEW_SUB__') { setInlineSubOpen(true); setTxSubCat('') }
-                        else { setTxSubCat(e.target.value); setInlineSubOpen(false) }
-                      }}>
-                      <option value="">Aucune</option>
-                      {subCats.map((sc: any) => (
-                        <option key={sc.id} value={sc.id}>{sc.icone} {sc.nom}</option>
-                      ))}
-                      <option value="__NEW_SUB__">➕ Nouvelle sous-catégorie...</option>
-                    </select>
-                  ) : (
-                    !inlineSubOpen && (
-                      <button type="button" onClick={() => setInlineSubOpen(true)}
-                        className="text-xs text-slate-500 hover:text-slate-300 py-1">
-                        ➕ Ajouter une sous-catégorie
-                      </button>
-                    )
-                  )}
-                  {inlineSubOpen && (
-                    <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-2 mt-2">
-                      <p className="text-xs text-slate-400 font-semibold">Nouvelle sous-catégorie</p>
-                      <Input placeholder="Nom" value={newSubNom} onChange={e => setNewSubNom(e.target.value)} />
-                      <EmojiPicker value={newSubIcone} onChange={setNewSubIcone} />
-                      <div className="flex gap-2">
-                        <Button className="flex-1" size="sm" onClick={async () => {
-                          if (!newSubNom.trim() || !espaceId) return
-                          const parent = categories.find((c: any) => c.id === txCat)
-                          const newSub = await createCat.mutateAsync({
-                            espace_id: espaceId, nom: newSubNom.trim(), icone: newSubIcone,
-                            couleur: parent?.couleur || '#8B5CF6', ordre: categories.length, parent_id: txCat,
-                          })
-                          setTxSubCat(newSub.id); setNewSubNom(''); setNewSubIcone('📎'); setInlineSubOpen(false)
-                        }}>Créer</Button>
-                        <Button className="flex-1" size="sm" variant="ghost" onClick={() => { setInlineSubOpen(false); setNewSubNom('') }}>Annuler</Button>
-                      </div>
-                    </div>
-                  )}
+                  <label className="mb-1 block text-xs text-slate-400">Date de validation bancaire <span className="text-slate-600">(optionnel)</span></label>
+                  <Input type="date" value={txDateValidation} onChange={event => setTxDateValidation(event.target.value)} />
                 </div>
               )}
-              <Button className="w-full" onClick={async () => {
-                if (!txCat) return
-                await onSubmit({
-                  categorie_id: txCat,
-                  sous_categorie_id: txSubCat || null,
-                  montant: txMontant,
-                  date: txDate,
-                  date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? (txDateValidation || localDateISO()) : null),
-                  infos: txInfos || null,
-                })
-                resetForm(); onOpenChange(false)
-              }}>Ajouter</Button>
-            </>
-          )}
+            </div>
 
-          {/* === MODE SPLIT === */}
-          {splitEnabled && splitMode && (
-            <>
-              {splitLines.map((line, i) => {
-                const lineSubs = line.categorie_id ? getSubCats(line.categorie_id) : []
-                return (
-                  <div key={i} className="bg-slate-800 rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-500 font-semibold">Ligne {i + 1}</span>
-                      {splitLines.length > 2 && (
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400"
-                          onClick={() => setSplitLines(prev => prev.filter((_, j) => j !== i))}>
-                          <Trash2 className="w-3 h-3" />
+            {!doubleDate && (
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-sm"
+                  checked={txValidated}
+                  onChange={event => {
+                    const checked = event.target.checked
+                    setTxValidated(checked)
+                    setTxDateValidation(checked ? (txDateValidation || localDateISO()) : '')
+                  }}
+                />
+                Dépense validée
+              </label>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
+              <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant total" />
+              <Input placeholder="Informations (optionnel)" value={txInfos} onChange={event => setTxInfos(event.target.value)} />
+            </div>
+
+            {splitEnabled && (
+              <button
+                type="button"
+                onClick={() => setSplitMode(value => !value)}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${splitMode ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-300' : 'border-slate-800 bg-slate-950/30 text-slate-500 hover:text-slate-300'}`}
+              >
+                <Scissors className="h-3.5 w-3.5" />
+                {splitMode ? 'Répartition sur plusieurs catégories activée' : 'Répartir sur plusieurs catégories'}
+              </button>
+            )}
+
+            {!splitMode && (
+              <>
+                <div className="rounded-xl border border-slate-800/70 bg-slate-950/30 p-3">
+                  <p className="mb-3 text-sm font-medium text-slate-200">Classement</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1.5 block text-xs text-slate-500">Catégorie</label>
+                      <div className="grid grid-cols-[1fr_44px] gap-2">
+                        <SearchableSelect
+                          value={txCat}
+                          options={parentOptions}
+                          onChange={value => { setTxCat(value); setTxSubCat('') }}
+                          placeholder="Sélectionner une catégorie"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-11 w-11 p-0"
+                          aria-label="Créer une catégorie"
+                          onClick={() => setCategoryTarget({ scope: 'main', parentId: null })}
+                        >
+                          <Plus className="h-4 w-4" />
                         </Button>
-                      )}
+                      </div>
                     </div>
-                    <select className="select select-bordered w-full bg-slate-700 border-slate-600 text-sm"
-                      value={line.categorie_id} onChange={e => updateSplitLine(i, 'categorie_id', e.target.value)}>
-                      <option value="">Catégorie...</option>
-                      {[...parentCategories].sort((a: any, b: any) => a.nom.localeCompare(b.nom)).map((c: any) => (
-                        <option key={c.id} value={c.id}>{c.icone} {c.nom}</option>
-                      ))}
-                    </select>
-                    {lineSubs.length > 0 && (
-                      <select className="select select-bordered w-full bg-slate-700 border-slate-600 text-sm"
-                        value={line.sous_categorie_id} onChange={e => updateSplitLine(i, 'sous_categorie_id', e.target.value)}>
-                        <option value="">Sous-catégorie (optionnel)</option>
-                        {lineSubs.map((sc: any) => (
-                          <option key={sc.id} value={sc.id}>{sc.icone} {sc.nom}</option>
-                        ))}
-                      </select>
-                    )}
-                    <CalculatorInput value={line.montant} onChange={v => updateSplitLine(i, 'montant', v)} placeholder="Montant" />
-                    <Input placeholder="Infos (optionnel)" value={line.infos} className="text-sm bg-slate-700 border-slate-600"
-                      onChange={e => updateSplitLine(i, 'infos', e.target.value)} />
-                  </div>
-                )
-              })}
-              <Button variant="outline" size="sm" className="w-full text-xs"
-                onClick={() => setSplitLines(prev => [...prev, { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' }])}>
-                <Plus className="w-3 h-3 mr-1" /> Ajouter une ligne
-              </Button>
 
-              {/* Résumé */}
-              <div className={`rounded-lg p-3 text-sm ${Math.abs(splitRemaining) < 0.01 ? 'bg-emerald-950 border border-emerald-800' : 'bg-amber-950 border border-amber-800'}`}>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Total</span>
-                  <span className="font-bold text-white">{formatEuro(txMontant)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Ventilé</span>
-                  <span className="font-semibold text-white">{formatEuro(sumSplitLines)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Reste</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`font-bold ${Math.abs(splitRemaining) < 0.01 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {formatEuro(splitRemaining)}
-                    </span>
-                    {splitRemaining > 0.01 && (
-                      <button type="button"
-                        onClick={() => setSplitLines(prev => prev.map((l, i) =>
-                          i === prev.length - 1 ? { ...l, montant: Math.round((l.montant + splitRemaining) * 100) / 100 } : l
-                        ))}
-                        className="text-[10px] text-indigo-400 hover:text-indigo-300 underline">
-                        Auto-remplir
-                      </button>
+                    {subcategoriesEnabled && txCat && (
+                      <div>
+                        <label className="mb-1.5 block text-xs text-slate-500">Sous-catégorie <span className="text-slate-700">(optionnel)</span></label>
+                        <div className="grid grid-cols-[1fr_44px] gap-2">
+                          <SearchableSelect
+                            value={txSubCat}
+                            options={[
+                              { value: '', label: 'Aucune sous-catégorie', icon: '—' },
+                              ...subCats.map((sub: any) => ({ value: sub.id, label: sub.nom, icon: sub.icone })),
+                            ]}
+                            onChange={setTxSubCat}
+                            placeholder="Aucune sous-catégorie"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 w-11 p-0"
+                            aria-label="Créer une sous-catégorie"
+                            onClick={() => setCategoryTarget({ scope: 'main', parentId: txCat })}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
-              </div>
 
-              <Button className="w-full" disabled={!splitValid || txMontant <= 0}
-                onClick={async () => {
-                  if (!onSubmitSplit || !splitValid) return
-                  await onSubmitSplit(
-                    {
-                      categorie_id: splitLines[0].categorie_id,
+                <Button
+                  className="w-full"
+                  disabled={!txCat || txMontant <= 0}
+                  onClick={async () => {
+                    if (!txCat || txMontant <= 0) return
+                    await onSubmit({
+                      categorie_id: txCat,
+                      sous_categorie_id: txSubCat || null,
                       montant: txMontant,
                       date: txDate,
                       date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? (txDateValidation || localDateISO()) : null),
                       infos: txInfos || null,
-                    },
-                    splitLines.map(l => ({ ...l, sous_categorie_id: l.sous_categorie_id || null, infos: l.infos || null })) as any,
-                  )
-                  resetForm(); onOpenChange(false)
-                }}>
-                ✂️ Créer et splitter
-              </Button>
-            </>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+                    })
+                    resetForm()
+                    onOpenChange(false)
+                  }}
+                >
+                  Ajouter la dépense
+                </Button>
+              </>
+            )}
+
+            {splitEnabled && splitMode && (
+              <>
+                <div className="space-y-3">
+                  {splitLines.map((line, index) => {
+                    const lineSubs = line.categorie_id ? getSubCats(line.categorie_id) : []
+                    return (
+                      <div key={index} className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/35 p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-400">Répartition {index + 1}</span>
+                          {splitLines.length > 2 && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-400" onClick={() => setSplitLines(prev => prev.filter((_, i) => i !== index))}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-[1fr_44px] gap-2">
+                          <SearchableSelect
+                            value={line.categorie_id}
+                            options={parentOptions}
+                            onChange={value => updateSplitLine(index, 'categorie_id', value)}
+                            placeholder="Catégorie"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 w-11 p-0"
+                            onClick={() => setCategoryTarget({ scope: 'split', lineIndex: index, parentId: null })}
+                            aria-label="Créer une catégorie"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {subcategoriesEnabled && line.categorie_id && (
+                          <div className="grid grid-cols-[1fr_44px] gap-2">
+                            <SearchableSelect
+                              value={line.sous_categorie_id}
+                              options={[
+                                { value: '', label: 'Aucune sous-catégorie', icon: '—' },
+                                ...lineSubs.map((sub: any) => ({ value: sub.id, label: sub.nom, icon: sub.icone })),
+                              ]}
+                              onChange={value => updateSplitLine(index, 'sous_categorie_id', value)}
+                              placeholder="Sous-catégorie"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-11 w-11 p-0"
+                              onClick={() => setCategoryTarget({ scope: 'split', lineIndex: index, parentId: line.categorie_id })}
+                              aria-label="Créer une sous-catégorie"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+
+                        <div className="grid gap-2 sm:grid-cols-[150px_1fr]">
+                          <CalculatorInput value={line.montant} onChange={value => updateSplitLine(index, 'montant', value)} placeholder="Montant" />
+                          <Input placeholder="Informations (optionnel)" value={line.infos} onChange={event => updateSplitLine(index, 'infos', event.target.value)} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <Button variant="outline" size="sm" className="w-full" onClick={() => setSplitLines(prev => [...prev, { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' }])}>
+                  <Plus className="mr-1 h-3.5 w-3.5" /> Ajouter une répartition
+                </Button>
+
+                <div className={`rounded-xl border p-3 text-sm ${Math.abs(splitRemaining) < 0.01 ? 'border-emerald-500/25 bg-emerald-500/10' : 'border-amber-500/25 bg-amber-500/10'}`}>
+                  <div className="flex justify-between"><span className="text-slate-500">Total</span><span className="font-bold text-slate-100">{formatEuro(txMontant)}</span></div>
+                  <div className="mt-1 flex justify-between"><span className="text-slate-500">Réparti</span><span className="font-semibold text-slate-100">{formatEuro(sumSplitLines)}</span></div>
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-slate-500">Reste</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold ${Math.abs(splitRemaining) < 0.01 ? 'text-emerald-300' : 'text-amber-300'}`}>{formatEuro(splitRemaining)}</span>
+                      {splitRemaining > 0.01 && (
+                        <button
+                          type="button"
+                          onClick={() => setSplitLines(prev => prev.map((line, i) => i === prev.length - 1 ? { ...line, montant: Math.round((line.montant + splitRemaining) * 100) / 100 } : line))}
+                          className="text-[10px] font-medium text-indigo-300 hover:text-indigo-200"
+                        >
+                          Compléter
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full"
+                  disabled={!splitValid || txMontant <= 0}
+                  onClick={async () => {
+                    if (!onSubmitSplit || !splitValid) return
+                    await onSubmitSplit(
+                      {
+                        categorie_id: splitLines[0].categorie_id,
+                        montant: txMontant,
+                        date: txDate,
+                        date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? (txDateValidation || localDateISO()) : null),
+                        infos: txInfos || null,
+                      },
+                      splitLines.map(line => ({ ...line, sous_categorie_id: line.sous_categorie_id || null, infos: line.infos || null })) as any,
+                    )
+                    resetForm()
+                    onOpenChange(false)
+                  }}
+                >
+                  Créer la dépense répartie
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <CategorieDialog
+        open={categoryTarget !== null}
+        onOpenChange={value => { if (!value) setCategoryTarget(null) }}
+        categories={categories}
+        initialParentId={categoryTarget?.parentId || null}
+        lockParent={categoryTarget?.parentId != null}
+        onCreate={createCategory}
+        onCreated={created => {
+          applyCreatedCategory(created)
+          setCategoryTarget(null)
+        }}
+      />
+    </>
   )
 }

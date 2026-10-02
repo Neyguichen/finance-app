@@ -17,6 +17,7 @@ import EvolutionRevenus from '@/components/pages/revenus/EvolutionRevenus'
 import RevenuForm from '@/components/pages/revenus/RevenuForm'
 import RevenuEditDialog from '@/components/pages/revenus/RevenuEditDialog'
 import RevenuDeleteDialog from '@/components/pages/revenus/RevenuDeleteDialog'
+import RevenusFab from '@/components/pages/revenus/RevenusFab'
 import { summarizeIncome } from '@/lib/income-summary'
 
 function previousMonthEnd(month: string) {
@@ -58,10 +59,24 @@ export default function RevenusPage() {
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
 
   useEffect(() => {
-    if (!isAdminViewing && moisId && new URLSearchParams(window.location.search).get('add') === '1') {
-      setFormOpen(true)
+    if (isAdminViewing || !moisId) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('add') === '1') setFormOpen(true)
+    const focusId = params.get('focus')
+    if (focusId) {
+      const revenue = effectiveRevenus.find((item: any) => item.id === focusId)
+      if (revenue) {
+        setEditTarget({
+          id: revenue.id,
+          nom: revenue.nom,
+          montant: Number(revenue.montant),
+          type: revenue.type,
+          recurrentId: revenue.recurrent_id,
+          datePrevue: revenue.date_prevue,
+        })
+      }
     }
-  }, [isAdminViewing, moisId])
+  }, [isAdminViewing, moisId, effectiveRevenus])
 
   const getEnvNom = (id: string | null | undefined) => effectiveEnveloppes.find((envelope: any) => envelope.id === id)?.nom || 'Reprise d’épargne'
 
@@ -186,6 +201,7 @@ export default function RevenusPage() {
         <RevenuEditDialog editTarget={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} />
         <RevenuDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDelete} />
       </div>
+      {!isAdminViewing && <RevenusFab onAdd={() => setFormOpen(true)} />}
     </div>
   )
 }

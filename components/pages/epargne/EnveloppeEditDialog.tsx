@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { History, PiggyBank, Target } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FormActions, FormField, FormSection } from '@/components/ui/form-layout'
 
 type EditEnvData = {
   id: string
@@ -38,22 +40,21 @@ export default function EnveloppeEditDialog({ editEnv, onClose, onSave }: Props)
   const [dateReference, setDateReference] = useState('')
 
   useEffect(() => {
-    if (editEnv) {
-      setNom(editEnv.nom)
-      setObjectif(editEnv.objectif)
-      setSoldeInitial(Number(editEnv.solde_initial) || 0)
-      setSoldeReference(editEnv.solde_reference != null ? Number(editEnv.solde_reference) : null)
-      setDateReference(editEnv.date_solde_reference || '')
-    }
+    if (!editEnv) return
+    setNom(editEnv.nom)
+    setObjectif(editEnv.objectif)
+    setSoldeInitial(Number(editEnv.solde_initial) || 0)
+    setSoldeReference(editEnv.solde_reference != null ? Number(editEnv.solde_reference) : null)
+    setDateReference(editEnv.date_solde_reference || '')
   }, [editEnv])
 
   const handleSave = () => {
-    if (!editEnv) return
+    if (!editEnv || !nom.trim()) return
     const oldInitial = Number(editEnv.solde_initial) || 0
     const diff = soldeInitial - oldInitial
     onSave({
       id: editEnv.id,
-      nom,
+      nom: nom.trim(),
       objectif,
       solde_initial: soldeInitial,
       solde: Number(editEnv.solde) + diff,
@@ -63,55 +64,59 @@ export default function EnveloppeEditDialog({ editEnv, onClose, onSave }: Props)
   }
 
   return (
-    <Dialog open={!!editEnv} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="bg-slate-900 border-slate-700">
-        <DialogHeader><DialogTitle>Modifier l&apos;enveloppe</DialogTitle></DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm text-slate-400 mb-1 block">Nom</label>
-            <Input value={nom} onChange={e => setNom(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-sm text-slate-400 mb-1 block">Objectif (€)</label>
-            <CalculatorInput value={objectif ?? 0} onChange={v => setObjectif(v || null)} placeholder="Laisser vide = pas d'objectif" />
-          </div>
-          <div>
-            <label className="text-sm text-slate-400 mb-1 block">Solde initial historique (€)</label>
-            <CalculatorInput value={soldeInitial} onChange={setSoldeInitial} placeholder="Solde initial" />
-            <p className="mt-1 text-xs text-slate-600">
-              Conservé pour la compatibilité V1 et les périodes antérieures à une référence V2.
-            </p>
-          </div>
+    <Dialog open={!!editEnv} onOpenChange={v => { if (!v) onClose() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Modifier l’enveloppe</DialogTitle>
+          <DialogDescription>Mettez à jour son nom, son objectif ou sa référence de solde.</DialogDescription>
+        </DialogHeader>
 
-          <div className="rounded-xl border border-blue-900/60 bg-blue-950/20 p-3 space-y-3">
-            <div>
-              <p className="text-sm font-medium text-blue-200">Référence d&apos;épargne V2</p>
-              <p className="mt-1 text-xs text-slate-500">
-                Indique le solde réellement constaté à une date donnée. Cette valeur est un stock de départ :
-                elle ne crée aucun faux versement et ne fausse pas les statistiques mensuelles.
-              </p>
+        <div className="space-y-4">
+          <FormSection title="Enveloppe" icon={<PiggyBank className="h-4 w-4" />}>
+            <FormField label="Nom">
+              <Input value={nom} onChange={e => setNom(e.target.value)} />
+            </FormField>
+          </FormSection>
+
+          <FormSection title="Objectif" icon={<Target className="h-4 w-4" />}>
+            <FormField label="Montant cible" hint="Facultatif">
+              <CalculatorInput value={objectif ?? 0} onChange={v => setObjectif(v || null)} placeholder="Pas d’objectif" />
+            </FormField>
+          </FormSection>
+
+          <FormSection
+            title="Historique et référence"
+            description="Le solde initial assure la compatibilité avec les anciennes périodes. La référence correspond au solde réellement constaté à une date donnée."
+            icon={<History className="h-4 w-4" />}
+          >
+            <FormField label="Solde initial historique">
+              <CalculatorInput value={soldeInitial} onChange={setSoldeInitial} placeholder="0,00 €" />
+            </FormField>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FormField label="Solde réel de référence" hint="Facultatif">
+                <CalculatorInput value={soldeReference ?? 0} onChange={value => setSoldeReference(value || null)} placeholder="0,00 €" />
+              </FormField>
+              <FormField label="À la date du" hint="Facultatif">
+                <Input type="date" value={dateReference} onChange={e => setDateReference(e.target.value)} />
+              </FormField>
             </div>
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Solde réel de référence</label>
-              <CalculatorInput value={soldeReference ?? 0} onChange={value => setSoldeReference(value)} placeholder="Ex. 2 500" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">À la date du</label>
-              <Input type="date" value={dateReference} onChange={e => setDateReference(e.target.value)} />
-            </div>
+
             {(dateReference || soldeReference != null) && (
-              <button
-                type="button"
-                className="text-xs text-slate-500 hover:text-slate-300"
-                onClick={() => { setDateReference(''); setSoldeReference(null) }}
-              >
-                Retirer la référence V2
+              <button type="button" className="text-xs font-medium text-slate-500 transition hover:text-slate-300" onClick={() => {
+                setDateReference('')
+                setSoldeReference(null)
+              }}>
+                Retirer la référence de solde
               </button>
             )}
-          </div>
-          <Button className="w-full" onClick={handleSave}>Enregistrer</Button>
-          <Button className="w-full" variant="ghost" onClick={onClose}>Annuler</Button>
+          </FormSection>
         </div>
+
+        <FormActions>
+          <Button variant="ghost" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleSave} disabled={!nom.trim()}>Enregistrer</Button>
+        </FormActions>
       </DialogContent>
     </Dialog>
   )

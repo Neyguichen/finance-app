@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - v2/phase-1-financial-engine
+      - ui/modernize-forms
   workflow_dispatch:
 
 jobs:

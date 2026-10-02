@@ -25,34 +25,73 @@ export function useDettes(espaceId: string | undefined) {
   const key = ['dettes', espaceId]
   const rembKey = ['remboursements_dette', espaceId]
 
-  const assertDebtAmountCoversRepayments = async (detteId: string, montant: number) => {
-    const { data, error } = await supabase
-      .from('remboursements_dette')
-      .select('montant')
-      .eq('dette_id', detteId)
+  const recalculateCreditRepayments = async (detteId: string) => {
+    const [debtResult, repaymentsResult] = await Promise.all([
+      supabase
+        .from('dettes')
+        .select('id, mode, montant, taux_annuel, assurance_mensuelle')
+        .eq('id', detteId)
+        .single(),
+      supabase
+        .from('remboursements_dette')
+        .select('id, montant, date, created_at')
+        .eq('dette_id', detteId)
+        .order('date', { ascending: true })
+        .order('created_at', { ascending: true }),
+    ])
+    if (debtResult.error) throw debtResult.error
+    if (repaymentsResult.error) throw repaymentsResult.error
 
+    if (debtResult.data.mode !== 'credit') return
+
+    let outstanding = Number(debtResult.data.montant)
+    const monthlyRate = Math.max(0, Number(debtResult.data.taux_annuel || 0)) / 100 / 12
+    const insurance = Math.max(0, Number(debtResult.data.assurance_mensuelle || 0))
+
+    for (const repayment of repaymentsResult.data || []) {
+      const payment = Number(repayment.montant)
+      const interest = outstanding * monthlyRate
+      const principal = Math.max(0, Math.min(outstanding, payment - insurance - interest))
+      const roundedPrincipal = Math.round(principal * 100) / 100
+
+      const { error } = await supabase
+        .from('remboursements_dette')
+        .update({ capital_rembourse: roundedPrincipal })
+        .eq('id', repayment.id)
+      if (error) throw error
+      outstanding = Math.max(0, outstanding - roundedPrincipal)
+    }
+  }
+
+  const assertDebtAmountCoversRepayments = async (detteId: string, montant: number) => {
+    const [{ data: debt, error: debtError }, { data, error }] = await Promise.all([
+      supabase.from('dettes').select('mode').eq('id', detteId).single(),
+      supabase.from('remboursements_dette').select('montant, capital_rembourse').eq('dette_id', detteId),
+    ])
+    if (debtError) throw debtError
     if (error) throw error
 
     const dejaRembourse = (data || []).reduce(
-      (total, remboursement) => total + Number(remboursement.montant),
+      (total, remboursement) => total + Number(debt?.mode === 'credit' ? (remboursement.capital_rembourse || 0) : remboursement.montant),
       0,
     )
 
     if (dejaRembourse - montant > 0.005) {
       throw new Error(
-        `Le montant total ne peut pas être inférieur au montant déjà remboursé (${dejaRembourse.toFixed(2)} €).`,
+        `Le capital initial ne peut pas être inférieur au capital déjà remboursé (${dejaRembourse.toFixed(2)} €).`,
       )
     }
   }
 
   const assertRepaymentWithinDebt = async (detteId: string, montant: number, excludeId?: string) => {
     const [detteResult, remboursementsResult] = await Promise.all([
-      supabase.from('dettes').select('montant').eq('id', detteId).single(),
+      supabase.from('dettes').select('mode, montant').eq('id', detteId).single(),
       supabase.from('remboursements_dette').select('id, montant').eq('dette_id', detteId),
     ])
 
     if (detteResult.error) throw detteResult.error
     if (remboursementsResult.error) throw remboursementsResult.error
+    if (detteResult.data.mode === 'credit') return
 
     const dejaRembourse = (remboursementsResult.data || [])
       .filter(remboursement => remboursement.id !== excludeId)
@@ -106,8 +145,12 @@ export function useDettes(espaceId: string | undefined) {
         .update(updates)
         .eq('id', id)
       if (error) throw error
+      await recalculateCreditRepayments(id)
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: rembKey })
+    },
   })
 
   const remove = useMutation({
@@ -172,7 +215,14 @@ export function useDettes(espaceId: string | undefined) {
         .select()
         .single()
       if (error) throw error
-      return data as RemboursementDette
+      await recalculateCreditRepayments(remb.dette_id)
+      const { data: refreshed, error: refreshError } = await supabase
+        .from('remboursements_dette')
+        .select('*')
+        .eq('id', data.id)
+        .single()
+      if (refreshError) throw refreshError
+      return refreshed as RemboursementDette
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rembKey })
@@ -184,11 +234,18 @@ export function useDettes(espaceId: string | undefined) {
 
   const removeRemboursement = useMutation({
     mutationFn: async (id: string) => {
+      const { data: existing, error: lookupError } = await supabase
+        .from('remboursements_dette')
+        .select('dette_id')
+        .eq('id', id)
+        .single()
+      if (lookupError) throw lookupError
       const { error } = await supabase
         .from('remboursements_dette')
         .delete()
         .eq('id', id)
       if (error) throw error
+      await recalculateCreditRepayments(existing.dette_id)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rembKey })
@@ -214,6 +271,7 @@ export function useDettes(espaceId: string | undefined) {
         .update({ montant, date, ...(impacte_budget !== undefined ? { impacte_budget } : {}) })
         .eq('id', id)
       if (error) throw error
+      await recalculateCreditRepayments(remboursement.dette_id)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rembKey })

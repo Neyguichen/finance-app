@@ -1,14 +1,14 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { EmojiPicker } from '@/components/ui/emoji-picker'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useForm } from 'react-hook-form'
-import InlineCatCreator from '@/components/pages/variables/InlineCatCreator'
+import CategorieDialog from '@/components/pages/variables/CategorieDialog'
 
 type RecurrenceMode = 'monthly' | 'custom'
 type CategoryOption = {
@@ -45,15 +45,14 @@ export default function ChargeFixeForm({
 }: Props) {
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('monthly')
   const [customFrequency, setCustomFrequency] = useState(2)
-  const [inlineCatOpen, setInlineCatOpen] = useState(false)
-  const [inlineSubOpen, setInlineSubOpen] = useState(false)
-  const [newSubNom, setNewSubNom] = useState('')
-  const [newSubIcone, setNewSubIcone] = useState('📎')
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
+  const [categoryDialogParentId, setCategoryDialogParentId] = useState<string | null>(null)
   const { register, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: { nom: '', montant: 0, categorie_id: '', sous_categorie_id: '' },
   })
 
   const categorieId = watch('categorie_id')
+  const sousCategorieId = watch('sous_categorie_id')
   const parentCategories = useMemo(
     () => categories.filter(category => !category.parent_id && category.actif !== false).sort((a, b) => a.nom.localeCompare(b.nom)),
     [categories],
@@ -71,10 +70,8 @@ export default function ChargeFixeForm({
     reset()
     setRecurrenceMode('monthly')
     setCustomFrequency(2)
-    setInlineCatOpen(false)
-    setInlineSubOpen(false)
-    setNewSubNom('')
-    setNewSubIcone('📎')
+    setCategoryDialogOpen(false)
+    setCategoryDialogParentId(null)
   }
 
   const doSubmit = async (values: {
@@ -92,170 +89,162 @@ export default function ChargeFixeForm({
     resetAll()
   }
 
-  const createSubcategory = async () => {
-    if (!createCat || !espaceId || !categorieId || !newSubNom.trim()) return
-    const parent = categories.find(category => category.id === categorieId)
-    const created = await createCat.mutateAsync({
+  const createCategory = async (data: { nom: string; icone: string; parent_id?: string }) => {
+    if (!createCat || !espaceId) return null
+    const parent = data.parent_id ? categories.find(category => category.id === data.parent_id) : null
+    return createCat.mutateAsync({
       espace_id: espaceId,
-      nom: newSubNom.trim(),
-      icone: newSubIcone,
-      couleur: parent?.couleur || '#8B5CF6',
+      nom: data.nom,
+      icone: data.icone,
+      couleur: parent?.couleur || '#6366f1',
       ordre: categories.length,
-      parent_id: categorieId,
+      parent_id: data.parent_id || null,
+      actif: true,
     })
-    setValue('sous_categorie_id', created.id)
-    setInlineSubOpen(false)
-    setNewSubNom('')
-    setNewSubIcone('📎')
   }
 
   return (
-    <Dialog open={open} onOpenChange={value => {
-      onOpenChange(value)
-      if (!value) resetAll()
-    }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nouvelle charge fixe</DialogTitle></DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={value => {
+        onOpenChange(value)
+        if (!value) resetAll()
+      }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Nouvelle charge fixe</DialogTitle></DialogHeader>
 
-        <form onSubmit={handleSubmit(doSubmit)} className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-[1.4fr_1fr]">
-            <Input placeholder="Nom (ex. Loyer)" {...register('nom', { required: true })} />
-            <CalculatorInput value={watch('montant')} onChange={val => setValue('montant', val)} placeholder="Montant prévu" />
-          </div>
+          <form onSubmit={handleSubmit(doSubmit)} className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-[1.4fr_1fr]">
+              <Input placeholder="Nom (ex. Loyer)" {...register('nom', { required: true })} />
+              <CalculatorInput value={watch('montant')} onChange={val => setValue('montant', val)} placeholder="Montant prévu" />
+            </div>
 
-          <div className="rounded-xl border border-slate-800/70 bg-slate-950/30 p-3 space-y-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="space-y-3 rounded-xl border border-slate-800/70 bg-slate-950/30 p-3">
               <div>
                 <p className="text-sm font-medium text-slate-200">Classement</p>
                 <p className="text-[11px] text-slate-500">Catégorie principale puis sous-catégorie optionnelle.</p>
               </div>
-            </div>
 
-            <select
-              value={categorieId}
-              onChange={event => {
-                const value = event.target.value
-                if (value === '__NEW__') {
-                  setInlineCatOpen(true)
-                  return
-                }
-                setValue('categorie_id', value)
-                setValue('sous_categorie_id', '')
-                setInlineSubOpen(false)
-              }}
-              className="select select-bordered w-full"
-            >
-              <option value="">Sans catégorie</option>
-              {parentCategories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.icone ? `${category.icone} ` : ''}{category.nom}
-                </option>
-              ))}
-              {createCat && espaceId && <option value="__NEW__">➕ Nouvelle catégorie…</option>}
-            </select>
-
-            {inlineCatOpen && createCat && espaceId && (
-              <InlineCatCreator
-                espaceId={espaceId}
-                categoriesCount={categories.length}
-                createCat={(data: any) => createCat.mutateAsync(data)}
-                onCreated={id => {
-                  setValue('categorie_id', id)
-                  setValue('sous_categorie_id', '')
-                  setInlineCatOpen(false)
-                }}
-                onCancel={() => setInlineCatOpen(false)}
-              />
-            )}
-
-            {categorieId && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-xs text-slate-500">Sous-catégorie <span className="text-slate-700">(optionnel)</span></label>
-                  {createCat && !inlineSubOpen && (
-                    <button
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-500">Catégorie</label>
+                <div className="grid grid-cols-[1fr_44px] gap-2">
+                  <SearchableSelect
+                    value={categorieId}
+                    placeholder="Sans catégorie"
+                    options={[
+                      { value: '', label: 'Sans catégorie', icon: '—' },
+                      ...parentCategories.map(category => ({ value: category.id, label: category.nom, icon: category.icone })),
+                    ]}
+                    onChange={value => {
+                      setValue('categorie_id', value)
+                      setValue('sous_categorie_id', '')
+                    }}
+                  />
+                  {createCat && espaceId && (
+                    <Button
                       type="button"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-indigo-300 hover:text-indigo-200"
-                      onClick={() => setInlineSubOpen(true)}
+                      variant="outline"
+                      className="h-11 w-11 p-0"
+                      aria-label="Créer une catégorie"
+                      onClick={() => {
+                        setCategoryDialogParentId(null)
+                        setCategoryDialogOpen(true)
+                      }}
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      Nouvelle
-                    </button>
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
-
-                <select {...register('sous_categorie_id')} className="select select-bordered w-full">
-                  <option value="">Aucune</option>
-                  {subCategories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.icone ? `${category.icone} ` : ''}{category.nom}
-                    </option>
-                  ))}
-                </select>
-
-                {inlineSubOpen && createCat && espaceId && (
-                  <div className="rounded-xl border border-indigo-400/15 bg-indigo-500/5 p-3">
-                    <p className="mb-2 text-xs font-semibold text-slate-300">Nouvelle sous-catégorie</p>
-                    <div className="space-y-2">
-                      <Input value={newSubNom} onChange={event => setNewSubNom(event.target.value)} placeholder="Nom" autoFocus />
-                      <EmojiPicker value={newSubIcone} onChange={setNewSubIcone} />
-                      <div className="flex gap-2">
-                        <Button type="button" size="sm" className="flex-1" onClick={createSubcategory} disabled={!newSubNom.trim()}>
-                          Créer
-                        </Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => {
-                          setInlineSubOpen(false)
-                          setNewSubNom('')
-                        }}>
-                          <X className="mr-1 h-3.5 w-3.5" /> Annuler
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
-            )}
-          </div>
 
-          <div>
-            <label className="mb-1 block text-sm text-slate-400">Récurrence</label>
-            <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
-              {([
-                ['monthly', 'Tous les mois'],
-                ['custom', 'Tous les X mois'],
-              ] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setRecurrenceMode(value)}
-                  className={`rounded-lg px-2 py-2 text-xs font-medium transition ${recurrenceMode === value ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                  {label}
-                </button>
-              ))}
+              {categorieId && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-500">Sous-catégorie <span className="text-slate-700">(optionnel)</span></label>
+                  <div className="grid grid-cols-[1fr_44px] gap-2">
+                    <SearchableSelect
+                      value={sousCategorieId}
+                      placeholder="Aucune sous-catégorie"
+                      options={[
+                        { value: '', label: 'Aucune', icon: '—' },
+                        ...subCategories.map(category => ({ value: category.id, label: category.nom, icon: category.icone })),
+                      ]}
+                      onChange={value => setValue('sous_categorie_id', value)}
+                    />
+                    {createCat && espaceId && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-11 w-11 p-0"
+                        aria-label="Créer une sous-catégorie"
+                        onClick={() => {
+                          setCategoryDialogParentId(categorieId)
+                          setCategoryDialogOpen(true)
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {recurrenceMode === 'custom' && (
-              <label className="mt-2 flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/30 p-2.5">
-                <span className="text-xs text-slate-500">Répéter tous les</span>
-                <input
-                  type="number"
-                  min={2}
-                  max={60}
-                  value={customFrequency}
-                  onChange={event => setCustomFrequency(Math.max(2, Number(event.target.value) || 2))}
-                  className="input input-bordered input-sm w-20 text-center"
-                />
-                <span className="text-xs text-slate-500">mois</span>
-              </label>
-            )}
-          </div>
+            <div>
+              <label className="mb-1 block text-sm text-slate-400">Récurrence</label>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
+                {([
+                  ['monthly', 'Tous les mois'],
+                  ['custom', 'Tous les X mois'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setRecurrenceMode(value)}
+                    className={`rounded-lg px-2 py-2 text-xs font-medium transition ${recurrenceMode === value ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-          <Button type="submit" className="w-full" disabled={!watch('nom')?.trim() || Number(watch('montant')) <= 0}>
-            Ajouter la charge fixe
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+              {recurrenceMode === 'custom' && (
+                <label className="mt-2 flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/30 p-2.5">
+                  <span className="text-xs text-slate-500">Répéter tous les</span>
+                  <input
+                    type="number"
+                    min={2}
+                    max={60}
+                    value={customFrequency}
+                    onChange={event => setCustomFrequency(Math.max(2, Number(event.target.value) || 2))}
+                    className="input input-bordered input-sm w-20 text-center"
+                  />
+                  <span className="text-xs text-slate-500">mois</span>
+                </label>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full" disabled={!watch('nom')?.trim() || Number(watch('montant')) <= 0}>
+              Ajouter la charge fixe
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <CategorieDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        categories={categories}
+        initialParentId={categoryDialogParentId}
+        lockParent={categoryDialogParentId !== null}
+        onCreate={createCategory}
+        onCreated={created => {
+          if (!created?.id) return
+          if (categoryDialogParentId) setValue('sous_categorie_id', created.id)
+          else {
+            setValue('categorie_id', created.id)
+            setValue('sous_categorie_id', '')
+          }
+        }}
+      />
+    </>
   )
 }

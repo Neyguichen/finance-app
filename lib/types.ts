@@ -175,11 +175,17 @@ export interface Dette {
   id: string
   espace_id: string
   type: 'je_dois' | 'jai_prete'
+  mode?: 'simple' | 'credit'
   titre: string
   description: string | null
   personne: string
   montant: number
   date_echeance: string | null
+  taux_annuel?: number | null
+  mensualite?: number | null
+  assurance_mensuelle?: number | null
+  date_debut?: string | null
+  duree_mois?: number | null
   archived: boolean
   created_at: string
 }
@@ -188,6 +194,7 @@ export interface RemboursementDette {
   id: string
   dette_id: string
   montant: number
+  capital_rembourse?: number | null
   date: string
   note: string | null
   /** V2: ce remboursement correspond réellement à un flux du Budget. */

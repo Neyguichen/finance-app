@@ -8,13 +8,13 @@ import MonthSelector from '@/components/layout/MonthSelector'
 import EpargneResume from '@/components/pages/epargne/EpargneResume'
 import EnveloppeCard from '@/components/pages/epargne/EnveloppeCard'
 import EnveloppeEditDialog from '@/components/pages/epargne/EnveloppeEditDialog'
+import EnveloppeForm from '@/components/pages/epargne/EnveloppeForm'
+import SavingsInitializationDialog from '@/components/pages/epargne/SavingsInitializationDialog'
 import EnveloppeDetailPanel from '@/components/pages/epargne/EnveloppeDetailPanel'
 import MouvementForm from '@/components/pages/epargne/MouvementForm'
 import { MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
 import DettesPanel from '@/components/pages/epargne/DettesPanel'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 
 import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
 import { useEnveloppesAtMonth } from '@/lib/hooks/useEnveloppesAtMonth'
@@ -35,10 +35,15 @@ export default function EpargnePage() {
   const [movementDestId, setMovementDestId] = useState<string | null>(null)
   const [openMvt, setOpenMvt] = useState(false)
   const [openEnvelope, setOpenEnvelope] = useState(false)
-  const [newEnvelopeName, setNewEnvelopeName] = useState('')
+  const [openSavingsInitialization, setOpenSavingsInitialization] = useState(false)
 
   useEffect(() => {
-    const syncFromUrl = () => setSection(new URLSearchParams(window.location.search).get('view') === 'debts' ? 'debts' : 'savings')
+    const syncFromUrl = () => {
+      const params = new URLSearchParams(window.location.search)
+      setSection(params.get('view') === 'debts' ? 'debts' : 'savings')
+      const requestedEnvelope = params.get('selectedEnvelope')
+      if (requestedEnvelope) setSelectedEnvelopeId(requestedEnvelope)
+    }
     syncFromUrl()
     window.addEventListener('popstate', syncFromUrl)
     return () => window.removeEventListener('popstate', syncFromUrl)
@@ -112,11 +117,18 @@ export default function EpargnePage() {
   const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
-    if (!isAdminViewing && moisId && new URLSearchParams(window.location.search).get('add') === 'movement') {
+    if (isAdminViewing || !moisId) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('add') === 'movement') {
       setMovementType('epargne')
       setOpenMvt(true)
     }
-  }, [isAdminViewing, moisId])
+    const movementId = params.get('focusMovement')
+    if (movementId) {
+      const movement: any = effectiveMouvements.find((item: any) => item.id === movementId)
+      if (movement) setEditMvt({ id:movement.id, montant:Number(movement.montant), note:movement.note || null, recurrentId:movement.recurrent_id || null })
+    }
+  }, [isAdminViewing, moisId, effectiveMouvements])
 
   const openMovement = (type:MovementType, envelopeId?:string) => {
     setMovementType(type)
@@ -125,18 +137,17 @@ export default function EpargnePage() {
     setOpenMvt(true)
   }
 
-  const handleCreateEnvelope = async () => {
-    const name = newEnvelopeName.trim()
-    if (!name || !espace || isAdminViewing) return
+  const handleCreateEnvelope = async (data: { nom: string; objectif: number | null; solde_initial: number | null }) => {
+    if (!data.nom.trim() || !espace || isAdminViewing) return
+    const initial = Number(data.solde_initial || 0)
     const created = await createEnv.mutateAsync({
       espace_id: espace.id,
-      nom: name,
-      solde_initial: 0,
-      solde: 0,
-      objectif: null,
+      nom: data.nom.trim(),
+      solde_initial: initial,
+      solde: initial,
+      objectif: data.objectif,
       ordre: effectiveEnveloppes.length,
     })
-    setNewEnvelopeName('')
     setOpenEnvelope(false)
     setSelectedEnvelopeId(created.id)
   }
@@ -147,6 +158,17 @@ export default function EpargnePage() {
       espace_id: espace.id, nom:name, solde_initial:0, solde:0, objectif:null, ordre:effectiveEnveloppes.length,
     })
     return { id:created.id }
+  }
+
+  const handleInitializeSavings = async (date: string, balances: Array<{ id: string; balance: number }>) => {
+    if (isAdminViewing) return
+    for (const item of balances) {
+      await updateEnv.mutateAsync({
+        id: item.id,
+        solde_reference: item.balance,
+        date_solde_reference: date,
+      })
+    }
   }
 
   const handleSaveEditEnv = async (data:any) => {
@@ -236,7 +258,12 @@ export default function EpargnePage() {
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500"/>
                   </label>
-                  {!isAdminViewing && <Button size="sm" onClick={() => setOpenEnvelope(true)}><Plus className="mr-1 h-4 w-4"/>Nouvelle enveloppe</Button>}
+                  {!isAdminViewing && (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setOpenSavingsInitialization(true)}>Initialiser l’épargne</Button>
+                      <Button size="sm" onClick={() => setOpenEnvelope(true)}><Plus className="mr-1 h-4 w-4"/>Nouvelle enveloppe</Button>
+                    </div>
+                  )}
                 </div>
 
                 {sortedEnvelopes.length === 0 ? (
@@ -251,7 +278,6 @@ export default function EpargnePage() {
                         selected={selectedEnvelopeId === env.id}
                         monthlyNet={monthlyNetFor(env.id)}
                         onSelect={() => setSelectedEnvelopeId(env.id)}
-                        onEdit={setEditEnv}
                         onArchive={id => archive.mutate(id)}
                       />
                     ))}
@@ -275,6 +301,7 @@ export default function EpargnePage() {
                   onSave={() => openMovement('epargne', selectedEnvelope.id)}
                   onWithdraw={() => openMovement('reprise', selectedEnvelope.id)}
                   onTransfer={() => openMovement('transfert')}
+                  onEdit={!isAdminViewing ? () => setEditEnv(selectedEnvelope) : undefined}
                 />
               )}
             </div>
@@ -288,7 +315,7 @@ export default function EpargnePage() {
                     <tbody>{effectiveMouvements.map((mvt:any) => {
                       const destination = mvt.type === 'epargne' ? getEnvNom(mvt.enveloppe_dest_id) : mvt.type === 'reprise' ? getEnvNom(mvt.enveloppe_source_id) : getEnvNom(mvt.enveloppe_source_id) + ' → ' + getEnvNom(mvt.enveloppe_dest_id)
                       const positive = mvt.type === 'epargne'
-                      return <tr key={mvt.id} className="border-t border-slate-800/50"><td className="px-3 py-2 text-slate-500">{String(mvt.date).slice(0,10)}</td><td className="px-3 py-2 text-slate-300">{destination}</td><td className="px-3 py-2 text-slate-400">{mvt.type === 'epargne' ? 'Épargne' : mvt.type === 'reprise' ? 'Reprise' : 'Transfert'}</td><td className={'px-3 py-2 text-right font-semibold ' + (positive ? 'text-emerald-300' : mvt.type === 'reprise' ? 'text-rose-300' : 'text-cyan-300')}>{positive ? '+' : mvt.type === 'reprise' ? '−' : ''}{Number(mvt.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</td><td className="max-w-[220px] truncate px-3 py-2 text-slate-600">{mvt.note || '—'}</td><td className="px-2 py-2 text-right">{!isAdminViewing&&<><button className="px-1 text-slate-600 hover:text-indigo-300" onClick={()=>setEditMvt({id:mvt.id,montant:Number(mvt.montant),note:mvt.note||null,recurrentId:mvt.recurrent_id||null})}>✎</button><button className="px-1 text-slate-700 hover:text-rose-400" onClick={()=>setDeleteTarget({id:mvt.id,recurrentId:mvt.recurrent_id||null,note:mvt.note||null})}>×</button></>}</td></tr>
+                      return <tr key={mvt.id} onClick={() => { if (!isAdminViewing) setEditMvt({id:mvt.id,montant:Number(mvt.montant),note:mvt.note||null,recurrentId:mvt.recurrent_id||null}) }} className="cursor-pointer border-t border-slate-800/50 transition hover:bg-slate-800/30"><td className="px-3 py-2 text-slate-500">{String(mvt.date).slice(0,10)}</td><td className="px-3 py-2 text-slate-300">{destination}</td><td className="px-3 py-2 text-slate-400">{mvt.type === 'epargne' ? 'Épargne' : mvt.type === 'reprise' ? 'Reprise' : 'Transfert'}</td><td className={'px-3 py-2 text-right font-semibold ' + (positive ? 'text-emerald-300' : mvt.type === 'reprise' ? 'text-rose-300' : 'text-cyan-300')}>{positive ? '+' : mvt.type === 'reprise' ? '−' : ''}{Number(mvt.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</td><td className="max-w-[220px] truncate px-3 py-2 text-slate-600">{mvt.note || '—'}</td><td className="px-2 py-2 text-right">{!isAdminViewing&&<button aria-label="Supprimer" className="px-2 text-slate-700 hover:text-rose-400" onClick={event=>{event.stopPropagation();setDeleteTarget({id:mvt.id,recurrentId:mvt.recurrent_id||null,note:mvt.note||null})}}>×</button>}</td></tr>
                     })}</tbody>
                   </table>
                 </div>
@@ -312,15 +339,13 @@ export default function EpargnePage() {
         <MouvementScopeDialog target={scopeMvt} onClose={() => setScopeMvt(null)} onSave={handleScopeEditMvt} />
         <MouvementDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDeleteMvt} />
 
-        <Dialog open={openEnvelope} onOpenChange={setOpenEnvelope}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nouvelle enveloppe</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <Input value={newEnvelopeName} onChange={event => setNewEnvelopeName(event.target.value)} placeholder="Nom de l’enveloppe" onKeyDown={event => { if (event.key === 'Enter') handleCreateEnvelope() }} autoFocus />
-              <Button className="w-full" onClick={handleCreateEnvelope} disabled={!newEnvelopeName.trim() || createEnv.isPending}>{createEnv.isPending ? 'Création…' : 'Créer l’enveloppe'}</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <EnveloppeForm open={openEnvelope} onOpenChange={setOpenEnvelope} onSubmit={handleCreateEnvelope} />
+        <SavingsInitializationDialog
+          open={openSavingsInitialization}
+          onOpenChange={setOpenSavingsInitialization}
+          envelopes={activeEnvelopes as any[]}
+          onSave={handleInitializeSavings}
+        />
       </div>
     </div>
   )

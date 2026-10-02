@@ -12,7 +12,6 @@ import {
   Check,
   ChartPie,
   ChevronDown,
-  Pencil,
   Plus,
   ReceiptText,
   Trash2,
@@ -132,6 +131,11 @@ export default function DepensesPage() {
   const budgetModalTransactions = budgetModalCategory
     ? effectiveFlat.filter((tx: any) => tx.categorie_id === budgetModalCategory.id)
     : []
+  const subBudgetTotal = budgetModalSubcats.reduce((sum: number, sub: any) => sum + (Number(budgetDraft[sub.id]) || 0), 0)
+  const isSubBudgetMode = subBudgetTotal > 0
+  const effectiveParentBudgetDraft = isSubBudgetMode
+    ? subBudgetTotal
+    : (Number(budgetDraft[budgetModalCategory?.id || '']) || 0)
 
   const recurrenceLabel = (charge: any) => {
     if (!charge.recurrent_id) return 'Ponctuelle'
@@ -164,22 +168,30 @@ export default function DepensesPage() {
   const openBudgetModal = (categoryId: string) => {
     const category = parentCategories.find((cat: any) => cat.id === categoryId)
     if (!category) return
-    const draft: Record<string, string> = { [category.id]: String(budget(category.id) || '') }
-    for (const sub of subCats(category.id)) draft[sub.id] = String(budget(sub.id) || '')
+    const children = subCats(category.id)
+    const childTotal = children.reduce((sum: number, sub: any) => sum + budget(sub.id), 0)
+    const draft: Record<string, string> = {
+      [category.id]: String(childTotal > 0 ? childTotal : (budget(category.id) || '')),
+    }
+    for (const sub of children) draft[sub.id] = String(budget(sub.id) || '')
     setBudgetDraft(draft)
     setBudgetModalId(categoryId)
   }
 
   const saveBudgetModal = async () => {
     if (!budgetModalCategory || !moisId || isAdminViewing) return
-    const ids = [budgetModalCategory.id, ...budgetModalSubcats.map((sub: any) => sub.id)]
-    for (const id of ids) {
+    for (const sub of budgetModalSubcats) {
       await upsertBudget.mutateAsync({
         mois_id: moisId,
-        categorie_id: id,
-        prevu: Number(budgetDraft[id]) || 0,
+        categorie_id: sub.id,
+        prevu: Number(budgetDraft[sub.id]) || 0,
       })
     }
+    await upsertBudget.mutateAsync({
+      mois_id: moisId,
+      categorie_id: budgetModalCategory.id,
+      prevu: effectiveParentBudgetDraft,
+    })
     setBudgetModalId(null)
   }
 
@@ -215,9 +227,11 @@ export default function DepensesPage() {
         paymentDate: tx.date,
         validationDate: tx.date_validation || null,
         status: validated ? 'validated' as const : 'planned' as const,
-        title: tx.categorie?.nom || 'Sans catégorie',
-        subcategory: tx.sous_categorie?.nom || null,
-        icon: tx.categorie?.icone || '📦',
+        title: tx.is_split && tx.children?.length ? 'Dépense répartie' : (tx.categorie?.nom || 'Sans catégorie'),
+        subcategory: tx.is_split && tx.children?.length
+          ? tx.children.map((child: any) => child.categorie?.nom || 'Sans catégorie').filter((name: string, index: number, all: string[]) => all.indexOf(name) === index).join(' · ')
+          : (tx.sous_categorie?.nom || null),
+        icon: tx.is_split && tx.children?.length ? '✂️' : (tx.categorie?.icone || '📦'),
         amount: net(tx),
         grossAmount: Number(tx.montant),
         refund: reimbursement,
@@ -353,6 +367,29 @@ export default function DepensesPage() {
     sousCategorieId: charge.sous_categorie_id ?? null,
   })
 
+  useEffect(() => {
+    if (isAdminViewing) return
+    const params = new URLSearchParams(window.location.search)
+    const focusTxId = params.get('focus')
+    const reimbursementTxId = params.get('reimbursement')
+    const focusFixedId = params.get('focusFixed')
+
+    if (focusTxId || reimbursementTxId || focusFixedId) setView('actual')
+
+    if (focusTxId) {
+      const transaction = effectiveTransactions.find((item: any) => item.id === focusTxId || item.children?.some((child: any) => child.id === focusTxId))
+      if (transaction) setEditTx(transaction)
+    }
+    if (reimbursementTxId) {
+      const transaction = effectiveTransactions.find((item: any) => item.id === reimbursementTxId)
+      if (transaction) setRembTx(transaction)
+    }
+    if (focusFixedId) {
+      const charge = effectiveCharges.find((item: any) => item.id === focusFixedId)
+      if (charge) editFixedTarget(charge)
+    }
+  }, [isAdminViewing, effectiveTransactions, effectiveCharges])
+
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
@@ -418,7 +455,7 @@ export default function DepensesPage() {
               </CardHeader>
               <CardContent className="p-3 pt-0">
                 {effectiveCharges.length === 0 ? (
-                  <EmptyStateV2 icon={CalendarClock} title="Aucune charge fixe prévue" description="Ajoute les charges que tu souhaites prévoir pour ce mois." actionLabel={!isAdminViewing && moisId ? 'Ajouter une charge fixe' : undefined} onAction={!isAdminViewing && moisId ? () => setFixedOpen(true) : undefined} />
+                  <EmptyStateV2 icon={CalendarClock} title="Aucune charge fixe prévue" description="Ajoute les charges que tu souhaites prévoir pour ce mois." />
                 ) : (
                   <>
                     <div className="hidden grid-cols-[1.45fr_.7fr_1fr_.65fr_54px] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
@@ -426,7 +463,14 @@ export default function DepensesPage() {
                     </div>
                     <div className="divide-y divide-slate-800/70">
                       {effectiveCharges.map((charge: any) => (
-                        <div key={charge.id} className="grid gap-2 px-2 py-2.5 md:grid-cols-[1.45fr_.7fr_1fr_.65fr_54px] md:items-center">
+                        <div
+                          key={charge.id}
+                          role={!isAdminViewing ? 'button' : undefined}
+                          tabIndex={!isAdminViewing ? 0 : undefined}
+                          onClick={() => { if (!isAdminViewing) editFixedTarget(charge) }}
+                          onKeyDown={event => { if (!isAdminViewing && (event.key === 'Enter' || event.key === ' ')) editFixedTarget(charge) }}
+                          className="grid cursor-pointer gap-2 px-2 py-2.5 transition hover:bg-slate-800/30 md:grid-cols-[1.45fr_.7fr_1fr_.65fr_54px] md:items-center"
+                        >
                           <div className="flex min-w-0 items-center gap-2">
                             <span>{charge.categorie_icone || '🏠'}</span>
                             <div className="min-w-0"><p className="truncate text-sm font-medium text-slate-200">{charge.nom}</p>{charge.categorie_nom && <p className="truncate text-[10px] text-slate-600">{charge.categorie_nom}{charge.sous_categorie_nom ? ' · ' + charge.sous_categorie_nom : ''}</p>}</div>
@@ -434,7 +478,7 @@ export default function DepensesPage() {
                           <span className="text-sm font-semibold text-slate-100 md:text-right">{formatEuro(Number(charge.montant))}</span>
                           <span className="text-xs text-slate-500">{recurrenceLabel(charge)}</span>
                           <span className={'w-fit rounded-full px-2 py-1 text-[10px] font-medium ' + (charge.payee ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-800 text-slate-400')}>{charge.payee ? 'Validée' : 'Prévue'}</span>
-                          {!isAdminViewing && <div className="flex justify-end gap-1"><button className="p-1 text-slate-600 hover:text-indigo-300" onClick={() => editFixedTarget(charge)}><Pencil className="h-3.5 w-3.5" /></button><button className="p-1 text-slate-700 hover:text-rose-400" onClick={() => setDeleteFixed({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom })}><Trash2 className="h-3.5 w-3.5" /></button></div>}
+                          {!isAdminViewing && <div className="flex justify-end"><button aria-label="Supprimer" className="p-1 text-slate-700 hover:text-rose-400" onClick={event => { event.stopPropagation(); setDeleteFixed({ id: charge.id, recurrentId: charge.recurrent_id, nom: charge.nom }) }}><Trash2 className="h-3.5 w-3.5" /></button></div>}
                         </div>
                       ))}
                     </div>
@@ -448,15 +492,22 @@ export default function DepensesPage() {
                 <CardTitle className="flex items-center justify-between gap-3 text-sm text-slate-200">
                   <span>Budgets variables <strong className="ml-2 text-emerald-300">{formatEuro(plannedVariable)}</strong></span>
                   {!isAdminViewing && espace?.id && (
-                    <Button size="sm" onClick={() => openCategoryDialog(null)}>
-                      <Plus className="mr-1 h-3.5 w-3.5" />Ajouter une catégorie
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {moisId && (
+                        <Button size="sm" variant="outline" onClick={() => setTxOpen(true)}>
+                          <Plus className="mr-1 h-3.5 w-3.5" />Dépense variable
+                        </Button>
+                      )}
+                      <Button size="sm" onClick={() => openCategoryDialog(null)}>
+                        <Plus className="mr-1 h-3.5 w-3.5" />Ajouter une catégorie
+                      </Button>
+                    </div>
                   )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0">
                 {parentCategories.length === 0 ? (
-                  <EmptyStateV2 icon={WalletCards} title="Aucune catégorie variable" description="Ajoute une catégorie pour commencer à préparer tes budgets variables." actionLabel={!isAdminViewing && espace?.id ? 'Ajouter une catégorie' : undefined} onAction={!isAdminViewing && espace?.id ? () => openCategoryDialog(null) : undefined} />
+                  <EmptyStateV2 icon={WalletCards} title="Aucune catégorie variable" description="Ajoute une catégorie pour commencer à préparer tes budgets variables." />
                 ) : (
                   <>
                     <div className="hidden grid-cols-[1.2fr_.58fr_.58fr_.58fr_1fr] gap-2 border-b border-slate-800 px-2 pb-2 text-[10px] uppercase tracking-wide text-slate-600 md:grid">
@@ -520,25 +571,60 @@ export default function DepensesPage() {
                     <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</h2>
                     <div className="divide-y divide-slate-800/70 rounded-xl border border-slate-800/70 bg-slate-900">
                       {entries.map((entry: any) => (
-                        <div key={entry.id} className="flex items-center gap-3 px-3 py-3">
+                        <div
+                          key={entry.id}
+                          role={!isAdminViewing ? 'button' : undefined}
+                          tabIndex={!isAdminViewing ? 0 : undefined}
+                          onClick={() => {
+                            if (isAdminViewing) return
+                            if (entry.source === 'fixed') editFixedTarget(entry.sourceData)
+                            else setEditTx(entry.sourceData)
+                          }}
+                          onKeyDown={event => {
+                            if (isAdminViewing || (event.key !== 'Enter' && event.key !== ' ')) return
+                            if (entry.source === 'fixed') editFixedTarget(entry.sourceData)
+                            else setEditTx(entry.sourceData)
+                          }}
+                          className="flex cursor-pointer items-center gap-3 px-3 py-3 transition hover:bg-slate-800/30"
+                        >
                           {!isAdminViewing && (
-                            <Checkbox checked={entry.status === 'validated'} onCheckedChange={checked => toggleActualEntry(entry, checked)} />
+                            <span onClick={event => event.stopPropagation()}>
+                              <Checkbox checked={entry.status === 'validated'} onCheckedChange={checked => toggleActualEntry(entry, checked)} />
+                            </span>
                           )}
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p>
                               <StatusBadge status={entry.status} />
-                              {entry.refund > 0 && <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-medium text-cyan-300">↻ Remboursement {formatEuro(entry.refund)}</span>}
+                              {entry.sourceData?.is_split && entry.sourceData?.children?.length > 0 && (
+                                <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[9px] font-medium text-indigo-300">{entry.sourceData.children.length} répartitions</span>
+                              )}
                             </div>
                             <p className="truncate text-[11px] text-slate-500">{entry.subcategory ? entry.subcategory + ' · ' : ''}{entry.info}</p>
+                            {entry.refund > 0 && (
+                              <p className="mt-1 text-[10px] text-slate-500">
+                                {formatEuro(entry.grossAmount)} dépensés · <span className="text-emerald-400">{formatEuro(entry.refund)} remboursés</span> · coût net {formatEuro(entry.amount)}
+                              </p>
+                            )}
                           </div>
                           <div className="text-right">
                             <strong className={entry.source === 'fixed' ? 'text-purple-300' : 'text-rose-300'}>{formatEuro(entry.amount)}</strong>
-                            {entry.refund > 0 && <p className="text-[10px] text-slate-500 line-through">{formatEuro(entry.grossAmount)}</p>}
                             <p className="text-[10px] text-slate-600">{formatDate(actualSort === 'validation' ? (entry.validationDate || entry.paymentDate) : entry.paymentDate)}</p>
                           </div>
-                          {!isAdminViewing && <div className="flex shrink-0 items-center gap-1"><button className="p-1 text-slate-600 hover:text-indigo-300" onClick={() => entry.source === 'fixed' ? editFixedTarget(entry.sourceData) : setEditTx(entry.sourceData)}><Pencil className="h-3.5 w-3.5" /></button><button className="p-1 text-slate-700 hover:text-rose-400" onClick={() => entry.source === 'fixed' ? setDeleteFixed({ id: entry.sourceData.id, recurrentId: entry.sourceData.recurrent_id, nom: entry.sourceData.nom }) : setDeleteTx(entry.sourceData)}><Trash2 className="h-3.5 w-3.5" /></button></div>}
+                          {!isAdminViewing && (
+                            <button
+                              className="shrink-0 p-1 text-slate-700 hover:text-rose-400"
+                              aria-label="Supprimer"
+                              onClick={event => {
+                                event.stopPropagation()
+                                if (entry.source === 'fixed') setDeleteFixed({ id: entry.sourceData.id, recurrentId: entry.sourceData.recurrent_id, nom: entry.sourceData.nom })
+                                else setDeleteTx(entry.sourceData)
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -559,11 +645,22 @@ export default function DepensesPage() {
 
                 <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
                   <section className="rounded-xl border border-slate-800 bg-slate-950/30 p-3">
-                    <label className="text-xs text-slate-500">Budget prévu</label>
-                    <input type="number" step="0.01" value={budgetDraft[budgetModalCategory.id] ?? ''} onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalCategory.id]: event.target.value }))} className="input input-bordered input-sm mt-1 w-full" disabled={isAdminViewing} />
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-xs text-slate-500">{isSubBudgetMode ? 'Budget total calculé' : 'Budget prévu'}</label>
+                      {isSubBudgetMode && <span className="rounded-full bg-indigo-500/10 px-2 py-1 text-[10px] font-medium text-indigo-300">Somme des sous-budgets</span>}
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={isSubBudgetMode ? String(subBudgetTotal) : (budgetDraft[budgetModalCategory.id] ?? '')}
+                      onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalCategory.id]: event.target.value }))}
+                      className="input input-bordered input-sm mt-1 w-full disabled:cursor-not-allowed disabled:opacity-70"
+                      disabled={isAdminViewing || isSubBudgetMode}
+                    />
+                    {isSubBudgetMode && <p className="mt-1.5 text-[11px] leading-4 text-slate-600">Le budget principal est calculé automatiquement dès qu’un budget est défini sur une sous-catégorie. Remettez les sous-budgets à 0 pour revenir à un budget global.</p>}
                     <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                       <Metric label="Dépensé" value={formatEuro(spent(budgetModalCategory.id))} />
-                      <Metric label="Reste" value={formatEuro((Number(budgetDraft[budgetModalCategory.id]) || 0) - spent(budgetModalCategory.id))} />
+                      <Metric label="Reste" value={formatEuro(effectiveParentBudgetDraft - spent(budgetModalCategory.id))} />
                     </div>
                   </section>
 
