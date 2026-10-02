@@ -122,7 +122,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <GlobalSearch />
           </div>
           <div className="ml-auto flex shrink-0 items-center">
-            <GlobalSearch />
+            <div className="md:hidden"><GlobalSearch /></div>
             <HeaderActions />
           </div>
         </header>
