@@ -63,7 +63,10 @@ export default function ImportCsvPage() {
     () => (importModel.history.data || []).filter(batch => batch.status === 'reviewing'),
     [importModel.history.data]
   )
-  const activeImport = reviewingBatches[0] || null
+  const pendingCount = useMemo(
+    () => reviewingBatches.reduce((total, batch) => total + Math.max(0, batch.row_count - batch.created_count - batch.matched_count - batch.ignored_count - batch.error_count), 0),
+    [reviewingBatches]
+  )
 
   const loadParsed = (text: string, delimiter?: string) => {
     const result = parseCsv(text, delimiter)
@@ -212,10 +215,12 @@ export default function ImportCsvPage() {
         <section className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium text-indigo-200">{reviewingBatches.length} import(s) en cours de validation</p>
-              <p className="mt-1 text-xs text-slate-400">Ton travail est enregistré. Tu peux reprendre la validation quand tu veux.</p>
+              <p className="font-medium text-indigo-200">{pendingCount} transaction(s) importée(s) à valider</p>
+              <p className="mt-1 text-xs text-slate-400">
+                Elles peuvent provenir de plusieurs fichiers. Tu peux continuer à importer d’autres relevés puis revenir les valider à ton rythme.
+              </p>
             </div>
-            <Link href={`/import-csv/validation?batch=${reviewingBatches[0].id}`} className="btn btn-primary btn-sm">
+            <Link href="/import-csv/validation" className="btn btn-primary btn-sm">
               <Eye className="h-4 w-4" />
               Reprendre la validation
             </Link>
@@ -230,9 +235,8 @@ export default function ImportCsvPage() {
             <input
               type="file"
               accept=".csv,text/csv"
-              disabled={Boolean(activeImport)}
               onChange={event => handleFile(event.target.files?.[0])}
-              className="file-input file-input-bordered w-full bg-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+              className="file-input file-input-bordered w-full bg-slate-950"
             />
           </label>
 
@@ -241,7 +245,6 @@ export default function ImportCsvPage() {
             <select
               className="select select-bordered w-full bg-slate-950"
               value={selectedFormatId}
-              disabled={Boolean(activeImport)}
               onChange={event => applySavedFormat(event.target.value)}
             >
               <option value="">Nouveau format</option>
@@ -251,12 +254,6 @@ export default function ImportCsvPage() {
             </select>
           </label>
         </div>
-
-        {activeImport && (
-          <div className="mt-3 rounded-lg border border-amber-800/60 bg-amber-950/20 p-3 text-xs text-amber-200">
-            Termine ou annule l’import <strong>{activeImport.file_name || 'en cours'}</strong> avant d’enregistrer un nouveau fichier.
-          </div>
-        )}
 
         {fileName && (
           <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
@@ -289,7 +286,7 @@ export default function ImportCsvPage() {
         )}
       </section>
 
-      {!activeImport && parsed.headers.length > 0 && (
+      {parsed.headers.length > 0 && (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -355,7 +352,7 @@ export default function ImportCsvPage() {
         </section>
       )}
 
-      {!activeImport && (preview.length > 0 || invalidRows.length > 0) && (
+      {(preview.length > 0 || invalidRows.length > 0) && (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
           <div>
             <h2 className="font-semibold">Prévisualisation du fichier</h2>
@@ -459,7 +456,7 @@ export default function ImportCsvPage() {
           <p className="mt-2 text-sm text-slate-300">
             {lastResult.pendingCount} opération(s) sont maintenant sauvegardées et peuvent être validées immédiatement ou plus tard.
           </p>
-          <Link href={`/import-csv/validation?batch=${lastResult.batchId}`} className="btn btn-primary btn-sm mt-3">
+          <Link href="/import-csv/validation" className="btn btn-primary btn-sm mt-3">
             <Eye className="h-4 w-4" />
             Valider les opérations
           </Link>
@@ -499,9 +496,9 @@ export default function ImportCsvPage() {
 
                 {batch.status !== 'cancelled' && (
                   <div className="flex w-full gap-2 sm:w-auto">
-                    <Link href={`/import-csv/validation?batch=${batch.id}`} className="btn btn-sm btn-primary flex-1 sm:flex-none">
+                    <Link href={batch.status === 'reviewing' ? '/import-csv/validation' : `/import-csv/validation?batch=${batch.id}`} className="btn btn-sm btn-primary flex-1 sm:flex-none">
                       <Eye className="h-4 w-4" />
-                      {batch.status === 'reviewing' ? 'Reprendre' : 'Voir'}
+                      {batch.status === 'reviewing' ? 'Valider' : 'Voir'}
                     </Link>
                     <button
                       type="button"
