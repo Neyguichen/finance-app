@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { CalendarDays, FileText, HandCoins } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { CalculatorInput } from '@/components/ui/calculator-input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FormActions, FormField, FormSection } from '@/components/ui/form-layout'
 import type { Dette } from '@/lib/types'
 
 type Props = {
@@ -31,14 +34,13 @@ export default function DetteEditDialog({ open, onOpenChange, dette, minimumMont
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (dette) {
-      setTitre(dette.titre)
-      setPersonne(dette.personne)
-      setMontant(Number(dette.montant))
-      setDateFin(dette.date_echeance || '')
-      setNote(dette.description || '')
-      setError(null)
-    }
+    if (!dette) return
+    setTitre(dette.titre)
+    setPersonne(dette.personne)
+    setMontant(Number(dette.montant))
+    setDateFin(dette.date_echeance || '')
+    setNote(dette.description || '')
+    setError(null)
   }, [dette])
 
   const montantValide = Number.isFinite(montant) && montant > 0 && montant + 0.005 >= minimumMontant
@@ -67,33 +69,52 @@ export default function DetteEditDialog({ open, onOpenChange, dette, minimumMont
   }
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => {
-      if (!saving) {
-        setError(null)
-        onOpenChange(nextOpen)
-      }
+    <Dialog open={open} onOpenChange={nextOpen => {
+      if (saving) return
+      if (!nextOpen) setError(null)
+      onOpenChange(nextOpen)
     }}>
-      <DialogContent className="bg-slate-900 border-slate-700">
-        <DialogHeader><DialogTitle>{isDebt ? 'Modifier la dette' : 'Modifier la créance'}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <Input placeholder="Titre" value={titre} onChange={e => setTitre(e.target.value)} />
-          <Input placeholder="Personne" value={personne} onChange={e => setPersonne(e.target.value)} />
-          <div>
-            <Input type="number" min={Math.max(0.01, minimumMontant)} step="0.01" placeholder="Montant total"
-              value={montant} onChange={e => setMontant(parseFloat(e.target.value) || 0)} />
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{isDebt ? 'Modifier la dette' : 'Modifier la créance'}</DialogTitle>
+          <DialogDescription>Les remboursements déjà enregistrés restent inchangés.</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <FormSection title="Informations" icon={<FileText className="h-4 w-4" />}>
+            <FormField label="Titre">
+              <Input value={titre} onChange={e => setTitre(e.target.value)} />
+            </FormField>
+            <FormField label={isDebt ? 'Créancier' : 'Débiteur'}>
+              <Input value={personne} onChange={e => setPersonne(e.target.value)} />
+            </FormField>
+          </FormSection>
+
+          <FormSection title="Montant" icon={<HandCoins className="h-4 w-4" />}>
+            <CalculatorInput value={montant} onChange={setMontant} placeholder="Montant total" />
             {minimumMontant > 0 && (
-              <p className="text-[11px] text-slate-500 mt-1">
-                Minimum autorisé : {minimumMontant.toFixed(2)} € déjà remboursés.
+              <p className="text-xs leading-5 text-slate-500">
+                Minimum autorisé : {minimumMontant.toFixed(2)} € correspondant aux remboursements déjà enregistrés.
               </p>
             )}
-          </div>
-          <Input type="date" placeholder="Échéance" value={dateFin} onChange={e => setDateFin(e.target.value)} />
-          <Input placeholder="Note" value={note} onChange={e => setNote(e.target.value)} />
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <Button className="w-full" disabled={!canSave || saving} onClick={handleSave}>
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
-          </Button>
+          </FormSection>
+
+          <FormSection title="Échéance et note" icon={<CalendarDays className="h-4 w-4" />}>
+            <FormField label="Échéance" hint="Facultatif">
+              <Input type="date" value={dateFin} onChange={e => setDateFin(e.target.value)} />
+            </FormField>
+            <FormField label="Note" hint="Facultatif">
+              <Input placeholder="Ajouter une précision" value={note} onChange={e => setNote(e.target.value)} />
+            </FormField>
+          </FormSection>
+
+          {error && <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-300">{error}</div>}
         </div>
+
+        <FormActions>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Annuler</Button>
+          <Button onClick={handleSave} disabled={!canSave || saving}>{saving ? 'Enregistrement…' : 'Enregistrer'}</Button>
+        </FormActions>
       </DialogContent>
     </Dialog>
   )
