@@ -10,6 +10,7 @@ import { ReferenceBalanceSetup } from '@/components/ReferenceBalanceSetup'
 import FinancialAlertEngine from '@/components/notifications/FinancialAlertEngine'
 import OnboardingGuide from '@/components/onboarding/OnboardingGuide'
 import HeaderActions from '@/components/layout/HeaderActions'
+import GlobalSearch from '@/components/layout/GlobalSearch'
 import MonthPreparationStatus from '@/components/layout/MonthPreparationStatus'
 
 const HEADER_H = 60
@@ -117,7 +118,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <BrandMark compact={isMobile} className="hidden shrink-0 sm:flex" />
             <EspaceSelector />
           </div>
+          <div className="mx-3 hidden min-w-0 flex-1 justify-center md:flex">
+            <GlobalSearch />
+          </div>
           <div className="ml-auto flex shrink-0 items-center">
+            <GlobalSearch />
             <HeaderActions />
           </div>
         </header>
