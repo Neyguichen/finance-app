@@ -50,6 +50,7 @@ export type MappedImportRow = {
   envelopeName?: string | null
   reimbursementTransactionId?: string | null
   reimbursementPendingItemId?: string | null
+  reimbursementExpenseLabel?: string | null
 }
 
 function splitCsvLine(line: string, delimiter: string) {
@@ -228,6 +229,7 @@ export function mapCsvRows(
       envelopeName,
       reimbursementTransactionId: null,
       reimbursementPendingItemId: null,
+      reimbursementExpenseLabel: null,
     })
   })
 
