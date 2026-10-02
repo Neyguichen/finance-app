@@ -117,11 +117,18 @@ export default function EpargnePage() {
   const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
-    if (!isAdminViewing && moisId && new URLSearchParams(window.location.search).get('add') === 'movement') {
+    if (isAdminViewing || !moisId) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('add') === 'movement') {
       setMovementType('epargne')
       setOpenMvt(true)
     }
-  }, [isAdminViewing, moisId])
+    const movementId = params.get('focusMovement')
+    if (movementId) {
+      const movement: any = effectiveMouvements.find((item: any) => item.id === movementId)
+      if (movement) setEditMvt({ id:movement.id, montant:Number(movement.montant), note:movement.note || null, recurrentId:movement.recurrent_id || null })
+    }
+  }, [isAdminViewing, moisId, effectiveMouvements])
 
   const openMovement = (type:MovementType, envelopeId?:string) => {
     setMovementType(type)
@@ -271,7 +278,6 @@ export default function EpargnePage() {
                         selected={selectedEnvelopeId === env.id}
                         monthlyNet={monthlyNetFor(env.id)}
                         onSelect={() => setSelectedEnvelopeId(env.id)}
-                        onEdit={setEditEnv}
                         onArchive={id => archive.mutate(id)}
                       />
                     ))}
@@ -295,6 +301,7 @@ export default function EpargnePage() {
                   onSave={() => openMovement('epargne', selectedEnvelope.id)}
                   onWithdraw={() => openMovement('reprise', selectedEnvelope.id)}
                   onTransfer={() => openMovement('transfert')}
+                  onEdit={!isAdminViewing ? () => setEditEnv(selectedEnvelope) : undefined}
                 />
               )}
             </div>
@@ -308,7 +315,7 @@ export default function EpargnePage() {
                     <tbody>{effectiveMouvements.map((mvt:any) => {
                       const destination = mvt.type === 'epargne' ? getEnvNom(mvt.enveloppe_dest_id) : mvt.type === 'reprise' ? getEnvNom(mvt.enveloppe_source_id) : getEnvNom(mvt.enveloppe_source_id) + ' → ' + getEnvNom(mvt.enveloppe_dest_id)
                       const positive = mvt.type === 'epargne'
-                      return <tr key={mvt.id} className="border-t border-slate-800/50"><td className="px-3 py-2 text-slate-500">{String(mvt.date).slice(0,10)}</td><td className="px-3 py-2 text-slate-300">{destination}</td><td className="px-3 py-2 text-slate-400">{mvt.type === 'epargne' ? 'Épargne' : mvt.type === 'reprise' ? 'Reprise' : 'Transfert'}</td><td className={'px-3 py-2 text-right font-semibold ' + (positive ? 'text-emerald-300' : mvt.type === 'reprise' ? 'text-rose-300' : 'text-cyan-300')}>{positive ? '+' : mvt.type === 'reprise' ? '−' : ''}{Number(mvt.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</td><td className="max-w-[220px] truncate px-3 py-2 text-slate-600">{mvt.note || '—'}</td><td className="px-2 py-2 text-right">{!isAdminViewing&&<><button className="px-1 text-slate-600 hover:text-indigo-300" onClick={()=>setEditMvt({id:mvt.id,montant:Number(mvt.montant),note:mvt.note||null,recurrentId:mvt.recurrent_id||null})}>✎</button><button className="px-1 text-slate-700 hover:text-rose-400" onClick={()=>setDeleteTarget({id:mvt.id,recurrentId:mvt.recurrent_id||null,note:mvt.note||null})}>×</button></>}</td></tr>
+                      return <tr key={mvt.id} onClick={() => { if (!isAdminViewing) setEditMvt({id:mvt.id,montant:Number(mvt.montant),note:mvt.note||null,recurrentId:mvt.recurrent_id||null}) }} className="cursor-pointer border-t border-slate-800/50 transition hover:bg-slate-800/30"><td className="px-3 py-2 text-slate-500">{String(mvt.date).slice(0,10)}</td><td className="px-3 py-2 text-slate-300">{destination}</td><td className="px-3 py-2 text-slate-400">{mvt.type === 'epargne' ? 'Épargne' : mvt.type === 'reprise' ? 'Reprise' : 'Transfert'}</td><td className={'px-3 py-2 text-right font-semibold ' + (positive ? 'text-emerald-300' : mvt.type === 'reprise' ? 'text-rose-300' : 'text-cyan-300')}>{positive ? '+' : mvt.type === 'reprise' ? '−' : ''}{Number(mvt.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</td><td className="max-w-[220px] truncate px-3 py-2 text-slate-600">{mvt.note || '—'}</td><td className="px-2 py-2 text-right">{!isAdminViewing&&<button aria-label="Supprimer" className="px-2 text-slate-700 hover:text-rose-400" onClick={event=>{event.stopPropagation();setDeleteTarget({id:mvt.id,recurrentId:mvt.recurrent_id||null,note:mvt.note||null})}}>×</button>}</td></tr>
                     })}</tbody>
                   </table>
                 </div>
