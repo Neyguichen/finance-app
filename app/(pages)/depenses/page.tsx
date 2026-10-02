@@ -117,12 +117,14 @@ export default function DepensesPage() {
   const parentCategoryIds = new Set(parentCategories.map((c: any) => c.id))
   const parentBudgets = effectiveBudgets.filter((b: any) => parentCategoryIds.has(b.categorie_id))
   const expenseSummary = summarizeAnalyticalExpenses(effectiveCharges, parentBudgets, effectiveFlat)
-  const { plannedFixed, plannedVariable, plannedTotal, actualTotal } = expenseSummary
+  const { plannedFixed, actualFixed, plannedVariable, actualVariable, plannedTotal, actualTotal } = expenseSummary
   const variance = actualTotal - plannedTotal
   const actualPercent = plannedTotal > 0 ? Math.round((actualTotal / plannedTotal) * 100) : 0
-  const fixedShare = plannedTotal > 0 ? Math.round((plannedFixed / plannedTotal) * 100) : 0
-  const variableShare = plannedTotal > 0 ? Math.round((plannedVariable / plannedTotal) * 100) : 0
-  const otherShare = Math.max(0, 100 - fixedShare - variableShare)
+  const distributionTotal = view === 'planned' ? plannedTotal : actualTotal
+  const distributionFixed = view === 'planned' ? plannedFixed : actualFixed
+  const distributionVariable = view === 'planned' ? plannedVariable : actualVariable
+  const fixedShare = distributionTotal > 0 ? Math.round((distributionFixed / distributionTotal) * 100) : 0
+  const variableShare = distributionTotal > 0 ? Math.max(0, 100 - fixedShare) : 0
   const today = localDateISO()
 
   const budgetModalCategory = parentCategories.find((cat: any) => cat.id === budgetModalId) || null
@@ -368,7 +370,7 @@ export default function DepensesPage() {
           </div>
         </div>
 
-        <div className={view === 'planned' ? 'grid gap-3 xl:grid-cols-[1.65fr_.85fr]' : ''}>
+        <div className="grid gap-3 xl:grid-cols-[1.65fr_.85fr]">
           <Card className="border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Aperçu du mois</CardTitle></CardHeader>
             <CardContent className="grid gap-2 p-3 pt-0 sm:grid-cols-3">
@@ -378,23 +380,31 @@ export default function DepensesPage() {
             </CardContent>
           </Card>
 
-          {view === 'planned' && (
-            <Card className="border-slate-800 bg-slate-900">
-              <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Répartition du prévu</CardTitle></CardHeader>
-              <CardContent className="p-3 pt-0">
-                <div className="flex h-3 overflow-hidden rounded-full bg-slate-800">
-                  <div className="bg-emerald-400" style={{ width: fixedShare + '%' }} />
-                  <div className="bg-orange-400" style={{ width: variableShare + '%' }} />
-                  <div className="bg-violet-500" style={{ width: otherShare + '%' }} />
+          <Card className="border-slate-800 bg-slate-900">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-slate-200">
+                {view === 'planned' ? 'Répartition du prévu' : 'Répartition du réel'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              <div className="flex h-3 overflow-hidden rounded-full bg-slate-800">
+                <div className="bg-emerald-400" style={{ width: fixedShare + '%' }} />
+                <div className="bg-orange-400" style={{ width: variableShare + '%' }} />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-center text-[11px]">
+                <div>
+                  <strong className="text-emerald-300">{fixedShare} %</strong>
+                  <p className="mt-1 text-slate-500">Charges fixes</p>
+                  <p className="mt-0.5 text-[10px] text-slate-600">{formatEuro(distributionFixed)}</p>
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px]">
-                  <div><strong className="text-emerald-300">{fixedShare} %</strong><p className="mt-1 text-slate-500">Charges fixes</p></div>
-                  <div><strong className="text-orange-300">{variableShare} %</strong><p className="mt-1 text-slate-500">Budgets variables</p></div>
-                  <div><strong className="text-violet-300">{otherShare} %</strong><p className="mt-1 text-slate-500">Autres</p></div>
+                <div>
+                  <strong className="text-orange-300">{variableShare} %</strong>
+                  <p className="mt-1 text-slate-500">{view === 'planned' ? 'Budgets variables' : 'Dépenses variables'}</p>
+                  <p className="mt-0.5 text-[10px] text-slate-600">{formatEuro(distributionVariable)}</p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {view === 'planned' ? (
