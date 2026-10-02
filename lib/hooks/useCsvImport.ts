@@ -681,6 +681,8 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       const month = await getOrCreateMonth(row.date)
       let targetTable = ''
       let created: any = null
+      let itemAction: 'created' | 'matched' = 'created'
+      let beforeState: Record<string, any> | null = null
 
       if (nature === 'expense_reimbursement') {
         let transactionId = row.reimbursementTransactionId || null
@@ -729,20 +731,95 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         targetTable = 'remboursements'
         created = data
       } else if (nature === 'income') {
-        const { data, error } = await supabase.from('revenus').insert({
-          mois_id: month.id,
-          recurrent_id: null,
-          type: row.incomeType || 'actif',
-          nom: row.note ? `${row.label} — ${row.note}` : row.label,
-          montant: Math.abs(row.amount),
-          recu: true,
-          date_prevue: row.operationDate || row.date,
-          date_reelle: row.date,
-          ordre: 0,
-        }).select('*').single()
-        if (error) throw error
-        targetTable = 'revenus'
-        created = data
+        let recurrentId = row.recurrenceId || null
+        if (row.incomeRecurring && !recurrentId) {
+          const frequency = Number(row.recurrenceFrequency || 0)
+          if (frequency < 1) throw new Error('Choisis la fréquence de ce revenu récurrent.')
+          const { data: recurrent, error: recurrentError } = await supabase
+            .from('revenus_recurrents')
+            .insert({
+              espace_id: espaceId,
+              type: row.incomeType || 'actif',
+              nom: row.label,
+              montant: Math.abs(row.amount),
+              actif: true,
+              frequence_mois: frequency,
+              mois_debut: month.mois,
+              ordre: 0,
+            })
+            .select('*')
+            .single()
+          if (recurrentError) throw recurrentError
+          recurrentId = recurrent.id
+        }
+
+        if (row.incomeRecurring && recurrentId) {
+          const { data: existing, error: existingError } = await supabase
+            .from('revenus')
+            .select('*')
+            .eq('mois_id', month.id)
+            .eq('recurrent_id', recurrentId)
+            .maybeSingle()
+          if (existingError) throw existingError
+
+          if (existing) {
+            beforeState = {
+              type: existing.type,
+              nom: existing.nom,
+              montant: existing.montant,
+              recu: existing.recu,
+              date_prevue: existing.date_prevue,
+              date_reelle: existing.date_reelle,
+            }
+            const { data: updated, error } = await supabase
+              .from('revenus')
+              .update({
+                type: row.incomeType || 'actif',
+                nom: row.note ? `${row.label} — ${row.note}` : row.label,
+                montant: Math.abs(row.amount),
+                recu: true,
+                date_prevue: row.operationDate || row.date,
+                date_reelle: row.date,
+              })
+              .eq('id', existing.id)
+              .select('*')
+              .single()
+            if (error) throw error
+            targetTable = 'revenus'
+            created = updated
+            itemAction = 'matched'
+          } else {
+            const { data, error } = await supabase.from('revenus').insert({
+              mois_id: month.id,
+              recurrent_id: recurrentId,
+              type: row.incomeType || 'actif',
+              nom: row.note ? `${row.label} — ${row.note}` : row.label,
+              montant: Math.abs(row.amount),
+              recu: true,
+              date_prevue: row.operationDate || row.date,
+              date_reelle: row.date,
+              ordre: 0,
+            }).select('*').single()
+            if (error) throw error
+            targetTable = 'revenus'
+            created = data
+          }
+        } else {
+          const { data, error } = await supabase.from('revenus').insert({
+            mois_id: month.id,
+            recurrent_id: null,
+            type: row.incomeType || 'actif',
+            nom: row.note ? `${row.label} — ${row.note}` : row.label,
+            montant: Math.abs(row.amount),
+            recu: true,
+            date_prevue: row.operationDate || row.date,
+            date_reelle: row.date,
+            ordre: 0,
+          }).select('*').single()
+          if (error) throw error
+          targetTable = 'revenus'
+          created = data
+        }
       } else if (nature === 'savings_deposit' || nature === 'savings_withdrawal') {
         if (!row.envelopeId) throw new Error('Choisis une enveloppe avant de valider ce mouvement d’épargne.')
         const isDeposit = nature === 'savings_deposit'
@@ -761,19 +838,101 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         created = data
       } else if (nature === 'expense') {
         if (!row.categoryId) throw new Error('Choisis une catégorie avant de valider cette dépense.')
-        const { data, error } = await supabase.from('transactions').insert({
-          mois_id: month.id,
-          categorie_id: row.categoryId,
-          sous_categorie_id: row.subcategoryId || null,
-          date: row.operationDate || row.date,
-          date_validation: row.date,
-          montant: Math.abs(row.amount),
-          infos: row.note ? `${row.label} — ${row.note}` : row.label,
-          is_split: false,
-        }).select('*').single()
-        if (error) throw error
-        targetTable = 'transactions'
-        created = data
+
+        if (row.expenseType === 'fixed') {
+          let recurrentId = row.recurrenceId || null
+          if (!recurrentId) {
+            const frequency = Number(row.recurrenceFrequency || 0)
+            if (frequency < 1) throw new Error('Une charge fixe est récurrente : choisis sa fréquence.')
+            const { data: recurrent, error: recurrentError } = await supabase
+              .from('charges_fixes_recurrentes')
+              .insert({
+                espace_id: espaceId,
+                nom: row.label,
+                montant: Math.abs(row.amount),
+                categorie_id: row.categoryId,
+                sous_categorie_id: row.subcategoryId || null,
+                actif: true,
+                frequence_mois: frequency,
+                mois_debut: month.mois,
+                ordre: 0,
+              })
+              .select('*')
+              .single()
+            if (recurrentError) throw recurrentError
+            recurrentId = recurrent.id
+          }
+
+          const { data: existing, error: existingError } = await supabase
+            .from('charges_fixes')
+            .select('*')
+            .eq('mois_id', month.id)
+            .eq('recurrent_id', recurrentId)
+            .maybeSingle()
+          if (existingError) throw existingError
+
+          if (existing) {
+            beforeState = {
+              nom: existing.nom,
+              montant: existing.montant,
+              montant_reel: existing.montant_reel,
+              categorie_id: existing.categorie_id,
+              sous_categorie_id: existing.sous_categorie_id,
+              payee: existing.payee,
+              date_prevue: existing.date_prevue,
+              date_reelle: existing.date_reelle,
+            }
+            const { data: updated, error } = await supabase
+              .from('charges_fixes')
+              .update({
+                nom: row.label,
+                montant_reel: Math.abs(row.amount),
+                categorie_id: row.categoryId,
+                sous_categorie_id: row.subcategoryId || null,
+                payee: true,
+                date_prevue: row.operationDate || row.date,
+                date_reelle: row.date,
+              })
+              .eq('id', existing.id)
+              .select('*')
+              .single()
+            if (error) throw error
+            targetTable = 'charges_fixes'
+            created = updated
+            itemAction = 'matched'
+          } else {
+            const { data, error } = await supabase.from('charges_fixes').insert({
+              mois_id: month.id,
+              recurrent_id: recurrentId,
+              nom: row.label,
+              montant: Math.abs(row.amount),
+              montant_reel: Math.abs(row.amount),
+              categorie_id: row.categoryId,
+              sous_categorie_id: row.subcategoryId || null,
+              payee: true,
+              date_prevue: row.operationDate || row.date,
+              date_reelle: row.date,
+              ordre: 0,
+            }).select('*').single()
+            if (error) throw error
+            targetTable = 'charges_fixes'
+            created = data
+          }
+        } else {
+          const { data, error } = await supabase.from('transactions').insert({
+            mois_id: month.id,
+            categorie_id: row.categoryId,
+            sous_categorie_id: row.subcategoryId || null,
+            date: row.operationDate || row.date,
+            date_validation: row.date,
+            montant: Math.abs(row.amount),
+            infos: row.note ? `${row.label} — ${row.note}` : row.label,
+            is_split: false,
+          }).select('*').single()
+          if (error) throw error
+          targetTable = 'transactions'
+          created = data
+        }
       } else {
         throw new Error('Nature non prise en charge.')
       }
@@ -782,9 +941,10 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
         .from('import_batch_items')
         .update({
           nature,
-          action: 'created',
+          action: itemAction,
           target_table: targetTable,
           target_id: created.id,
+          before_state: beforeState,
           after_state: created,
           reviewed_at: new Date().toISOString(),
         })
@@ -792,13 +952,16 @@ export function useCsvImport(espaceId: string | undefined, userId: string | null
       if (itemError) throw itemError
 
       await refreshBatchProgress(item.batch_id)
-      return { action: 'created', targetTable, targetId: created.id }
+      return { action: itemAction, targetTable, targetId: created.id }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import_batches', espaceId] })
       queryClient.invalidateQueries({ queryKey: ['mois', espaceId] })
       queryClient.invalidateQueries({ queryKey: ['revenus'] })
       queryClient.invalidateQueries({ queryKey: ['charges_fixes'] })
+      queryClient.invalidateQueries({ queryKey: ['revenus_recurrents'] })
+      queryClient.invalidateQueries({ queryKey: ['charges_fixes_recurrentes'] })
+      queryClient.invalidateQueries({ queryKey: ['import_recurrence_candidates', espaceId] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['transactions-flat'] })
       queryClient.invalidateQueries({ queryKey: ['remboursements'] })
