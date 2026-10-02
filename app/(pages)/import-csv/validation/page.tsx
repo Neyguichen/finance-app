@@ -19,6 +19,23 @@ function normalize(value: string | null | undefined) {
   return (value || '').trim().toLocaleLowerCase('fr-FR').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+function dayDistance(left: string | null | undefined, right: string | null | undefined) {
+  if (!left || !right) return 9999
+  const a = new Date(left + 'T12:00:00').getTime()
+  const b = new Date(right + 'T12:00:00').getTime()
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return 9999
+  return Math.round(Math.abs(a - b) / 86400000)
+}
+
+function labelSimilarity(left: string | null | undefined, right: string | null | undefined) {
+  const a = new Set(normalize(left).split(/\s+/).filter(token => token.length >= 3))
+  const b = new Set(normalize(right).split(/\s+/).filter(token => token.length >= 3))
+  if (a.size === 0 || b.size === 0) return 0
+  let common = 0
+  for (const token of a) if (b.has(token)) common += 1
+  return common / Math.max(a.size, b.size)
+}
+
 export default function ImportedTransactionsValidationPage() {
   const [requestedBatchId, setRequestedBatchId] = useState<string | null>(null)
 
@@ -41,6 +58,7 @@ export default function ImportedTransactionsValidationPage() {
   const [bulkEnvelope, setBulkEnvelope] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [categoryDialog, setCategoryDialog] = useState<{ rowId: string; parentId: string | null } | null>(null)
+  const [reimbursementSearch, setReimbursementSearch] = useState<Record<string, string>>({})
 
   const batch = useMemo(() => {
     if (!requestedBatchId) return null
@@ -435,6 +453,89 @@ export default function ImportedTransactionsValidationPage() {
               )
             : null
 
+          const reimbursementCandidates = row.nature === 'expense_reimbursement'
+            ? [
+                ...rows
+                  .filter(candidate => candidate.id !== row.id && candidate.action === 'pending' && candidate.nature === 'expense')
+                  .map(candidate => {
+                    const expenseSource = candidate.analysis || candidate.raw || {}
+                    return {
+                      key: `pending:${candidate.id}`,
+                      kind: 'pending' as const,
+                      id: candidate.id,
+                      label: expenseSource.label || 'Dépense importée',
+                      date: expenseSource.date || expenseSource.operationDate || '',
+                      amount: Math.abs(Number(expenseSource.amount || 0)),
+                      remaining: Math.abs(Number(expenseSource.amount || 0)),
+                    }
+                  }),
+                ...(importModel.reimbursementCandidates.data || [])
+                  .filter((candidate: any) => Number(candidate.montant) - Number(candidate.reimbursed || 0) > 0.005)
+                  .map((candidate: any) => ({
+                    key: `transaction:${candidate.id}`,
+                    kind: 'transaction' as const,
+                    id: candidate.id,
+                    label: candidate.infos || 'Dépense validée',
+                    date: candidate.date_validation || candidate.date || '',
+                    amount: Number(candidate.montant || 0),
+                    remaining: Math.max(0, Number(candidate.montant || 0) - Number(candidate.reimbursed || 0)),
+                  })),
+              ]
+            : []
+
+          const reimbursementAmount = Math.abs(Number(source.amount || 0))
+          const reimbursementDate = source.date || source.operationDate || ''
+          const reimbursementQuery = reimbursementSearch[row.id] || ''
+
+          const scoredReimbursementCandidates = reimbursementCandidates
+            .map(candidate => {
+              const days = dayDistance(candidate.date, reimbursementDate)
+              const amountFits = candidate.remaining + 0.005 >= reimbursementAmount
+              const amountGap = Math.abs(candidate.remaining - reimbursementAmount)
+              const similarity = labelSimilarity(candidate.label, source.label)
+              let score = 0
+              if (amountFits) score += 40
+              if (amountGap < 0.01) score += 35
+              else if (amountGap <= Math.max(5, reimbursementAmount * 0.15)) score += 20
+              else if (amountGap <= Math.max(20, reimbursementAmount * 0.5)) score += 8
+              if (days <= 7) score += 20
+              else if (days <= 31) score += 12
+              else if (days <= 90) score += 5
+              score += similarity * 20
+              return { ...candidate, score }
+            })
+            .filter(candidate => candidate.remaining + 0.005 >= reimbursementAmount)
+            .sort((a, b) => b.score - a.score || dayDistance(a.date, reimbursementDate) - dayDistance(b.date, reimbursementDate))
+
+          const suggestedReimbursementCandidates = scoredReimbursementCandidates.slice(0, 3)
+          const filteredReimbursementCandidates = scoredReimbursementCandidates.filter(candidate => {
+            if (!reimbursementQuery.trim()) return true
+            const q = normalize(reimbursementQuery)
+            return normalize(candidate.label).includes(q) ||
+              candidate.date.includes(reimbursementQuery.trim()) ||
+              String(candidate.amount).replace('.', ',').includes(reimbursementQuery.trim()) ||
+              String(candidate.remaining).replace('.', ',').includes(reimbursementQuery.trim())
+          })
+
+          const chooseReimbursementExpense = (value: string) => {
+            const [kind, id] = value.split(':')
+            if (!id) {
+              savePending(row, {
+                reimbursementPendingItemId: null,
+                reimbursementTransactionId: null,
+                reimbursementExpenseLabel: null,
+              })
+              return
+            }
+
+            const candidate = reimbursementCandidates.find(item => item.key === value)
+            savePending(row, {
+              reimbursementPendingItemId: kind === 'pending' ? id : null,
+              reimbursementTransactionId: kind === 'transaction' ? id : null,
+              reimbursementExpenseLabel: candidate?.label || 'Dépense remboursée',
+            })
+          }
+
           return (
             <article key={row.id} className={`rounded-xl border p-3 ${rowHasIssue(row) ? 'border-amber-800/60 bg-amber-950/10' : 'border-slate-800 bg-slate-900'}`}>
               <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
@@ -635,78 +736,97 @@ export default function ImportedTransactionsValidationPage() {
                   )}
 
                   {row.nature === 'expense_reimbursement' && (
-                    <Field label="Dépense remboursée" className="lg:col-span-2">
-                      <select
-                        className="select select-bordered select-xs w-full bg-slate-950"
-                        value={
-                          source.reimbursementPendingItemId
-                            ? `pending:${source.reimbursementPendingItemId}`
-                            : source.reimbursementTransactionId
-                              ? `transaction:${source.reimbursementTransactionId}`
-                              : ''
-                        }
-                        disabled={!pending}
-                        onChange={event => {
-                          const [kind, id] = event.target.value.split(':')
-                          if (!id) {
-                            savePending(row, {
-                              reimbursementPendingItemId: null,
-                              reimbursementTransactionId: null,
-                              reimbursementExpenseLabel: null,
-                            })
-                            return
-                          }
-
-                          if (kind === 'pending') {
-                            const expenseRow = rows.find(candidate => candidate.id === id)
-                            const expenseSource = expenseRow?.analysis || expenseRow?.raw || {}
-                            savePending(row, {
-                              reimbursementPendingItemId: id,
-                              reimbursementTransactionId: null,
-                              reimbursementExpenseLabel: expenseSource.label || 'Dépense importée',
-                            })
-                          } else {
-                            const transaction = (importModel.reimbursementCandidates.data || []).find((candidate: any) => candidate.id === id)
-                            savePending(row, {
-                              reimbursementPendingItemId: null,
-                              reimbursementTransactionId: id,
-                              reimbursementExpenseLabel: transaction?.infos || 'Dépense validée',
-                            })
-                          }
-                        }}
-                      >
-                        <option value="">Choisir la dépense…</option>
-                        {source.reimbursementPendingItemId && !rows.some(candidate => candidate.id === source.reimbursementPendingItemId) && (
-                          <option value={`pending:${source.reimbursementPendingItemId}`}>
-                            {source.reimbursementExpenseLabel || 'Dépense importée liée'}
-                          </option>
-                        )}
-                        {rows.some(candidate => candidate.action === 'pending' && candidate.nature === 'expense' && candidate.id !== row.id) && (
-                          <optgroup label="Dépenses à valider">
-                            {rows
-                              .filter(candidate => candidate.action === 'pending' && candidate.nature === 'expense' && candidate.id !== row.id)
-                              .map(candidate => {
-                                const expenseSource = candidate.analysis || candidate.raw || {}
+                    <Field label="Dépense remboursée" className="lg:col-span-3">
+                      <div className="space-y-2">
+                        {suggestedReimbursementCandidates.length > 0 && (
+                          <div>
+                            <p className="mb-1 text-[10px] text-slate-500">Suggestions</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {suggestedReimbursementCandidates.map(candidate => {
+                                const selected =
+                                  (candidate.kind === 'pending' && source.reimbursementPendingItemId === candidate.id) ||
+                                  (candidate.kind === 'transaction' && source.reimbursementTransactionId === candidate.id)
                                 return (
-                                  <option key={candidate.id} value={`pending:${candidate.id}`}>
-                                    {expenseSource.date || ''} · {expenseSource.label || 'Dépense'} · {formatEuro(Math.abs(Number(expenseSource.amount || 0)))}
-                                  </option>
+                                  <button
+                                    key={candidate.key}
+                                    type="button"
+                                    disabled={!pending}
+                                    onClick={() => chooseReimbursementExpense(candidate.key)}
+                                    className={`rounded-lg border px-2 py-1.5 text-left text-[11px] transition ${
+                                      selected
+                                        ? 'border-indigo-500 bg-indigo-500/15 text-indigo-200'
+                                        : 'border-slate-700 bg-slate-950/60 text-slate-300 hover:border-slate-600'
+                                    }`}
+                                  >
+                                    <span className="block max-w-56 truncate font-medium">{candidate.label}</span>
+                                    <span className="text-slate-500">
+                                      {candidate.date} · {formatEuro(candidate.amount)}
+                                      {candidate.remaining < candidate.amount - 0.005 ? ` · reste ${formatEuro(candidate.remaining)}` : ''}
+                                    </span>
+                                  </button>
                                 )
                               })}
-                          </optgroup>
+                            </div>
+                          </div>
                         )}
-                        {(importModel.reimbursementCandidates.data || []).some((candidate: any) => Number(candidate.montant) - Number(candidate.reimbursed || 0) > 0.005) && (
-                          <optgroup label="Dépenses validées">
-                            {(importModel.reimbursementCandidates.data || [])
-                              .filter((candidate: any) => Number(candidate.montant) - Number(candidate.reimbursed || 0) > 0.005)
-                              .map((candidate: any) => (
-                                <option key={candidate.id} value={`transaction:${candidate.id}`}>
-                                  {candidate.date_validation || candidate.date || ''} · {candidate.infos || 'Dépense'} · reste {formatEuro(Math.max(0, Number(candidate.montant) - Number(candidate.reimbursed || 0)))}
-                                </option>
-                              ))}
-                          </optgroup>
+
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-600" />
+                          <input
+                            className="input input-bordered input-xs w-full bg-slate-950 pl-8"
+                            placeholder="Rechercher par libellé, date ou montant…"
+                            value={reimbursementQuery}
+                            disabled={!pending}
+                            onChange={event => setReimbursementSearch(current => ({ ...current, [row.id]: event.target.value }))}
+                          />
+                        </div>
+
+                        <select
+                          className="select select-bordered select-xs w-full bg-slate-950"
+                          value={
+                            source.reimbursementPendingItemId
+                              ? `pending:${source.reimbursementPendingItemId}`
+                              : source.reimbursementTransactionId
+                                ? `transaction:${source.reimbursementTransactionId}`
+                                : ''
+                          }
+                          disabled={!pending}
+                          onChange={event => chooseReimbursementExpense(event.target.value)}
+                        >
+                          <option value="">Choisir la dépense…</option>
+                          {source.reimbursementPendingItemId && !reimbursementCandidates.some(candidate => candidate.key === `pending:${source.reimbursementPendingItemId}`) && (
+                            <option value={`pending:${source.reimbursementPendingItemId}`}>
+                              {source.reimbursementExpenseLabel || 'Dépense importée liée'}
+                            </option>
+                          )}
+                          {filteredReimbursementCandidates.some(candidate => candidate.kind === 'pending') && (
+                            <optgroup label="Dépenses à valider">
+                              {filteredReimbursementCandidates
+                                .filter(candidate => candidate.kind === 'pending')
+                                .map(candidate => (
+                                  <option key={candidate.key} value={candidate.key}>
+                                    {candidate.date} · {candidate.label} · {formatEuro(candidate.amount)}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          )}
+                          {filteredReimbursementCandidates.some(candidate => candidate.kind === 'transaction') && (
+                            <optgroup label="Dépenses validées">
+                              {filteredReimbursementCandidates
+                                .filter(candidate => candidate.kind === 'transaction')
+                                .map(candidate => (
+                                  <option key={candidate.key} value={candidate.key}>
+                                    {candidate.date} · {candidate.label} · reste {formatEuro(candidate.remaining)}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          )}
+                        </select>
+
+                        {reimbursementQuery.trim() && filteredReimbursementCandidates.length === 0 && (
+                          <p className="text-[10px] text-amber-400">Aucune dépense compatible trouvée avec cette recherche.</p>
                         )}
-                      </select>
+                      </div>
                     </Field>
                   )}
 
