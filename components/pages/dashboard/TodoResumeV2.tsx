@@ -122,7 +122,7 @@ export default function TodoResumeV2() {
           </div>
         )}
 
-        {!isAdminViewing && !adding && (
+        {!isAdminViewing && !adding && visibleTodos.length > 0 && (
           <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200">
             <Plus className="h-3.5 w-3.5" />Ajouter une tâche
           </button>
