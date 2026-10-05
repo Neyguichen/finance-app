@@ -26,6 +26,7 @@ export type MonthPreparationItem = {
   incomeType?: 'actif' | 'passif'
   order?: number
   selected: boolean
+  inactive?: boolean
 }
 
 export type MonthPreparationPreview = {
