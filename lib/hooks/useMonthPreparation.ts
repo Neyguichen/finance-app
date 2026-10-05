@@ -33,10 +33,10 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
       }
 
       const [revenus, fixes, savings, budgetHabits, envelopes, currentMonth] = await Promise.all([
-        supabase.from('revenus_recurrents').select('*').eq('espace_id', espaceId!).eq('actif', true),
-        supabase.from('charges_fixes_recurrentes').select('*').eq('espace_id', espaceId!).eq('actif', true),
-        supabase.from('epargne_recurrentes').select('*').eq('espace_id', espaceId!).eq('actif', true),
-        supabase.from('budget_habitudes').select('*, categorie:categories(nom)').eq('espace_id', espaceId!).eq('actif', true),
+        supabase.from('revenus_recurrents').select('*').eq('espace_id', espaceId!),
+        supabase.from('charges_fixes_recurrentes').select('*').eq('espace_id', espaceId!),
+        supabase.from('epargne_recurrentes').select('*').eq('espace_id', espaceId!),
+        supabase.from('budget_habitudes').select('*, categorie:categories(nom)').eq('espace_id', espaceId!),
         supabase.from('enveloppes').select('id, nom').eq('espace_id', espaceId!),
         supabase.from('mois').select('id').eq('espace_id', espaceId!).eq('mois', targetDate).maybeSingle(),
       ])
@@ -78,23 +78,27 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
       }
 
       for (const row of revenus.data || []) {
-        if (isHabitDue(row, targetDate) && !existingIncomeSources.has(row.id)) {
-          items.push({ id: `income:${row.id}`, kind: 'income', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, incomeType: row.type as 'actif' | 'passif', order: row.ordre || 0, selected: true })
+        if (isHabitDue({ ...row, actif: true }, targetDate) && !existingIncomeSources.has(row.id)) {
+          const inactive = row.actif === false
+          items.push({ id: `income:${row.id}`, kind: 'income', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, incomeType: row.type as 'actif' | 'passif', order: row.ordre || 0, selected: !inactive, inactive })
         }
       }
       for (const row of fixes.data || []) {
-        if (isHabitDue(row, targetDate) && !existingFixedSources.has(row.id)) {
-          items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, categoryId: row.categorie_id, subcategoryId: row.sous_categorie_id, order: row.ordre || 0, selected: true })
+        if (isHabitDue({ ...row, actif: true }, targetDate) && !existingFixedSources.has(row.id)) {
+          const inactive = row.actif === false
+          items.push({ id: `fixed:${row.id}`, kind: 'fixed', label: row.nom, amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, categoryId: row.categorie_id, subcategoryId: row.sous_categorie_id, order: row.ordre || 0, selected: !inactive, inactive })
         }
       }
       for (const row of savings.data || []) {
-        if (isHabitDue(row, targetDate) && !existingSavingsSources.has(row.id)) {
-          items.push({ id: `savings:${row.id}`, kind: 'savings', label: row.note || envelopeNames.get(row.enveloppe_dest_id) || 'Épargne', amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, envelopeId: row.enveloppe_dest_id, order: row.ordre || 0, selected: true })
+        if (isHabitDue({ ...row, actif: true }, targetDate) && !existingSavingsSources.has(row.id)) {
+          const inactive = row.actif === false
+          items.push({ id: `savings:${row.id}`, kind: 'savings', label: row.note || envelopeNames.get(row.enveloppe_dest_id) || 'Épargne', amount: Number(row.montant), sourceId: row.id, recurrentId: row.id, envelopeId: row.enveloppe_dest_id, order: row.ordre || 0, selected: !inactive, inactive })
         }
       }
       for (const row of budgetHabits.data || []) {
-        if (isHabitDue(row, targetDate) && !existingBudgetCategories.has(row.categorie_id)) {
-          items.push({ id: `budget:${row.id}`, kind: 'budget', label: (row.categorie as { nom?: string } | null)?.nom || 'Budget variable', amount: Number(row.montant), sourceId: row.id, categoryId: row.categorie_id, order: row.ordre || 0, selected: true })
+        if (isHabitDue({ ...row, actif: true }, targetDate) && !existingBudgetCategories.has(row.categorie_id)) {
+          const inactive = row.actif === false
+          items.push({ id: `budget:${row.id}`, kind: 'budget', label: (row.categorie as { nom?: string } | null)?.nom || 'Budget variable', amount: Number(row.montant), sourceId: row.id, categoryId: row.categorie_id, order: row.ordre || 0, selected: !inactive, inactive })
         }
       }
       return { mode, items, sourceMonth: undefined }
@@ -117,6 +121,21 @@ export function usePrepareMonth(espaceId: string | undefined, targetMonth: strin
         p_items: items,
       })
       if (error) throw error
+
+      const inactiveItems = items.filter(item => item.inactive && item.sourceId)
+      const reactivationTables = {
+        income: 'revenus_recurrents',
+        fixed: 'charges_fixes_recurrentes',
+        savings: 'epargne_recurrentes',
+        budget: 'budget_habitudes',
+      } as const
+
+      for (const item of inactiveItems) {
+        const table = reactivationTables[item.kind]
+        const { error: reactivateError } = await supabase.from(table).update({ actif: true }).eq('id', item.sourceId!)
+        if (reactivateError) throw reactivateError
+      }
+
       return data as string
     },
     onSuccess: () => {
