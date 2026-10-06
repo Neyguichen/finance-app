@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useApp } from '@/components/AppContext'
 import { useChargesFixes } from '@/lib/hooks/useChargesFixes'
 import { useRevenus } from '@/lib/hooks/useRevenus'
-import { useTodos } from '@/lib/hooks/useTodos'
 import { createClient } from '@/lib/supabase/client'
 import { currentMonth, formatDate, localDateISO } from '@/lib/utils'
 import { useQueryClient } from '@tanstack/react-query'
@@ -21,7 +20,6 @@ type RuleAlert = {
 export default function FinancialAlertEngine() {
   const { espace, moisId, month, isAdminViewing } = useApp()
   const financesEnabled = espace?.features?.notification_finances !== false
-  const actionsEnabled = espace?.features?.notification_actions !== false
   const enabled = Boolean(
     espace?.id &&
     moisId &&
@@ -30,7 +28,6 @@ export default function FinancialAlertEngine() {
   )
   const charges = useChargesFixes(enabled ? moisId : undefined)
   const revenus = useRevenus(enabled ? moisId : undefined)
-  const todos = useTodos(enabled ? espace?.id : undefined)
   const supabase = createClient()
   const queryClient = useQueryClient()
   const lastSignature = useRef('')
@@ -64,23 +61,11 @@ export default function FinancialAlertEngine() {
       })
     }
 
-    if (actionsEnabled) for (const todo of todos.data || []) {
-      if (todo.status === 'done' || !todo.due_date || todo.due_date > today) continue
-      next.push({
-        dedupe_key: `rule:todo-due:${todo.id}`,
-        family: 'actions',
-        title: todo.due_date === today ? 'Action prévue aujourd’hui' : 'Action en retard',
-        message: todo.title,
-        action_label: 'Voir dans le résumé',
-        action_href: '/dashboard#todo',
-      })
-    }
-
     return next
-  }, [enabled, financesEnabled, actionsEnabled, charges.data, revenus.data, todos.data])
+  }, [enabled, financesEnabled, charges.data, revenus.data])
 
   useEffect(() => {
-    if (!enabled || charges.isLoading || revenus.isLoading || todos.isLoading || !espace?.id) return
+    if (!enabled || charges.isLoading || revenus.isLoading || !espace?.id) return
 
     const signature = alerts
       .map(alert => alert.dedupe_key)
@@ -144,7 +129,6 @@ export default function FinancialAlertEngine() {
     espace?.id,
     charges.isLoading,
     revenus.isLoading,
-    todos.isLoading,
     alerts,
     queryClient,
     supabase,
