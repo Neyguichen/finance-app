@@ -28,7 +28,8 @@ export default function EpargneDettesV2({
   debtRepaymentsOut = 0,
   loading,
 }: Props) {
-  const savingsProgress = plannedSavings > 0 ? Math.min(100, Math.round((actualSavings / plannedSavings) * 100)) : 0
+  const savingsProgress = plannedSavings > 0 ? Math.round((actualSavings / plannedSavings) * 100) : 0
+  const savingsBarProgress = Math.min(100, Math.max(0, savingsProgress))
 
   return (
     <Card className="nf-card-hover h-full">
@@ -49,12 +50,12 @@ export default function EpargneDettesV2({
               <div className="flex items-center gap-2 text-xs font-medium text-sky-300"><PiggyBank className="h-4 w-4" />Épargne</div>
               <p className="mt-1 text-xl font-bold text-sky-300">{formatEuro(savingsAvailable)}</p>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500">
-                <span><span className="text-emerald-400">+{formatEuro(actualSavings)}</span> versés ce mois</span>
+                <span><span className="text-emerald-400">+{formatEuro(actualSavings)}</span> versés ce mois{plannedSavings > 0 ? <> / <span className="text-slate-400">{formatEuro(plannedSavings)} prévus</span></> : null}</span>
                 {savingsWithdrawals > 0 && <span><span className="text-rose-400">−{formatEuro(savingsWithdrawals)}</span> repris</span>}
               </div>
               {plannedSavings > 0 && (
                 <>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-sky-400" style={{ width: String(savingsProgress) + '%' }} /></div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-sky-400" style={{ width: String(savingsBarProgress) + '%' }} /></div>
                   <p className="mt-1 text-[10px] text-slate-600">{savingsProgress}% de l’épargne prévue du mois</p>
                 </>
               )}
