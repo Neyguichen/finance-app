@@ -616,7 +616,7 @@ export default function DepensesPage() {
         <div className="grid items-stretch gap-3 xl:grid-cols-2">
           <Card className="h-full border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel</CardTitle></CardHeader>
-            <CardContent className="flex h-full flex-col justify-between gap-3 p-3 pt-0">
+            <CardContent className="space-y-3 p-3 pt-0">
               <div className="grid gap-2 sm:grid-cols-3">
                 <SummaryCard icon={ChartPie} label="Prévu ce mois" value={plannedTotal} tone="blue" />
                 <SummaryCard icon={WalletCards} label="Réel" value={actualTotal} detail={plannedTotal > 0 ? actualPercent + ' % du prévu' : 'Aucun prévu'} tone="emerald" />
@@ -635,28 +635,26 @@ export default function DepensesPage() {
 
           <Card className="h-full border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel par type</CardTitle></CardHeader>
-            <CardContent className="space-y-4 p-3 pt-0">
-              <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-purple-400" />
-                    <span className="text-xs font-semibold text-slate-200">Charges fixes</span>
+            <CardContent className="space-y-2 p-3 pt-0">
+              <div className="rounded-xl border border-slate-800 bg-slate-950/25 px-3 py-2.5">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-purple-400" />
+                    <span className="truncate text-xs font-semibold text-slate-200">Charges fixes</span>
                   </div>
-                  <span className="text-[10px] text-slate-500">
+                  <div className="text-right">
+                    <p className="text-[8px] uppercase tracking-wide text-slate-600">Prévu</p>
+                    <p className="text-xs font-semibold text-purple-200">{formatEuro(plannedFixed)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[8px] uppercase tracking-wide text-slate-600">Réel</p>
+                    <p className="text-xs font-semibold text-slate-100">{formatEuro(actualFixed)}</p>
+                  </div>
+                  <span className="w-9 text-right text-[10px] font-medium text-slate-500">
                     {plannedFixed > 0 ? Math.round((actualFixed / plannedFixed) * 100) : (actualFixed > 0 ? 100 : 0)} %
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[9px] uppercase tracking-wide text-slate-600">Prévu</p>
-                    <p className="mt-0.5 text-sm font-semibold text-purple-200">{formatEuro(plannedFixed)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] uppercase tracking-wide text-slate-600">Réel</p>
-                    <p className="mt-0.5 text-sm font-semibold text-slate-100">{formatEuro(actualFixed)}</p>
-                  </div>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
                   <div
                     className={actualFixed > plannedFixed && plannedFixed > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-purple-400'}
                     style={{ width: Math.min(100, plannedFixed > 0 ? (actualFixed / plannedFixed) * 100 : (actualFixed > 0 ? 100 : 0)) + '%' }}
@@ -664,27 +662,25 @@ export default function DepensesPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-orange-400" />
-                    <span className="text-xs font-semibold text-slate-200">Dépenses variables</span>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/25 px-3 py-2.5">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-orange-400" />
+                    <span className="truncate text-xs font-semibold text-slate-200">Dépenses variables</span>
                   </div>
-                  <span className="text-[10px] text-slate-500">
+                  <div className="text-right">
+                    <p className="text-[8px] uppercase tracking-wide text-slate-600">Prévu</p>
+                    <p className="text-xs font-semibold text-orange-200">{formatEuro(plannedVariable)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[8px] uppercase tracking-wide text-slate-600">Réel</p>
+                    <p className="text-xs font-semibold text-slate-100">{formatEuro(actualVariable)}</p>
+                  </div>
+                  <span className="w-9 text-right text-[10px] font-medium text-slate-500">
                     {plannedVariable > 0 ? Math.round((actualVariable / plannedVariable) * 100) : (actualVariable > 0 ? 100 : 0)} %
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[9px] uppercase tracking-wide text-slate-600">Prévu</p>
-                    <p className="mt-0.5 text-sm font-semibold text-orange-200">{formatEuro(plannedVariable)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] uppercase tracking-wide text-slate-600">Réel</p>
-                    <p className="mt-0.5 text-sm font-semibold text-slate-100">{formatEuro(actualVariable)}</p>
-                  </div>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
                   <div
                     className={actualVariable > plannedVariable && plannedVariable > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-orange-400'}
                     style={{ width: Math.min(100, plannedVariable > 0 ? (actualVariable / plannedVariable) * 100 : (actualVariable > 0 ? 100 : 0)) + '%' }}
