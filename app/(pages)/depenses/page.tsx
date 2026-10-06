@@ -620,10 +620,10 @@ export default function DepensesPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 border-orange-400/30 bg-orange-500/[0.06] px-3 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/[0.12]"
+                className="h-8 border-slate-700 bg-slate-950/20 px-3 text-[11px] font-semibold text-slate-200 hover:border-slate-600 hover:bg-slate-800/60"
                 onClick={() => setManagementView('budgets')}
               >
-                <Tags className="mr-1.5 h-3.5 w-3.5" />Catégories &amp; Budgets
+                <Tags className="mr-1.5 h-3.5 w-3.5 text-slate-400" />Catégories &amp; Budgets
               </Button>
             </div>
           </CardHeader>
