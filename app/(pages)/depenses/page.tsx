@@ -81,11 +81,17 @@ export default function DepensesPage() {
     const params = new URLSearchParams(window.location.search)
     const requestedView = params.get('view')
     const requestedActualFilter = params.get('actualFilter')
+    const savedSort = window.localStorage.getItem('depenses_actual_sort')
     if (requestedView === 'planned') setManagementView('budgets')
     if (requestedActualFilter === 'all' || requestedActualFilter === 'planned' || requestedActualFilter === 'validated') {
       setActualFilter(requestedActualFilter)
     }
+    if (savedSort === 'payment' || savedSort === 'validation') setActualSort(savedSort)
   }, [])
+
+  useEffect(() => {
+    window.localStorage.setItem('depenses_actual_sort', actualSort)
+  }, [actualSort])
 
   useEffect(() => {
     if (isAdminViewing || !moisId) return
@@ -608,7 +614,7 @@ export default function DepensesPage() {
         </div>
 
         <div className="grid gap-3 xl:grid-cols-[1.1fr_.9fr]">
-          <Card className="border-slate-800 bg-slate-900">
+          <Card className="self-start border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel</CardTitle></CardHeader>
             <CardContent className="space-y-3 p-3 pt-0">
               <div className="grid gap-2 sm:grid-cols-3">
