@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Repeat2 } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
 import { useMouvements, useEnveloppes } from '@/lib/hooks/useEpargne'
@@ -18,8 +20,8 @@ import RevenuForm from '@/components/pages/revenus/RevenuForm'
 import RevenuEditDialog from '@/components/pages/revenus/RevenuEditDialog'
 import RevenuDeleteDialog from '@/components/pages/revenus/RevenuDeleteDialog'
 import RevenusFab from '@/components/pages/revenus/RevenusFab'
-import RevenusAnnualRecurrence from '@/components/pages/revenus/RevenusAnnualRecurrence'
 import { summarizeIncome } from '@/lib/income-summary'
+import { Button } from '@/components/ui/button'
 
 function previousMonthEnd(month: string) {
   const [year, monthNumber] = month.slice(0,7).split('-').map(Number)
@@ -27,6 +29,7 @@ function previousMonthEnd(month: string) {
 }
 
 export default function RevenusPage() {
+  const router = useRouter()
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const { data: revenus = [], toggleRecu, create, update, updateFromMonth, remove, removeFromMonth } = useRevenus(moisId)
   const { data: recurrents = [], create: createRecurrent } = useRevenusRecurrents(espace?.id)
@@ -57,7 +60,6 @@ export default function RevenusPage() {
 
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<any>(null)
-  const [editTargetMonth, setEditTargetMonth] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
 
   useEffect(() => {
@@ -68,7 +70,6 @@ export default function RevenusPage() {
     if (focusId) {
       const revenue = effectiveRevenus.find((item: any) => item.id === focusId)
       if (revenue) {
-        setEditTargetMonth(null)
         setEditTarget({
           id: revenue.id,
           nom: revenue.nom,
@@ -142,7 +143,7 @@ export default function RevenusPage() {
       await update.mutateAsync({ id: data.id, ...updates })
       await updateFromMonth.mutateAsync({
         recurrentId: data.recurrentId,
-        month: editTargetMonth || month,
+        month,
         updates: {
           nom: data.nom,
           montant: data.montant,
@@ -167,41 +168,20 @@ export default function RevenusPage() {
     setDeleteTarget(null)
   }
 
-  const handleEditHistoryOccurrence = (occurrence: any) => {
-    setEditTargetMonth(occurrence.month)
-    setEditTarget({
-      id: occurrence.id,
-      nom: occurrence.nom,
-      montant: occurrence.montant,
-      type: occurrence.type,
-      recurrentId: occurrence.recurrentId,
-      datePrevue: occurrence.datePrevue,
-      recu: occurrence.recu,
-      dateReelle: occurrence.dateReelle,
-    })
-  }
-
-  const handleCreateMissingIncome = async (row: any, _monthKey: string, monthId: string) => {
-    if (isAdminViewing) return
-    await create.mutateAsync({
-      mois_id: monthId,
-      recurrent_id: row.recurrentId,
-      type: row.type,
-      nom: row.nom,
-      montant: row.baseAmount,
-      recu: false,
-      date_prevue: null,
-      date_reelle: null,
-      ordre: row.order || 0,
-    })
-  }
 
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
       <div className="mx-auto w-full max-w-7xl space-y-4 p-3 pb-28 sm:p-4">
-        <h1 className="text-xl font-bold">Revenus</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="min-w-0 flex-1 text-xl font-bold">Revenus</h1>
+          {!isAdminViewing && (
+            <Button size="sm" variant="outline" onClick={() => router.push('/revenus/recurrents')}>
+              <Repeat2 className="mr-1.5 h-4 w-4" />Revenus récurrents
+            </Button>
+          )}
+        </div>
 
         <RevenusResume
           plannedIncome={plannedIncome}
@@ -217,16 +197,6 @@ export default function RevenusPage() {
           <EvolutionRevenus monthly={history.data?.monthly || []} loading={history.isLoading} />
         </div>
 
-        {!isAdminViewing && (
-          <RevenusAnnualRecurrence
-            currentMonth={month}
-            rows={history.data?.rows || []}
-            preparedMonths={history.data?.preparedMonths || {}}
-            onEditOccurrence={handleEditHistoryOccurrence}
-            onCreateMissing={handleCreateMissingIncome}
-          />
-        )}
-
         <RevenusTable
           revenus={effectiveRevenus as any[]}
           reprises={reprises as any[]}
@@ -241,7 +211,7 @@ export default function RevenusPage() {
         />
 
         <RevenuForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleCreate} doubleDate={espace?.double_date ?? false} />
-        <RevenuEditDialog editTarget={editTarget} onClose={() => { setEditTarget(null); setEditTargetMonth(null) }} onSave={handleSaveEdit} doubleDate={espace?.double_date ?? false} />
+        <RevenuEditDialog editTarget={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} doubleDate={espace?.double_date ?? false} />
         <RevenuDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDelete} />
       </div>
       {!isAdminViewing && <RevenusFab onAdd={() => setFormOpen(true)} />}
