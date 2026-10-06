@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   CalendarClock,
   Archive,
+  CalendarDays,
   Check,
   ChartPie,
   ChevronDown,
@@ -27,7 +28,7 @@ import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useTransactions } from '@/lib/hooks/useTransactions'
-import { useChargesFixes, useChargesFixesRecurrentes } from '@/lib/hooks/useChargesFixes'
+import { useChargeFixeOccurrences, useChargesFixes, useChargesFixesRecurrentes } from '@/lib/hooks/useChargesFixes'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 import DepenseForm from '@/components/pages/variables/DepenseForm'
 import DepenseEditDialog from '@/components/pages/variables/DepenseEditDialog'
@@ -50,6 +51,9 @@ export default function DepensesPage() {
   const [showArchivedFixed, setShowArchivedFixed] = useState(false)
   const [showArchivedCategories, setShowArchivedCategories] = useState(false)
   const [selectedFixedRecurringId, setSelectedFixedRecurringId] = useState<string | null>(null)
+  const [occurrenceMonth, setOccurrenceMonth] = useState(month.slice(0, 7))
+  const [suspensionFrom, setSuspensionFrom] = useState('')
+  const [suspensionUntil, setSuspensionUntil] = useState('')
   const [actualFilter, setActualFilter] = useState<ActualFilter>('all')
   const [actualSort, setActualSort] = useState<'payment' | 'validation'>('payment')
   const [budgetModalId, setBudgetModalId] = useState<string | null>(null)
@@ -89,6 +93,7 @@ export default function DepensesPage() {
   const { data: transactions = [], allFlat, create: createTx, update: updateTx, remove: removeTx, split, unsplit } = useTransactions(moisId)
   const { data: charges = [], togglePayee, create: createFixed, update: updateFixed, remove: removeFixed, removeDefinitif } = useChargesFixes(moisId)
   const { data: fixedRecurrents = [], create: createFixedRecurring, update: updateFixedRecurring } = useChargesFixesRecurrentes(espace?.id)
+  const { data: selectedOccurrences = [], add: addOccurrence, remove: removeOccurrence, updateScope: updateOccurrenceScope } = useChargeFixeOccurrences(selectedFixedRecurringId, espace?.id)
   const { data: adminData } = useAdminMoisData(month)
   const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
 
@@ -143,7 +148,7 @@ export default function DepensesPage() {
   const archivedFixedRecurrents = fixedRecurrents.filter((item: any) => item.actif === false)
   const selectedFixedRecurring = fixedRecurrents.find((item: any) => item.id === selectedFixedRecurringId) || null
   const selectedFixedOccurrence = selectedFixedRecurring
-    ? effectiveCharges.find((item: any) => item.recurrent_id === selectedFixedRecurring.id) || null
+    ? selectedOccurrences.find((item: any) => String(item.mois?.mois || '').slice(0, 7) === month.slice(0, 7)) || null
     : null
   const subBudgetTotal = budgetModalSubcats.reduce((sum: number, sub: any) => sum + (Number(budgetDraft[sub.id]) || 0), 0)
   const isSubBudgetMode = subBudgetTotal > 0
@@ -216,24 +221,41 @@ export default function DepensesPage() {
     return frequency === 1 ? 'Tous les mois' : 'Tous les ' + frequency + ' mois'
   }
 
-  const addCurrentFixedOccurrence = async () => {
-    if (!selectedFixedRecurring || !moisId || isAdminViewing || selectedFixedOccurrence) return
-    await createFixed.mutateAsync({
-      mois_id: moisId,
-      recurrent_id: selectedFixedRecurring.id,
-      nom: selectedFixedRecurring.nom,
-      montant: Number(selectedFixedRecurring.montant),
-      categorie_id: selectedFixedRecurring.categorie_id ?? null,
-      sous_categorie_id: selectedFixedRecurring.sous_categorie_id ?? null,
-      payee: false,
-      ordre: charges.length,
+  const addSelectedFixedOccurrence = async () => {
+    if (!selectedFixedRecurring || isAdminViewing || !occurrenceMonth) return
+    await addOccurrence.mutateAsync({ targetMonth: occurrenceMonth, recurring: selectedFixedRecurring })
+  }
+
+  const removeSelectedFixedOccurrence = async (id: string) => {
+    if (isAdminViewing) return
+    await removeOccurrence.mutateAsync(id)
+  }
+
+  const editOccurrenceFromHistory = (occurrence: any) => {
+    setManagementView(null)
+    editFixedTarget(occurrence)
+  }
+
+  const saveSuspension = async () => {
+    if (!selectedFixedRecurring || isAdminViewing) return
+    await updateFixedRecurring.mutateAsync({
+      id: selectedFixedRecurring.id,
+      suspended_from: suspensionFrom ? suspensionFrom + '-01' : null,
+      suspended_until: suspensionUntil ? suspensionUntil + '-01' : null,
     })
   }
 
-  const removeCurrentFixedOccurrence = async () => {
-    if (!selectedFixedOccurrence || isAdminViewing) return
-    await removeFixed.mutateAsync(selectedFixedOccurrence.id)
-  }
+  useEffect(() => {
+    if (!selectedFixedRecurring) {
+      setOccurrenceMonth(month.slice(0, 7))
+      setSuspensionFrom('')
+      setSuspensionUntil('')
+      return
+    }
+    setOccurrenceMonth(month.slice(0, 7))
+    setSuspensionFrom(selectedFixedRecurring.suspended_from?.slice(0, 7) || '')
+    setSuspensionUntil(selectedFixedRecurring.suspended_until?.slice(0, 7) || '')
+  }, [selectedFixedRecurringId, selectedFixedRecurring?.suspended_from, selectedFixedRecurring?.suspended_until, month])
 
   const setFixedRecurringActive = async (id: string, active: boolean) => {
     if (isAdminViewing) return
@@ -408,18 +430,34 @@ export default function DepensesPage() {
     setEditFixed(null)
   }
 
-  const saveFixedScope = async (scope: 'mois' | 'tous') => {
+  const saveFixedScope = async (scope: 'mois' | 'suivantes' | 'tous') => {
     if (!scopeFixed || isAdminViewing) return
-    await updateFixed.mutateAsync({
-      id: scopeFixed.id,
+    const occurrenceUpdates = {
       nom: scopeFixed.nom,
       montant: scopeFixed.montant,
       categorie_id: scopeFixed.categorieId ?? null,
       sous_categorie_id: scopeFixed.sousCategorieId ?? null,
-      payee: !!scopeFixed.payee,
-      date_reelle: scopeFixed.dateReelle ?? null,
-    })
-    if (scope === 'tous') {
+    }
+
+    if (scope === 'mois') {
+      await updateFixed.mutateAsync({
+        id: scopeFixed.id,
+        ...occurrenceUpdates,
+        payee: !!scopeFixed.payee,
+        date_reelle: scopeFixed.dateReelle ?? null,
+      })
+    } else {
+      await updateOccurrenceScope.mutateAsync({
+        recurrentId: scopeFixed.recurrentId,
+        currentMonth: month,
+        scope: scope === 'suivantes' ? 'future' : 'all',
+        updates: occurrenceUpdates,
+      })
+      await updateFixed.mutateAsync({
+        id: scopeFixed.id,
+        payee: !!scopeFixed.payee,
+        date_reelle: scopeFixed.dateReelle ?? null,
+      })
       await updateFixedRecurring.mutateAsync({
         id: scopeFixed.recurrentId,
         nom: scopeFixed.nom,
@@ -689,22 +727,53 @@ export default function DepensesPage() {
                       <strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong>
                     </div>
                     <div className="rounded-xl border border-slate-800 p-3">
-                      <p className="text-[10px] uppercase tracking-wide text-slate-600">Occurrence du mois affiché</p>
-                      {selectedFixedOccurrence ? (
-                        <div className="mt-2 flex items-center justify-between gap-3">
-                          <div><p className="text-sm text-slate-200">{selectedFixedOccurrence.payee ? 'Validée' : 'À valider'}</p><p className="text-[10px] text-slate-500">{selectedFixedOccurrence.date_prevue ? formatDate(selectedFixedOccurrence.date_prevue) : 'Date non renseignée'}</p></div>
-                          {!isAdminViewing && <Button size="sm" variant="outline" onClick={removeCurrentFixedOccurrence}>Retirer ce mois</Button>}
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] uppercase tracking-wide text-slate-600">Ajouter une occurrence</p>
+                        <CalendarDays className="h-4 w-4 text-slate-600" />
+                      </div>
+                      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                        <input type="month" value={occurrenceMonth} onChange={event => setOccurrenceMonth(event.target.value)} className="input input-bordered input-sm flex-1" />
+                        {!isAdminViewing && selectedFixedRecurring.actif !== false && (
+                          <Button size="sm" onClick={addSelectedFixedOccurrence} disabled={addOccurrence.isPending || selectedOccurrences.some((item: any) => String(item.mois?.mois || '').slice(0, 7) === occurrenceMonth)}>
+                            <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 p-3">
+                      <p className="text-[10px] uppercase tracking-wide text-slate-600">Suspendre une période</p>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <label className="text-[10px] text-slate-500">Du<input type="month" value={suspensionFrom} onChange={event => setSuspensionFrom(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
+                        <label className="text-[10px] text-slate-500">Au<input type="month" value={suspensionUntil} onChange={event => setSuspensionUntil(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
+                      </div>
+                      {!isAdminViewing && <Button size="sm" variant="outline" className="mt-2 w-full" onClick={saveSuspension} disabled={updateFixedRecurring.isPending}>Enregistrer la suspension</Button>}
+                      {(selectedFixedRecurring.suspended_from || selectedFixedRecurring.suspended_until) && <p className="mt-2 text-[10px] text-amber-300">Suspendue {selectedFixedRecurring.suspended_from ? 'à partir de ' + formatDate(selectedFixedRecurring.suspended_from) : ''}{selectedFixedRecurring.suspended_until ? ' jusqu’au ' + formatDate(selectedFixedRecurring.suspended_until) : ''}.</p>}
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2"><p className="text-[10px] uppercase tracking-wide text-slate-600">Historique des occurrences</p><span className="text-[10px] text-slate-600">{selectedOccurrences.length}</span></div>
+                      {selectedOccurrences.length === 0 ? <p className="text-xs text-slate-500">Aucune occurrence enregistrée.</p> : (
+                        <div className="max-h-64 divide-y divide-slate-800/70 overflow-y-auto">
+                          {selectedOccurrences.map((occurrence: any) => (
+                            <div key={occurrence.id} className="flex items-center gap-2 py-2">
+                              <button type="button" onClick={() => editOccurrenceFromHistory(occurrence)} className="min-w-0 flex-1 text-left">
+                                <p className="text-xs font-medium text-slate-200">{formatDate(occurrence.mois?.mois || occurrence.date_prevue || month)}</p>
+                                <p className="text-[10px] text-slate-500">{occurrence.payee ? 'Validée' : 'À valider'} · {formatEuro(Number(occurrence.montant))}</p>
+                              </button>
+                              {!isAdminViewing && <Button size="sm" variant="ghost" onClick={() => removeSelectedFixedOccurrence(occurrence.id)}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                            </div>
+                          ))}
                         </div>
-                      ) : (
-                        <div className="mt-2 flex items-center justify-between gap-3"><p className="text-sm text-slate-500">Aucune occurrence sur ce mois.</p>{!isAdminViewing && selectedFixedRecurring.actif !== false && <Button size="sm" onClick={addCurrentFixedOccurrence}><Plus className="mr-1 h-3.5 w-3.5" />Ajouter ce mois</Button>}</div>
                       )}
                     </div>
+
                     {!isAdminViewing && (
                       selectedFixedRecurring.actif === false
                         ? <Button className="w-full" onClick={() => setFixedRecurringActive(selectedFixedRecurring.id, true)}><RotateCcw className="mr-1 h-4 w-4" />Désarchiver la charge</Button>
                         : <Button className="w-full" variant="outline" onClick={() => setFixedRecurringActive(selectedFixedRecurring.id, false)}><Archive className="mr-1 h-4 w-4" />Archiver la charge</Button>
                     )}
-                    <p className="text-[10px] leading-4 text-slate-600">Archiver conserve les occurrences déjà créées et retire cette charge des récurrences actives pour les prochains mois.</p>
+                    <p className="text-[10px] leading-4 text-slate-600">Modifier une occurrence depuis l’historique permet ensuite de choisir : cette occurrence uniquement, cette occurrence et les suivantes, ou toute la série. Archiver conserve tout l’historique.</p>
                   </div>
                 )}
               </section>
