@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarClock, ChevronDown, PiggyBank, TrendingUp } from 'lucide-react'
+import { CalendarClock, ChevronDown, PiggyBank, Repeat2, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +15,8 @@ type Props = {
   currentMonthMovements: MouvementEpargne[]
   currentMonth: string
   plannedMonthly: number
+  recurringSavings?: any[]
+  onUpdateRecurring?: (updates: any) => void
   onSave: () => void
   onWithdraw: () => void
   onTransfer: () => void
@@ -24,7 +26,7 @@ type Props = {
 }
 
 export default function EnveloppeDetailPanel({
-  env, movements, currentMonthMovements, currentMonth, plannedMonthly, onSave, onWithdraw, onTransfer, onEdit, onEditMovement, onDeleteMovement,
+  env, movements, currentMonthMovements, currentMonth, plannedMonthly, recurringSavings = [], onUpdateRecurring, onSave, onWithdraw, onTransfer, onEdit, onEditMovement, onDeleteMovement,
 }: Props) {
   const [historyFilter, setHistoryFilter] = useState<'all' | 'in' | 'out'>('all')
   const balance = Number(env.solde || 0)
@@ -132,6 +134,68 @@ export default function EnveloppeDetailPanel({
           <button onClick={onSave} className="btn btn-primary btn-sm">Épargner</button>
           <button onClick={onWithdraw} className="btn btn-primary btn-sm">Reprendre</button>
           <button onClick={onTransfer} className="btn btn-primary btn-sm">Transférer</button>
+        </div>
+
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/25">
+          <div className="flex items-center gap-2 border-b border-slate-800/70 px-3 py-2">
+            <Repeat2 className="h-3.5 w-3.5 text-indigo-300" />
+            <span className="text-xs font-semibold text-slate-300">Épargne récurrente</span>
+            <span className="ml-auto rounded-full bg-slate-900 px-2 py-0.5 text-[9px] text-slate-500">{recurringSavings.length}</span>
+          </div>
+          {recurringSavings.length === 0 ? (
+            <p className="p-3 text-xs text-slate-600">Aucune récurrence pour cette enveloppe. Utilisez « Épargner » et choisissez une fréquence pour en créer une.</p>
+          ) : (
+            <div className="divide-y divide-slate-800/60">
+              {recurringSavings.map((rec:any) => (
+                <div key={rec.id} className="grid gap-2 p-3 sm:grid-cols-[1fr_140px_auto] sm:items-end">
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-[10px] text-slate-500">
+                      Montant
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        defaultValue={Number(rec.montant)}
+                        disabled={!onUpdateRecurring}
+                        onBlur={event => {
+                          const value = Number(event.target.value)
+                          if (onUpdateRecurring && Number.isFinite(value) && value > 0 && value !== Number(rec.montant)) onUpdateRecurring({ id:rec.id, montant:value })
+                        }}
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200 disabled:opacity-60"
+                      />
+                    </label>
+                    <label className="text-[10px] text-slate-500">
+                      Fréquence
+                      <select
+                        value={Number(rec.frequence_mois || 1)}
+                        disabled={!onUpdateRecurring}
+                        onChange={event => onUpdateRecurring?.({ id:rec.id, frequence_mois:Number(event.target.value) })}
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200 disabled:opacity-60"
+                      >
+                        <option value={1}>Tous les mois</option>
+                        <option value={2}>Tous les 2 mois</option>
+                        <option value={3}>Tous les 3 mois</option>
+                        <option value={6}>Tous les 6 mois</option>
+                        <option value={12}>Tous les ans</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500">Début</p>
+                    <p className="mt-1 h-8 rounded-lg border border-slate-800 bg-slate-950/40 px-2 py-2 text-[10px] text-slate-400">{String(rec.mois_debut || rec.created_at || '').slice(0,7) || '—'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!onUpdateRecurring}
+                    onClick={() => onUpdateRecurring?.({ id:rec.id, actif:rec.actif === false })}
+                    className={"h-8 rounded-lg px-3 text-xs font-medium transition disabled:opacity-60 " + (rec.actif === false ? "border border-slate-700 text-slate-300 hover:bg-slate-800/50" : "text-amber-300 hover:bg-amber-500/10")}
+                  >
+                    {rec.actif === false ? 'Réactiver' : 'Suspendre'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-slate-800/70 bg-slate-950/25 p-3">
