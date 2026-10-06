@@ -111,8 +111,8 @@ export default function EpargnePage() {
   const getEnvNom = (id:string|null) => effectiveEnveloppes.find((env:any) => env.id === id)?.nom || '—'
 
   const [editEnv, setEditEnv] = useState<any|null>(null)
-  const [editMvt, setEditMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string|null }|null>(null)
-  const [scopeMvt, setScopeMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string }|null>(null)
+  const [editMvt, setEditMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string|null; date:string }|null>(null)
+  const [scopeMvt, setScopeMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string; date:string }|null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id:string; recurrentId:string|null; note:string|null }|null>(null)
   const [showArchived, setShowArchived] = useState(false)
 
@@ -126,7 +126,7 @@ export default function EpargnePage() {
     const movementId = params.get('focusMovement')
     if (movementId) {
       const movement: any = effectiveMouvements.find((item: any) => item.id === movementId)
-      if (movement) setEditMvt({ id:movement.id, montant:Number(movement.montant), note:movement.note || null, recurrentId:movement.recurrent_id || null })
+      if (movement) setEditMvt({ id:movement.id, montant:Number(movement.montant), note:movement.note || null, recurrentId:movement.recurrent_id || null, date:String(movement.date).slice(0,10) })
     }
   }, [isAdminViewing, moisId, effectiveMouvements])
 
@@ -177,7 +177,7 @@ export default function EpargnePage() {
     setEditEnv(null)
   }
 
-  const handleCreateMvt = async (data:{ type:MovementType; montant:number; note:string|null; sourceId:string|null; destId:string|null; frequence:number }) => {
+  const handleCreateMvt = async (data:{ type:MovementType; montant:number; note:string|null; sourceId:string|null; destId:string|null; frequence:number; date:string }) => {
     if (isAdminViewing || !moisId || !espace || data.montant <= 0) return
     if (data.type === 'reprise' && !data.sourceId) return
     if (data.type === 'epargne' && !data.destId) return
@@ -186,7 +186,7 @@ export default function EpargnePage() {
     if (data.frequence === 0) {
       await createMvt.mutateAsync({
         mois_id:moisId, recurrent_id:null, enveloppe_source_id:data.sourceId, enveloppe_dest_id:data.destId,
-        montant:data.montant, type:data.type, date:month, note:data.note,
+        montant:data.montant, type:data.type, date:data.date || month, note:data.note,
       })
     } else {
       const rec = await createRecurrent.mutateAsync({
@@ -195,22 +195,22 @@ export default function EpargnePage() {
       })
       await createMvt.mutateAsync({
         mois_id:moisId, recurrent_id:rec.id, enveloppe_source_id:null, enveloppe_dest_id:data.destId,
-        montant:data.montant, type:'epargne', date:month, note:data.note,
+        montant:data.montant, type:'epargne', date:data.date || month, note:data.note,
       })
     }
     setOpenMvt(false)
   }
 
-  const handleEditMvtSave = (id:string,montant:number,note:string|null,recurrentId:string|null) => {
+  const handleEditMvtSave = (id:string,montant:number,note:string|null,recurrentId:string|null,date:string) => {
     if (isAdminViewing) return
-    if (recurrentId) setScopeMvt({id,montant,note,recurrentId})
-    else updateMvt.mutateAsync({id,montant,note})
+    if (recurrentId) setScopeMvt({id,montant,note,recurrentId,date})
+    else updateMvt.mutateAsync({id,montant,note,date})
     setEditMvt(null)
   }
 
   const handleScopeEditMvt = async (scope:'mois'|'tous') => {
     if (isAdminViewing || !scopeMvt) return
-    await updateMvt.mutateAsync({id:scopeMvt.id,montant:scopeMvt.montant,note:scopeMvt.note})
+    await updateMvt.mutateAsync({id:scopeMvt.id,montant:scopeMvt.montant,note:scopeMvt.note,date:scopeMvt.date})
     if (scope === 'tous') await updateRecurrent.mutateAsync({id:scopeMvt.recurrentId,montant:scopeMvt.montant,note:scopeMvt.note})
     setScopeMvt(null)
   }
@@ -315,7 +315,7 @@ export default function EpargnePage() {
                     <tbody>{effectiveMouvements.map((mvt:any) => {
                       const destination = mvt.type === 'epargne' ? getEnvNom(mvt.enveloppe_dest_id) : mvt.type === 'reprise' ? getEnvNom(mvt.enveloppe_source_id) : getEnvNom(mvt.enveloppe_source_id) + ' → ' + getEnvNom(mvt.enveloppe_dest_id)
                       const positive = mvt.type === 'epargne'
-                      return <tr key={mvt.id} onClick={() => { if (!isAdminViewing) setEditMvt({id:mvt.id,montant:Number(mvt.montant),note:mvt.note||null,recurrentId:mvt.recurrent_id||null}) }} className="cursor-pointer border-t border-slate-800/50 transition hover:bg-slate-800/30"><td className="px-3 py-2 text-slate-500">{String(mvt.date).slice(0,10)}</td><td className="px-3 py-2 text-slate-300">{destination}</td><td className="px-3 py-2 text-slate-400">{mvt.type === 'epargne' ? 'Épargne' : mvt.type === 'reprise' ? 'Reprise' : 'Transfert'}</td><td className={'px-3 py-2 text-right font-semibold ' + (positive ? 'text-emerald-300' : mvt.type === 'reprise' ? 'text-rose-300' : 'text-cyan-300')}>{positive ? '+' : mvt.type === 'reprise' ? '−' : ''}{Number(mvt.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</td><td className="max-w-[220px] truncate px-3 py-2 text-slate-600">{mvt.note || '—'}</td><td className="px-2 py-2 text-right">{!isAdminViewing&&<button aria-label="Supprimer" className="px-2 text-slate-700 hover:text-rose-400" onClick={event=>{event.stopPropagation();setDeleteTarget({id:mvt.id,recurrentId:mvt.recurrent_id||null,note:mvt.note||null})}}>×</button>}</td></tr>
+                      return <tr key={mvt.id} onClick={() => { if (!isAdminViewing) setEditMvt({id:mvt.id,montant:Number(mvt.montant),note:mvt.note||null,recurrentId:mvt.recurrent_id||null,date:String(mvt.date).slice(0,10)}) }} className="cursor-pointer border-t border-slate-800/50 transition hover:bg-slate-800/30"><td className="px-3 py-2 text-slate-500">{String(mvt.date).slice(0,10)}</td><td className="px-3 py-2 text-slate-300">{destination}</td><td className="px-3 py-2 text-slate-400">{mvt.type === 'epargne' ? 'Épargne' : mvt.type === 'reprise' ? 'Reprise' : 'Transfert'}</td><td className={'px-3 py-2 text-right font-semibold ' + (positive ? 'text-emerald-300' : mvt.type === 'reprise' ? 'text-rose-300' : 'text-cyan-300')}>{positive ? '+' : mvt.type === 'reprise' ? '−' : ''}{Number(mvt.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</td><td className="max-w-[220px] truncate px-3 py-2 text-slate-600">{mvt.note || '—'}</td><td className="px-2 py-2 text-right">{!isAdminViewing&&<button aria-label="Supprimer" className="px-2 text-slate-700 hover:text-rose-400" onClick={event=>{event.stopPropagation();setDeleteTarget({id:mvt.id,recurrentId:mvt.recurrent_id||null,note:mvt.note||null})}}>×</button>}</td></tr>
                     })}</tbody>
                   </table>
                 </div>
@@ -333,6 +333,7 @@ export default function EpargnePage() {
           initialType={movementType}
           initialSourceId={movementSourceId}
           initialDestId={movementDestId}
+          initialDate={month.slice(0, 10)}
           onSubmit={handleCreateMvt}
         />
         <MouvementEditDialog editMvt={editMvt} onClose={() => setEditMvt(null)} onSave={handleEditMvtSave} />
