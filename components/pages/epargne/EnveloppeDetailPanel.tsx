@@ -12,16 +12,19 @@ type HistoryMovement = MouvementEpargne & { month: string }
 type Props = {
   env: any
   movements: HistoryMovement[]
+  currentMonthMovements: MouvementEpargne[]
   currentMonth: string
   plannedMonthly: number
   onSave: () => void
   onWithdraw: () => void
   onTransfer: () => void
   onEdit?: () => void
+  onEditMovement?: (movement: MouvementEpargne) => void
+  onDeleteMovement?: (movement: MouvementEpargne) => void
 }
 
 export default function EnveloppeDetailPanel({
-  env, movements, currentMonth, plannedMonthly, onSave, onWithdraw, onTransfer, onEdit,
+  env, movements, currentMonthMovements, currentMonth, plannedMonthly, onSave, onWithdraw, onTransfer, onEdit, onEditMovement, onDeleteMovement,
 }: Props) {
   const [historyFilter, setHistoryFilter] = useState<'all' | 'in' | 'out'>('all')
   const balance = Number(env.solde || 0)
@@ -82,6 +85,10 @@ export default function EnveloppeDetailPanel({
     return movement.enveloppe_dest_id === env.id ? Number(movement.montant) : -Number(movement.montant)
   }
 
+  const currentRelevant = currentMonthMovements
+    .filter(movement => movement.enveloppe_dest_id === env.id || movement.enveloppe_source_id === env.id)
+    .sort((a,b) => String(b.date).localeCompare(String(a.date)))
+
   const latest = [...relevant]
     .sort((a,b) => String(b.date).localeCompare(String(a.date)))
     .filter(movement => {
@@ -140,6 +147,46 @@ export default function EnveloppeDetailPanel({
               </LineChart>
             </ResponsiveContainer>
           ) : <div className="flex h-32 items-center justify-center text-xs text-slate-600">Pas encore assez d’historique.</div>}
+        </div>
+
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/25">
+          <div className="border-b border-slate-800/70 px-3 py-2">
+            <span className="text-xs font-semibold text-slate-300">Mouvements du mois</span>
+          </div>
+          {currentRelevant.length === 0 ? (
+            <p className="p-3 text-xs text-slate-600">Aucun mouvement pour cette enveloppe ce mois.</p>
+          ) : currentRelevant.map(movement => {
+            const signed = signedAmount(movement as HistoryMovement)
+            return (
+              <div
+                key={movement.id}
+                className={"grid grid-cols-[78px_1fr_auto_auto] items-center gap-2 border-b border-slate-800/50 px-3 py-2 text-[11px] last:border-0 " + (onEditMovement ? "cursor-pointer hover:bg-slate-800/25" : "")}
+                onClick={() => onEditMovement?.(movement)}
+              >
+                <span className="text-slate-600">{formatDate(movement.date)}</span>
+                <div className="min-w-0">
+                  <p className="truncate text-slate-300">{movementLabel(movement as HistoryMovement)}</p>
+                  {movement.note && <p className="truncate text-slate-600">{movement.note}</p>}
+                </div>
+                <span className={signed >= 0 ? 'font-semibold text-emerald-300' : 'font-semibold text-rose-300'}>
+                  {signed >= 0 ? '+' : '−'}{formatEuro(Math.abs(signed))}
+                </span>
+                {onDeleteMovement ? (
+                  <button
+                    type="button"
+                    aria-label="Supprimer le mouvement"
+                    className="rounded-md px-1.5 py-1 text-slate-700 transition hover:text-rose-400"
+                    onClick={event => {
+                      event.stopPropagation()
+                      onDeleteMovement(movement)
+                    }}
+                  >
+                    ×
+                  </button>
+                ) : <span />}
+              </div>
+            )
+          })}
         </div>
 
         <div className="rounded-xl border border-slate-800/70 bg-slate-950/25">
