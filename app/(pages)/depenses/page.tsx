@@ -555,8 +555,8 @@ export default function DepensesPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-100">Dépenses</h1>
           {!isAdminViewing && moisId && (
             <div className="hidden items-center gap-2 md:flex">
-              <Button size="sm" variant="outline" onClick={() => setFixedOpen(true)}>
-                <CalendarClock className="mr-1.5 h-3.5 w-3.5" />Charge fixe
+              <Button size="sm" variant="outline" onClick={() => setManagementView('fixed')}>
+                <CalendarClock className="mr-1.5 h-3.5 w-3.5" />Charges fixes
               </Button>
               <Button size="sm" onClick={() => setTxOpen(true)}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" />Dépense variable
@@ -617,9 +617,6 @@ export default function DepensesPage() {
               <p className="mt-0.5 text-[10px] text-slate-500">Avancement des budgets actifs du mois</p>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              <Button size="sm" variant="outline" className="h-8 px-2.5 text-[11px]" onClick={() => setManagementView('fixed')}>
-                <Settings2 className="mr-1.5 h-3.5 w-3.5" />Charges fixes
-              </Button>
               <Button size="sm" variant="ghost" className="h-8 px-2.5 text-[11px]" onClick={() => setManagementView('budgets')}>
                 Catégories &amp; Budgets
               </Button>
@@ -756,15 +753,22 @@ export default function DepensesPage() {
             <DialogHeader><DialogTitle>Gestion des charges fixes</DialogTitle></DialogHeader>
             <div className="grid max-h-[72vh] gap-4 overflow-y-auto pr-1 md:grid-cols-[1fr_1.05fr]">
               <section>
-                <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-slate-200">{showArchivedFixed ? 'Charges archivées' : 'Charges actives'}</p>
                     <p className="text-[11px] text-slate-500">{showArchivedFixed ? archivedFixedRecurrents.length : activeFixedRecurrents.length} charge(s)</p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => { setShowArchivedFixed(value => !value); setSelectedFixedRecurringId(null) }}>
-                    {showArchivedFixed ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Archive className="mr-1 h-3.5 w-3.5" />}
-                    {showArchivedFixed ? 'Voir les actives' : 'Voir les archivées'}
-                  </Button>
+                  <div className="flex gap-2">
+                    {!isAdminViewing && !showArchivedFixed && (
+                      <Button size="sm" onClick={() => { setManagementView(null); setFixedOpen(true) }}>
+                        <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => { setShowArchivedFixed(value => !value); setSelectedFixedRecurringId(null) }}>
+                      {showArchivedFixed ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Archive className="mr-1 h-3.5 w-3.5" />}
+                      {showArchivedFixed ? 'Voir les actives' : 'Voir les archivées'}
+                    </Button>
+                  </div>
                 </div>
                 <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800">
                   {(showArchivedFixed ? archivedFixedRecurrents : activeFixedRecurrents).length === 0 ? (
@@ -780,9 +784,7 @@ export default function DepensesPage() {
                     )
                   })}
                 </div>
-                {!isAdminViewing && !showArchivedFixed && (
-                  <Button className="mt-3 w-full" onClick={() => { setManagementView(null); setFixedOpen(true) }}><Plus className="mr-1 h-4 w-4" />Ajouter une charge fixe</Button>
-                )}
+
               </section>
 
               <section className="rounded-xl border border-slate-800 bg-slate-950/25 p-4">
