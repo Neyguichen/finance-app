@@ -46,14 +46,6 @@ export function ChargeFixeEditDialog({ editTarget, doubleDate = false, onClose, 
     setDateReelle(editTarget.dateReelle || '')
   }, [editTarget])
 
-  const parents = useMemo(
-    () => categories.filter(category => !category.parent_id && category.actif !== false).sort((a, b) => a.nom.localeCompare(b.nom)),
-    [categories],
-  )
-  const subs = useMemo(
-    () => categories.filter(category => category.parent_id === categorieId && category.actif !== false).sort((a, b) => a.nom.localeCompare(b.nom)),
-    [categories, categorieId],
-  )
 
   return (
     <Dialog open={!!editTarget} onOpenChange={value => { if (!value) onClose() }}>
