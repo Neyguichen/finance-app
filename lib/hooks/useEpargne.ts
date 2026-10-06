@@ -145,6 +145,7 @@ export function useMouvements(moisId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+      queryClient.invalidateQueries({ queryKey: ['savings_history'] })
     },
   })
 
@@ -164,6 +165,7 @@ export function useMouvements(moisId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+      queryClient.invalidateQueries({ queryKey: ['savings_history'] })
     },
   })
 
@@ -179,6 +181,7 @@ export function useMouvements(moisId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+      queryClient.invalidateQueries({ queryKey: ['savings_history'] })
     },
   })
 
@@ -203,6 +206,7 @@ export function useMouvements(moisId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
       queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
       queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+      queryClient.invalidateQueries({ queryKey: ['savings_history'] })
       queryClient.invalidateQueries({ queryKey: ['epargne_recurrentes'] })
     },
   })
