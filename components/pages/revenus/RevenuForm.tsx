@@ -15,10 +15,11 @@ type Props = {
   open: boolean
   onOpenChange: (v: boolean) => void
   doubleDate?: boolean
+  recurringOnly?: boolean
   onSubmit: (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => Promise<void>
 }
 
-export default function RevenuForm({ open, onOpenChange, onSubmit, doubleDate = false }: Props) {
+export default function RevenuForm({ open, onOpenChange, onSubmit, doubleDate = false, recurringOnly = false }: Props) {
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('monthly')
   const [customFrequency, setCustomFrequency] = useState(2)
@@ -56,7 +57,7 @@ export default function RevenuForm({ open, onOpenChange, onSubmit, doubleDate = 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Nouveau revenu</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{recurringOnly ? 'Nouveau revenu récurrent' : 'Nouveau revenu'}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <Input placeholder="Nom du revenu" {...register('nom', { required: true })} />
           <CalculatorInput value={watch('montant')} onChange={val => setValue('montant', val)} placeholder="Montant" />
@@ -117,10 +118,10 @@ export default function RevenuForm({ open, onOpenChange, onSubmit, doubleDate = 
             <label className="mb-1 block text-sm text-slate-400">Récurrence</label>
             <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
               {([
-                ['once', 'Cette fois'],
-                ['monthly', 'Tous les mois'],
-                ['custom', 'Tous les X mois'],
-              ] as const).map(([value, label]) => (
+                ...(recurringOnly ? [] : [['once', 'Cette fois'] as const]),
+                ['monthly', 'Tous les mois'] as const,
+                ['custom', 'Tous les X mois'] as const,
+              ]).map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
@@ -147,7 +148,7 @@ export default function RevenuForm({ open, onOpenChange, onSubmit, doubleDate = 
             )}
           </div>
 
-          <Button type="submit" className="w-full">Ajouter le revenu</Button>
+          <Button type="submit" className="w-full">{recurringOnly ? 'Ajouter la récurrence' : 'Ajouter le revenu'}</Button>
         </form>
       </DialogContent>
     </Dialog>
