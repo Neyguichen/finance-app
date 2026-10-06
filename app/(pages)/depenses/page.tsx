@@ -147,10 +147,6 @@ export default function DepensesPage() {
   const { plannedFixed, actualFixed, plannedVariable, actualVariable, plannedTotal, actualTotal } = expenseSummary
   const variance = actualTotal - plannedTotal
   const actualPercent = plannedTotal > 0 ? Math.round((actualTotal / plannedTotal) * 100) : 0
-  const plannedFixedShare = plannedTotal > 0 ? Math.round((plannedFixed / plannedTotal) * 100) : 0
-  const plannedVariableShare = plannedTotal > 0 ? Math.max(0, 100 - plannedFixedShare) : 0
-  const actualFixedShare = actualTotal > 0 ? Math.round((actualFixed / actualTotal) * 100) : 0
-  const actualVariableShare = actualTotal > 0 ? Math.max(0, 100 - actualFixedShare) : 0
   const today = localDateISO()
 
   const budgetModalCategory = parentCategories.find((cat: any) => cat.id === budgetModalId) || null
@@ -615,25 +611,62 @@ export default function DepensesPage() {
           </Card>
 
           <Card className="border-slate-800 bg-slate-900">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Composition des dépenses</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel par type</CardTitle></CardHeader>
             <CardContent className="space-y-4 p-3 pt-0">
-              <div>
-                <div className="mb-1.5 flex items-center justify-between text-[10px] text-slate-500"><span>Prévu</span><span>{formatEuro(plannedTotal)}</span></div>
-                <div className="flex h-3 overflow-hidden rounded-full bg-slate-800">
-                  <div className="bg-purple-400" style={{ width: plannedFixedShare + '%' }} />
-                  <div className="bg-orange-400" style={{ width: plannedVariableShare + '%' }} />
+              <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-purple-400" />
+                    <span className="text-xs font-semibold text-slate-200">Charges fixes</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500">
+                    {plannedFixed > 0 ? Math.round((actualFixed / plannedFixed) * 100) : (actualFixed > 0 ? 100 : 0)} %
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wide text-slate-600">Prévu</p>
+                    <p className="mt-0.5 text-sm font-semibold text-purple-200">{formatEuro(plannedFixed)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wide text-slate-600">Réel</p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-100">{formatEuro(actualFixed)}</p>
+                  </div>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className={actualFixed > plannedFixed && plannedFixed > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-purple-400'}
+                    style={{ width: Math.min(100, plannedFixed > 0 ? (actualFixed / plannedFixed) * 100 : (actualFixed > 0 ? 100 : 0)) + '%' }}
+                  />
                 </div>
               </div>
-              <div>
-                <div className="mb-1.5 flex items-center justify-between text-[10px] text-slate-500"><span>Réel</span><span>{formatEuro(actualTotal)}</span></div>
-                <div className="flex h-3 overflow-hidden rounded-full bg-slate-800">
-                  <div className="bg-purple-400" style={{ width: actualFixedShare + '%' }} />
-                  <div className="bg-orange-400" style={{ width: actualVariableShare + '%' }} />
+
+              <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-orange-400" />
+                    <span className="text-xs font-semibold text-slate-200">Dépenses variables</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500">
+                    {plannedVariable > 0 ? Math.round((actualVariable / plannedVariable) * 100) : (actualVariable > 0 ? 100 : 0)} %
+                  </span>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500">
-                <span><i className="mr-1.5 inline-block h-2 w-2 rounded-full bg-purple-400" />Charges fixes</span>
-                <span><i className="mr-1.5 inline-block h-2 w-2 rounded-full bg-orange-400" />Dépenses variables</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wide text-slate-600">Prévu</p>
+                    <p className="mt-0.5 text-sm font-semibold text-orange-200">{formatEuro(plannedVariable)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wide text-slate-600">Réel</p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-100">{formatEuro(actualVariable)}</p>
+                  </div>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className={actualVariable > plannedVariable && plannedVariable > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-orange-400'}
+                    style={{ width: Math.min(100, plannedVariable > 0 ? (actualVariable / plannedVariable) * 100 : (actualVariable > 0 ? 100 : 0)) + '%' }}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
