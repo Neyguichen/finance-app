@@ -82,7 +82,7 @@ export default function RevenusPage() {
 
   const getEnvNom = (id: string | null | undefined) => effectiveEnveloppes.find((envelope: any) => envelope.id === id)?.nom || 'Reprise d’épargne'
 
-  const handleCreate = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null }) => {
+  const handleCreate = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => {
     if (isAdminViewing || !moisId || !espace) return
 
     if (values.frequence === 0) {
@@ -92,8 +92,9 @@ export default function RevenusPage() {
         type: values.type,
         nom: values.nom,
         montant: values.montant,
-        recu: false,
+        recu: values.recu,
         date_prevue: values.datePrevue,
+        date_reelle: values.recu ? values.dateReelle : null,
         ordre: effectiveRevenus.length,
       })
       return
@@ -197,7 +198,7 @@ export default function RevenusPage() {
           onDelete={setDeleteTarget}
         />
 
-        <RevenuForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleCreate} />
+        <RevenuForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleCreate} doubleDate={espace?.double_date ?? false} />
         <RevenuEditDialog editTarget={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} doubleDate={espace?.double_date ?? false} />
         <RevenuDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDelete} />
       </div>
