@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { CalendarDays, Check, CheckSquare2, ExternalLink, Pencil, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react'
+import { CalendarDays, Check, CheckSquare2, ExternalLink, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react'
 import PageHeader from '@/components/layout/PageHeader'
 import { useApp } from '@/components/AppContext'
 import { useTodos, type TodoItem } from '@/lib/hooks/useTodos'
@@ -216,14 +216,6 @@ export default function TodoPage() {
                   <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => startEdit(todo)}
-                      className="rounded-md p-1 text-slate-500 hover:bg-indigo-950/40 hover:text-indigo-300"
-                      aria-label="Modifier"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => {
                         if (window.confirm('Supprimer cette action ?')) model.deleteTodo.mutate(todo.id)
                       }}
@@ -269,19 +261,11 @@ export default function TodoPage() {
                     >
                       <RotateCcw className="h-4 w-4" />
                     </button>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 cursor-pointer" onClick={() => startEdit(todo)} role="button" tabIndex={0}>
                       <p className="break-words text-sm text-slate-500 line-through">{todo.title}</p>
                       {todo.note && <p className="mt-1 whitespace-pre-wrap break-words text-xs text-slate-600">{todo.note}</p>}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(todo)}
-                        className="rounded-md p-1 text-slate-600 hover:text-indigo-300"
-                        aria-label="Modifier"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
                       <button
                         type="button"
                         onClick={() => {
