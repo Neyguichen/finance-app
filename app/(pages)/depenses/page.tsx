@@ -323,6 +323,8 @@ export default function DepensesPage() {
         sourceData: charge,
         paymentDate,
         validationDate,
+        createdAt: charge.created_at || null,
+        entryOrder: Number(charge.ordre || 0),
         status: validated ? 'validated' as const : 'planned' as const,
         title: charge.nom,
         subcategory: null,
@@ -343,6 +345,8 @@ export default function DepensesPage() {
         sourceData: tx,
         paymentDate: String(tx.date || month.slice(0, 7) + '-01').slice(0, 10),
         validationDate: tx.date_validation ? String(tx.date_validation).slice(0, 10) : null,
+        createdAt: tx.created_at || null,
+        entryOrder: Number(tx.ordre || 0),
         status: validated ? 'validated' as const : 'planned' as const,
         title: tx.is_split && tx.children?.length ? 'Dépense répartie' : (tx.categorie?.nom || 'Sans catégorie'),
         subcategory: tx.is_split && tx.children?.length
@@ -366,7 +370,20 @@ export default function DepensesPage() {
       const value = actualSort === 'validation' ? entry.validationDate : entry.paymentDate
       return value ? Date.parse(value + 'T12:00:00') : Number.NEGATIVE_INFINITY
     }
-    return [...filteredActualEntries].sort((a, b) => dateValue(b) - dateValue(a))
+    const creationValue = (entry: any) => entry.createdAt ? Date.parse(entry.createdAt) : Number.NEGATIVE_INFINITY
+
+    return [...filteredActualEntries].sort((a, b) => {
+      const dateDiff = dateValue(b) - dateValue(a)
+      if (dateDiff !== 0) return dateDiff
+
+      const creationDiff = creationValue(b) - creationValue(a)
+      if (creationDiff !== 0) return creationDiff
+
+      const orderDiff = Number(b.entryOrder || 0) - Number(a.entryOrder || 0)
+      if (orderDiff !== 0) return orderDiff
+
+      return String(b.id).localeCompare(String(a.id))
+    })
   }, [filteredActualEntries, actualSort])
 
   const groupedEntries = useMemo(() => {
