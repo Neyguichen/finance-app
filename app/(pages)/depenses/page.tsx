@@ -617,8 +617,13 @@ export default function DepensesPage() {
               <p className="mt-0.5 text-[10px] text-slate-500">Avancement des budgets actifs du mois</p>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              <Button size="sm" variant="ghost" className="h-8 px-2.5 text-[11px]" onClick={() => setManagementView('budgets')}>
-                Catégories &amp; Budgets
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 border-orange-400/30 bg-orange-500/[0.06] px-3 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/[0.12]"
+                onClick={() => setManagementView('budgets')}
+              >
+                <Tags className="mr-1.5 h-3.5 w-3.5" />Catégories &amp; Budgets
               </Button>
             </div>
           </CardHeader>
@@ -774,10 +779,8 @@ export default function DepensesPage() {
                   {(showArchivedFixed ? archivedFixedRecurrents : activeFixedRecurrents).length === 0 ? (
                     <p className="p-4 text-sm text-slate-500">Aucune charge dans cette liste.</p>
                   ) : (showArchivedFixed ? archivedFixedRecurrents : activeFixedRecurrents).map((recurring: any) => {
-                    const cat = effectiveCategories.find((item: any) => item.id === recurring.categorie_id)
                     return (
                       <button key={recurring.id} type="button" onClick={() => setSelectedFixedRecurringId(recurring.id)} className={'flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-slate-800/40 ' + (selectedFixedRecurringId === recurring.id ? 'bg-slate-800/50' : '')}>
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950/60">{cat?.icone || '🏠'}</span>
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{recurring.nom}</p><p className="text-[10px] text-slate-500">{fixedFrequencyLabel(recurring)}</p></div>
                         <strong className="text-sm text-purple-300">{formatEuro(Number(recurring.montant))}</strong>
                       </button>
