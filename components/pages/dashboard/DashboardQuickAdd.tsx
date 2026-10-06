@@ -135,7 +135,7 @@ export default function DashboardQuickAdd() {
     return { id: created.id }
   }
 
-  const createSavingHandler = async (data: { type: 'epargne' | 'reprise' | 'transfert'; montant: number; note: string | null; sourceId: string | null; destId: string | null; frequence: number }) => {
+  const createSavingHandler = async (data: { type: 'epargne' | 'reprise' | 'transfert'; montant: number; note: string | null; sourceId: string | null; destId: string | null; frequence: number; date: string }) => {
     if (!moisId || !espace) return
     if (data.frequence > 0 && data.type === 'epargne' && data.destId) {
       const recurrent = await createRecurringSaving.mutateAsync({
@@ -155,7 +155,7 @@ export default function DashboardQuickAdd() {
         enveloppe_dest_id: data.destId,
         montant: data.montant,
         type: 'epargne',
-        date: month,
+        date: data.date || month,
         note: data.note,
       })
     } else {
@@ -166,7 +166,7 @@ export default function DashboardQuickAdd() {
         enveloppe_dest_id: data.destId,
         montant: data.montant,
         type: data.type,
-        date: month,
+        date: data.date || month,
         note: data.note,
       })
     }
@@ -238,6 +238,7 @@ export default function DashboardQuickAdd() {
         onOpenChange={value => { if (!value) setActiveForm(null) }}
         enveloppesActives={envelopes.filter((env: any) => !env.archived)}
         onCreateEnvelope={createEnvelopeInline}
+        initialDate={month.slice(0, 10)}
         onSubmit={createSavingHandler}
       />
 
