@@ -158,17 +158,6 @@ export default function DepensesPage() {
   const budgetModalSubcategory = budgetModalSubcategoryId
     ? effectiveCategories.find((cat: any) => cat.id === budgetModalSubcategoryId) || null
     : null
-  const budgetModalEntity = budgetModalSubcategory || budgetModalCategory
-  const selectedBudgetPlanned = budgetModalSubcategory
-    ? (Number(budgetDraft[budgetModalSubcategory.id]) || 0)
-    : effectiveParentBudgetDraft
-  const selectedBudgetActual = budgetModalSubcategory
-    ? spent(budgetModalSubcategory.id, true)
-    : (budgetModalCategory ? spent(budgetModalCategory.id) : 0)
-  const selectedBudgetRemaining = selectedBudgetPlanned - selectedBudgetActual
-  const selectedBudgetPercent = selectedBudgetPlanned > 0
-    ? Math.round((selectedBudgetActual / selectedBudgetPlanned) * 100)
-    : (selectedBudgetActual > 0 ? 100 : 0)
   const activeFixedRecurrents = fixedRecurrents.filter((item: any) => item.actif !== false)
   const archivedFixedRecurrents = fixedRecurrents.filter((item: any) => item.actif === false)
   const selectedFixedRecurring = fixedRecurrents.find((item: any) => item.id === selectedFixedRecurringId) || null
@@ -180,6 +169,17 @@ export default function DepensesPage() {
   const effectiveParentBudgetDraft = isSubBudgetMode
     ? subBudgetTotal
     : (Number(budgetDraft[budgetModalCategory?.id || '']) || 0)
+  const budgetModalEntity = budgetModalSubcategory || budgetModalCategory
+  const selectedBudgetPlanned = budgetModalSubcategory
+    ? (Number(budgetDraft[budgetModalSubcategory.id]) || 0)
+    : effectiveParentBudgetDraft
+  const selectedBudgetActual = budgetModalSubcategory
+    ? spent(budgetModalSubcategory.id, true)
+    : (budgetModalCategory ? spent(budgetModalCategory.id) : 0)
+  const selectedBudgetRemaining = selectedBudgetPlanned - selectedBudgetActual
+  const selectedBudgetPercent = selectedBudgetPlanned > 0
+    ? Math.round((selectedBudgetActual / selectedBudgetPlanned) * 100)
+    : (selectedBudgetActual > 0 ? 100 : 0)
 
   const recurrenceLabel = (charge: any) => {
     if (!charge.recurrent_id) return 'Ponctuelle'
@@ -431,8 +431,8 @@ export default function DepensesPage() {
       recurrent_id,
       nom: value.nom,
       montant: value.montant,
-      categorie_id: value.categorie_id ?? null,
-      sous_categorie_id: value.sous_categorie_id ?? null,
+      categorie_id: null,
+      sous_categorie_id: null,
       payee: false,
       ordre: charges.length,
     })
