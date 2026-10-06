@@ -54,7 +54,7 @@ export default function DashboardQuickAdd() {
     setActiveForm(key)
   }
 
-  const createIncomeHandler = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null }) => {
+  const createIncomeHandler = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => {
     if (!moisId || !espace) return
     let recurrentId: string | null = null
     if (values.frequence > 0) {
@@ -76,8 +76,9 @@ export default function DashboardQuickAdd() {
       type: values.type,
       nom: values.nom,
       montant: values.montant,
-      recu: false,
+      recu: values.recu,
       date_prevue: values.datePrevue,
+      date_reelle: values.recu ? values.dateReelle : null,
       ordre: revenus.length,
     })
     setActiveForm(null)
@@ -212,7 +213,7 @@ export default function DashboardQuickAdd() {
         </button>
       </div>
 
-      <RevenuForm open={activeForm === 'income'} onOpenChange={value => { if (!value) setActiveForm(null) }} onSubmit={createIncomeHandler} />
+      <RevenuForm open={activeForm === 'income'} onOpenChange={value => { if (!value) setActiveForm(null) }} onSubmit={createIncomeHandler} doubleDate={espace?.double_date ?? false} />
       <ChargeFixeForm
         open={activeForm === 'fixed'}
         onOpenChange={value => { if (!value) setActiveForm(null) }}
