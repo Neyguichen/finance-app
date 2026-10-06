@@ -224,7 +224,7 @@ export default function EpargnePage() {
 
   return (
     <div>
-      <MonthSelector currentMonth={month} onChange={setMonth} showPreparationAction={false} />
+      <MonthSelector currentMonth={month} onChange={setMonth} />
       <div className="mx-auto max-w-7xl space-y-3 p-3 pb-24 sm:p-4">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold tracking-tight text-slate-100">Épargne & Dette</h1>
