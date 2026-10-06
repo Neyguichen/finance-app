@@ -46,15 +46,31 @@ export default function SituationFinanciereV2({
     available: 'Solde calculé à partir des mouvements réellement enregistrés jusqu’à aujourd’hui.',
     planned: 'Solde actuel + revenus encore attendus − charges fixes restantes − dépenses variables prévues restantes − épargne prévue restante.',
     projection: 'Estimation dynamique : rythme moyen des dépenses variables observé depuis le début du mois × jours restants, puis ajout des revenus attendus et retrait des charges fixes et de l’épargne encore à venir.',
-    cashflow: 'Variation nette de trésorerie du mois : revenus réellement reçus + reprises d’épargne + remboursements encaissés − dépenses réellement payées − sommes mises en épargne et autres sorties de trésorerie.',
   }
 
-  const HelpButton = ({ id }: { id: keyof typeof helpTexts }) => (
+  const HelpButton = ({ id }: { id: keyof typeof helpTexts | 'cashflow' }) => (
     <span className="relative inline-flex">
       <button type="button" aria-label="Afficher l'explication" onClick={() => setHelp(help === id ? null : id)} className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-current/35 text-current/75 transition hover:bg-white/5">
         <Info className="h-2.5 w-2.5" />
       </button>
-      {help === id && <span className="absolute left-0 top-6 z-20 w-64 rounded-xl border border-slate-700 bg-slate-950 p-3 text-[11px] font-normal leading-4 text-slate-300 shadow-2xl">{helpTexts[id]}</span>}
+      {help === id && (
+        <span className={"absolute left-0 top-6 z-20 rounded-xl border border-slate-700 bg-slate-950 p-3 text-[11px] font-normal leading-4 text-slate-300 shadow-2xl " + (id === 'cashflow' ? 'w-80' : 'w-64')}>
+          {id === 'cashflow' ? (
+            <span className="block space-y-1.5">
+              <span className="mb-2 block font-semibold text-slate-200">Calcul de la variation de trésorerie</span>
+              <span className="flex justify-between gap-4"><span>+ Revenus réellement reçus</span><strong className="text-emerald-300">{formatEuro(summary?.earnedIncome || 0)}</strong></span>
+              <span className="flex justify-between gap-4"><span>+ Reprises d’épargne</span><strong className="text-emerald-300">{formatEuro(summary?.savingsWithdrawals || 0)}</strong></span>
+              <span className="flex justify-between gap-4"><span>+ Remboursements de dépenses encaissés</span><strong className="text-emerald-300">{formatEuro(summary?.expenseReimbursements || 0)}</strong></span>
+              <span className="flex justify-between gap-4"><span>+ Remboursements de créances reçus</span><strong className="text-emerald-300">{formatEuro(summary?.debtRepaymentsIn || 0)}</strong></span>
+              <span className="flex justify-between gap-4"><span>− Dépenses réellement payées</span><strong className="text-rose-300">{formatEuro(Math.max(0, (summary?.expenses || 0) - (summary?.debtRepaymentsOut || 0)))}</strong></span>
+              <span className="flex justify-between gap-4"><span>− Remboursements de dettes payés</span><strong className="text-rose-300">{formatEuro(summary?.debtRepaymentsOut || 0)}</strong></span>
+              <span className="flex justify-between gap-4"><span>− Sommes mises en épargne</span><strong className="text-rose-300">{formatEuro(summary?.savingsDeposits || 0)}</strong></span>
+              {(summary?.internalSavingsTransfers || 0) > 0 && <span className="flex justify-between gap-4 text-slate-500"><span>Transferts internes d’épargne (neutres)</span><strong>{formatEuro(summary?.internalSavingsTransfers || 0)}</strong></span>}
+              <span className="mt-2 flex justify-between gap-4 border-t border-slate-800 pt-2 font-semibold text-slate-100"><span>= Variation de trésorerie</span><strong className={actualResult >= 0 ? 'text-emerald-300' : 'text-rose-300'}>{formatEuro(actualResult)}</strong></span>
+            </span>
+          ) : helpTexts[id]}
+        </span>
+      )}
     </span>
   )
 
