@@ -217,7 +217,7 @@ type ScopeProps = {
     sousCategorieId?: string | null
   } | null
   onClose: () => void
-  onSave: (scope: 'mois' | 'tous') => void
+  onSave: (scope: 'mois' | 'suivantes' | 'tous') => void
 }
 
 export function ChargeFixeScopeDialog({ target, onClose, onSave }: ScopeProps) {
@@ -233,9 +233,13 @@ export function ChargeFixeScopeDialog({ target, onClose, onSave }: ScopeProps) {
             <span className="block text-sm font-semibold text-slate-100">Ce mois seulement</span>
             <span className="mt-1 block text-xs text-slate-500">Les prochains mois conserveront le modèle actuel.</span>
           </button>
-          <button type="button" onClick={() => onSave('tous')} className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-4 text-left hover:bg-indigo-500/15">
-            <span className="flex items-center gap-2 text-sm font-semibold text-indigo-200"><Repeat2 className="h-4 w-4" /> Ce mois et les prochains</span>
-            <span className="mt-1 block text-xs text-slate-500">Le modèle récurrent sera mis à jour.</span>
+          <button type="button" onClick={() => onSave('suivantes')} className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-4 text-left hover:bg-indigo-500/15">
+            <span className="flex items-center gap-2 text-sm font-semibold text-indigo-200"><Repeat2 className="h-4 w-4" /> Cette occurrence et les suivantes</span>
+            <span className="mt-1 block text-xs text-slate-500">L’historique passé reste inchangé et le modèle est mis à jour pour la suite.</span>
+          </button>
+          <button type="button" onClick={() => onSave('tous')} className="rounded-2xl border border-violet-500/30 bg-violet-500/10 p-4 text-left hover:bg-violet-500/15">
+            <span className="flex items-center gap-2 text-sm font-semibold text-violet-200"><Repeat2 className="h-4 w-4" /> Toute la série</span>
+            <span className="mt-1 block text-xs text-slate-500">Les occurrences passées, présentes et futures sont mises à jour.</span>
           </button>
         </div>
         <FormActions><Button variant="ghost" onClick={onClose}>Annuler</Button></FormActions>
