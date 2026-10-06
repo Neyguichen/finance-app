@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { ArchiveRestore, ChevronDown, PiggyBank, Plus } from 'lucide-react'
+import { ArchiveRestore, ChevronDown, PiggyBank, Plus, Repeat2 } from 'lucide-react'
 
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
@@ -36,6 +36,7 @@ export default function EpargnePage() {
   const [openMvt, setOpenMvt] = useState(false)
   const [openEnvelope, setOpenEnvelope] = useState(false)
   const [openSavingsInitialization, setOpenSavingsInitialization] = useState(false)
+  const [showRecurringSavings, setShowRecurringSavings] = useState(false)
 
   useEffect(() => {
     const syncFromUrl = () => {
@@ -61,7 +62,7 @@ export default function EpargnePage() {
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
   const { data: plannedSavings = [] } = usePlannedSavings(isAdminViewing ? undefined : moisId)
-  const { create: createRecurrent, update: updateRecurrent } = useEpargneRecurrentes(espace?.id)
+  const { data: savingsRecurrents = [], create: createRecurrent, update: updateRecurrent } = useEpargneRecurrentes(espace?.id)
   const { data: adminData } = useAdminMoisData(month)
   const savingsHistory = useSavingsHistory(espace?.id)
 
@@ -244,6 +245,90 @@ export default function EpargnePage() {
               onTransfer={() => openMovement('transfert')}
               readOnly={isAdminViewing}
             />
+
+            {!isAdminViewing && (
+              <div className="rounded-2xl border border-slate-800/70 bg-slate-950/25">
+                <button
+                  type="button"
+                  onClick={() => setShowRecurringSavings(value => !value)}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                >
+                  <span className="flex items-center gap-2">
+                    <Repeat2 className="h-4 w-4 text-indigo-300" />
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-100">Épargne récurrente</span>
+                      <span className="block text-[11px] text-slate-500">Gérer les versements qui doivent se reporter automatiquement sur les mois suivants.</span>
+                    </span>
+                  </span>
+                  <span className="rounded-full border border-slate-800 bg-slate-900/70 px-2.5 py-1 text-[10px] text-slate-400">{savingsRecurrents.length}</span>
+                </button>
+
+                {showRecurringSavings && (
+                  <div className="space-y-2 border-t border-slate-800/60 p-3">
+                    {savingsRecurrents.length === 0 ? (
+                      <p className="py-4 text-center text-sm text-slate-500">Aucune épargne récurrente configurée.</p>
+                    ) : savingsRecurrents.map((rec:any) => (
+                      <div key={rec.id} className="grid gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-3 md:grid-cols-[minmax(0,1.5fr)_minmax(160px,.9fr)_130px_140px_auto] md:items-end">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-200">{rec.note || activeEnvelopes.find((env:any) => env.id === rec.enveloppe_dest_id)?.nom || 'Épargne'}</p>
+                          <p className="mt-1 text-[10px] text-slate-500">Depuis {String(rec.mois_debut || rec.created_at || '').slice(0,7) || '—'}</p>
+                        </div>
+
+                        <label className="text-[10px] text-slate-500">
+                          Enveloppe
+                          <select
+                            value={rec.enveloppe_dest_id}
+                            onChange={event => updateRecurrent.mutate({ id:rec.id, enveloppe_dest_id:event.target.value })}
+                            className="mt-1 h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200"
+                          >
+                            {activeEnvelopes.map((env:any) => <option key={env.id} value={env.id}>{env.nom}</option>)}
+                          </select>
+                        </label>
+
+                        <label className="text-[10px] text-slate-500">
+                          Montant
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            defaultValue={Number(rec.montant)}
+                            onBlur={event => {
+                              const value = Number(event.target.value)
+                              if (Number.isFinite(value) && value > 0 && value !== Number(rec.montant)) updateRecurrent.mutate({ id:rec.id, montant:value })
+                            }}
+                            className="mt-1 h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200"
+                          />
+                        </label>
+
+                        <label className="text-[10px] text-slate-500">
+                          Fréquence
+                          <select
+                            value={Number(rec.frequence_mois || 1)}
+                            onChange={event => updateRecurrent.mutate({ id:rec.id, frequence_mois:Number(event.target.value) })}
+                            className="mt-1 h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200"
+                          >
+                            <option value={1}>Tous les mois</option>
+                            <option value={2}>Tous les 2 mois</option>
+                            <option value={3}>Tous les 3 mois</option>
+                            <option value={6}>Tous les 6 mois</option>
+                            <option value={12}>Tous les ans</option>
+                          </select>
+                        </label>
+
+                        <Button
+                          size="sm"
+                          variant={rec.actif === false ? 'outline' : 'ghost'}
+                          onClick={() => updateRecurrent.mutate({ id:rec.id, actif:rec.actif === false })}
+                          className={rec.actif === false ? '' : 'text-amber-300 hover:text-amber-200'}
+                        >
+                          {rec.actif === false ? 'Réactiver' : 'Suspendre'}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid gap-3 xl:grid-cols-[1.35fr_.9fr]">
               <div className="space-y-3">
