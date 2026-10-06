@@ -147,27 +147,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const found = allMois?.find(m => m.mois === month)
-    if (found) {
+
+    if (automaticPreview.isLoading || !automaticPreview.data || automaticPrepare.isPending) {
+      setMoisId(found?.id)
+      setSyncing(!found)
+      return
+    }
+
+    const items = (automaticPreview.data.items || []).filter(item => item.selected && !item.inactive)
+    if (found && items.length === 0) {
       setMoisId(found.id)
       setSyncing(false)
       autoPreparingRef.current = null
       return
     }
 
-    if (automaticPreview.isLoading || !automaticPreview.data || automaticPrepare.isPending) {
-      setMoisId(undefined)
-      setSyncing(true)
+    const key = espace.id + ':' + month
+    if (autoPreparingRef.current === key) {
+      if (found) setMoisId(found.id)
       return
     }
-
-    const key = espace.id + ':' + month
-    if (autoPreparingRef.current === key) return
     autoPreparingRef.current = key
-    setSyncing(true)
+    setMoisId(found?.id)
+    setSyncing(!found)
 
-    const items = (automaticPreview.data.items || []).filter(item => item.selected && !item.inactive)
-    automaticPrepare.mutateAsync(items).catch(error => {
-      console.error('Erreur création automatique du mois:', error)
+    automaticPrepare.mutateAsync(items).then(() => {
+      autoPreparingRef.current = null
+      setSyncing(false)
+    }).catch(error => {
+      console.error(found ? 'Erreur synchronisation automatique des récurrences:' : 'Erreur création automatique du mois:', error)
       autoPreparingRef.current = null
       setSyncing(false)
     })
