@@ -67,7 +67,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null)
   const [espaces, setEspaces] = useState<Espace[]>([])
   const [espaceId, setEspaceId] = useState<string | null>(null)
-  const [month, setMonth] = useState(currentMonth())
+  const [month, setMonthState] = useState(currentMonth())
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
 
@@ -130,6 +130,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return
     loadEspaces()
   }, [userId])
+
+  // Restaurer le dernier mois consulté après un rechargement.
+  useEffect(() => {
+    const savedMonth = window.localStorage.getItem('app_selected_month')
+    if (savedMonth && /^\d{4}-\d{2}-01$/.test(savedMonth)) setMonthState(savedMonth)
+  }, [])
 
   // 3. Résoudre le mois actif. Un mois inexistant est désormais créé automatiquement
   // avec les récurrences actives qui lui sont dues : il n'y a plus d'état "mois non préparé".
@@ -230,7 +236,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setEspaceId(id)
       localStorage.setItem('app_espace_id', id)
     },
-    moisId, month, setMonth, loading, syncing, addEspace, updateEspace, removeEspace, refreshEspaces,
+    moisId, month, setMonth: (value) => {
+      setMonthState(value)
+      window.localStorage.setItem('app_selected_month', value)
+    }, loading, syncing, addEspace, updateEspace, removeEspace, refreshEspaces,
     adminViewUserId, adminViewEspaceId, adminViewData, isAdminViewing,
     setAdminViewUserId, setAdminViewEspaceId, setAdminViewData, exitAdminView,
   }
