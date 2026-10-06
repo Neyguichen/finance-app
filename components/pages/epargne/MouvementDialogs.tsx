@@ -115,3 +115,68 @@ export function MouvementDeleteDialog({ target, onClose, onDelete }: DeleteProps
     </Dialog>
   )
 }
+
+
+type RecurrenceEditProps = {
+  target: { id: string; montant: number; frequence_mois: number; note?: string | null } | null
+  onClose: () => void
+  onSave: (data: { id: string; montant: number; frequence_mois: number; note: string | null }) => void
+}
+
+export function EpargneRecurrenceEditDialog({ target, onClose, onSave }: RecurrenceEditProps) {
+  const [montant, setMontant] = useState(0)
+  const [frequence, setFrequence] = useState(1)
+  const [note, setNote] = useState('')
+
+  useEffect(() => {
+    if (!target) return
+    setMontant(Number(target.montant))
+    setFrequence(Number(target.frequence_mois || 1))
+    setNote(target.note || '')
+  }, [target])
+
+  return (
+    <Dialog open={!!target} onOpenChange={v => { if (!v) onClose() }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Modifier la récurrence</DialogTitle>
+          <DialogDescription>
+            Les mois déjà passés restent inchangés. La modification s’appliquera au mois courant et aux mois suivants.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <FormSection title="Récurrence" icon={<Repeat2 className="h-4 w-4" />}>
+            <FormField label="Montant">
+              <CalculatorInput value={montant} onChange={setMontant} placeholder="0,00 €" />
+            </FormField>
+            <FormField label="Fréquence">
+              <select
+                value={frequence}
+                onChange={e => setFrequence(Number(e.target.value))}
+                className="select select-bordered w-full"
+              >
+                <option value={1}>Tous les mois</option>
+                <option value={2}>Tous les 2 mois</option>
+                <option value={3}>Tous les 3 mois</option>
+                <option value={6}>Tous les 6 mois</option>
+                <option value={12}>Tous les ans</option>
+              </select>
+            </FormField>
+            <FormField label="Note" hint="Facultatif">
+              <Input value={note} onChange={e => setNote(e.target.value)} placeholder="Ex. Épargne vacances" />
+            </FormField>
+          </FormSection>
+        </div>
+        <FormActions>
+          <Button variant="ghost" onClick={onClose}>Annuler</Button>
+          <Button
+            disabled={montant <= 0}
+            onClick={() => target && onSave({ id:target.id, montant, frequence_mois:frequence, note:note || null })}
+          >
+            Appliquer aux prochains mois
+          </Button>
+        </FormActions>
+      </DialogContent>
+    </Dialog>
+  )
+}
