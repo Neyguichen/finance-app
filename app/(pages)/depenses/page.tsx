@@ -321,11 +321,37 @@ export default function DepensesPage() {
     setFixedOpen(false)
   }
 
-  const saveFixed = (id: string, nom: string, montant: number, recurrentId: string | null, categorieId?: string | null, sousCategorieId?: string | null) => {
+  const saveFixed = (
+    id: string,
+    nom: string,
+    montant: number,
+    recurrentId: string | null,
+    categorieId?: string | null,
+    sousCategorieId?: string | null,
+    payee?: boolean,
+    dateReelle?: string | null,
+  ) => {
     if (recurrentId) {
-      setScopeFixed({ id, nom, montant, recurrentId, categorieId: categorieId ?? null, sousCategorieId: sousCategorieId ?? null })
+      setScopeFixed({
+        id,
+        nom,
+        montant,
+        recurrentId,
+        categorieId: categorieId ?? null,
+        sousCategorieId: sousCategorieId ?? null,
+        payee: !!payee,
+        dateReelle: dateReelle ?? null,
+      })
     } else {
-      updateFixed.mutateAsync({ id, nom, montant, categorie_id: categorieId ?? null, sous_categorie_id: sousCategorieId ?? null })
+      updateFixed.mutateAsync({
+        id,
+        nom,
+        montant,
+        categorie_id: categorieId ?? null,
+        sous_categorie_id: sousCategorieId ?? null,
+        payee: !!payee,
+        date_reelle: dateReelle ?? null,
+      })
     }
     setEditFixed(null)
   }
@@ -338,6 +364,8 @@ export default function DepensesPage() {
       montant: scopeFixed.montant,
       categorie_id: scopeFixed.categorieId ?? null,
       sous_categorie_id: scopeFixed.sousCategorieId ?? null,
+      payee: !!scopeFixed.payee,
+      date_reelle: scopeFixed.dateReelle ?? null,
     })
     if (scope === 'tous') {
       await updateFixedRecurring.mutateAsync({
@@ -365,6 +393,8 @@ export default function DepensesPage() {
     recurrentId: charge.recurrent_id ?? null,
     categorieId: charge.categorie_id ?? null,
     sousCategorieId: charge.sous_categorie_id ?? null,
+    payee: !!charge.payee,
+    dateReelle: charge.date_reelle ?? null,
   })
 
   useEffect(() => {
@@ -736,7 +766,7 @@ export default function DepensesPage() {
         {!isAdminViewing && moisId && <DepensesFab onFixed={() => setFixedOpen(true)} onVariable={() => setTxOpen(true)} />}
 
         <ChargeFixeForm open={fixedOpen} onOpenChange={setFixedOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} onSubmit={createFixedExpense} />
-        <ChargeFixeEditDialog editTarget={editFixed} categories={effectiveCategories} onClose={() => setEditFixed(null)} onSave={saveFixed} />
+        <ChargeFixeEditDialog editTarget={editFixed} categories={effectiveCategories} doubleDate={espace?.double_date ?? false} onClose={() => setEditFixed(null)} onSave={saveFixed} />
         <ChargeFixeDeleteDialog target={deleteFixed} onClose={() => setDeleteFixed(null)} onDelete={removeFixedExpense} />
         <ChargeFixeScopeDialog target={scopeFixed} onClose={() => setScopeFixed(null)} onSave={saveFixedScope} />
         <DepenseForm open={txOpen} onOpenChange={setTxOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} subcategoriesEnabled={subcategoriesEnabled} splitEnabled={splitEnabled} onSubmit={createTransaction} onSubmitSplit={splitEnabled ? createSplitTransaction : undefined} />
