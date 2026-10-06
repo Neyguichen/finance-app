@@ -116,23 +116,27 @@ export default function RevenusRecurrentsPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-4 p-3 pb-24 sm:p-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => router.push('/revenus')}>
-          <ArrowLeft className="mr-1.5 h-4 w-4" />Revenus
-        </Button>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold text-slate-100">Revenus récurrents</h1>
-          <p className="text-xs text-slate-500">Gère les modèles récurrents et leurs occurrences sans alourdir la vue mensuelle.</p>
-        </div>
-        {!isAdminViewing && !showArchived && (
-          <Button size="sm" onClick={() => setFormOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" />Ajouter une récurrence
+      <div className="space-y-3">
+        <div className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-3">
+          <Button variant="ghost" size="sm" onClick={() => router.push('/revenus')} className="shrink-0 px-2 sm:px-3">
+            <ArrowLeft className="mr-1.5 h-4 w-4" />Revenus
           </Button>
-        )}
-        <Button size="sm" variant="outline" onClick={() => { setShowArchived(v => !v); setSelectedId(null) }}>
-          {showArchived ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <Archive className="mr-1.5 h-4 w-4" />}
-          {showArchived ? 'Voir les actives' : 'Voir les archivées'}
-        </Button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-bold leading-tight text-slate-100 sm:text-xl">Revenus récurrents</h1>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">Gère les modèles récurrents et leurs occurrences sans alourdir la vue mensuelle.</p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:flex-wrap">
+          {!isAdminViewing && !showArchived && (
+            <Button size="sm" onClick={() => setFormOpen(true)} className="w-full min-[420px]:w-auto">
+              <Plus className="mr-1.5 h-4 w-4" />Ajouter une récurrence
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => { setShowArchived(v => !v); setSelectedId(null) }} className="w-full min-[420px]:w-auto">
+            {showArchived ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <Archive className="mr-1.5 h-4 w-4" />}
+            {showArchived ? 'Voir les actives' : 'Voir les archivées'}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(280px,.8fr)_minmax(0,1.4fr)]">
