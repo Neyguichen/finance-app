@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CalendarDays, Coins, Repeat2 } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Coins, Repeat2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FormActions, FormField, FormSection, SegmentedControl } from '@/components/ui/form-layout'
+import { localDateISO } from '@/lib/utils'
 
 type EditTarget = {
   id: string
@@ -15,6 +17,8 @@ type EditTarget = {
   type: 'actif' | 'passif'
   recurrentId?: string | null
   datePrevue?: string | null
+  recu?: boolean
+  dateReelle?: string | null
 }
 
 type EditScope = 'mois' | 'future'
@@ -22,14 +26,17 @@ type EditScope = 'mois' | 'future'
 type Props = {
   editTarget: EditTarget | null
   onClose: () => void
-  onSave: (data: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null }, scope: EditScope) => Promise<void>
+  doubleDate?: boolean
+  onSave: (data: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null; recu: boolean; dateReelle: string | null }, scope: EditScope) => Promise<void>
 }
 
-export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props) {
+export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDate = false }: Props) {
   const [editNom, setEditNom] = useState('')
   const [editMontant, setEditMontant] = useState(0)
   const [editType, setEditType] = useState<'actif' | 'passif'>('actif')
   const [editDatePrevue, setEditDatePrevue] = useState('')
+  const [editRecu, setEditRecu] = useState(false)
+  const [editDateReelle, setEditDateReelle] = useState('')
   const [scopeOpen, setScopeOpen] = useState(false)
   const [pendingData, setPendingData] = useState<any>(null)
 
@@ -39,10 +46,18 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
     setEditMontant(Number(editTarget.montant))
     setEditType(editTarget.type)
     setEditDatePrevue(editTarget.datePrevue || '')
+    setEditRecu(!!editTarget.recu)
+    setEditDateReelle(editTarget.dateReelle || '')
   }, [editTarget])
 
   const handleSaveClick = () => {
     if (!editTarget || !editNom.trim() || editMontant <= 0) return
+    const dateReelle = editRecu
+      ? (doubleDate
+          ? (editDateReelle || null)
+          : (editTarget.recu && editTarget.dateReelle ? editTarget.dateReelle : localDateISO()))
+      : null
+
     const data = {
       id: editTarget.id,
       nom: editNom.trim(),
@@ -50,6 +65,8 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
       type: editType,
       recurrentId: editTarget.recurrentId,
       datePrevue: editDatePrevue || null,
+      recu: editRecu,
+      dateReelle,
     }
 
     if (editTarget.recurrentId) {
@@ -103,6 +120,21 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave }: Props)
               <FormField label="Date de réception" hint="Facultatif">
                 <Input type="date" value={editDatePrevue} onChange={event => setEditDatePrevue(event.target.value)} />
               </FormField>
+            </FormSection>
+
+            <FormSection title="Validation" description="Vous pouvez valider ou remettre ce revenu en attente directement depuis l’édition." icon={<CheckCircle2 className="h-4 w-4" />}>
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-3">
+                <Checkbox checked={editRecu} onCheckedChange={checked => setEditRecu(!!checked)} />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-200">Revenu reçu</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">Cochez lorsque le revenu a bien été perçu.</span>
+                </span>
+              </label>
+              {doubleDate && editRecu && (
+                <FormField label="Date de validation" hint="Facultatif">
+                  <Input type="date" value={editDateReelle} onChange={event => setEditDateReelle(event.target.value)} />
+                </FormField>
+              )}
             </FormSection>
           </div>
 
