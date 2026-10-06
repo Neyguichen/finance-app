@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { FolderTree, ReceiptText, Repeat2 } from 'lucide-react'
+import { CheckCircle2, FolderTree, ReceiptText, Repeat2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FormActions, FormField, FormSection } from '@/components/ui/form-layout'
+import { localDateISO } from '@/lib/utils'
 
 type CategoryOption = { id: string; nom: string; icone?: string | null; parent_id?: string | null; actif?: boolean }
 
@@ -18,8 +20,11 @@ type EditProps = {
     recurrentId: string | null
     categorieId?: string | null
     sousCategorieId?: string | null
+    payee?: boolean
+    dateReelle?: string | null
   } | null
   categories?: CategoryOption[]
+  doubleDate?: boolean
   onClose: () => void
   onSave: (
     id: string,
@@ -28,14 +33,18 @@ type EditProps = {
     recurrentId: string | null,
     categorieId?: string | null,
     sousCategorieId?: string | null,
+    payee?: boolean,
+    dateReelle?: string | null,
   ) => void
 }
 
-export function ChargeFixeEditDialog({ editTarget, categories = [], onClose, onSave }: EditProps) {
+export function ChargeFixeEditDialog({ editTarget, categories = [], doubleDate = false, onClose, onSave }: EditProps) {
   const [nom, setNom] = useState('')
   const [montant, setMontant] = useState(0)
   const [categorieId, setCategorieId] = useState('')
   const [sousCategorieId, setSousCategorieId] = useState('')
+  const [payee, setPayee] = useState(false)
+  const [dateReelle, setDateReelle] = useState('')
 
   useEffect(() => {
     if (!editTarget) return
@@ -43,6 +52,8 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], onClose, onS
     setMontant(Number(editTarget.montant))
     setCategorieId(editTarget.categorieId || '')
     setSousCategorieId(editTarget.sousCategorieId || '')
+    setPayee(!!editTarget.payee)
+    setDateReelle(editTarget.dateReelle || '')
   }, [editTarget])
 
   const parents = useMemo(
@@ -70,6 +81,37 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], onClose, onS
             <FormField label="Montant prévu">
               <CalculatorInput value={montant} onChange={setMontant} placeholder="0,00 €" />
             </FormField>
+          </FormSection>
+
+          <FormSection title="Validation" description="Validez ou remettez cette dépense en attente directement depuis l’édition." icon={<CheckCircle2 className="h-4 w-4" />}>
+            {!doubleDate ? (
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-3">
+                <Checkbox
+                  checked={payee}
+                  onCheckedChange={checked => {
+                    const next = !!checked
+                    setPayee(next)
+                    setDateReelle(next ? (dateReelle || localDateISO()) : '')
+                  }}
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-200">Dépense validée</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">La date de validation est enregistrée au jour du clic.</span>
+                </span>
+              </label>
+            ) : (
+              <FormField label="Date de validation bancaire" hint="Facultatif">
+                <Input
+                  type="date"
+                  value={dateReelle}
+                  onChange={event => {
+                    const value = event.target.value
+                    setDateReelle(value)
+                    setPayee(Boolean(value))
+                  }}
+                />
+              </FormField>
+            )}
           </FormSection>
 
           <FormSection title="Classement" icon={<FolderTree className="h-4 w-4" />}>
@@ -121,6 +163,8 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], onClose, onS
               editTarget!.recurrentId,
               categorieId || null,
               sousCategorieId || null,
+              payee,
+              payee ? (dateReelle || localDateISO()) : null,
             )}
           >
             Enregistrer
