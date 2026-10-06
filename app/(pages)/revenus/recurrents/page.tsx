@@ -282,6 +282,7 @@ export default function RevenusRecurrentsPage() {
         onOpenChange={setFormOpen}
         onSubmit={handleCreate}
         doubleDate={espace?.double_date ?? false}
+        recurringOnly
       />
       <RevenuEditDialog
         editTarget={editOccurrence}
