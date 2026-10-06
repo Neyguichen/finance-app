@@ -12,7 +12,7 @@ import EnveloppeForm from '@/components/pages/epargne/EnveloppeForm'
 import SavingsInitializationDialog from '@/components/pages/epargne/SavingsInitializationDialog'
 import EnveloppeDetailPanel from '@/components/pages/epargne/EnveloppeDetailPanel'
 import MouvementForm from '@/components/pages/epargne/MouvementForm'
-import { MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
+import { EpargneRecurrenceEditDialog, MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
 import DettesPanel from '@/components/pages/epargne/DettesPanel'
 import { Button } from '@/components/ui/button'
 
@@ -61,7 +61,7 @@ export default function EpargnePage() {
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
   const { data: plannedSavings = [] } = usePlannedSavings(isAdminViewing ? undefined : moisId)
-  const { data: savingsRecurrents = [], create: createRecurrent, update: updateRecurrent } = useEpargneRecurrentes(espace?.id)
+  const { data: savingsRecurrents = [], create: createRecurrent, update: updateRecurrent, updateFromMonth: updateRecurrentFromMonth } = useEpargneRecurrentes(espace?.id)
   const { data: adminData } = useAdminMoisData(month)
   const savingsHistory = useSavingsHistory(espace?.id)
 
@@ -112,6 +112,7 @@ export default function EpargnePage() {
   const [editMvt, setEditMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string|null; date:string }|null>(null)
   const [scopeMvt, setScopeMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string; date:string }|null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id:string; recurrentId:string|null; note:string|null }|null>(null)
+  const [editRecurring, setEditRecurring] = useState<any|null>(null)
   const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
@@ -209,8 +210,28 @@ export default function EpargnePage() {
   const handleScopeEditMvt = async (scope:'mois'|'tous') => {
     if (isAdminViewing || !scopeMvt) return
     await updateMvt.mutateAsync({id:scopeMvt.id,montant:scopeMvt.montant,note:scopeMvt.note,date:scopeMvt.date})
-    if (scope === 'tous') await updateRecurrent.mutateAsync({id:scopeMvt.recurrentId,montant:scopeMvt.montant,note:scopeMvt.note})
+    if (scope === 'tous') {
+      await updateRecurrentFromMonth.mutateAsync({
+        id: scopeMvt.recurrentId,
+        fromMonth: month,
+        updates: { montant:scopeMvt.montant, note:scopeMvt.note },
+      })
+    }
     setScopeMvt(null)
+  }
+
+  const handleRecurringSave = async (data:{ id:string; montant:number; frequence_mois:number; note:string|null }) => {
+    if (isAdminViewing) return
+    await updateRecurrentFromMonth.mutateAsync({
+      id: data.id,
+      fromMonth: month,
+      updates: {
+        montant: data.montant,
+        frequence_mois: data.frequence_mois,
+        note: data.note,
+      },
+    })
+    setEditRecurring(null)
   }
 
   const handleDeleteMvt = (mode:'mois'|'definitif') => {
@@ -298,6 +319,7 @@ export default function EpargnePage() {
                   currentMonth={month.slice(0,7)}
                   plannedMonthly={plannedFor(selectedEnvelope.id)}
                   recurringSavings={savingsRecurrents.filter((item:any) => item.enveloppe_dest_id === selectedEnvelope.id)}
+                  onEditRecurring={!isAdminViewing ? (recurring:any) => setEditRecurring(recurring) : undefined}
                   onUpdateRecurring={!isAdminViewing ? (updates:any) => updateRecurrent.mutate(updates) : undefined}
                   onSave={() => openMovement('epargne', selectedEnvelope.id)}
                   onWithdraw={() => openMovement('reprise', selectedEnvelope.id)}
@@ -337,6 +359,7 @@ export default function EpargnePage() {
         <MouvementEditDialog editMvt={editMvt} onClose={() => setEditMvt(null)} onSave={handleEditMvtSave} />
         <MouvementScopeDialog target={scopeMvt} onClose={() => setScopeMvt(null)} onSave={handleScopeEditMvt} />
         <MouvementDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDeleteMvt} />
+        <EpargneRecurrenceEditDialog target={editRecurring} onClose={() => setEditRecurring(null)} onSave={handleRecurringSave} />
 
         <EnveloppeForm open={openEnvelope} onOpenChange={setOpenEnvelope} onSubmit={handleCreateEnvelope} />
         <SavingsInitializationDialog
