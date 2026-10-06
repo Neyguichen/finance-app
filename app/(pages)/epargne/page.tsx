@@ -108,8 +108,6 @@ export default function EpargnePage() {
     .filter((item:any) => item.enveloppe_dest_id === envId)
     .reduce((sum:number,item:any) => sum + Number(item.montant),0)
 
-  const getEnvNom = (id:string|null) => effectiveEnveloppes.find((env:any) => env.id === id)?.nom || '—'
-
   const [editEnv, setEditEnv] = useState<any|null>(null)
   const [editMvt, setEditMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string|null; date:string }|null>(null)
   const [scopeMvt, setScopeMvt] = useState<{ id:string; montant:number; note:string|null; recurrentId:string; date:string }|null>(null)
@@ -296,31 +294,29 @@ export default function EpargnePage() {
                 <EnveloppeDetailPanel
                   env={selectedEnvelope}
                   movements={(savingsHistory.data?.movements || []) as any}
+                  currentMonthMovements={effectiveMouvements as any}
                   currentMonth={month.slice(0,7)}
                   plannedMonthly={plannedFor(selectedEnvelope.id)}
                   onSave={() => openMovement('epargne', selectedEnvelope.id)}
                   onWithdraw={() => openMovement('reprise', selectedEnvelope.id)}
                   onTransfer={() => openMovement('transfert')}
                   onEdit={!isAdminViewing ? () => setEditEnv(selectedEnvelope) : undefined}
+                  onEditMovement={!isAdminViewing ? (movement:any) => setEditMvt({
+                    id: movement.id,
+                    montant: Number(movement.montant),
+                    note: movement.note || null,
+                    recurrentId: movement.recurrent_id || null,
+                    date: String(movement.date).slice(0,10),
+                  }) : undefined}
+                  onDeleteMovement={!isAdminViewing ? (movement:any) => setDeleteTarget({
+                    id: movement.id,
+                    recurrentId: movement.recurrent_id || null,
+                    note: movement.note || null,
+                  }) : undefined}
                 />
               )}
             </div>
 
-            <div className="rounded-xl border border-slate-800/70 bg-slate-900/50">
-              <div className="border-b border-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-200">Mouvements du mois</div>
-              {effectiveMouvements.length === 0 ? <p className="p-5 text-center text-xs text-slate-600">Aucun mouvement ce mois.</p> : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[680px] text-xs">
-                    <thead className="bg-slate-950/30 text-slate-500"><tr><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-left">Enveloppe</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-right">Montant</th><th className="px-3 py-2 text-left">Note</th><th className="w-20"></th></tr></thead>
-                    <tbody>{effectiveMouvements.map((mvt:any) => {
-                      const destination = mvt.type === 'epargne' ? getEnvNom(mvt.enveloppe_dest_id) : mvt.type === 'reprise' ? getEnvNom(mvt.enveloppe_source_id) : getEnvNom(mvt.enveloppe_source_id) + ' → ' + getEnvNom(mvt.enveloppe_dest_id)
-                      const positive = mvt.type === 'epargne'
-                      return <tr key={mvt.id} onClick={() => { if (!isAdminViewing) setEditMvt({id:mvt.id,montant:Number(mvt.montant),note:mvt.note||null,recurrentId:mvt.recurrent_id||null,date:String(mvt.date).slice(0,10)}) }} className="cursor-pointer border-t border-slate-800/50 transition hover:bg-slate-800/30"><td className="px-3 py-2 text-slate-500">{String(mvt.date).slice(0,10)}</td><td className="px-3 py-2 text-slate-300">{destination}</td><td className="px-3 py-2 text-slate-400">{mvt.type === 'epargne' ? 'Épargne' : mvt.type === 'reprise' ? 'Reprise' : 'Transfert'}</td><td className={'px-3 py-2 text-right font-semibold ' + (positive ? 'text-emerald-300' : mvt.type === 'reprise' ? 'text-rose-300' : 'text-cyan-300')}>{positive ? '+' : mvt.type === 'reprise' ? '−' : ''}{Number(mvt.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</td><td className="max-w-[220px] truncate px-3 py-2 text-slate-600">{mvt.note || '—'}</td><td className="px-2 py-2 text-right">{!isAdminViewing&&<button aria-label="Supprimer" className="px-2 text-slate-700 hover:text-rose-400" onClick={event=>{event.stopPropagation();setDeleteTarget({id:mvt.id,recurrentId:mvt.recurrent_id||null,note:mvt.note||null})}}>×</button>}</td></tr>
-                    })}</tbody>
-                  </table>
-                </div>
-              )}
-            </div>
           </div>
         ) : <DettesPanel />}
 
