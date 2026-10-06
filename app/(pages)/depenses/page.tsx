@@ -810,7 +810,13 @@ export default function DepensesPage() {
                           </div>
                           <div className="text-right">
                             <strong className={entry.source === 'fixed' ? 'text-purple-300' : 'text-rose-300'}>{formatEuro(entry.amount)}</strong>
-                            <p className="text-[10px] text-slate-600">{actualSort === 'validation' ? (entry.validationDate ? formatDate(entry.validationDate) : 'Non validée') : formatDate(entry.paymentDate)}</p>
+                            <p className="text-[10px] text-slate-600">
+                              {actualSort === 'validation'
+                                ? 'Paiement : ' + formatDate(entry.paymentDate)
+                                : entry.validationDate
+                                  ? 'Validation : ' + formatDate(entry.validationDate)
+                                  : 'Non validée'}
+                            </p>
                           </div>
                           {!isAdminViewing && (
                             <button
