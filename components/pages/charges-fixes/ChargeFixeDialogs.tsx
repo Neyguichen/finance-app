@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { CheckCircle2, FolderTree, ReceiptText, Repeat2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { CheckCircle2, ReceiptText, Repeat2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { FormActions, FormField, FormSection } from '@/components/ui/form-layout'
 import { localDateISO } from '@/lib/utils'
 
-type CategoryOption = { id: string; nom: string; icone?: string | null; parent_id?: string | null; actif?: boolean }
 
 type EditProps = {
   editTarget: {
@@ -18,12 +17,9 @@ type EditProps = {
     nom: string
     montant: number
     recurrentId: string | null
-    categorieId?: string | null
-    sousCategorieId?: string | null
     payee?: boolean
     dateReelle?: string | null
   } | null
-  categories?: CategoryOption[]
   doubleDate?: boolean
   onClose: () => void
   onSave: (
@@ -31,18 +27,14 @@ type EditProps = {
     nom: string,
     montant: number,
     recurrentId: string | null,
-    categorieId?: string | null,
-    sousCategorieId?: string | null,
     payee?: boolean,
     dateReelle?: string | null,
   ) => void
 }
 
-export function ChargeFixeEditDialog({ editTarget, categories = [], doubleDate = false, onClose, onSave }: EditProps) {
+export function ChargeFixeEditDialog({ editTarget, doubleDate = false, onClose, onSave }: EditProps) {
   const [nom, setNom] = useState('')
   const [montant, setMontant] = useState(0)
-  const [categorieId, setCategorieId] = useState('')
-  const [sousCategorieId, setSousCategorieId] = useState('')
   const [payee, setPayee] = useState(false)
   const [dateReelle, setDateReelle] = useState('')
 
@@ -50,8 +42,6 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], doubleDate =
     if (!editTarget) return
     setNom(editTarget.nom)
     setMontant(Number(editTarget.montant))
-    setCategorieId(editTarget.categorieId || '')
-    setSousCategorieId(editTarget.sousCategorieId || '')
     setPayee(!!editTarget.payee)
     setDateReelle(editTarget.dateReelle || '')
   }, [editTarget])
@@ -70,7 +60,7 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], doubleDate =
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Modifier la charge fixe</DialogTitle>
-          <DialogDescription>Modifiez son libellé, son montant ou son classement.</DialogDescription>
+          <DialogDescription>Modifiez son libellé, son montant ou sa validation.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -114,42 +104,6 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], doubleDate =
             )}
           </FormSection>
 
-          <FormSection title="Classement" icon={<FolderTree className="h-4 w-4" />}>
-            <FormField label="Catégorie">
-              <select
-                value={categorieId}
-                onChange={event => {
-                  setCategorieId(event.target.value)
-                  setSousCategorieId('')
-                }}
-                className="select select-bordered w-full rounded-xl border-slate-700/80 bg-slate-950/70 text-slate-100"
-              >
-                <option value="">Sans catégorie</option>
-                {parents.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.icone ? `${category.icone} ` : ''}{category.nom}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-
-            {categorieId && (
-              <FormField label="Sous-catégorie" hint="Facultatif">
-                <select
-                  value={sousCategorieId}
-                  onChange={event => setSousCategorieId(event.target.value)}
-                  className="select select-bordered w-full rounded-xl border-slate-700/80 bg-slate-950/70 text-slate-100"
-                >
-                  <option value="">Aucune sous-catégorie</option>
-                  {subs.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.icone ? `${category.icone} ` : ''}{category.nom}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
-            )}
-          </FormSection>
         </div>
 
         <FormActions>
@@ -161,8 +115,6 @@ export function ChargeFixeEditDialog({ editTarget, categories = [], doubleDate =
               nom.trim(),
               montant,
               editTarget!.recurrentId,
-              categorieId || null,
-              sousCategorieId || null,
               payee,
               payee ? (dateReelle || localDateISO()) : null,
             )}
@@ -213,8 +165,6 @@ type ScopeProps = {
     nom: string
     montant: number
     recurrentId: string
-    categorieId?: string | null
-    sousCategorieId?: string | null
   } | null
   onClose: () => void
   onSave: (scope: 'mois' | 'suivantes' | 'tous') => void
