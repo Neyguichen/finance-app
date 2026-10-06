@@ -4,15 +4,13 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatMois, nextMonth, prevMonth } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
-import MonthPreparationAction from '@/components/layout/MonthPreparationAction'
 
 interface Props {
   currentMonth: string
   onChange: (month: string) => void
-  showPreparationAction?: boolean
 }
 
-export default function MonthSelector({ currentMonth, onChange, showPreparationAction = true }: Props) {
+export default function MonthSelector({ currentMonth, onChange }: Props) {
   const { syncing } = useApp()
 
   return (
@@ -35,7 +33,6 @@ export default function MonthSelector({ currentMonth, onChange, showPreparationA
             </h2>
             {syncing && <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-300" />}
           </div>
-          {showPreparationAction && <MonthPreparationAction />}
         </div>
 
         <Button
