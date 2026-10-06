@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { currentMonth, formatMois, nextMonth, prevMonth } from '@/lib/utils'
+import { currentMonth as getCurrentMonth, formatMois, nextMonth, prevMonth } from '@/lib/utils'
 import { useApp } from '@/components/AppContext'
 
 interface Props {
@@ -33,10 +33,10 @@ export default function MonthSelector({ currentMonth, onChange }: Props) {
             </h2>
             {syncing && <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-300" />}
           </div>
-          {currentMonth !== currentMonth() && (
+          {currentMonth !== getCurrentMonth() && (
             <button
               type="button"
-              onClick={() => onChange(currentMonth())}
+              onClick={() => onChange(getCurrentMonth())}
               className="mt-0.5 text-[10px] font-medium text-indigo-300 transition hover:text-indigo-200"
             >
               Revenir au mois en cours
