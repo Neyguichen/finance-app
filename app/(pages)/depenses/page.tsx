@@ -610,14 +610,10 @@ export default function DepensesPage() {
           </Card>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Button variant="outline" className="h-auto justify-start gap-3 border-slate-800 bg-slate-900 px-4 py-3" onClick={() => setManagementView('fixed')}>
+        <div>
+          <Button variant="outline" className="h-auto w-full justify-start gap-3 border-slate-800 bg-slate-900 px-4 py-3" onClick={() => setManagementView('fixed')}>
             <Settings2 className="h-5 w-5 text-purple-300" />
             <span className="text-left"><strong className="block text-sm text-slate-200">Gérer les charges fixes</strong><span className="text-[11px] text-slate-500">Récurrences, occurrences et archives</span></span>
-          </Button>
-          <Button variant="outline" className="h-auto justify-start gap-3 border-slate-800 bg-slate-900 px-4 py-3" onClick={() => setManagementView('budgets')}>
-            <Tags className="h-5 w-5 text-orange-300" />
-            <span className="text-left"><strong className="block text-sm text-slate-200">Catégories & budgets</strong><span className="text-[11px] text-slate-500">Budgets, sous-catégories et dépenses du mois</span></span>
           </Button>
         </div>
 
@@ -627,7 +623,7 @@ export default function DepensesPage() {
               <CardTitle className="text-sm text-slate-200">Budgets variables</CardTitle>
               <p className="mt-0.5 text-[10px] text-slate-500">Avancement des budgets actifs du mois</p>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setManagementView('budgets')}>Voir tous</Button>
+            <Button size="sm" variant="ghost" onClick={() => setManagementView('budgets')}>Voir Catégories &amp; Budgets</Button>
           </CardHeader>
           <CardContent className="p-3 pt-0">
             {compactBudgets.length === 0 ? (
@@ -923,38 +919,38 @@ export default function DepensesPage() {
 
                 <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
                   <section className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4">
-                    <div className="grid gap-3 sm:grid-cols-[96px_1fr] sm:items-end">
-                      <div>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="shrink-0">
                         <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-slate-600">Icône</label>
-                        <EmojiPicker value={budgetIconDraft} onChange={setBudgetIconDraft} />
+                        <div className="w-16">
+                          <EmojiPicker value={budgetIconDraft} onChange={setBudgetIconDraft} />
+                        </div>
                       </div>
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-slate-600">Nom</label>
-                        <input value={budgetNameDraft} onChange={event => setBudgetNameDraft(event.target.value)} className="input input-bordered w-full bg-slate-950/50 text-base font-semibold" disabled={isAdminViewing} />
+                        <input value={budgetNameDraft} onChange={event => setBudgetNameDraft(event.target.value)} className="input input-bordered h-11 w-full bg-slate-950/50 text-base font-semibold" disabled={isAdminViewing} />
                       </div>
                     </div>
 
                     <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-                        <p className="text-[10px] uppercase tracking-wide text-slate-600">Prévu</p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={budgetModalSubcategory ? (budgetDraft[budgetModalSubcategory.id] ?? '') : (isSubBudgetMode ? String(subBudgetTotal) : (budgetDraft[budgetModalCategory.id] ?? ''))}
-                            onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalEntity?.id || '']: event.target.value }))}
-                            className="input input-bordered input-sm min-w-0 flex-1"
-                            disabled={isAdminViewing || (!budgetModalSubcategory && isSubBudgetMode)}
-                          />
-                        </div>
+                      <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.05] p-3">
+                        <p className="text-[10px] uppercase tracking-wide text-indigo-300/70">Prévu</p>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={budgetModalSubcategory ? (budgetDraft[budgetModalSubcategory.id] ?? '') : (isSubBudgetMode ? String(subBudgetTotal) : (budgetDraft[budgetModalCategory.id] ?? ''))}
+                          onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalEntity?.id || '']: event.target.value }))}
+                          className="mt-1 w-full border-0 bg-transparent p-0 text-lg font-bold text-indigo-100 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={isAdminViewing || (!budgetModalSubcategory && isSubBudgetMode)}
+                        />
                       </div>
                       <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
                         <p className="text-[10px] uppercase tracking-wide text-slate-600">Réel</p>
-                        <p className="mt-2 text-lg font-bold text-slate-100">{formatEuro(selectedBudgetActual)}</p>
+                        <p className="mt-1 text-lg font-bold text-slate-100">{formatEuro(selectedBudgetActual)}</p>
                       </div>
                       <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
                         <p className="text-[10px] uppercase tracking-wide text-slate-600">Restant</p>
-                        <p className={'mt-2 text-lg font-bold ' + (selectedBudgetRemaining < 0 ? 'text-rose-300' : 'text-emerald-300')}>{formatEuro(selectedBudgetRemaining)}</p>
+                        <p className={'mt-1 text-lg font-bold ' + (selectedBudgetRemaining < 0 ? 'text-rose-300' : 'text-emerald-300')}>{formatEuro(selectedBudgetRemaining)}</p>
                       </div>
                     </div>
 
