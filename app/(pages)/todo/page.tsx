@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { CalendarDays, Check, CheckSquare2, ExternalLink, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { CalendarDays, Check, CheckSquare2, ExternalLink, Pencil, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react'
 import PageHeader from '@/components/layout/PageHeader'
 import { useApp } from '@/components/AppContext'
-import { useTodos } from '@/lib/hooks/useTodos'
+import { useTodos, type TodoItem } from '@/lib/hooks/useTodos'
 import { formatDate } from '@/lib/utils'
 
 export default function TodoPage() {
@@ -16,6 +16,10 @@ export default function TodoPage() {
   const [dueDate, setDueDate] = useState('')
   const [note, setNote] = useState('')
   const [showDone, setShowDone] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDueDate, setEditDueDate] = useState('')
+  const [editNote, setEditNote] = useState('')
 
   const pending = useMemo(
     () => (model.data || []).filter(item => item.status === 'todo'),
@@ -37,6 +41,79 @@ export default function TodoPage() {
     setDueDate('')
     setNote('')
   }
+
+  const startEdit = (todo: TodoItem) => {
+    setEditingId(todo.id)
+    setEditTitle(todo.title)
+    setEditDueDate(todo.due_date || '')
+    setEditNote(todo.note || '')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditTitle('')
+    setEditDueDate('')
+    setEditNote('')
+  }
+
+  const saveEdit = async () => {
+    if (!editingId || !editTitle.trim()) return
+    await model.updateTodo.mutateAsync({
+      id: editingId,
+      title: editTitle.trim(),
+      due_date: editDueDate || null,
+      note: editNote.trim() || null,
+    })
+    cancelEdit()
+  }
+
+  const editForm = (todo: TodoItem) => (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
+        <input
+          className="input input-bordered w-full bg-slate-950"
+          value={editTitle}
+          onChange={event => setEditTitle(event.target.value)}
+          placeholder="Titre de la tâche"
+          autoFocus
+        />
+        <input
+          type="date"
+          className="input input-bordered w-full bg-slate-950"
+          value={editDueDate}
+          onChange={event => setEditDueDate(event.target.value)}
+        />
+      </div>
+      <textarea
+        className="textarea textarea-bordered w-full bg-slate-950"
+        placeholder="Note facultative"
+        rows={2}
+        value={editNote}
+        onChange={event => setEditNote(event.target.value)}
+      />
+      {todo.link_href && (
+        <Link href={todo.link_href} className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+          {todo.link_label || 'Ouvrir l’élément lié'}
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+      )}
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEdit}>
+          <X className="h-4 w-4" />
+          Annuler
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={saveEdit}
+          disabled={!editTitle.trim() || model.updateTodo.isPending}
+        >
+          <Save className="h-4 w-4" />
+          Enregistrer
+        </button>
+      </div>
+    </div>
+  )
 
   if (isAdminViewing) {
     return <div className="p-4 text-sm text-slate-400">La Todo est désactivée en vue administrateur.</div>
@@ -106,46 +183,58 @@ export default function TodoPage() {
             </div>
           ) : pending.map(todo => (
             <div key={todo.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-              <div className="flex items-start gap-3">
-                <button
-                  type="button"
-                  className="mt-0.5 rounded-md border border-slate-700 p-1 text-slate-400 hover:border-emerald-700 hover:text-emerald-400"
-                  onClick={() => model.toggleTodo.mutate(todo)}
-                  aria-label="Marquer comme terminée"
-                >
-                  <Check className="h-4 w-4" />
-                </button>
+              {editingId === todo.id ? editForm(todo) : (
+                <div className="flex items-start gap-3">
+                  <button
+                    type="button"
+                    className="mt-0.5 rounded-md border border-slate-700 p-1 text-slate-400 hover:border-emerald-700 hover:text-emerald-400"
+                    onClick={() => model.toggleTodo.mutate(todo)}
+                    aria-label="Marquer comme terminée"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
 
-                <div className="min-w-0 flex-1">
-                  <p className="break-words font-medium text-slate-200">{todo.title}</p>
-                  {todo.note && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-500">{todo.note}</p>}
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                    {todo.due_date && (
-                      <span className="inline-flex items-center gap-1">
-                        <CalendarDays className="h-3.5 w-3.5" />
-                        {formatDate(todo.due_date)}
-                      </span>
-                    )}
-                    {todo.link_href && (
-                      <Link href={todo.link_href} className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300">
-                        {todo.link_label || 'Ouvrir'}
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    )}
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words font-medium text-slate-200">{todo.title}</p>
+                    {todo.note && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-500">{todo.note}</p>}
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                      {todo.due_date && (
+                        <span className="inline-flex items-center gap-1">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          {formatDate(todo.due_date)}
+                        </span>
+                      )}
+                      {todo.link_href && (
+                        <Link href={todo.link_href} className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300">
+                          {todo.link_label || 'Ouvrir'}
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(todo)}
+                      className="rounded-md p-1 text-slate-500 hover:bg-indigo-950/40 hover:text-indigo-300"
+                      aria-label="Modifier"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Supprimer cette action ?')) model.deleteTodo.mutate(todo.id)
+                      }}
+                      className="rounded-md p-1 text-slate-600 hover:bg-red-950/40 hover:text-red-400"
+                      aria-label="Supprimer"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Supprimer cette action ?')) model.deleteTodo.mutate(todo.id)
-                  }}
-                  className="rounded-md p-1 text-slate-600 hover:bg-red-950/40 hover:text-red-400"
-                  aria-label="Supprimer"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+              )}
             </div>
           ))}
         </div>
@@ -169,24 +258,43 @@ export default function TodoPage() {
             {done.length === 0 ? (
               <p className="text-sm text-slate-600">Aucune action terminée.</p>
             ) : done.map(todo => (
-              <div key={todo.id} className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950/30 p-3">
-                <button
-                  type="button"
-                  onClick={() => model.toggleTodo.mutate(todo)}
-                  className="rounded-md p-1 text-emerald-400 hover:bg-slate-800"
-                  aria-label="Remettre à faire"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </button>
-                <p className="flex-1 text-sm text-slate-500 line-through">{todo.title}</p>
-                <button
-                  type="button"
-                  onClick={() => model.deleteTodo.mutate(todo.id)}
-                  className="rounded-md p-1 text-slate-600 hover:text-red-400"
-                  aria-label="Supprimer"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+              <div key={todo.id} className="rounded-lg border border-slate-800 bg-slate-950/30 p-3">
+                {editingId === todo.id ? editForm(todo) : (
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => model.toggleTodo.mutate(todo)}
+                      className="rounded-md p-1 text-emerald-400 hover:bg-slate-800"
+                      aria-label="Remettre à faire"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm text-slate-500 line-through">{todo.title}</p>
+                      {todo.note && <p className="mt-1 whitespace-pre-wrap break-words text-xs text-slate-600">{todo.note}</p>}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(todo)}
+                        className="rounded-md p-1 text-slate-600 hover:text-indigo-300"
+                        aria-label="Modifier"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm('Supprimer cette action ?')) model.deleteTodo.mutate(todo.id)
+                        }}
+                        className="rounded-md p-1 text-slate-600 hover:text-red-400"
+                        aria-label="Supprimer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
