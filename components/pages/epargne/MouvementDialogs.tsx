@@ -9,19 +9,21 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { FormActions, FormField, FormSection } from '@/components/ui/form-layout'
 
 type EditProps = {
-  editMvt: { id: string; montant: number; note: string | null; recurrentId: string | null } | null
+  editMvt: { id: string; montant: number; note: string | null; recurrentId: string | null; date: string } | null
   onClose: () => void
-  onSave: (id: string, montant: number, note: string | null, recurrentId: string | null) => void
+  onSave: (id: string, montant: number, note: string | null, recurrentId: string | null, date: string) => void
 }
 
 export function MouvementEditDialog({ editMvt, onClose, onSave }: EditProps) {
   const [montant, setMontant] = useState(0)
   const [note, setNote] = useState('')
+  const [date, setDate] = useState('')
 
   useEffect(() => {
     if (editMvt) {
       setMontant(Number(editMvt.montant))
       setNote(editMvt.note || '')
+      setDate(String(editMvt.date).slice(0, 10))
     }
   }, [editMvt])
 
@@ -30,9 +32,12 @@ export function MouvementEditDialog({ editMvt, onClose, onSave }: EditProps) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Modifier le mouvement</DialogTitle>
-          <DialogDescription>Ajustez le montant ou la note de ce mouvement d’épargne.</DialogDescription>
+          <DialogDescription>Ajustez la date, le montant ou la note de ce mouvement d’épargne.</DialogDescription>
         </DialogHeader>
         <FormSection title="Mouvement" icon={<ArrowLeftRight className="h-4 w-4" />}>
+          <FormField label="Date du mouvement">
+            <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          </FormField>
           <FormField label="Montant">
             <CalculatorInput value={montant} onChange={setMontant} placeholder="0,00 €" />
           </FormField>
@@ -42,7 +47,7 @@ export function MouvementEditDialog({ editMvt, onClose, onSave }: EditProps) {
         </FormSection>
         <FormActions>
           <Button variant="ghost" onClick={onClose}>Annuler</Button>
-          <Button disabled={montant <= 0} onClick={() => onSave(editMvt!.id, montant, note || null, editMvt!.recurrentId)}>Enregistrer</Button>
+          <Button disabled={montant <= 0 || !date} onClick={() => onSave(editMvt!.id, montant, note || null, editMvt!.recurrentId, date)}>Enregistrer</Button>
         </FormActions>
       </DialogContent>
     </Dialog>
