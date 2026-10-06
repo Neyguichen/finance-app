@@ -165,7 +165,7 @@ export default function RevenusPage() {
 
   return (
     <div>
-      <MonthSelector currentMonth={month} onChange={setMonth} showPreparationAction={false} />
+      <MonthSelector currentMonth={month} onChange={setMonth} />
 
       <div className="mx-auto w-full max-w-7xl space-y-4 p-3 pb-28 sm:p-4">
         <h1 className="text-xl font-bold">Revenus</h1>
@@ -179,8 +179,9 @@ export default function RevenusPage() {
           carriedBalance={carried.data}
         />
 
-        <div className="md:hidden">
+        <div className="grid gap-3 md:grid-cols-2">
           <RepartitionRevenus revenus={effectiveRevenus as any[]} />
+          <EvolutionRevenus monthly={history.data?.monthly || []} loading={history.isLoading} />
         </div>
 
         <RevenusTable
@@ -195,11 +196,6 @@ export default function RevenusPage() {
           onEdit={setEditTarget}
           onDelete={setDeleteTarget}
         />
-
-        <div className="hidden gap-3 md:grid md:grid-cols-2">
-          <RepartitionRevenus revenus={effectiveRevenus as any[]} />
-          <EvolutionRevenus monthly={history.data?.monthly || []} loading={history.isLoading} />
-        </div>
 
         <RevenuForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleCreate} />
         <RevenuEditDialog editTarget={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} doubleDate={espace?.double_date ?? false} />
