@@ -43,7 +43,13 @@ export function useDashboardV2() {
     const { plannedFixed, actualFixed, plannedVariable, actualVariable } =
       summarizeAnalyticalExpenses(charges, parentBudgets, transactions)
 
-    const plannedSavingsDeposits = plannedSavings.reduce((sum, item) => sum + Number(item.montant), 0)
+    // Une occurrence ignorée ne fait plus partie du plan du mois.
+    // Une occurrence réalisée reste dans le prévu afin de comparer prévu vs réel.
+    const activePlannedSavings = plannedSavings.filter(item => item.statut !== 'ignored')
+    const pendingPlannedSavings = activePlannedSavings.filter(item => item.statut === 'pending')
+
+    const plannedSavingsDeposits = activePlannedSavings.reduce((sum, item) => sum + Number(item.montant), 0)
+    const pendingSavingsDeposits = pendingPlannedSavings.reduce((sum, item) => sum + Number(item.montant), 0)
     const actualSavingsDeposits = mouvements.filter(item => item.type === 'epargne').reduce((sum, item) => sum + Number(item.montant), 0)
     const savingsWithdrawals = mouvements.filter(item => item.type === 'reprise').reduce((sum, item) => sum + Number(item.montant), 0)
     const plannedMonthResult = plannedIncome - plannedFixed - plannedVariable - plannedSavingsDeposits
@@ -63,11 +69,13 @@ export function useDashboardV2() {
 
     const remainingVariableBudget = Math.max(0, plannedVariable - actualVariable)
 
+    // Les mouvements réels datés dans le futur doivent encore sortir du compte.
+    // Les occurrences simplement prévues doivent aussi sortir de la projection,
+    // mais ne modifient jamais le solde réel tant qu'elles ne sont pas validées.
     const futureRecordedSavings = mouvements
       .filter(item => item.type === 'epargne' && normalizeMovementDate(item.date) > today)
       .reduce((sum, item) => sum + Number(item.montant), 0)
-    const remainingPlannedSavings = Math.max(0, plannedSavingsDeposits - actualSavingsDeposits)
-    const remainingSavingsCash = futureRecordedSavings + remainingPlannedSavings
+    const remainingSavingsCash = futureRecordedSavings + pendingSavingsDeposits
 
     const projectedRemainingCashMovement =
       remainingIncomeCash
@@ -144,6 +152,7 @@ export function useDashboardV2() {
       plannedVariable,
       actualVariable,
       plannedSavingsDeposits,
+      pendingSavingsDeposits,
       actualSavingsDeposits,
       savingsWithdrawals,
       plannedOutflows: plannedFixed + plannedVariable + plannedSavingsDeposits,
