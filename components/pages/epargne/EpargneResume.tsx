@@ -22,7 +22,9 @@ const colors = ['bg-emerald-400','bg-cyan-400','bg-fuchsia-400','bg-amber-400','
 export default function EpargneResume({
   totalDisponible, totalEpargne, totalReprise, enveloppes, onSave, onWithdraw, onTransfer, readOnly = false,
 }: Props) {
-  const positive = enveloppes.filter(env => env.balance > 0)
+  const positive = enveloppes
+    .filter(env => env.balance > 0)
+    .sort((a, b) => b.balance - a.balance)
   const total = positive.reduce((sum, env) => sum + env.balance, 0)
 
   return (
