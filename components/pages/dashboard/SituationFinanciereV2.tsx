@@ -29,7 +29,7 @@ export default function SituationFinanciereV2({
   balance, openingBalance, summary, loading, today, selectedMonth, plannedMonthResult,
   projectedRemainingCashMovement, experimentalRemainingCashMovement,
 }: Props) {
-  const [help, setHelp] = useState<'available' | 'planned' | 'projection' | null>(null)
+  const [help, setHelp] = useState<'available' | 'planned' | 'projection' | 'cashflow' | null>(null)
   const currentMonth = today.slice(0, 7)
   const isCurrentMonth = selectedMonth.slice(0, 7) === currentMonth
   const periodLabel = monthLabel(selectedMonth)
@@ -46,6 +46,7 @@ export default function SituationFinanciereV2({
     available: 'Solde calculé à partir des mouvements réellement enregistrés jusqu’à aujourd’hui.',
     planned: 'Solde actuel + revenus encore attendus − charges fixes restantes − dépenses variables prévues restantes − épargne prévue restante.',
     projection: 'Estimation dynamique : rythme moyen des dépenses variables observé depuis le début du mois × jours restants, puis ajout des revenus attendus et retrait des charges fixes et de l’épargne encore à venir.',
+    cashflow: 'Variation nette de trésorerie du mois : revenus réellement reçus + reprises d’épargne + remboursements encaissés − dépenses réellement payées − sommes mises en épargne et autres sorties de trésorerie.',
   }
 
   const HelpButton = ({ id }: { id: keyof typeof helpTexts }) => (
@@ -118,7 +119,7 @@ export default function SituationFinanciereV2({
       ) : (
         <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
           <Card className="nf-card-hover border-blue-400/15 bg-blue-500/[0.05]"><CardContent className="flex min-h-[98px] items-center gap-3 p-4"><Landmark className="h-6 w-6 shrink-0 text-blue-300" /><div><p className="text-[11px] text-slate-400">Solde fin de mois</p><p className="mt-1 text-xl font-bold text-blue-300">{balance == null ? '—' : formatEuro(balance)}</p></div></CardContent></Card>
-          <Card className="nf-card-hover"><CardContent className="flex min-h-[98px] items-center gap-3 p-4">{actualResult >= 0 ? <TrendingUp className="h-6 w-6 shrink-0 text-emerald-400" /> : <TrendingDown className="h-6 w-6 shrink-0 text-rose-400" />}<div><p className="text-[11px] text-slate-400">Variation de trésorerie</p><p className={'mt-1 text-xl font-bold ' + (actualResult >= 0 ? 'text-emerald-400' : 'text-rose-400')}>{formatEuro(actualResult)}</p></div></CardContent></Card>
+          <Card className="nf-card-hover"><CardContent className="flex min-h-[98px] items-center gap-3 p-4">{actualResult >= 0 ? <TrendingUp className="h-6 w-6 shrink-0 text-emerald-400" /> : <TrendingDown className="h-6 w-6 shrink-0 text-rose-400" />}<div><div className="flex items-center gap-1.5 text-[11px] text-slate-400">Variation de trésorerie <HelpButton id="cashflow" /></div><p className={'mt-1 text-xl font-bold ' + (actualResult >= 0 ? 'text-emerald-400' : 'text-rose-400')}>{formatEuro(actualResult)}</p></div></CardContent></Card>
           <Card className="nf-card-hover"><CardContent className="flex min-h-[98px] items-center gap-3 p-4"><TrendingUp className="h-6 w-6 shrink-0 text-emerald-400" /><div><p className="text-[11px] text-slate-400">Revenus reçus</p><p className="mt-1 text-xl font-bold text-emerald-400">{formatEuro(summary?.earnedIncome || 0)}</p></div></CardContent></Card>
           <Card className="nf-card-hover"><CardContent className="flex min-h-[98px] items-center gap-3 p-4"><TrendingDown className="h-6 w-6 shrink-0 text-rose-400" /><div><p className="text-[11px] text-slate-400">Dépenses réelles</p><p className="mt-1 text-xl font-bold text-rose-400">{formatEuro(summary?.expenses || 0)}</p></div></CardContent></Card>
         </div>
