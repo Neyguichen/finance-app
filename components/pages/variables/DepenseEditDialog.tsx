@@ -221,7 +221,7 @@ export default function DepenseEditDialog({
               <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/30 p-3">
                 <div>
                   <label className="mb-1.5 block text-xs text-slate-500">Catégorie</label>
-                  <div className="grid grid-cols-[1fr_44px] gap-2">
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                     <SearchableSelect
                       value={catId}
                       placeholder="Sélectionner une catégorie"
@@ -231,8 +231,8 @@ export default function DepenseEditDialog({
                       ]}
                       onChange={value => { setCatId(value); setSubCatId('') }}
                     />
-                    <Button type="button" variant="outline" className="h-11 w-11 p-0" onClick={() => setCategoryDialogParentId(null)} aria-label="Créer une catégorie">
-                      <Plus className="h-4 w-4" />
+                    <Button type="button" variant="outline" className="h-11 px-3" onClick={() => setCategoryDialogParentId(null)}>
+                      <Plus className="mr-1.5 h-4 w-4" />Nouvelle catégorie
                     </Button>
                   </div>
                 </div>
@@ -240,7 +240,7 @@ export default function DepenseEditDialog({
                 {subcategoriesEnabled && catId && (
                   <div>
                     <label className="mb-1.5 block text-xs text-slate-500">Sous-catégorie <span className="text-slate-700">(optionnel)</span></label>
-                    <div className="grid grid-cols-[1fr_44px] gap-2">
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                       <SearchableSelect
                         value={subCatId}
                         placeholder="Aucune sous-catégorie"
@@ -250,8 +250,8 @@ export default function DepenseEditDialog({
                         ]}
                         onChange={setSubCatId}
                       />
-                      <Button type="button" variant="outline" className="h-11 w-11 p-0" onClick={() => setCategoryDialogParentId(catId)} aria-label="Créer une sous-catégorie">
-                        <Plus className="h-4 w-4" />
+                      <Button type="button" variant="outline" className="h-11 px-3" onClick={() => setCategoryDialogParentId(catId)}>
+                        <Plus className="mr-1.5 h-4 w-4" />Nouvelle sous-catégorie
                       </Button>
                     </div>
                   </div>
