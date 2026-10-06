@@ -236,6 +236,21 @@ export function useEpargneRecurrentes(espaceId: string | undefined) {
 
   const create = useMutation({
     mutationFn: async (rec: Omit<EpargneRecurrente, 'id' | 'created_at'>) => {
+      // Éviter de recréer une série identique lorsqu'une récurrence active existe déjà.
+      const { data: existing, error: existingError } = await supabase
+        .from('epargne_recurrentes')
+        .select('*')
+        .eq('espace_id', rec.espace_id)
+        .eq('enveloppe_dest_id', rec.enveloppe_dest_id)
+        .eq('montant', rec.montant)
+        .eq('frequence_mois', rec.frequence_mois)
+        .eq('actif', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (existingError) throw existingError
+      if (existing) return existing as EpargneRecurrente
+
       const { data, error } = await supabase
         .from('epargne_recurrentes')
         .insert(rec)
