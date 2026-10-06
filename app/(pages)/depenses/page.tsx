@@ -610,20 +610,20 @@ export default function DepensesPage() {
           </Card>
         </div>
 
-        <div>
-          <Button variant="outline" className="h-auto w-full justify-start gap-3 border-slate-800 bg-slate-900 px-4 py-3" onClick={() => setManagementView('fixed')}>
-            <Settings2 className="h-5 w-5 text-purple-300" />
-            <span className="text-left"><strong className="block text-sm text-slate-200">Gérer les charges fixes</strong><span className="text-[11px] text-slate-500">Récurrences, occurrences et archives</span></span>
-          </Button>
-        </div>
-
         <Card className="border-slate-800 bg-slate-900">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-col gap-2 pb-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-sm text-slate-200">Budgets variables</CardTitle>
               <p className="mt-0.5 text-[10px] text-slate-500">Avancement des budgets actifs du mois</p>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setManagementView('budgets')}>Voir Catégories &amp; Budgets</Button>
+            <div className="flex flex-wrap gap-1.5">
+              <Button size="sm" variant="outline" className="h-8 px-2.5 text-[11px]" onClick={() => setManagementView('fixed')}>
+                <Settings2 className="mr-1.5 h-3.5 w-3.5" />Charges fixes
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 px-2.5 text-[11px]" onClick={() => setManagementView('budgets')}>
+                Catégories &amp; Budgets
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-3 pt-0">
             {compactBudgets.length === 0 ? (
@@ -914,17 +914,15 @@ export default function DepensesPage() {
             {budgetModalCategory && (
               <>
                 <DialogHeader>
-                  <DialogTitle>{budgetModalSubcategory ? 'Sous-catégorie' : 'Catégorie'} · Budget du mois</DialogTitle>
+                  <DialogTitle>{budgetModalSubcategory ? 'Modifier la sous-catégorie' : 'Modifier la catégorie'}</DialogTitle>
                 </DialogHeader>
 
                 <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-                  <section className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/25 p-4">
+                    <div className="flex items-end gap-3">
                       <div className="shrink-0">
                         <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-slate-600">Icône</label>
-                        <div className="w-16">
-                          <EmojiPicker value={budgetIconDraft} onChange={setBudgetIconDraft} />
-                        </div>
+                        <EmojiPicker compact value={budgetIconDraft} onChange={setBudgetIconDraft} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-slate-600">Nom</label>
@@ -932,35 +930,41 @@ export default function DepensesPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    <div className="grid gap-3 lg:grid-cols-[1.15fr_.85fr]">
                       <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.05] p-3">
-                        <p className="text-[10px] uppercase tracking-wide text-indigo-300/70">Prévu</p>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={budgetModalSubcategory ? (budgetDraft[budgetModalSubcategory.id] ?? '') : (isSubBudgetMode ? String(subBudgetTotal) : (budgetDraft[budgetModalCategory.id] ?? ''))}
-                          onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalEntity?.id || '']: event.target.value }))}
-                          className="mt-1 w-full border-0 bg-transparent p-0 text-lg font-bold text-indigo-100 outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                          disabled={isAdminViewing || (!budgetModalSubcategory && isSubBudgetMode)}
-                        />
+                        <label className="text-[10px] font-medium uppercase tracking-wide text-indigo-300/70">Budget prévu</label>
+                        <div className="mt-2 flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={budgetModalSubcategory ? (budgetDraft[budgetModalSubcategory.id] ?? '') : (isSubBudgetMode ? String(subBudgetTotal) : (budgetDraft[budgetModalCategory.id] ?? ''))}
+                            onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalEntity?.id || '']: event.target.value }))}
+                            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-2xl font-bold text-indigo-100 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={isAdminViewing || (!budgetModalSubcategory && isSubBudgetMode)}
+                          />
+                          <span className="text-sm font-semibold text-indigo-300">€</span>
+                        </div>
+                        {!budgetModalSubcategory && isSubBudgetMode && <p className="mt-1 text-[10px] text-slate-600">Calculé automatiquement à partir des sous-catégories.</p>}
                       </div>
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-                        <p className="text-[10px] uppercase tracking-wide text-slate-600">Réel</p>
-                        <p className="mt-1 text-lg font-bold text-slate-100">{formatEuro(selectedBudgetActual)}</p>
-                      </div>
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-                        <p className="text-[10px] uppercase tracking-wide text-slate-600">Restant</p>
-                        <p className={'mt-1 text-lg font-bold ' + (selectedBudgetRemaining < 0 ? 'text-rose-300' : 'text-emerald-300')}>{formatEuro(selectedBudgetRemaining)}</p>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                          <p className="text-[10px] uppercase tracking-wide text-slate-600">Réel</p>
+                          <p className="mt-1 text-base font-bold text-slate-100">{formatEuro(selectedBudgetActual)}</p>
+                        </div>
+                        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                          <p className="text-[10px] uppercase tracking-wide text-slate-600">Restant</p>
+                          <p className={'mt-1 text-base font-bold ' + (selectedBudgetRemaining < 0 ? 'text-rose-300' : 'text-emerald-300')}>{formatEuro(selectedBudgetRemaining)}</p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mt-3">
+                    <div>
                       <div className="mb-1 flex items-center justify-between text-[10px] text-slate-500"><span>Avancement</span><strong>{selectedBudgetPercent}%</strong></div>
                       <div className="h-2 overflow-hidden rounded-full bg-slate-800">
                         <div className={'h-full rounded-full ' + (selectedBudgetPercent > 100 ? 'bg-rose-400' : selectedBudgetPercent >= 80 ? 'bg-amber-400' : 'bg-emerald-400')} style={{ width: Math.min(100, selectedBudgetPercent) + '%' }} />
                       </div>
                     </div>
-                    {!budgetModalSubcategory && isSubBudgetMode && <p className="mt-2 text-[10px] text-slate-600">Le budget de la catégorie est calculé automatiquement à partir des sous-catégories.</p>}
                   </section>
 
                   <section>
