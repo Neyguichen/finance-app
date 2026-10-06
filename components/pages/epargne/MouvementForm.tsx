@@ -18,6 +18,7 @@ type Props = {
   initialType?: 'epargne' | 'reprise' | 'transfert'
   initialSourceId?: string | null
   initialDestId?: string | null
+  initialDate: string
   onSubmit: (data: {
     type: 'epargne' | 'reprise' | 'transfert'
     montant: number
@@ -25,23 +26,26 @@ type Props = {
     sourceId: string | null
     destId: string | null
     frequence: number
+    date: string
   }) => Promise<void>
 }
 
-export default function MouvementForm({ open, onOpenChange, enveloppesActives, onCreateEnvelope, initialType = 'epargne', initialSourceId = null, initialDestId = null, onSubmit }: Props) {
+export default function MouvementForm({ open, onOpenChange, enveloppesActives, onCreateEnvelope, initialType = 'epargne', initialSourceId = null, initialDestId = null, initialDate, onSubmit }: Props) {
   const [type, setType] = useState<'epargne' | 'reprise' | 'transfert'>(initialType)
 
   const [montant, setMontant] = useState(0)
   const [note, setNote] = useState('')
   const [sourceId, setSourceId] = useState('')
   const [destId, setDestId] = useState('')
+  const [date, setDate] = useState(initialDate)
 
   useEffect(() => {
     if (!open) return
     setType(initialType)
     setSourceId(initialSourceId || '')
     setDestId(initialDestId || '')
-  }, [open, initialType, initialSourceId, initialDestId])
+    setDate(initialDate)
+  }, [open, initialType, initialSourceId, initialDestId, initialDate])
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('monthly')
   const [customFrequency, setCustomFrequency] = useState(2)
   const [creatingEnvelope, setCreatingEnvelope] = useState(false)
@@ -69,6 +73,7 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
       sourceId: sourceRequired ? (sourceId || null) : null,
       destId: destRequired ? (destId || null) : null,
       frequence: frequency,
+      date,
     })
     setMontant(0)
     setNote('')
@@ -113,6 +118,11 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm text-slate-400">Date du mouvement</label>
+            <Input type="date" value={date} onChange={event => setDate(event.target.value)} />
           </div>
 
           <CalculatorInput value={montant} onChange={setMontant} placeholder="Montant" />
