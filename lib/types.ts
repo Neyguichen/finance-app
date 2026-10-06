@@ -69,6 +69,8 @@ export interface ChargeFixeRecurrente {
   actif: boolean
   frequence_mois: number  // 1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel
   mois_debut: string | null
+  suspended_from?: string | null
+  suspended_until?: string | null
   ordre: number
   created_at: string
 }
