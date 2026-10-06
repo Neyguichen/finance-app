@@ -69,6 +69,8 @@ export default function DepensesPage() {
   const [editFixed, setEditFixed] = useState<any>(null)
   const [deleteFixed, setDeleteFixed] = useState<any>(null)
   const [scopeFixed, setScopeFixed] = useState<any>(null)
+  const [validationEntry, setValidationEntry] = useState<any>(null)
+  const [validationDate, setValidationDate] = useState('')
   const [splitTx, setSplitTx] = useState<any>(null)
   const [rembTx, setRembTx] = useState<any>(null)
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
@@ -316,8 +318,8 @@ export default function DepensesPage() {
   const actualEntries = useMemo(() => {
     const fixedEntries = effectiveCharges.map((charge: any) => {
       const validated = Boolean(charge.payee)
-      const paymentDate = charge.date_prevue || charge.date_reelle || month.slice(0, 7) + '-01'
-      const validationDate = charge.date_reelle || null
+      const paymentDate = String(charge.date_prevue || month.slice(0, 7) + '-01').slice(0, 10)
+      const validationDate = charge.date_reelle ? String(charge.date_reelle).slice(0, 10) : null
       return {
         id: 'fixed-' + charge.id,
         source: 'fixed' as const,
@@ -342,8 +344,8 @@ export default function DepensesPage() {
         id: 'tx-' + tx.id,
         source: 'transaction' as const,
         sourceData: tx,
-        paymentDate: tx.date,
-        validationDate: tx.date_validation || null,
+        paymentDate: String(tx.date || month.slice(0, 7) + '-01').slice(0, 10),
+        validationDate: tx.date_validation ? String(tx.date_validation).slice(0, 10) : null,
         status: validated ? 'validated' as const : 'planned' as const,
         title: tx.is_split && tx.children?.length ? 'Dépense répartie' : (tx.categorie?.nom || 'Sans catégorie'),
         subcategory: tx.is_split && tx.children?.length
@@ -363,11 +365,11 @@ export default function DepensesPage() {
   const filteredActualEntries = actualEntries.filter(entry => actualFilter === 'all' || entry.status === actualFilter)
 
   const sortedActualEntries = useMemo(() => {
-    return [...filteredActualEntries].sort((a, b) => {
-      const aDate = actualSort === 'validation' ? (a.validationDate || a.paymentDate) : a.paymentDate
-      const bDate = actualSort === 'validation' ? (b.validationDate || b.paymentDate) : b.paymentDate
-      return String(bDate).localeCompare(String(aDate))
-    })
+    const dateValue = (entry: any) => {
+      const value = actualSort === 'validation' ? entry.validationDate : entry.paymentDate
+      return value ? Date.parse(value + 'T12:00:00') : Number.NEGATIVE_INFINITY
+    }
+    return [...filteredActualEntries].sort((a, b) => dateValue(b) - dateValue(a))
   }, [filteredActualEntries, actualSort])
 
   const groupedEntries = useMemo(() => {
@@ -377,8 +379,14 @@ export default function DepensesPage() {
     const yesterday = localDateISO(yesterdayDate)
 
     for (const entry of sortedActualEntries) {
-      const displayDate = actualSort === 'validation' ? (entry.validationDate || entry.paymentDate) : entry.paymentDate
-      const label = displayDate === today ? "Aujourd'hui" : displayDate === yesterday ? 'Hier' : formatDate(displayDate)
+      const displayDate = actualSort === 'validation' ? entry.validationDate : entry.paymentDate
+      const label = !displayDate
+        ? 'Sans date de validation'
+        : displayDate === today
+          ? "Aujourd'hui"
+          : displayDate === yesterday
+            ? 'Hier'
+            : formatDate(displayDate)
       const list = groups.get(label) || []
       list.push(entry)
       groups.set(label, list)
@@ -386,16 +394,30 @@ export default function DepensesPage() {
     return Array.from(groups.entries())
   }, [sortedActualEntries, today, actualSort])
 
-  const toggleActualEntry = async (entry: any, checked: boolean) => {
+  const applyActualValidation = async (entry: any, checked: boolean, date?: string | null) => {
     if (isAdminViewing) return
     if (entry.source === 'fixed') {
-      await togglePayee.mutateAsync({ id: entry.sourceData.id, payee: checked, dateReelle: checked ? today : undefined })
+      await togglePayee.mutateAsync({ id: entry.sourceData.id, payee: checked, dateReelle: checked ? (date || today) : null })
       return
     }
     await updateTx.mutateAsync({
       id: entry.sourceData.id,
-      date_validation: checked ? today : null,
+      date_validation: checked ? (date || today) : null,
     })
+  }
+
+  const toggleActualEntry = async (entry: any, checked: boolean) => {
+    if (isAdminViewing) return
+    if (!checked) {
+      await applyActualValidation(entry, false, null)
+      return
+    }
+    if (espace?.double_date) {
+      setValidationEntry(entry)
+      setValidationDate(today)
+      return
+    }
+    await applyActualValidation(entry, true, today)
   }
 
   const createTransaction = async (data: any) => {
@@ -447,7 +469,13 @@ export default function DepensesPage() {
     payee?: boolean,
     dateReelle?: string | null,
   ) => {
-    if (recurrentId) {
+    const original = effectiveCharges.find((charge: any) => charge.id === id)
+    const chargeInfoChanged = !!original && (
+      String(original.nom || '').trim() !== nom.trim()
+      || Number(original.montant) !== Number(montant)
+    )
+
+    if (recurrentId && chargeInfoChanged) {
       setScopeFixed({
         id,
         nom,
@@ -464,7 +492,7 @@ export default function DepensesPage() {
         categorie_id: null,
         sous_categorie_id: null,
         payee: !!payee,
-        date_reelle: dateReelle ?? null,
+        date_reelle: payee ? (dateReelle || today) : null,
       })
     }
     setEditFixed(null)
@@ -729,7 +757,7 @@ export default function DepensesPage() {
                           </div>
                           <div className="text-right">
                             <strong className={entry.source === 'fixed' ? 'text-purple-300' : 'text-rose-300'}>{formatEuro(entry.amount)}</strong>
-                            <p className="text-[10px] text-slate-600">{formatDate(actualSort === 'validation' ? (entry.validationDate || entry.paymentDate) : entry.paymentDate)}</p>
+                            <p className="text-[10px] text-slate-600">{actualSort === 'validation' ? (entry.validationDate ? formatDate(entry.validationDate) : 'Non validée') : formatDate(entry.paymentDate)}</p>
                           </div>
                           {!isAdminViewing && (
                             <button
@@ -752,6 +780,32 @@ export default function DepensesPage() {
               </div>
             )}
 
+
+        <Dialog open={!!validationEntry} onOpenChange={open => { if (!open) { setValidationEntry(null); setValidationDate('') } }}>
+          <DialogContent className="max-w-sm border-slate-700 bg-slate-900">
+            <DialogHeader>
+              <DialogTitle>Date de validation</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-slate-400">Confirme la date de validation de cette dépense. La date du jour est proposée par défaut.</p>
+              <Input type="date" value={validationDate} onChange={event => setValidationDate(event.target.value)} />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => { setValidationEntry(null); setValidationDate('') }}>Annuler</Button>
+                <Button
+                  disabled={!validationDate}
+                  onClick={async () => {
+                    if (!validationEntry || !validationDate) return
+                    await applyActualValidation(validationEntry, true, validationDate)
+                    setValidationEntry(null)
+                    setValidationDate('')
+                  }}
+                >
+                  <Check className="mr-1.5 h-4 w-4" />Valider
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={managementView === 'fixed'} onOpenChange={open => { if (!open) { setManagementView(null); setSelectedFixedRecurringId(null) } }}>
           <DialogContent className="max-w-4xl border-slate-700 bg-slate-900">
