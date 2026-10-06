@@ -270,8 +270,59 @@ export function useEpargneRecurrentes(espaceId: string | undefined) {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['epargne_prevues'] })
+    },
   })
 
-  return { ...query, create, update }
+  const updateFromMonth = useMutation({
+    mutationFn: async ({
+      id,
+      fromMonth,
+      updates,
+    }: {
+      id: string
+      fromMonth: string
+      updates: Partial<EpargneRecurrente>
+    }) => {
+      const normalizedMonth = fromMonth.length === 7 ? fromMonth + '-01' : fromMonth
+
+      const { error: recurrentError } = await supabase
+        .from('epargne_recurrentes')
+        .update(updates)
+        .eq('id', id)
+      if (recurrentError) throw recurrentError
+
+      const { data: months, error: monthsError } = await supabase
+        .from('mois')
+        .select('id')
+        .eq('espace_id', espaceId!)
+        .gte('mois', normalizedMonth)
+      if (monthsError) throw monthsError
+
+      const monthIds = (months || []).map(row => row.id)
+      if (!monthIds.length) return
+
+      const plannedUpdates: Record<string, unknown> = {}
+      if (updates.montant !== undefined) plannedUpdates.montant = updates.montant
+      if (updates.enveloppe_dest_id !== undefined) plannedUpdates.enveloppe_dest_id = updates.enveloppe_dest_id
+
+      if (Object.keys(plannedUpdates).length) {
+        const { error: plannedError } = await supabase
+          .from('epargne_prevues')
+          .update(plannedUpdates)
+          .eq('recurrent_id', id)
+          .in('mois_id', monthIds)
+        if (plannedError) throw plannedError
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['epargne_prevues'] })
+      queryClient.invalidateQueries({ queryKey: ['month_preparation'] })
+    },
+  })
+
+  return { ...query, create, update, updateFromMonth }
 }
