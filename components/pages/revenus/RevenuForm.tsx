@@ -6,19 +6,24 @@ import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useForm } from 'react-hook-form'
+import { Checkbox } from '@/components/ui/checkbox'
+import { localDateISO } from '@/lib/utils'
 
 type RecurrenceMode = 'once' | 'monthly' | 'custom'
 
 type Props = {
   open: boolean
   onOpenChange: (v: boolean) => void
-  onSubmit: (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null }) => Promise<void>
+  doubleDate?: boolean
+  onSubmit: (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => Promise<void>
 }
 
-export default function RevenuForm({ open, onOpenChange, onSubmit }: Props) {
+export default function RevenuForm({ open, onOpenChange, onSubmit, doubleDate = false }: Props) {
   const [formType, setFormType] = useState<'actif' | 'passif'>('actif')
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('monthly')
   const [customFrequency, setCustomFrequency] = useState(2)
+  const [recu, setRecu] = useState(false)
+  const [dateReelle, setDateReelle] = useState('')
   const { register, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: { nom: '', montant: 0, datePrevue: '' },
   })
@@ -36,8 +41,12 @@ export default function RevenuForm({ open, onOpenChange, onSubmit }: Props) {
       datePrevue: values.datePrevue || null,
       type: formType,
       frequence: frequency,
+      recu,
+      dateReelle: recu ? (dateReelle || localDateISO()) : null,
     })
     reset()
+    setRecu(false)
+    setDateReelle('')
     setFormType('actif')
     setRecurrenceMode('monthly')
     setCustomFrequency(2)
@@ -77,6 +86,31 @@ export default function RevenuForm({ open, onOpenChange, onSubmit }: Props) {
                 Passif
               </button>
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm text-slate-400">Validation</label>
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-3">
+              <Checkbox
+                checked={recu}
+                onCheckedChange={checked => {
+                  const next = !!checked
+                  setRecu(next)
+                  if (next && !dateReelle) setDateReelle(localDateISO())
+                  if (!next) setDateReelle('')
+                }}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-slate-200">Revenu reçu</span>
+                <span className="mt-0.5 block text-xs text-slate-500">Valider ce revenu dès sa création.</span>
+              </span>
+            </label>
+            {doubleDate && recu && (
+              <div className="mt-2">
+                <label className="mb-1 block text-sm text-slate-400">Date de validation</label>
+                <Input type="date" value={dateReelle} onChange={event => setDateReelle(event.target.value)} />
+              </div>
+            )}
           </div>
 
           <div>
