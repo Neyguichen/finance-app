@@ -83,14 +83,14 @@ export default function DashboardQuickAdd() {
     setActiveForm(null)
   }
 
-  const createFixedHandler = async (values: { nom: string; montant: number; frequence: number; categorie_id?: string | null; sous_categorie_id?: string | null }) => {
+  const createFixedHandler = async (values: { nom: string; montant: number; frequence: number }) => {
     if (!moisId || !espace) return
     const recurrent = await createFixedRecurring.mutateAsync({
       espace_id: espace.id,
       nom: values.nom,
       montant: values.montant,
-      categorie_id: values.categorie_id || null,
-      sous_categorie_id: values.sous_categorie_id || null,
+      categorie_id: null,
+      sous_categorie_id: null,
       actif: true,
       frequence_mois: Math.max(1, values.frequence),
       ordre: fixedCharges.length,
@@ -101,8 +101,8 @@ export default function DashboardQuickAdd() {
       recurrent_id: recurrent.id,
       nom: values.nom,
       montant: values.montant,
-      categorie_id: values.categorie_id || null,
-      sous_categorie_id: values.sous_categorie_id || null,
+      categorie_id: null,
+      sous_categorie_id: null,
       payee: false,
       ordre: fixedCharges.length,
     })
@@ -216,9 +216,6 @@ export default function DashboardQuickAdd() {
       <ChargeFixeForm
         open={activeForm === 'fixed'}
         onOpenChange={value => { if (!value) setActiveForm(null) }}
-        categories={categories}
-        espaceId={espace?.id}
-        createCat={createCat}
         onSubmit={createFixedHandler}
       />
       <DepenseForm
