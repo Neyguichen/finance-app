@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useMois } from '@/lib/hooks/useMois'
+import { useMonthPreparation, usePrepareMonth } from '@/lib/hooks/useMonthPreparation'
 import { currentMonth } from '@/lib/utils'
 import type { Espace } from '@/lib/types'
 
@@ -86,6 +87,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [moisId, setMoisId] = useState<string | undefined>(undefined)
 
   const { data: allMois } = useMois(espace?.id)
+  const automaticPreview = useMonthPreparation(espace?.id, month, espace && userId ? 'habits' : null)
+  const automaticPrepare = usePrepareMonth(espace?.id, month, userId ?? undefined)
+  const autoPreparingRef = useRef<string | null>(null)
 
   // 1. Écouter les changements d'auth
   useEffect(() => {
@@ -127,8 +131,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadEspaces()
   }, [userId])
 
-  // 3. Résoudre le mois actif en lecture seule.
-  // V2: changer de période ne doit jamais créer un mois ni aucune opération financière.
+  // 3. Résoudre le mois actif. Un mois inexistant est désormais créé automatiquement
+  // avec les récurrences actives qui lui sont dues : il n'y a plus d'état "mois non préparé".
   useEffect(() => {
     if (!espace || !userId) {
       setMoisId(undefined)
@@ -137,9 +141,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const found = allMois?.find(m => m.mois === month)
-    setMoisId(found?.id)
-    setSyncing(false)
-  }, [espace, month, userId, allMois])
+    if (found) {
+      setMoisId(found.id)
+      setSyncing(false)
+      autoPreparingRef.current = null
+      return
+    }
+
+    if (automaticPreview.isLoading || !automaticPreview.data || automaticPrepare.isPending) {
+      setMoisId(undefined)
+      setSyncing(true)
+      return
+    }
+
+    const key = espace.id + ':' + month
+    if (autoPreparingRef.current === key) return
+    autoPreparingRef.current = key
+    setSyncing(true)
+
+    const items = (automaticPreview.data.items || []).filter(item => item.selected && !item.inactive)
+    automaticPrepare.mutateAsync(items).catch(error => {
+      console.error('Erreur création automatique du mois:', error)
+      autoPreparingRef.current = null
+      setSyncing(false)
+    })
+  }, [espace, month, userId, allMois, automaticPreview.data, automaticPreview.isLoading, automaticPrepare.isPending])
 
   // Ajouter un espace (avec solde_initial optionnel)
   const addEspace = async (nom: string, icone = '🏠', soldeInitial = 0) => {
