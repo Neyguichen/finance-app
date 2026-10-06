@@ -42,6 +42,7 @@ import { summarizeAnalyticalExpenses } from '@/lib/expense-summary'
 import EmptyStateV2 from '@/components/ui/EmptyStateV2'
 import DepensesFab from '@/components/pages/depenses/DepensesFab'
 import CategorieDialog from '@/components/pages/variables/CategorieDialog'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
 
 type ActualFilter = 'all' | 'planned' | 'validated'
 
@@ -59,6 +60,8 @@ export default function DepensesPage() {
   const [budgetModalId, setBudgetModalId] = useState<string | null>(null)
   const [budgetModalSubcategoryId, setBudgetModalSubcategoryId] = useState<string | null>(null)
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({})
+  const [budgetNameDraft, setBudgetNameDraft] = useState('')
+  const [budgetIconDraft, setBudgetIconDraft] = useState('📂')
   const [txOpen, setTxOpen] = useState(false)
   const [editTx, setEditTx] = useState<any>(null)
   const [deleteTx, setDeleteTx] = useState<any>(null)
@@ -126,6 +129,17 @@ export default function DepensesPage() {
 
   const parentCategoryIds = new Set(parentCategories.map((c: any) => c.id))
   const parentBudgets = effectiveBudgets.filter((b: any) => parentCategoryIds.has(b.categorie_id))
+  const compactBudgets = parentCategories
+    .map((cat: any) => {
+      const planned = budget(cat.id)
+      const actual = spent(cat.id)
+      const remaining = planned - actual
+      const percent = planned > 0 ? Math.round((actual / planned) * 100) : (actual > 0 ? 100 : 0)
+      return { ...cat, planned, actual, remaining, percent }
+    })
+    .filter((item: any) => item.planned > 0 || item.actual > 0)
+    .sort((a: any, b: any) => b.percent - a.percent)
+    .slice(0, 5)
   const expenseSummary = summarizeAnalyticalExpenses(effectiveCharges, parentBudgets, effectiveFlat)
   const { plannedFixed, actualFixed, plannedVariable, actualVariable, plannedTotal, actualTotal } = expenseSummary
   const variance = actualTotal - plannedTotal
@@ -144,6 +158,17 @@ export default function DepensesPage() {
   const budgetModalSubcategory = budgetModalSubcategoryId
     ? effectiveCategories.find((cat: any) => cat.id === budgetModalSubcategoryId) || null
     : null
+  const budgetModalEntity = budgetModalSubcategory || budgetModalCategory
+  const selectedBudgetPlanned = budgetModalSubcategory
+    ? (Number(budgetDraft[budgetModalSubcategory.id]) || 0)
+    : effectiveParentBudgetDraft
+  const selectedBudgetActual = budgetModalSubcategory
+    ? spent(budgetModalSubcategory.id, true)
+    : (budgetModalCategory ? spent(budgetModalCategory.id) : 0)
+  const selectedBudgetRemaining = selectedBudgetPlanned - selectedBudgetActual
+  const selectedBudgetPercent = selectedBudgetPlanned > 0
+    ? Math.round((selectedBudgetActual / selectedBudgetPlanned) * 100)
+    : (selectedBudgetActual > 0 ? 100 : 0)
   const activeFixedRecurrents = fixedRecurrents.filter((item: any) => item.actif !== false)
   const archivedFixedRecurrents = fixedRecurrents.filter((item: any) => item.actif === false)
   const selectedFixedRecurring = fixedRecurrents.find((item: any) => item.id === selectedFixedRecurringId) || null
@@ -193,13 +218,32 @@ export default function DepensesPage() {
       [category.id]: String(childTotal > 0 ? childTotal : (budget(category.id) || '')),
     }
     for (const sub of children) draft[sub.id] = String(budget(sub.id) || '')
+    const selected = subcategoryId ? children.find((sub: any) => sub.id === subcategoryId) : category
     setBudgetDraft(draft)
+    setBudgetNameDraft(selected?.nom || '')
+    setBudgetIconDraft(selected?.icone || (subcategoryId ? '📎' : '📂'))
     setBudgetModalSubcategoryId(subcategoryId)
     setBudgetModalId(categoryId)
   }
 
+  const selectBudgetSubcategory = (subcategoryId: string | null) => {
+    const selected = subcategoryId
+      ? budgetModalSubcats.find((sub: any) => sub.id === subcategoryId)
+      : budgetModalCategory
+    setBudgetModalSubcategoryId(subcategoryId)
+    setBudgetNameDraft(selected?.nom || '')
+    setBudgetIconDraft(selected?.icone || (subcategoryId ? '📎' : '📂'))
+  }
+
   const saveBudgetModal = async () => {
     if (!budgetModalCategory || !moisId || isAdminViewing) return
+    if (budgetModalEntity && budgetNameDraft.trim()) {
+      await updateCat.mutateAsync({
+        id: budgetModalEntity.id,
+        nom: budgetNameDraft.trim(),
+        icone: budgetIconDraft,
+      })
+    }
     for (const sub of budgetModalSubcats) {
       await upsertBudget.mutateAsync({
         mois_id: moisId,
@@ -282,12 +326,12 @@ export default function DepensesPage() {
         validationDate,
         status: validated ? 'validated' as const : 'planned' as const,
         title: charge.nom,
-        subcategory: charge.sous_categorie_nom || null,
-        icon: charge.categorie_icone || '🏠',
+        subcategory: null,
+        icon: '📌',
         amount: Number(validated ? (charge.montant_reel ?? charge.montant) : charge.montant),
         grossAmount: Number(validated ? (charge.montant_reel ?? charge.montant) : charge.montant),
         refund: 0,
-        info: charge.categorie_nom || 'Charge fixe',
+        info: 'Charge fixe',
       }
     })
 
@@ -365,7 +409,7 @@ export default function DepensesPage() {
     await split.mutateAsync({ parentId: parent.id, lines })
   }
 
-  const createFixedExpense = async (value: { nom: string; montant: number; frequence: number; categorie_id?: string | null; sous_categorie_id?: string | null }) => {
+  const createFixedExpense = async (value: { nom: string; montant: number; frequence: number }) => {
     if (!moisId || !espace || isAdminViewing) return
     let recurrent_id: string | null = null
     if (value.frequence > 0) {
@@ -373,8 +417,8 @@ export default function DepensesPage() {
         espace_id: espace.id,
         nom: value.nom,
         montant: value.montant,
-        categorie_id: value.categorie_id ?? null,
-        sous_categorie_id: value.sous_categorie_id ?? null,
+        categorie_id: null,
+        sous_categorie_id: null,
         actif: true,
         frequence_mois: value.frequence,
         ordre: charges.length,
@@ -400,8 +444,6 @@ export default function DepensesPage() {
     nom: string,
     montant: number,
     recurrentId: string | null,
-    categorieId?: string | null,
-    sousCategorieId?: string | null,
     payee?: boolean,
     dateReelle?: string | null,
   ) => {
@@ -411,8 +453,6 @@ export default function DepensesPage() {
         nom,
         montant,
         recurrentId,
-        categorieId: categorieId ?? null,
-        sousCategorieId: sousCategorieId ?? null,
         payee: !!payee,
         dateReelle: dateReelle ?? null,
       })
@@ -421,8 +461,8 @@ export default function DepensesPage() {
         id,
         nom,
         montant,
-        categorie_id: categorieId ?? null,
-        sous_categorie_id: sousCategorieId ?? null,
+        categorie_id: null,
+        sous_categorie_id: null,
         payee: !!payee,
         date_reelle: dateReelle ?? null,
       })
@@ -435,8 +475,8 @@ export default function DepensesPage() {
     const occurrenceUpdates = {
       nom: scopeFixed.nom,
       montant: scopeFixed.montant,
-      categorie_id: scopeFixed.categorieId ?? null,
-      sous_categorie_id: scopeFixed.sousCategorieId ?? null,
+      categorie_id: null,
+      sous_categorie_id: null,
     }
 
     if (scope === 'mois') {
@@ -462,8 +502,8 @@ export default function DepensesPage() {
         id: scopeFixed.recurrentId,
         nom: scopeFixed.nom,
         montant: scopeFixed.montant,
-        categorie_id: scopeFixed.categorieId ?? null,
-        sous_categorie_id: scopeFixed.sousCategorieId ?? null,
+        categorie_id: null,
+        sous_categorie_id: null,
       })
     }
     setScopeFixed(null)
@@ -481,8 +521,6 @@ export default function DepensesPage() {
     nom: charge.nom,
     montant: Number(charge.montant),
     recurrentId: charge.recurrent_id ?? null,
-    categorieId: charge.categorie_id ?? null,
-    sousCategorieId: charge.sous_categorie_id ?? null,
     payee: !!charge.payee,
     dateReelle: charge.date_reelle ?? null,
   })
@@ -583,6 +621,40 @@ export default function DepensesPage() {
           </Button>
         </div>
 
+        <Card className="border-slate-800 bg-slate-900">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="text-sm text-slate-200">Budgets variables</CardTitle>
+              <p className="mt-0.5 text-[10px] text-slate-500">Avancement des budgets actifs du mois</p>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setManagementView('budgets')}>Voir tous</Button>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            {compactBudgets.length === 0 ? (
+              <p className="py-2 text-xs text-slate-600">Aucun budget variable actif ce mois.</p>
+            ) : (
+              <div className="grid gap-x-5 gap-y-2 md:grid-cols-2">
+                {compactBudgets.map((item: any) => (
+                  <button key={item.id} type="button" onClick={() => openBudgetModal(item.id)} className="group text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 text-center">{item.icone || '📂'}</span>
+                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-300 group-hover:text-slate-100">{item.nom}</span>
+                      <span className={'text-[10px] font-semibold ' + (item.remaining < 0 ? 'text-rose-300' : item.percent >= 80 ? 'text-amber-300' : 'text-emerald-300')}>
+                        {formatEuro(item.remaining)} reste
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 pl-7">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
+                        <div className={'h-full rounded-full ' + (item.percent > 100 ? 'bg-rose-400' : item.percent >= 80 ? 'bg-amber-400' : 'bg-emerald-400')} style={{ width: Math.min(100, item.percent) + '%' }} />
+                      </div>
+                      <span className="w-24 text-right text-[9px] text-slate-600">{formatEuro(item.actual)} / {formatEuro(item.planned)}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex gap-2 overflow-x-auto pb-1">
@@ -841,33 +913,58 @@ export default function DepensesPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={!!budgetModalCategory} onOpenChange={open => { if (!open) { setBudgetModalId(null); setBudgetModalSubcategoryId(null) } }}>
+        <Dialog open={!!budgetModalCategory} onOpenChange={open => { if (!open) { setBudgetModalId(null); setBudgetModalSubcategoryId(null); setBudgetNameDraft(''); setBudgetIconDraft('📂') } }}>
           <DialogContent className="max-w-3xl border-slate-700 bg-slate-900">
             {budgetModalCategory && (
               <>
                 <DialogHeader>
-                  <DialogTitle>{budgetModalCategory.icone || '📂'} {budgetModalCategory.nom}{budgetModalSubcategory ? ' · ' + budgetModalSubcategory.nom : ''}</DialogTitle>
+                  <DialogTitle>{budgetModalSubcategory ? 'Sous-catégorie' : 'Catégorie'} · Budget du mois</DialogTitle>
                 </DialogHeader>
 
                 <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-                  <section className="rounded-xl border border-slate-800 bg-slate-950/30 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <label className="text-xs text-slate-500">{isSubBudgetMode ? 'Budget total calculé' : 'Budget prévu'}</label>
-                      {isSubBudgetMode && <span className="rounded-full bg-indigo-500/10 px-2 py-1 text-[10px] font-medium text-indigo-300">Somme des sous-budgets</span>}
+                  <section className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4">
+                    <div className="grid gap-3 sm:grid-cols-[96px_1fr] sm:items-end">
+                      <div>
+                        <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-slate-600">Icône</label>
+                        <EmojiPicker value={budgetIconDraft} onChange={setBudgetIconDraft} />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-slate-600">Nom</label>
+                        <input value={budgetNameDraft} onChange={event => setBudgetNameDraft(event.target.value)} className="input input-bordered w-full bg-slate-950/50 text-base font-semibold" disabled={isAdminViewing} />
+                      </div>
                     </div>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={isSubBudgetMode ? String(subBudgetTotal) : (budgetDraft[budgetModalCategory.id] ?? '')}
-                      onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalCategory.id]: event.target.value }))}
-                      className="input input-bordered input-sm mt-1 w-full disabled:cursor-not-allowed disabled:opacity-70"
-                      disabled={isAdminViewing || isSubBudgetMode}
-                    />
-                    {isSubBudgetMode && <p className="mt-1.5 text-[11px] leading-4 text-slate-600">Le budget principal est calculé automatiquement dès qu’un budget est défini sur une sous-catégorie. Remettez les sous-budgets à 0 pour revenir à un budget global.</p>}
-                    <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                      <Metric label="Dépensé" value={formatEuro(spent(budgetModalCategory.id))} />
-                      <Metric label="Reste" value={formatEuro(effectiveParentBudgetDraft - spent(budgetModalCategory.id))} />
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                        <p className="text-[10px] uppercase tracking-wide text-slate-600">Prévu</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={budgetModalSubcategory ? (budgetDraft[budgetModalSubcategory.id] ?? '') : (isSubBudgetMode ? String(subBudgetTotal) : (budgetDraft[budgetModalCategory.id] ?? ''))}
+                            onChange={event => setBudgetDraft(prev => ({ ...prev, [budgetModalEntity?.id || '']: event.target.value }))}
+                            className="input input-bordered input-sm min-w-0 flex-1"
+                            disabled={isAdminViewing || (!budgetModalSubcategory && isSubBudgetMode)}
+                          />
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                        <p className="text-[10px] uppercase tracking-wide text-slate-600">Réel</p>
+                        <p className="mt-2 text-lg font-bold text-slate-100">{formatEuro(selectedBudgetActual)}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                        <p className="text-[10px] uppercase tracking-wide text-slate-600">Restant</p>
+                        <p className={'mt-2 text-lg font-bold ' + (selectedBudgetRemaining < 0 ? 'text-rose-300' : 'text-emerald-300')}>{formatEuro(selectedBudgetRemaining)}</p>
+                      </div>
                     </div>
+
+                    <div className="mt-3">
+                      <div className="mb-1 flex items-center justify-between text-[10px] text-slate-500"><span>Avancement</span><strong>{selectedBudgetPercent}%</strong></div>
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                        <div className={'h-full rounded-full ' + (selectedBudgetPercent > 100 ? 'bg-rose-400' : selectedBudgetPercent >= 80 ? 'bg-amber-400' : 'bg-emerald-400')} style={{ width: Math.min(100, selectedBudgetPercent) + '%' }} />
+                      </div>
+                    </div>
+                    {!budgetModalSubcategory && isSubBudgetMode && <p className="mt-2 text-[10px] text-slate-600">Le budget de la catégorie est calculé automatiquement à partir des sous-catégories.</p>}
                   </section>
 
                   <section>
@@ -883,7 +980,7 @@ export default function DepensesPage() {
                       <div className="space-y-2">
                         {budgetModalSubcats.map((sub: any) => (
                           <div key={sub.id} className={'grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_150px_110px] sm:items-center ' + (budgetModalSubcategoryId === sub.id ? 'border-indigo-400/40 bg-indigo-500/5' : 'border-slate-800 bg-slate-950/25')}>
-                            <button type="button" onClick={() => setBudgetModalSubcategoryId(current => current === sub.id ? null : sub.id)} className="text-left"><p className="text-sm text-slate-200">{sub.icone || '•'} {sub.nom}</p><p className="text-[10px] text-slate-600">{formatEuro(spent(sub.id, true))} dépensés · cliquer pour filtrer</p></button>
+                            <button type="button" onClick={() => selectBudgetSubcategory(sub.id)} className="text-left"><p className="text-sm font-medium text-slate-200">{sub.icone || '•'} {sub.nom}</p><p className="text-[10px] text-slate-600">{formatEuro(budget(sub.id))} prévu · {formatEuro(spent(sub.id, true))} réel · {formatEuro(budget(sub.id) - spent(sub.id, true))} restant</p></button>
                             <input type="number" step="0.01" value={budgetDraft[sub.id] ?? ''} onChange={event => setBudgetDraft(prev => ({ ...prev, [sub.id]: event.target.value }))} className="input input-bordered input-sm w-full" disabled={isAdminViewing} />
                             <p className="text-right text-xs text-slate-500">Reste {formatEuro((Number(budgetDraft[sub.id]) || 0) - spent(sub.id, true))}</p>
                           </div>
@@ -893,7 +990,7 @@ export default function DepensesPage() {
                   </section>
 
                   <section>
-                    <div className="mb-2 flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-slate-200">Dépenses du mois{budgetModalSubcategory ? ' · ' + budgetModalSubcategory.nom : ''}</h3>{budgetModalSubcategory && <Button size="sm" variant="ghost" onClick={() => setBudgetModalSubcategoryId(null)}>Voir toute la catégorie</Button>}</div>
+                    <div className="mb-2 flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-slate-200">Dépenses du mois{budgetModalSubcategory ? ' · ' + budgetModalSubcategory.nom : ''}</h3>{budgetModalSubcategory && <Button size="sm" variant="ghost" onClick={() => selectBudgetSubcategory(null)}>Voir toute la catégorie</Button>}</div>
                     {budgetModalTransactions.length === 0 ? <p className="text-xs text-slate-600">Aucune transaction liée ce mois.</p> : (
                       <div className="divide-y divide-slate-800/70 rounded-xl border border-slate-800/70">
                         {budgetModalTransactions.map((tx: any) => (
@@ -929,8 +1026,8 @@ export default function DepensesPage() {
 
         {!isAdminViewing && moisId && <DepensesFab onFixed={() => setFixedOpen(true)} onVariable={() => setTxOpen(true)} />}
 
-        <ChargeFixeForm open={fixedOpen} onOpenChange={setFixedOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} onSubmit={createFixedExpense} />
-        <ChargeFixeEditDialog editTarget={editFixed} categories={effectiveCategories} doubleDate={espace?.double_date ?? false} onClose={() => setEditFixed(null)} onSave={saveFixed} />
+        <ChargeFixeForm open={fixedOpen} onOpenChange={setFixedOpen} onSubmit={createFixedExpense} />
+        <ChargeFixeEditDialog editTarget={editFixed} doubleDate={espace?.double_date ?? false} onClose={() => setEditFixed(null)} onSave={saveFixed} />
         <ChargeFixeDeleteDialog target={deleteFixed} onClose={() => setDeleteFixed(null)} onDelete={removeFixedExpense} />
         <ChargeFixeScopeDialog target={scopeFixed} onClose={() => setScopeFixed(null)} onSave={saveFixedScope} />
         <DepenseForm open={txOpen} onOpenChange={setTxOpen} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} subcategoriesEnabled={subcategoriesEnabled} splitEnabled={splitEnabled} onSubmit={createTransaction} onSubmitSplit={splitEnabled ? createSplitTransaction : undefined} />
