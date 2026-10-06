@@ -157,33 +157,42 @@ export default function EnveloppeDetailPanel({
             <p className="p-3 text-xs text-slate-600">Aucun mouvement pour cette enveloppe ce mois.</p>
           ) : currentRelevant.map(movement => {
             const signed = signedAmount(movement as HistoryMovement)
+            const recurrent = !!movement.recurrent_id
             return (
-              <div
-                key={movement.id}
-                className={"grid grid-cols-[78px_1fr_auto_auto] items-center gap-2 border-b border-slate-800/50 px-3 py-2 text-[11px] last:border-0 " + (onEditMovement ? "cursor-pointer hover:bg-slate-800/25" : "")}
-                onClick={() => onEditMovement?.(movement)}
-              >
-                <span className="text-slate-600">{formatDate(movement.date)}</span>
-                <div className="min-w-0">
-                  <p className="truncate text-slate-300">{movementLabel(movement as HistoryMovement)}</p>
-                  {movement.note && <p className="truncate text-slate-600">{movement.note}</p>}
-                </div>
-                <span className={signed >= 0 ? 'font-semibold text-emerald-300' : 'font-semibold text-rose-300'}>
-                  {signed >= 0 ? '+' : '−'}{formatEuro(Math.abs(signed))}
-                </span>
-                {onDeleteMovement ? (
+              <div key={movement.id} className="flex items-center border-b border-slate-800/50 last:border-0">
+                <button
+                  type="button"
+                  disabled={!onEditMovement}
+                  onClick={() => onEditMovement?.(movement)}
+                  className={"grid min-w-0 flex-1 grid-cols-[78px_1fr_auto] items-center gap-2 px-3 py-2 text-left text-[11px] transition " + (onEditMovement ? "cursor-pointer hover:bg-slate-800/30" : "cursor-default")}
+                  aria-label={"Modifier le mouvement " + movementLabel(movement as HistoryMovement)}
+                >
+                  <span className="text-slate-600">{formatDate(movement.date)}</span>
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <p className="truncate text-slate-300">{movementLabel(movement as HistoryMovement)}</p>
+                      <span className={recurrent
+                        ? "shrink-0 rounded-full bg-indigo-500/10 px-1.5 py-0.5 text-[8px] font-medium text-indigo-300"
+                        : "shrink-0 rounded-full bg-slate-800 px-1.5 py-0.5 text-[8px] font-medium text-slate-500"}>
+                        {recurrent ? 'Récurrent' : 'Ponctuel'}
+                      </span>
+                    </div>
+                    {movement.note && <p className="truncate text-slate-600">{movement.note}</p>}
+                  </div>
+                  <span className={signed >= 0 ? 'font-semibold text-emerald-300' : 'font-semibold text-rose-300'}>
+                    {signed >= 0 ? '+' : '−'}{formatEuro(Math.abs(signed))}
+                  </span>
+                </button>
+                {onDeleteMovement && (
                   <button
                     type="button"
                     aria-label="Supprimer le mouvement"
-                    className="rounded-md px-1.5 py-1 text-slate-700 transition hover:text-rose-400"
-                    onClick={event => {
-                      event.stopPropagation()
-                      onDeleteMovement(movement)
-                    }}
+                    className="mr-2 rounded-md px-1.5 py-1 text-slate-700 transition hover:bg-slate-800/40 hover:text-rose-400"
+                    onClick={() => onDeleteMovement(movement)}
                   >
                     ×
                   </button>
-                ) : <span />}
+                )}
               </div>
             )
           })}
@@ -208,12 +217,30 @@ export default function EnveloppeDetailPanel({
           </div>
           {latest.length === 0 ? <p className="p-3 text-xs text-slate-600">Aucun mouvement.</p> : latest.map(movement => {
             const signed = signedAmount(movement)
+            const recurrent = !!movement.recurrent_id
             return (
-              <div key={movement.id} className="grid grid-cols-[78px_1fr_auto] items-center gap-2 border-b border-slate-800/50 px-3 py-2 text-[11px] last:border-0">
+              <button
+                key={movement.id}
+                type="button"
+                disabled={!onEditMovement}
+                onClick={() => onEditMovement?.(movement)}
+                className={"grid w-full grid-cols-[78px_1fr_auto] items-center gap-2 border-b border-slate-800/50 px-3 py-2 text-left text-[11px] transition last:border-0 " + (onEditMovement ? "cursor-pointer hover:bg-slate-800/30" : "cursor-default")}
+                aria-label={"Modifier le mouvement " + movementLabel(movement)}
+              >
                 <span className="text-slate-600">{formatDate(movement.date)}</span>
-                <div className="min-w-0"><p className="truncate text-slate-300">{movementLabel(movement)}</p>{movement.note && <p className="truncate text-slate-600">{movement.note}</p>}</div>
+                <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <p className="truncate text-slate-300">{movementLabel(movement)}</p>
+                    <span className={recurrent
+                      ? "shrink-0 rounded-full bg-indigo-500/10 px-1.5 py-0.5 text-[8px] font-medium text-indigo-300"
+                      : "shrink-0 rounded-full bg-slate-800 px-1.5 py-0.5 text-[8px] font-medium text-slate-500"}>
+                      {recurrent ? 'Récurrent' : 'Ponctuel'}
+                    </span>
+                  </div>
+                  {movement.note && <p className="truncate text-slate-600">{movement.note}</p>}
+                </div>
                 <span className={signed >= 0 ? 'font-semibold text-emerald-300' : 'font-semibold text-rose-300'}>{signed >= 0 ? '+' : '−'}{formatEuro(Math.abs(signed))}</span>
-              </div>
+              </button>
             )
           })}
         </div>
