@@ -74,7 +74,7 @@ export default function EspaceSelector() {
           <button
             type="button"
             onClick={() => setSelectorOpen(current => !current)}
-            className="flex h-9 w-[8.5rem] min-w-0 max-w-[8.5rem] items-center gap-2 rounded-xl border border-indigo-400/35 bg-gradient-to-r from-indigo-500/20 to-cyan-500/10 px-3 text-sm font-semibold text-white shadow-sm shadow-indigo-950/20 outline-none transition hover:border-indigo-300/55 hover:from-indigo-500/25 hover:to-cyan-500/15 focus:border-indigo-300/70 focus:ring-2 focus:ring-indigo-500/15 sm:w-[10.5rem] sm:max-w-[10.5rem]"
+            className="flex h-9 w-[7.5rem] min-w-0 max-w-[7.5rem] items-center gap-1.5 rounded-xl border border-indigo-400/35 bg-gradient-to-r from-indigo-500/20 to-cyan-500/10 px-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-950/20 outline-none transition hover:border-indigo-300/55 hover:from-indigo-500/25 hover:to-cyan-500/15 focus:border-indigo-300/70 focus:ring-2 focus:ring-indigo-500/15 sm:w-[10.5rem] sm:max-w-[10.5rem] sm:gap-2 sm:px-3"
             aria-haspopup="listbox"
             aria-expanded={selectorOpen}
             aria-label="Budget actif"
@@ -117,6 +117,18 @@ export default function EspaceSelector() {
                   </button>
                 )
               })}
+              <div className="my-1 border-t border-slate-800/80" />
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectorOpen(false)
+                  setOpen(true)
+                }}
+                className="flex w-full min-w-[9.5rem] items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-indigo-300 transition hover:bg-indigo-500/15 hover:text-indigo-200"
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                <span>Créer un budget</span>
+              </button>
             </div>
           )}
         </div>
@@ -124,7 +136,7 @@ export default function EspaceSelector() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-400/20 bg-indigo-500/5 text-indigo-300 transition hover:border-indigo-400/40 hover:bg-indigo-500/10"
+          className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-400/20 bg-indigo-500/5 text-indigo-300 transition hover:border-indigo-400/40 hover:bg-indigo-500/10 sm:flex"
           aria-label="Créer un Budget"
           title="Créer un Budget"
         >
