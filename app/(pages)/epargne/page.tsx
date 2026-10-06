@@ -12,6 +12,7 @@ import EnveloppeForm from '@/components/pages/epargne/EnveloppeForm'
 import SavingsInitializationDialog from '@/components/pages/epargne/SavingsInitializationDialog'
 import EnveloppeDetailPanel from '@/components/pages/epargne/EnveloppeDetailPanel'
 import SavingsMonthMovementsPanel from '@/components/pages/epargne/SavingsMonthMovementsPanel'
+import PlannedSavingsValidationPanel from '@/components/pages/epargne/PlannedSavingsValidationPanel'
 import MouvementForm from '@/components/pages/epargne/MouvementForm'
 import { EpargneRecurrenceEditDialog, MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
 import DettesPanel from '@/components/pages/epargne/DettesPanel'
@@ -61,7 +62,7 @@ export default function EpargnePage() {
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
-  const { data: plannedSavings = [] } = usePlannedSavings(isAdminViewing ? undefined : moisId)
+  const { data: plannedSavings = [], updateOccurrence, validateOccurrence, ignoreOccurrence, restoreOccurrence } = usePlannedSavings(isAdminViewing ? undefined : moisId)
   const { data: savingsRecurrents = [], create: createRecurrent, update: updateRecurrent, updateFromMonth: updateRecurrentFromMonth } = useEpargneRecurrentes(espace?.id)
   const { data: adminData } = useAdminMoisData(month)
   const savingsHistory = useSavingsHistory(espace?.id)
@@ -102,7 +103,7 @@ export default function EpargnePage() {
   },0)
 
   const plannedFor = (envId:string) => effectivePlannedSavings
-    .filter((item:any) => item.enveloppe_dest_id === envId)
+    .filter((item:any) => item.enveloppe_dest_id === envId && item.statut !== 'ignored')
     .reduce((sum:number,item:any) => sum + Number(item.montant),0)
 
   const [editEnv, setEditEnv] = useState<any|null>(null)
@@ -238,6 +239,22 @@ export default function EpargnePage() {
     setDeleteTarget(null)
   }
 
+  const handleValidatePlannedSavings = async (id:string, date:string, amount:number) => {
+    if (isAdminViewing) return
+    const occurrence:any = effectivePlannedSavings.find((item:any) => item.id === id)
+    if (!occurrence) return
+    if (Math.abs(Number(occurrence.montant) - amount) >= 0.001) {
+      await updateOccurrence.mutateAsync({ id, montant: amount })
+    }
+    await validateOccurrence.mutateAsync({ id, date })
+  }
+
+  const plannedSavingsBusy =
+    updateOccurrence.isPending ||
+    validateOccurrence.isPending ||
+    ignoreOccurrence.isPending ||
+    restoreOccurrence.isPending
+
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
@@ -261,6 +278,17 @@ export default function EpargnePage() {
               onWithdraw={() => openMovement('reprise')}
               onTransfer={() => openMovement('transfert')}
               readOnly={isAdminViewing}
+            />
+
+            <PlannedSavingsValidationPanel
+              occurrences={effectivePlannedSavings as any}
+              envelopes={effectiveEnveloppes.map((env:any) => ({ id:env.id, nom:env.nom }))}
+              month={month}
+              readOnly={isAdminViewing}
+              busy={plannedSavingsBusy}
+              onValidate={handleValidatePlannedSavings}
+              onIgnore={async id => { await ignoreOccurrence.mutateAsync(id) }}
+              onRestore={async id => { await restoreOccurrence.mutateAsync(id) }}
             />
 
             <div className="grid gap-3 xl:grid-cols-[1.35fr_.9fr]">
