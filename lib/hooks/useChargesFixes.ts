@@ -112,6 +112,127 @@ export function useChargesFixes(moisId: string | undefined) {
 }
 
 // Hook pour gérer les charges fixes récurrentes (modèles par espace)
+export function useChargeFixeOccurrences(recurrentId: string | null | undefined, espaceId: string | undefined) {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+  const key = ['charge_fixe_occurrences', recurrentId, espaceId]
+
+  const query = useQuery({
+    queryKey: key,
+    enabled: !!recurrentId && !!espaceId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('charges_fixes')
+        .select('*, mois:mois!inner(id, mois, espace_id)')
+        .eq('recurrent_id', recurrentId!)
+        .eq('mois.espace_id', espaceId!)
+      if (error) throw error
+      return (data || []).sort((a: any, b: any) => String(b.mois?.mois || '').localeCompare(String(a.mois?.mois || '')))
+    },
+  })
+
+  const add = useMutation({
+    mutationFn: async ({ targetMonth, recurring }: { targetMonth: string; recurring: ChargeFixeRecurrente }) => {
+      if (!espaceId) throw new Error('Budget manquant')
+      const normalizedMonth = targetMonth.length === 7 ? targetMonth + '-01' : targetMonth
+      let { data: monthRow, error: monthError } = await supabase
+        .from('mois')
+        .select('id')
+        .eq('espace_id', espaceId)
+        .eq('mois', normalizedMonth)
+        .maybeSingle()
+      if (monthError) throw monthError
+
+      if (!monthRow) {
+        const { data: auth } = await supabase.auth.getUser()
+        if (!auth.user) throw new Error('Utilisateur non connecté')
+        const created = await supabase
+          .from('mois')
+          .insert({ espace_id: espaceId, user_id: auth.user.id, mois: normalizedMonth })
+          .select('id')
+          .single()
+        if (created.error) throw created.error
+        monthRow = created.data
+      }
+
+      const existing = await supabase
+        .from('charges_fixes')
+        .select('id')
+        .eq('mois_id', monthRow.id)
+        .eq('recurrent_id', recurring.id)
+        .maybeSingle()
+      if (existing.error) throw existing.error
+      if (existing.data) return existing.data
+
+      const { data, error } = await supabase
+        .from('charges_fixes')
+        .insert({
+          mois_id: monthRow.id,
+          recurrent_id: recurring.id,
+          nom: recurring.nom,
+          montant: recurring.montant,
+          categorie_id: recurring.categorie_id ?? null,
+          sous_categorie_id: recurring.sous_categorie_id ?? null,
+          payee: false,
+          ordre: recurring.ordre || 0,
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['charges_fixes'] })
+    },
+  })
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('charges_fixes').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['charges_fixes'] })
+    },
+  })
+
+  const updateScope = useMutation({
+    mutationFn: async ({
+      recurrentId,
+      currentMonth,
+      scope,
+      updates,
+    }: {
+      recurrentId: string
+      currentMonth: string
+      scope: 'future' | 'all'
+      updates: Partial<ChargeFixe>
+    }) => {
+      if (!espaceId) throw new Error('Budget manquant')
+      let monthsQuery = supabase.from('mois').select('id').eq('espace_id', espaceId)
+      if (scope === 'future') monthsQuery = monthsQuery.gte('mois', currentMonth.length === 7 ? currentMonth + '-01' : currentMonth)
+      const { data: monthRows, error: monthsError } = await monthsQuery
+      if (monthsError) throw monthsError
+      const ids = (monthRows || []).map(row => row.id)
+      if (ids.length === 0) return
+      const { error } = await supabase
+        .from('charges_fixes')
+        .update(updates)
+        .eq('recurrent_id', recurrentId)
+        .in('mois_id', ids)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['charges_fixes'] })
+    },
+  })
+
+  return { ...query, add, remove, updateScope }
+}
+
 export function useChargesFixesRecurrentes(espaceId: string | undefined) {
   const supabase = createClient()
   const queryClient = useQueryClient()
