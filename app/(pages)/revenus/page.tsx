@@ -73,6 +73,8 @@ export default function RevenusPage() {
           type: revenue.type,
           recurrentId: revenue.recurrent_id,
           datePrevue: revenue.date_prevue,
+          recu: revenue.recu,
+          dateReelle: revenue.date_reelle,
         })
       }
     }
@@ -128,6 +130,8 @@ export default function RevenusPage() {
       montant: data.montant,
       type: data.type,
       date_prevue: data.datePrevue ?? null,
+      recu: !!data.recu,
+      date_reelle: data.dateReelle ?? null,
     }
 
     if (scope === 'future' && data.recurrentId) {
@@ -198,7 +202,7 @@ export default function RevenusPage() {
         </div>
 
         <RevenuForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleCreate} />
-        <RevenuEditDialog editTarget={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} />
+        <RevenuEditDialog editTarget={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} doubleDate={espace?.double_date ?? false} />
         <RevenuDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDelete={handleDelete} />
       </div>
       {!isAdminViewing && <RevenusFab onAdd={() => setFormOpen(true)} />}
