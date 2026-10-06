@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarClock, ChevronDown, Pencil, PiggyBank, Repeat2, Trash2, TrendingUp } from 'lucide-react'
+import { CalendarClock, ChevronDown, Pencil, PiggyBank, Repeat2, Trash2, TrendingUp, X } from 'lucide-react'
 import { useState } from 'react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,10 +24,11 @@ type Props = {
   onEdit?: () => void
   onEditMovement?: (movement: MouvementEpargne) => void
   onDeleteMovement?: (movement: MouvementEpargne) => void
+  onClose?: () => void
 }
 
 export default function EnveloppeDetailPanel({
-  env, movements, currentMonthMovements, currentMonth, plannedMonthly, recurringSavings = [], onUpdateRecurring, onEditRecurring, onSave, onWithdraw, onTransfer, onEdit, onEditMovement, onDeleteMovement,
+  env, movements, currentMonthMovements, currentMonth, plannedMonthly, recurringSavings = [], onUpdateRecurring, onEditRecurring, onSave, onWithdraw, onTransfer, onEdit, onEditMovement, onDeleteMovement, onClose,
 }: Props) {
   const [historyFilter, setHistoryFilter] = useState<'all' | 'in' | 'out'>('all')
   const balance = Number(env.solde || 0)
@@ -105,10 +106,23 @@ export default function EnveloppeDetailPanel({
   return (
     <Card className="nf-card-hover h-full">
       <CardHeader className="pb-2">
-        <button type="button" onClick={onEdit} className={"w-full text-left " + (onEdit ? "cursor-pointer" : "cursor-default")}>
-          <CardTitle className="flex items-center gap-2 text-lg text-slate-100"><PiggyBank className="h-5 w-5 text-emerald-300" />{env.nom}</CardTitle>
-          {onEdit && <p className="mt-1 text-[10px] text-slate-600">Cliquer pour modifier l’enveloppe</p>}
-        </button>
+        <div className="flex items-start gap-2">
+          <button type="button" onClick={onEdit} className={"min-w-0 flex-1 text-left " + (onEdit ? "cursor-pointer" : "cursor-default")}>
+            <CardTitle className="flex items-center gap-2 text-lg text-slate-100"><PiggyBank className="h-5 w-5 text-emerald-300" />{env.nom}</CardTitle>
+            {onEdit && <p className="mt-1 text-[10px] text-slate-600">Cliquer pour modifier l’enveloppe</p>}
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-800/60 hover:text-slate-200"
+              aria-label="Fermer le détail de l’enveloppe"
+              title="Revenir aux mouvements du mois"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3 p-3 pt-1">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
