@@ -69,9 +69,9 @@ export default function EpargneResume({
 
         {!readOnly && (
           <div className="mt-3 grid grid-cols-3 gap-2">
-            <button type="button" onClick={onSave} className="btn btn-primary btn-sm"><ArrowDownToLine className="h-4 w-4" />Épargner</button>
-            <button type="button" onClick={onWithdraw} className="btn btn-primary btn-sm"><ArrowUpFromLine className="h-4 w-4" />Reprendre</button>
-            <button type="button" onClick={onTransfer} className="btn btn-primary btn-sm"><ArrowLeftRight className="h-4 w-4" />Transférer</button>
+            <button type="button" onClick={onSave} className="btn btn-primary btn-sm min-w-0 flex-col gap-1 px-1 py-2 text-[11px] leading-tight sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"><ArrowDownToLine className="h-4 w-4 shrink-0" /><span className="min-w-0">Épargner</span></button>
+            <button type="button" onClick={onWithdraw} className="btn btn-primary btn-sm min-w-0 flex-col gap-1 px-1 py-2 text-[11px] leading-tight sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"><ArrowUpFromLine className="h-4 w-4 shrink-0" /><span className="min-w-0">Reprendre</span></button>
+            <button type="button" onClick={onTransfer} className="btn btn-primary btn-sm min-w-0 flex-col gap-1 px-1 py-2 text-[11px] leading-tight sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"><ArrowLeftRight className="h-4 w-4 shrink-0" /><span className="min-w-0">Transférer</span></button>
           </div>
         )}
       </CardContent>
