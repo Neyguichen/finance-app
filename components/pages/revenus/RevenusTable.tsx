@@ -39,7 +39,7 @@ type Props = {
   getEnvNom: (id: string | null | undefined) => string
   onAdd: () => void
   onToggleRecu: (id: string, recu: boolean, dateReelle?: string | null) => void
-  onEdit: (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null }) => void
+  onEdit: (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null; recu: boolean; dateReelle?: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
 }
 
@@ -102,7 +102,7 @@ export default function RevenusTable({
         {filteredRevenus.map(rev => {
           const receivedAmount = rev.recu ? Number(rev.montant) : 0
           return (
-            <div key={rev.id} role="button" tabIndex={0} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue })} onKeyDown={event => { if (!readOnly && (event.key === 'Enter' || event.key === ' ')) onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue }) }} className="grid cursor-pointer grid-cols-[1.5fr_.62fr_.9fr_.8fr_.82fr_.82fr_.72fr_42px_48px] items-center gap-3 border-b border-slate-800/65 px-4 py-3 transition last:border-b-0 hover:bg-slate-800/30">
+            <div key={rev.id} role="button" tabIndex={0} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })} onKeyDown={event => { if (!readOnly && (event.key === 'Enter' || event.key === ' ')) onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle }) }} className="grid cursor-pointer grid-cols-[1.5fr_.62fr_.9fr_.8fr_.82fr_.82fr_.72fr_42px_48px] items-center gap-3 border-b border-slate-800/65 px-4 py-3 transition last:border-b-0 hover:bg-slate-800/30">
               <div className="flex min-w-0 items-center gap-2">
                 <span className={'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>
                   {rev.type === 'actif' ? <TrendingUp className="h-4 w-4" /> : <WalletCards className="h-4 w-4" />}
@@ -150,7 +150,7 @@ export default function RevenusTable({
             </div>
           }
           const rev = item.rev
-          return <div key={'mobile-rev-'+rev.id} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/55 p-3 transition active:bg-slate-800/50">
+          return <div key={'mobile-rev-'+rev.id} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/55 p-3 transition active:bg-slate-800/50">
             <div className="flex items-start gap-3">
               <span className={'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? <TrendingUp className="h-4 w-4" /> : <WalletCards className="h-4 w-4" />}</span>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{rev.nom}</p><p className="mt-1 text-[10px] text-slate-500"><span className={rev.type === 'actif' ? 'text-emerald-300' : 'text-indigo-300'}>{rev.type === 'actif' ? 'Actif' : 'Passif'}</span> · {recurrenceLabel(rev.recurrent_id, recurrents)}</p>{rev.date_prevue && <p className="mt-1 flex items-center gap-1 text-[10px] text-slate-600"><CalendarDays className="h-3 w-3" />{formatDate(rev.date_prevue)}</p>}</div>
