@@ -1,4 +1,4 @@
-export type RecurringTemplate = { actif: boolean; frequence_mois: number; mois_debut: string | null; created_at: string }
+export type RecurringTemplate = { actif: boolean; frequence_mois: number; mois_debut: string | null; created_at: string; suspended_from?: string | null; suspended_until?: string | null }
 
 const monthIndex = (month: string) => {
   const [year, value] = month.slice(0, 7).split('-').map(Number)
@@ -9,6 +9,10 @@ export function isHabitDue(template: RecurringTemplate, targetMonth: string) {
   if (!template.actif) return false
   const start = template.mois_debut?.slice(0, 7) || template.created_at?.slice(0, 7)
   if (!start) return false
+  const target = targetMonth.slice(0, 7)
+  const suspendedFrom = template.suspended_from?.slice(0, 7)
+  const suspendedUntil = template.suspended_until?.slice(0, 7)
+  if (suspendedFrom && target >= suspendedFrom && (!suspendedUntil || target <= suspendedUntil)) return false
   const distance = monthIndex(targetMonth) - monthIndex(start)
   return distance >= 0 && distance % Math.max(1, template.frequence_mois || 1) === 0
 }
