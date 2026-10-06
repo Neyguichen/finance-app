@@ -11,6 +11,7 @@ import EnveloppeEditDialog from '@/components/pages/epargne/EnveloppeEditDialog'
 import EnveloppeForm from '@/components/pages/epargne/EnveloppeForm'
 import SavingsInitializationDialog from '@/components/pages/epargne/SavingsInitializationDialog'
 import EnveloppeDetailPanel from '@/components/pages/epargne/EnveloppeDetailPanel'
+import SavingsMonthMovementsPanel from '@/components/pages/epargne/SavingsMonthMovementsPanel'
 import MouvementForm from '@/components/pages/epargne/MouvementForm'
 import { EpargneRecurrenceEditDialog, MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
 import DettesPanel from '@/components/pages/epargne/DettesPanel'
@@ -79,12 +80,8 @@ export default function EpargnePage() {
   }, [activeEnvelopes, sortMode])
 
   useEffect(() => {
-    if (!sortedEnvelopes.length) {
+    if (selectedEnvelopeId && !sortedEnvelopes.some((env:any) => env.id === selectedEnvelopeId)) {
       setSelectedEnvelopeId(null)
-      return
-    }
-    if (!selectedEnvelopeId || !sortedEnvelopes.some((env:any) => env.id === selectedEnvelopeId)) {
-      setSelectedEnvelopeId(sortedEnvelopes[0].id)
     }
   }, [sortedEnvelopes, selectedEnvelopeId])
 
@@ -311,7 +308,7 @@ export default function EpargnePage() {
                 )}
               </div>
 
-              {selectedEnvelope && (
+              {selectedEnvelope ? (
                 <EnveloppeDetailPanel
                   env={selectedEnvelope}
                   movements={(savingsHistory.data?.movements || []) as any}
@@ -325,6 +322,25 @@ export default function EpargnePage() {
                   onWithdraw={() => openMovement('reprise', selectedEnvelope.id)}
                   onTransfer={() => openMovement('transfert')}
                   onEdit={!isAdminViewing ? () => setEditEnv(selectedEnvelope) : undefined}
+                  onEditMovement={!isAdminViewing ? (movement:any) => setEditMvt({
+                    id: movement.id,
+                    montant: Number(movement.montant),
+                    note: movement.note || null,
+                    recurrentId: movement.recurrent_id || null,
+                    date: String(movement.date).slice(0,10),
+                  }) : undefined}
+                  onDeleteMovement={!isAdminViewing ? (movement:any) => setDeleteTarget({
+                    id: movement.id,
+                    recurrentId: movement.recurrent_id || null,
+                    note: movement.note || null,
+                  }) : undefined}
+                  onClose={() => setSelectedEnvelopeId(null)}
+                />
+              ) : (
+                <SavingsMonthMovementsPanel
+                  movements={effectiveMouvements as any}
+                  envelopes={effectiveEnveloppes as any}
+                  readOnly={isAdminViewing}
                   onEditMovement={!isAdminViewing ? (movement:any) => setEditMvt({
                     id: movement.id,
                     montant: Number(movement.montant),
