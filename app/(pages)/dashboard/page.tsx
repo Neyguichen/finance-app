@@ -10,7 +10,6 @@ import BudgetsV2 from '@/components/pages/dashboard/BudgetsV2'
 import EpargneDettesV2 from '@/components/pages/dashboard/EpargneDettesV2'
 import ASurveillerV2 from '@/components/pages/dashboard/ASurveillerV2'
 import TendancesFinancieresV2 from '@/components/pages/dashboard/TendancesFinancieresV2'
-import TodoResumeV2 from '@/components/pages/dashboard/TodoResumeV2'
 import DashboardQuickAdd from '@/components/pages/dashboard/DashboardQuickAdd'
 import { localDateISO } from '@/lib/utils'
 import { useDashboardInsights } from '@/lib/hooks/useDashboardInsights'
@@ -54,10 +53,7 @@ export default function DashboardPage() {
         <EpargneDettesV2 savingsAvailable={v2.savingsDebtSummary.savingsAvailable} plannedSavings={v2.plannedSavingsDeposits} actualSavings={v2.actualSavingsDeposits} savingsWithdrawals={v2.savingsWithdrawals} debtRemaining={v2.savingsDebtSummary.debtRemaining} receivableRemaining={v2.savingsDebtSummary.receivableRemaining} debtRepaymentsIn={v2Summary.data?.debtRepaymentsIn || 0} debtRepaymentsOut={v2Summary.data?.debtRepaymentsOut || 0} loading={v2.savingsDebtLoading} />
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[1.2fr_.8fr]">
-        <ASurveillerV2 budgetProgress={v2.budgetProgress} expectedIncome={v2.expectedIncome} plannedSavings={v2.plannedSavingsDeposits} actualSavings={v2.actualSavingsDeposits} today={today} selectedMonth={month} />
-        <TodoResumeV2 />
-      </div>
+      <ASurveillerV2 budgetProgress={v2.budgetProgress} expectedIncome={v2.expectedIncome} plannedSavings={v2.plannedSavingsDeposits} actualSavings={v2.actualSavingsDeposits} today={today} selectedMonth={month} />
 
       <TendancesFinancieresV2 espaceId={espace?.id} plannedIncome={v2.plannedIncome} plannedFixed={v2.plannedFixed} plannedVariable={v2.plannedVariable} actualVariable={v2.actualVariable} topCategory={insights.topCategory} />
     </div>
