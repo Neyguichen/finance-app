@@ -202,6 +202,100 @@ export function useRevenus(moisId: string | undefined) {
 }
 
 // Hook pour gérer les revenus récurrents (modèles par espace)
+export function useRevenuOccurrences(recurrentId: string | null | undefined, espaceId: string | undefined) {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+  const key = ['revenu_occurrences', recurrentId, espaceId]
+
+  const query = useQuery({
+    queryKey: key,
+    enabled: !!recurrentId && !!espaceId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('revenus')
+        .select('*, mois:mois!inner(id, mois, espace_id)')
+        .eq('recurrent_id', recurrentId!)
+        .eq('mois.espace_id', espaceId!)
+      if (error) throw error
+      return (data || []).sort((a: any, b: any) => String(b.mois?.mois || '').localeCompare(String(a.mois?.mois || '')))
+    },
+  })
+
+  const add = useMutation({
+    mutationFn: async ({ targetMonth, recurring }: { targetMonth: string; recurring: RevenuRecurrent }) => {
+      if (!espaceId) throw new Error('Budget manquant')
+      const normalizedMonth = targetMonth.length === 7 ? targetMonth + '-01' : targetMonth
+
+      let { data: monthRow, error: monthError } = await supabase
+        .from('mois')
+        .select('id')
+        .eq('espace_id', espaceId)
+        .eq('mois', normalizedMonth)
+        .maybeSingle()
+      if (monthError) throw monthError
+
+      if (!monthRow) {
+        const { data: auth } = await supabase.auth.getUser()
+        if (!auth.user) throw new Error('Utilisateur non connecté')
+        const created = await supabase
+          .from('mois')
+          .insert({ espace_id: espaceId, user_id: auth.user.id, mois: normalizedMonth })
+          .select('id')
+          .single()
+        if (created.error) throw created.error
+        monthRow = created.data
+      }
+
+      const existing = await supabase
+        .from('revenus')
+        .select('id')
+        .eq('mois_id', monthRow.id)
+        .eq('recurrent_id', recurring.id)
+        .maybeSingle()
+      if (existing.error) throw existing.error
+      if (existing.data) return existing.data
+
+      const { data, error } = await supabase
+        .from('revenus')
+        .insert({
+          mois_id: monthRow.id,
+          recurrent_id: recurring.id,
+          type: recurring.type,
+          nom: recurring.nom,
+          montant: recurring.montant,
+          recu: false,
+          date_prevue: null,
+          date_reelle: null,
+          ordre: recurring.ordre || 0,
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['revenus'] })
+      queryClient.invalidateQueries({ queryKey: ['income_history'] })
+    },
+  })
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('revenus').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['revenus'] })
+      queryClient.invalidateQueries({ queryKey: ['income_history'] })
+    },
+  })
+
+  return { ...query, add, remove }
+}
+
+// Hook pour gérer les revenus récurrents (modèles par espace)
 export function useRevenusRecurrents(espaceId: string | undefined) {
   const supabase = createClient()
   const queryClient = useQueryClient()
