@@ -613,10 +613,10 @@ export default function DepensesPage() {
           )}
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-[1.1fr_.9fr]">
-          <Card className="self-start border-slate-800 bg-slate-900">
+        <div className="grid items-stretch gap-3 xl:grid-cols-2">
+          <Card className="h-full border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel</CardTitle></CardHeader>
-            <CardContent className="space-y-3 p-3 pt-0">
+            <CardContent className="flex h-full flex-col justify-between gap-3 p-3 pt-0">
               <div className="grid gap-2 sm:grid-cols-3">
                 <SummaryCard icon={ChartPie} label="Prévu ce mois" value={plannedTotal} tone="blue" />
                 <SummaryCard icon={WalletCards} label="Réel" value={actualTotal} detail={plannedTotal > 0 ? actualPercent + ' % du prévu' : 'Aucun prévu'} tone="emerald" />
@@ -633,7 +633,7 @@ export default function DepensesPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-800 bg-slate-900">
+          <Card className="h-full border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel par type</CardTitle></CardHeader>
             <CardContent className="space-y-4 p-3 pt-0">
               <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
