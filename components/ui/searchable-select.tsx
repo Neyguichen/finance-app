@@ -18,6 +18,7 @@ export function SearchableSelect({
   placeholder = 'Sélectionner…',
   emptyLabel = 'Aucun résultat',
   className,
+  disabled = false,
 }: {
   value: string
   options: SearchableSelectOption[]
@@ -25,6 +26,7 @@ export function SearchableSelect({
   placeholder?: string
   emptyLabel?: string
   className?: string
+  disabled?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -51,8 +53,9 @@ export function SearchableSelect({
     <div ref={rootRef} className={cn('relative', className)}>
       <button
         type="button"
-        onClick={() => setOpen(current => !current)}
-        className="flex h-11 w-full items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-950/70 px-3 text-left text-sm text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-500"
+        onClick={() => { if (!disabled) setOpen(current => !current) }}
+        disabled={disabled}
+        className="flex h-11 w-full items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-950/70 px-3 text-left text-sm text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
         aria-expanded={open}
       >
         {selected?.icon && <span className="shrink-0">{selected.icon}</span>}
@@ -62,7 +65,7 @@ export function SearchableSelect({
         <ChevronDown className={cn('h-4 w-4 shrink-0 text-slate-600 transition', open && 'rotate-180')} />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-[80] overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1627] shadow-2xl shadow-black/40">
           <div className="border-b border-slate-800 p-2">
             <label className="relative block">
