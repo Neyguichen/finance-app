@@ -94,11 +94,11 @@ export default function RevenusTable({
         </div>
 
         {!readOnly && (
-          <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <Button variant="outline" onClick={onManageRecurring} className="h-10 gap-2">
               <Repeat2 className="h-4 w-4" />Revenus récurrents
             </Button>
-            <Button onClick={onAdd} className="h-10 gap-2">
+            <Button onClick={onAdd} className="hidden h-10 gap-2 md:inline-flex">
               <Plus className="h-4 w-4" />Ajouter un revenu
             </Button>
           </div>
