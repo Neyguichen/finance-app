@@ -16,6 +16,7 @@ type Props = {
     nom: string
     montant: number
     frequence: number
+    jourPrevu: number
   }) => Promise<void>
 }
 
@@ -26,6 +27,7 @@ export default function ChargeFixeForm({
 }: Props) {
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('monthly')
   const [customFrequency, setCustomFrequency] = useState(2)
+  const [jourPrevu, setJourPrevu] = useState<number | null>(null)
   const { register, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: { nom: '', montant: 0 },
   })
@@ -38,6 +40,7 @@ export default function ChargeFixeForm({
     reset()
     setRecurrenceMode('monthly')
     setCustomFrequency(2)
+    setJourPrevu(null)
   }
 
   const doSubmit = async (values: { nom: string; montant: number }) => {
@@ -45,6 +48,7 @@ export default function ChargeFixeForm({
       nom: values.nom,
       montant: values.montant,
       frequence: frequency,
+      jourPrevu: Math.min(31, Math.max(1, Number(jourPrevu || 1))),
     })
     resetAll()
   }
@@ -84,6 +88,10 @@ export default function ChargeFixeForm({
                 </button>
               ))}
             </div>
+
+            <label className="block text-xs text-slate-500">Jour prévu <span className="text-slate-600">(facultatif)</span>
+              <Input className="mt-1" type="number" min={1} max={31} placeholder="1 par défaut" value={jourPrevu ?? ''} onChange={event => setJourPrevu(event.target.value ? Number(event.target.value) : null)} />
+            </label>
 
             {recurrenceMode === 'custom' && (
               <label className="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/30 p-2.5">
