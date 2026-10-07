@@ -25,7 +25,7 @@ import {
   TrendingUp,
   WalletCards,
 } from 'lucide-react'
-import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
+import { formatDate, formatEuro, localDateISO, plannedDateForMonth } from '@/lib/utils'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useTransactions } from '@/lib/hooks/useTransactions'
@@ -451,7 +451,7 @@ export default function DepensesPage() {
     await split.mutateAsync({ parentId: parent.id, lines })
   }
 
-  const createFixedExpense = async (value: { nom: string; montant: number; frequence: number }) => {
+  const createFixedExpense = async (value: { nom: string; montant: number; frequence: number; jourPrevu: number }) => {
     if (!moisId || !espace || isAdminViewing) return
     let recurrent_id: string | null = null
     if (value.frequence > 0) {
@@ -463,6 +463,7 @@ export default function DepensesPage() {
         sous_categorie_id: null,
         actif: true,
         frequence_mois: value.frequence,
+        jour_prevu: value.jourPrevu || 1,
         ordre: charges.length,
         mois_debut: month,
       })
@@ -476,6 +477,7 @@ export default function DepensesPage() {
       categorie_id: null,
       sous_categorie_id: null,
       payee: false,
+      date_prevue: plannedDateForMonth(month, value.jourPrevu),
       ordre: charges.length,
     })
     setFixedOpen(false)
