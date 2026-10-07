@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CalendarDays, CheckCircle2, Plus, RotateCcw, Trash2, TrendingUp, WalletCards } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Plus, Repeat2, RotateCcw, Trash2, TrendingUp, WalletCards } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
@@ -38,6 +38,7 @@ type Props = {
   doubleDate?: boolean
   getEnvNom: (id: string | null | undefined) => string
   onAdd: () => void
+  onManageRecurring: () => void
   onToggleRecu: (id: string, recu: boolean, dateReelle?: string | null) => void
   onEdit: (rev: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null; recu: boolean; dateReelle?: string | null }) => void
   onDelete: (target: { id: string; recurrentId: string | null; nom: string }) => void
@@ -60,6 +61,7 @@ export default function RevenusTable({
   doubleDate = false,
   getEnvNom,
   onAdd,
+  onManageRecurring,
   onToggleRecu,
   onEdit,
   onDelete,
@@ -91,7 +93,16 @@ export default function RevenusTable({
           ))}
         </div>
 
-        {!readOnly && <Button onClick={onAdd} className="ml-auto hidden h-10 shrink-0 gap-2 md:inline-flex"><Plus className="h-4 w-4" />Ajouter un revenu</Button>}
+        {!readOnly && (
+          <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex">
+            <Button variant="outline" onClick={onManageRecurring} className="h-10 gap-2">
+              <Repeat2 className="h-4 w-4" />Revenus récurrents
+            </Button>
+            <Button onClick={onAdd} className="h-10 gap-2">
+              <Plus className="h-4 w-4" />Ajouter un revenu
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="hidden overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/55 md:block">
