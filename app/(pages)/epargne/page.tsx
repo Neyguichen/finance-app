@@ -174,7 +174,7 @@ export default function EpargnePage() {
     setEditEnv(null)
   }
 
-  const handleCreateMvt = async (data:{ type:MovementType; montant:number; note:string|null; sourceId:string|null; destId:string|null; frequence:number; date:string }) => {
+  const handleCreateMvt = async (data:{ type:MovementType; montant:number; note:string|null; sourceId:string|null; destId:string|null; frequence:number; jourPrevu:number; date:string }) => {
     if (isAdminViewing || !moisId || !espace || data.montant <= 0) return
     if (data.type === 'reprise' && !data.sourceId) return
     if (data.type === 'epargne' && !data.destId) return
@@ -188,7 +188,7 @@ export default function EpargnePage() {
     } else {
       const rec = await createRecurrent.mutateAsync({
         espace_id:espace.id, enveloppe_dest_id:data.destId!, montant:data.montant, actif:true,
-        frequence_mois:data.frequence, note:data.note, ordre:0, mois_debut:month,
+        frequence_mois:data.frequence, jour_prevu:data.jourPrevu || 1, note:data.note, ordre:0, mois_debut:month,
       })
       await createMvt.mutateAsync({
         mois_id:moisId, recurrent_id:rec.id, enveloppe_source_id:null, enveloppe_dest_id:data.destId,
@@ -218,7 +218,7 @@ export default function EpargnePage() {
     setScopeMvt(null)
   }
 
-  const handleRecurringSave = async (data:{ id:string; montant:number; frequence_mois:number; note:string|null }) => {
+  const handleRecurringSave = async (data:{ id:string; montant:number; frequence_mois:number; jour_prevu:number; note:string|null }) => {
     if (isAdminViewing) return
     await updateRecurrentFromMonth.mutateAsync({
       id: data.id,
@@ -226,6 +226,7 @@ export default function EpargnePage() {
       updates: {
         montant: data.montant,
         frequence_mois: data.frequence_mois,
+        jour_prevu: data.jour_prevu || 1,
         note: data.note,
       },
     })
