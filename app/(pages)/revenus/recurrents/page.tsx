@@ -188,7 +188,7 @@ export default function RevenusRecurrentsPage() {
                 </span>
               </div>
 
-              <div className="grid gap-3 rounded-xl border border-slate-800 p-3 sm:grid-cols-2">
+              <div key={selected.id} className="grid gap-3 rounded-xl border border-slate-800 p-3 sm:grid-cols-2">
                 <label className="text-[10px] text-slate-500">Nom
                   <input
                     defaultValue={selected.nom}
