@@ -69,6 +69,7 @@ export default function RevenusTable({
 }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const today = localDateISO()
+  const desktopGrid = 'grid-cols-[minmax(180px,1.5fr)_110px_140px_125px_120px_120px_56px_40px]'
 
   const counts = {
     all: revenus.length + reprises.length,
@@ -107,14 +108,14 @@ export default function RevenusTable({
       </div>
 
       <div className="hidden overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/55 md:block">
-        <div className="grid grid-cols-[1.5fr_.62fr_.9fr_.8fr_.82fr_.82fr_42px_48px] gap-3 border-b border-slate-800 bg-slate-950/25 px-4 py-2.5 text-[11px] text-slate-500">
+        <div className={`grid ${desktopGrid} gap-3 border-b border-slate-800 bg-slate-950/25 px-4 py-2.5 text-[11px] text-slate-500`}>
           <span>Nom</span><span>Type</span><span>Récurrence</span><span>Date prévue</span><span className="text-right">Montant prévu</span><span className="text-right">Montant reçu</span><span className="text-center">Reçu</span><span></span>
         </div>
 
         {filteredRevenus.map(rev => {
           const receivedAmount = rev.recu ? Number(rev.montant_reel ?? rev.montant) : null
           return (
-            <div key={rev.id} role="button" tabIndex={0} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })} onKeyDown={event => { if (!readOnly && (event.key === 'Enter' || event.key === ' ')) onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle }) }} className="grid cursor-pointer grid-cols-[1.5fr_.62fr_.9fr_.8fr_.82fr_.82fr_.72fr_42px_48px] items-center gap-3 border-b border-slate-800/65 px-4 py-3 transition last:border-b-0 hover:bg-slate-800/30">
+            <div key={rev.id} role="button" tabIndex={0} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })} onKeyDown={event => { if (!readOnly && (event.key === 'Enter' || event.key === ' ')) onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle }) }} className={`grid ${desktopGrid} cursor-pointer items-center gap-3 border-b border-slate-800/65 px-4 py-3 transition last:border-b-0 hover:bg-slate-800/30`}>
               <div className="flex min-w-0 items-center gap-2">
                 <span className={'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>
                   {rev.type === 'actif' ? <TrendingUp className="h-4 w-4" /> : <WalletCards className="h-4 w-4" />}
@@ -126,7 +127,7 @@ export default function RevenusTable({
               <span className="text-xs text-slate-400">{rev.date_prevue ? formatDate(rev.date_prevue) : '—'}</span>
               <span className="text-right text-sm text-slate-200">{formatEuro(Number(rev.montant))}</span>
               <span className="text-right text-sm text-slate-200">{receivedAmount == null ? '—' : formatEuro(receivedAmount)}</span>
-              <Checkbox checked={rev.recu} onCheckedChange={checked => { if (!readOnly) onToggleRecu(rev.id, !!checked, checked ? (doubleDate ? null : today) : undefined) }} />
+              <div className="flex justify-center" onClick={event => event.stopPropagation()}><Checkbox checked={rev.recu} onCheckedChange={checked => { if (!readOnly) onToggleRecu(rev.id, !!checked, checked ? (doubleDate ? null : today) : undefined) }} /></div>
               {!readOnly ? <div className="flex items-center justify-end">
                 <button type="button" onClick={event => { event.stopPropagation(); onDelete({ id:rev.id, recurrentId:rev.recurrent_id || null, nom:rev.nom }) }} className="rounded-lg p-1.5 text-slate-700 hover:bg-slate-800 hover:text-rose-400" aria-label="Supprimer"><Trash2 className="h-3.5 w-3.5" /></button>
               </div> : <span />}
@@ -136,14 +137,14 @@ export default function RevenusTable({
 
         {filteredReprises.map(rep => {
           const label = rep.note || getEnvNom(rep.enveloppe_source_id) || 'Reprise d’épargne'
-          return <div key={'rep-'+rep.id} className="grid grid-cols-[1.5fr_.62fr_.9fr_.8fr_.82fr_.82fr_42px_72px] items-center gap-3 border-b border-slate-800/65 px-4 py-3 last:border-b-0">
+          return <div key={'rep-'+rep.id} className={`grid ${desktopGrid} items-center gap-3 border-b border-slate-800/65 px-4 py-3 last:border-b-0`}>
             <div className="flex min-w-0 items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-300"><RotateCcw className="h-4 w-4" /></span><span className="truncate text-sm font-medium text-slate-200">{label}</span></div>
             <span className="w-fit rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-medium text-cyan-300">Reprise</span>
             <span className="text-xs text-slate-500">Juste cette fois</span>
             <span className="text-xs text-slate-400">{rep.date ? formatDate(rep.date) : '—'}</span>
             <span className="text-right text-sm text-slate-200">{formatEuro(Number(rep.montant))}</span>
             <span className="text-right text-sm text-cyan-300">{formatEuro(Number(rep.montant))}</span>
-            <CheckCircle2 className="h-4 w-4 text-cyan-300" /><span />
+            <div className="flex justify-center"><CheckCircle2 className="h-4 w-4 text-cyan-300" /></div><span />
           </div>
         })}
 
