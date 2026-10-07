@@ -868,7 +868,10 @@ export default function DepensesPage() {
 
         <Dialog open={managementView === 'fixed'} onOpenChange={open => { if (!open) { setManagementView(null); setSelectedFixedRecurringId(null) } }}>
           <DialogContent className="max-w-4xl border-slate-700 bg-slate-900">
-            <DialogHeader><DialogTitle>Gestion des charges fixes</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Charges fixes récurrentes</DialogTitle>
+              <p className="text-xs text-slate-500">Gère les modèles récurrents et leurs occurrences.</p>
+            </DialogHeader>
             <div className="grid max-h-[72vh] gap-4 overflow-y-auto pr-1 md:grid-cols-[1fr_1.05fr]">
               <section>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -888,12 +891,13 @@ export default function DepensesPage() {
                     </Button>
                   </div>
                 </div>
-                <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800">
+                <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/25">
                   {(showArchivedFixed ? archivedFixedRecurrents : activeFixedRecurrents).length === 0 ? (
                     <p className="p-4 text-sm text-slate-500">Aucune charge dans cette liste.</p>
                   ) : (showArchivedFixed ? archivedFixedRecurrents : activeFixedRecurrents).map((recurring: any) => {
                     return (
                       <button key={recurring.id} type="button" onClick={() => setSelectedFixedRecurringId(recurring.id)} className={'flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-slate-800/40 ' + (selectedFixedRecurringId === recurring.id ? 'bg-slate-800/50' : '')}>
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-300"><CalendarClock className="h-4 w-4" /></span>
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{recurring.nom}</p><p className="text-[10px] text-slate-500">{fixedFrequencyLabel(recurring)}</p></div>
                         <strong className="text-sm text-purple-300">{formatEuro(Number(recurring.montant))}</strong>
                       </button>
@@ -910,11 +914,11 @@ export default function DepensesPage() {
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-3">
                       <div><h3 className="font-semibold text-slate-100">{selectedFixedRecurring.nom}</h3><p className="mt-1 text-xs text-slate-500">{fixedFrequencyLabel(selectedFixedRecurring)} · depuis {selectedFixedRecurring.mois_debut ? formatDate(selectedFixedRecurring.mois_debut) : 'date non renseignée'}</p></div>
-                      <strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong>
+                      <div className="flex items-center gap-2"><span className={'rounded-full px-2 py-0.5 text-[9px] font-medium ' + (selectedFixedRecurring.actif === false ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500/10 text-emerald-300')}>{selectedFixedRecurring.actif === false ? 'Archivée' : 'Active'}</span><strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong></div>
                     </div>
                     <div className="rounded-xl border border-slate-800 p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] uppercase tracking-wide text-slate-600">Ajouter une occurrence</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Ajouter une occurrence</p>
                         <CalendarDays className="h-4 w-4 text-slate-600" />
                       </div>
                       <div className="mt-2 flex flex-col gap-2 sm:flex-row">
@@ -938,7 +942,7 @@ export default function DepensesPage() {
                     </div>
 
                     <div className="rounded-xl border border-slate-800 p-3">
-                      <div className="mb-2 flex items-center justify-between gap-2"><p className="text-[10px] uppercase tracking-wide text-slate-600">Historique des occurrences</p><span className="text-[10px] text-slate-600">{selectedOccurrences.length}</span></div>
+                      <div className="mb-2 flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Historique des occurrences</p><span className="text-[10px] text-slate-600">{selectedOccurrences.length}</span></div>
                       {selectedOccurrences.length === 0 ? <p className="text-xs text-slate-500">Aucune occurrence enregistrée.</p> : (
                         <div className="max-h-64 divide-y divide-slate-800/70 overflow-y-auto">
                           {selectedOccurrences.map((occurrence: any) => (
