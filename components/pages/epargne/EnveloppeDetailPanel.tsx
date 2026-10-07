@@ -172,7 +172,14 @@ export default function EnveloppeDetailPanel({
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-300"><PiggyBank className="h-4 w-4" /></span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-200">{formatEuro(Number(rec.montant))}</p>
-                      <p className="mt-0.5 text-[10px] text-slate-500">{frequencyLabel} · depuis {String(rec.mois_debut || rec.created_at || '').slice(0,7) || '—'}</p>
+                      <p className="mt-0.5 text-[10px] text-slate-500">{frequencyLabel} · depuis {(() => {
+                        const firstOccurrence = relevant
+                          .filter(movement => movement.recurrent_id === rec.id)
+                          .map(movement => String(movement.date || movement.month || '').slice(0,7))
+                          .filter(Boolean)
+                          .sort()[0]
+                        return firstOccurrence || String(rec.mois_debut || rec.created_at || '').slice(0,7) || '—'
+                      })()}</p>
                       {rec.note && <p className="mt-1 truncate text-[10px] text-slate-600">{rec.note}</p>}
                     </div>
                     <span className={"rounded-full px-2 py-0.5 text-[9px] font-medium " + (rec.actif === false ? "bg-slate-800 text-slate-500" : "bg-emerald-500/10 text-emerald-300")}>{rec.actif === false ? 'Suspendue' : 'Active'}</span>
