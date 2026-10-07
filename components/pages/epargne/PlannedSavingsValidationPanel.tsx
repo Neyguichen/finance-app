@@ -19,7 +19,8 @@ type Props = {
 
 type Draft = { amount: string; date: string }
 
-function defaultDate(month: string) {
+function defaultDate(month: string, plannedDate?: string | null) {
+  if (plannedDate) return String(plannedDate).slice(0, 10)
   const today = localDateISO()
   return today.slice(0, 7) === month.slice(0, 7) ? today : month.slice(0, 7) + '-01'
 }
@@ -46,7 +47,7 @@ export default function PlannedSavingsValidationPanel({
         if (!next[item.id]) {
           next[item.id] = {
             amount: String(Number(item.montant)),
-            date: defaultDate(month),
+            date: defaultDate(month, item.date_prevue),
           }
         }
       }
@@ -64,7 +65,7 @@ export default function PlannedSavingsValidationPanel({
   const setDraft = (id: string, patch: Partial<Draft>) => {
     setDrafts(current => ({
       ...current,
-      [id]: { ...(current[id] || { amount: '', date: defaultDate(month) }), ...patch },
+      [id]: { ...(current[id] || { amount: '', date: defaultDate(month, occurrences.find(item => item.id === id)?.date_prevue) }), ...patch },
     }))
   }
 
@@ -86,7 +87,7 @@ export default function PlannedSavingsValidationPanel({
       </CardHeader>
       <CardContent className="space-y-2 p-3 pt-1">
         {pending.map(item => {
-          const draft = drafts[item.id] || { amount: String(Number(item.montant)), date: defaultDate(month) }
+          const draft = drafts[item.id] || { amount: String(Number(item.montant)), date: defaultDate(month, item.date_prevue) }
           const amount = Number(draft.amount)
           const validAmount = Number.isFinite(amount) && amount > 0
           return (
