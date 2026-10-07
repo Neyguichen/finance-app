@@ -285,6 +285,26 @@ export function useRevenuOccurrences(recurrentId: string | null | undefined, esp
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('revenus').delete().eq('id', id)
       if (error) throw error
+
+      if (updates.jour_prevu !== undefined) {
+        const currentMonth = localDateISO().slice(0, 7) + '-01'
+        const { data: occurrences, error: occurrenceError } = await supabase
+          .from('revenus')
+          .select('id, recu, mois:mois!inner(mois)')
+          .eq('recurrent_id', id)
+          .eq('recu', false)
+          .gte('mois.mois', currentMonth)
+        if (occurrenceError) throw occurrenceError
+        for (const occurrence of occurrences || []) {
+          const monthValue = Array.isArray((occurrence as any).mois) ? (occurrence as any).mois[0]?.mois : (occurrence as any).mois?.mois
+          if (!monthValue) continue
+          const { error: dateError } = await supabase
+            .from('revenus')
+            .update({ date_prevue: plannedDateForMonth(monthValue, updates.jour_prevu) })
+            .eq('id', occurrence.id)
+          if (dateError) throw dateError
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
