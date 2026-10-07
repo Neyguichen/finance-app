@@ -736,7 +736,7 @@ export default function DepensesPage() {
                 ))}
               </div>
 
-              <div className="ml-auto hidden items-center gap-2 md:flex">
+              <div className="ml-auto flex flex-wrap items-center gap-2">
                 <label className="relative">
                   <select
                     value={actualSort}
@@ -754,7 +754,7 @@ export default function DepensesPage() {
                     <Button variant="outline" onClick={() => setManagementView('fixed')} className="h-10 gap-2">
                       <CalendarClock className="h-4 w-4" />Charges fixes
                     </Button>
-                    <Button onClick={() => setTxOpen(true)} className="h-10 gap-2">
+                    <Button onClick={() => setTxOpen(true)} className="hidden h-10 gap-2 md:inline-flex">
                       <Plus className="h-4 w-4" />Dépense variable
                     </Button>
                   </>
