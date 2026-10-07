@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Revenu, RevenuRecurrent } from '@/lib/types'
-import { localDateISO } from '@/lib/utils'
+import { localDateISO, plannedDateForMonth } from '@/lib/utils'
 
 export function useRevenus(moisId: string | undefined) {
   const supabase = createClient()
@@ -263,8 +263,9 @@ export function useRevenuOccurrences(recurrentId: string | null | undefined, esp
           type: recurring.type,
           nom: recurring.nom,
           montant: recurring.montant,
+          montant_reel: null,
           recu: false,
-          date_prevue: null,
+          date_prevue: plannedDateForMonth(normalizedMonth, recurring.jour_prevu),
           date_reelle: null,
           ordre: recurring.ordre || 0,
         })
