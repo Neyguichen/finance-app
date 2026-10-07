@@ -99,6 +99,47 @@ export function useRemboursements(transactionId: string | undefined) {
     },
   })
   
+  const update = useMutation({
+    mutationFn: async ({ id, transaction_id, montant, note, date }: { id: string; transaction_id: string; montant: number; note: string | null; date: string }) => {
+      if (!Number.isFinite(Number(montant)) || Number(montant) <= 0) {
+        throw new Error('Le remboursement doit être strictement positif.')
+      }
+
+      const [transactionResult, existingResult] = await Promise.all([
+        supabase.from('transactions').select('montant').eq('id', transaction_id).single(),
+        supabase.from('remboursements').select('id, montant').eq('transaction_id', transaction_id),
+      ])
+      if (transactionResult.error) throw transactionResult.error
+      if (existingResult.error) throw existingResult.error
+
+      const gross = Number(transactionResult.data.montant)
+      const otherTotal = (existingResult.data || [])
+        .filter(item => item.id !== id)
+        .reduce((sum, item) => sum + Number(item.montant), 0)
+      if (otherTotal + Number(montant) - gross > 0.005) {
+        throw new Error(`Le total des remboursements ne peut pas dépasser la dépense initiale (${gross.toFixed(2)} €).`)
+      }
+
+      const { data, error } = await supabase
+        .from('remboursements')
+        .update({ montant: Number(montant), note, date })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      await syncSplitChildrenToNet(transaction_id)
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions-flat'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+    },
+  })
+
   const remove = useMutation({
     mutationFn: async (id: string) => {
       const { data: reimbursement, error: lookupError } = await supabase
@@ -121,5 +162,5 @@ export function useRemboursements(transactionId: string | undefined) {
     },
   })
 
-  return { ...query, create, remove }
+  return { ...query, create, update, remove }
 }
