@@ -8,7 +8,7 @@ import { useRevenuOccurrences, useRevenus, useRevenusRecurrents } from '@/lib/ho
 import RevenuForm from '@/components/pages/revenus/RevenuForm'
 import RevenuEditDialog from '@/components/pages/revenus/RevenuEditDialog'
 import { Button } from '@/components/ui/button'
-import { formatDate, formatEuro } from '@/lib/utils'
+import { formatDate, formatEuro, plannedDateForMonth } from '@/lib/utils'
 
 export default function RevenusRecurrentsPage() {
   const router = useRouter()
@@ -43,7 +43,7 @@ export default function RevenusRecurrentsPage() {
     return 'Tous les ' + value + ' mois'
   }
 
-  const handleCreate = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => {
+  const handleCreate = async (values: { nom: string; montant: number; montantReel: number | null; type: 'actif' | 'passif'; frequence: number; jourPrevu: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => {
     if (isAdminViewing || !espace || !moisId || values.frequence === 0) return
     const recurrent = await createRecurrent.mutateAsync({
       espace_id: espace.id,
@@ -52,6 +52,7 @@ export default function RevenusRecurrentsPage() {
       montant: values.montant,
       actif: true,
       frequence_mois: values.frequence,
+      jour_prevu: values.jourPrevu || 1,
       ordre: recurrents.length,
       mois_debut: month,
     })
@@ -61,8 +62,9 @@ export default function RevenusRecurrentsPage() {
       type: values.type,
       nom: values.nom,
       montant: values.montant,
+      montant_reel: values.recu ? values.montantReel : null,
       recu: values.recu,
-      date_prevue: values.datePrevue,
+      date_prevue: plannedDateForMonth(month, values.jourPrevu),
       date_reelle: values.recu ? values.dateReelle : null,
       ordre: recurrents.length,
     })
@@ -82,6 +84,7 @@ export default function RevenusRecurrentsPage() {
       id: item.id,
       nom: item.nom,
       montant: Number(item.montant),
+      montantReel: item.montant_reel == null ? null : Number(item.montant_reel),
       type: item.type,
       recurrentId: item.recurrent_id,
       datePrevue: item.date_prevue,
@@ -95,6 +98,7 @@ export default function RevenusRecurrentsPage() {
       id: data.id,
       nom: data.nom,
       montant: data.montant,
+      montant_reel: data.recu ? data.montantReel : null,
       type: data.type,
       date_prevue: data.datePrevue ?? null,
       recu: !!data.recu,
@@ -219,7 +223,10 @@ export default function RevenusRecurrentsPage() {
                     <option value={12}>Tous les ans</option>
                   </select>
                 </label>
-                <label className="text-[10px] text-slate-500 sm:col-span-2">Mois de début
+                <label className="text-[10px] text-slate-500">Jour prévu
+                  <input type="number" min={1} max={31} value={Number(selected.jour_prevu || 1)} disabled={isAdminViewing} onChange={e => updateTemplate({jour_prevu:Math.min(31,Math.max(1,Number(e.target.value)||1))})} className="input input-bordered input-sm mt-1 w-full" />
+                </label>
+                <label className="text-[10px] text-slate-500">Mois de début
                   <input type="month" value={String(selected.mois_debut || '').slice(0,7)} disabled={isAdminViewing} onChange={e => updateTemplate({mois_debut:e.target.value + '-01'})} className="input input-bordered input-sm mt-1 w-full" />
                 </label>
               </div>
