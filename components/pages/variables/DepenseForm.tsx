@@ -289,7 +289,12 @@ export default function DepenseForm({
             )}
 
             <div className="rounded-xl border border-slate-800/70 bg-slate-950/25 p-3">
-              <div className={`grid gap-3 ${doubleDate && txValidated ? 'sm:grid-cols-[1fr_180px]' : ''}`}>
+              {doubleDate ? (
+                <div>
+                  <label className="mb-1 block text-xs text-slate-400">Date de validation <span className="text-slate-600">(laisser vide si non validée)</span></label>
+                  <Input type="date" value={txDateValidation} onChange={event => setTxDateValidation(event.target.value)} />
+                </div>
+              ) : (
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
                   <input
                     type="checkbox"
@@ -298,19 +303,12 @@ export default function DepenseForm({
                     onChange={event => {
                       const checked = event.target.checked
                       setTxValidated(checked)
-                      setTxDateValidation(checked ? (txDateValidation || localDateISO()) : '')
+                      setTxDateValidation(checked ? localDateISO() : '')
                     }}
                   />
                   Dépense validée
                 </label>
-
-                {doubleDate && txValidated && (
-                  <div>
-                    <label className="mb-1 block text-xs text-slate-400">Date de validation</label>
-                    <Input type="date" value={txDateValidation} onChange={event => setTxDateValidation(event.target.value)} />
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
             {!splitMode ? (
@@ -324,7 +322,7 @@ export default function DepenseForm({
                     sous_categorie_id: txSubCat || null,
                     montant: txMontant,
                     date: txDate,
-                    date_validation: txValidated ? (txDateValidation || localDateISO()) : null,
+                    date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? localDateISO() : null),
                     infos: txInfos || null,
                   })
                   resetForm()
@@ -344,7 +342,7 @@ export default function DepenseForm({
                       categorie_id: splitLines[0].categorie_id,
                       montant: txMontant,
                       date: txDate,
-                      date_validation: txValidated ? (txDateValidation || localDateISO()) : null,
+                      date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? localDateISO() : null),
                       infos: txInfos || null,
                     },
                     splitLines.map(line => ({ ...line, sous_categorie_id: line.sous_categorie_id || null, infos: line.infos || null })) as any,
