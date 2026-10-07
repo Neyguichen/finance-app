@@ -601,16 +601,6 @@ export default function DepensesPage() {
       <div className="mx-auto w-full max-w-7xl space-y-3 p-3 pb-28 sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <h1 className="text-2xl font-bold tracking-tight text-slate-100">Dépenses</h1>
-          {!isAdminViewing && moisId && (
-            <div className="hidden items-center gap-2 md:flex">
-              <Button size="sm" variant="outline" onClick={() => setManagementView('fixed')}>
-                <CalendarClock className="mr-1.5 h-3.5 w-3.5" />Charges fixes
-              </Button>
-              <Button size="sm" onClick={() => setTxOpen(true)}>
-                <Plus className="mr-1.5 h-3.5 w-3.5" />Dépense variable
-              </Button>
-            </div>
-          )}
         </div>
 
         <div className="grid items-stretch gap-3 xl:grid-cols-2">
@@ -746,12 +736,12 @@ export default function DepensesPage() {
                 ))}
               </div>
 
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto hidden items-center gap-2 md:flex">
                 <label className="relative">
                   <select
                     value={actualSort}
                     onChange={event => setActualSort(event.target.value as 'payment' | 'validation')}
-                    className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs font-medium text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-400"
+                    className="h-10 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs font-medium text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-400"
                     aria-label="Trier les dépenses"
                   >
                     <option value="payment">Date de paiement</option>
@@ -759,6 +749,16 @@ export default function DepensesPage() {
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 </label>
+                {!isAdminViewing && moisId && (
+                  <>
+                    <Button variant="outline" onClick={() => setManagementView('fixed')} className="h-10 gap-2">
+                      <CalendarClock className="h-4 w-4" />Charges fixes
+                    </Button>
+                    <Button onClick={() => setTxOpen(true)} className="h-10 gap-2">
+                      <Plus className="h-4 w-4" />Dépense variable
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
