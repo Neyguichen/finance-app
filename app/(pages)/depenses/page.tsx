@@ -24,6 +24,7 @@ import {
   TrendingDown,
   TrendingUp,
   WalletCards,
+  X,
 } from 'lucide-react'
 import { formatDate, formatEuro, localDateISO, plannedDateForMonth } from '@/lib/utils'
 import { useCategories } from '@/lib/hooks/useCategories'
@@ -44,6 +45,7 @@ import EmptyStateV2 from '@/components/ui/EmptyStateV2'
 import DepensesFab from '@/components/pages/depenses/DepensesFab'
 import CategorieDialog from '@/components/pages/variables/CategorieDialog'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
+import PlannedExpenseValidationPanel from '@/components/pages/depenses/PlannedExpenseValidationPanel'
 
 type ActualFilter = 'all' | 'planned' | 'validated'
 
@@ -58,6 +60,8 @@ export default function DepensesPage() {
   const [suspensionUntil, setSuspensionUntil] = useState('')
   const [actualFilter, setActualFilter] = useState<ActualFilter>('all')
   const [actualSort, setActualSort] = useState<'payment' | 'validation'>('payment')
+  const [browseCategoryId, setBrowseCategoryId] = useState<string | null>(null)
+  const [browseSubcategoryId, setBrowseSubcategoryId] = useState<string | null>(null)
   const [budgetModalId, setBudgetModalId] = useState<string | null>(null)
   const [budgetModalSubcategoryId, setBudgetModalSubcategoryId] = useState<string | null>(null)
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({})
@@ -369,7 +373,8 @@ export default function DepensesPage() {
     return [...fixedEntries, ...transactionEntries]
   }, [effectiveCharges, effectiveTransactions, month])
 
-  const filteredActualEntries = actualEntries.filter(entry => actualFilter === 'all' || entry.status === actualFilter)
+  const pendingActualEntries = actualEntries.filter(entry => entry.status === 'planned')
+  const filteredActualEntries = actualEntries.filter(entry => entry.status === 'validated')
 
   const sortedActualEntries = useMemo(() => {
     const dateValue = (entry: any) => {
@@ -425,6 +430,24 @@ export default function DepensesPage() {
       date_validation: checked ? (date || today) : null,
     })
   }
+
+  const selectBudgetBrowse = (categoryId: string, subcategoryId: string | null = null) => {
+    setBrowseCategoryId(categoryId)
+    setBrowseSubcategoryId(subcategoryId)
+    if (typeof window !== 'undefined' && window.innerWidth < 1280) {
+      window.setTimeout(() => document.getElementById('expense-right-panel')?.scrollIntoView({ behavior:'smooth', block:'start' }), 0)
+    }
+  }
+
+  const browsedCategory = browseCategoryId ? parentCategories.find((cat:any) => cat.id === browseCategoryId) || null : null
+  const browsedSubcategory = browseSubcategoryId ? effectiveCategories.find((cat:any) => cat.id === browseSubcategoryId) || null : null
+  const browsedEntries = browseCategoryId
+    ? sortedActualEntries.filter((entry:any) => {
+        if (entry.source !== 'transaction') return false
+        const tx = entry.sourceData
+        return tx.categorie_id === browseCategoryId && (!browseSubcategoryId || tx.sous_categorie_id === browseSubcategoryId)
+      })
+    : sortedActualEntries
 
   const toggleActualEntry = async (entry: any, checked: boolean) => {
     if (isAdminViewing) return
@@ -683,164 +706,111 @@ export default function DepensesPage() {
           </Card>
         </div>
 
-        <Card className="border-slate-800 bg-slate-900">
-          <CardHeader className="flex flex-col gap-2 pb-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="text-sm text-slate-200">Budgets variables</CardTitle>
-              <p className="mt-0.5 text-[10px] text-slate-500">Avancement des budgets actifs du mois</p>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 border-slate-700 bg-slate-950/20 px-3 text-[11px] font-semibold text-slate-200 hover:border-slate-600 hover:bg-slate-800/60"
-                onClick={() => setManagementView('budgets')}
-              >
-                <Tags className="mr-1.5 h-3.5 w-3.5 text-slate-400" />Catégories &amp; Budgets
+        <PlannedExpenseValidationPanel
+          entries={pendingActualEntries.map((entry:any) => ({
+            id: entry.id,
+            title: entry.title,
+            subtitle: entry.subcategory ? entry.subcategory + ' · ' + entry.info : entry.info,
+            amount: entry.amount,
+            plannedDate: entry.paymentDate,
+          }))}
+          readOnly={isAdminViewing}
+          busy={togglePayee.isPending || updateTx.isPending}
+          onValidate={async (id, date) => {
+            const entry = pendingActualEntries.find((item:any) => item.id === id)
+            if (entry) await applyActualValidation(entry, true, date)
+          }}
+        />
+
+        <div className="grid gap-3 xl:grid-cols-[1.05fr_1.45fr]">
+          <Card className="border-slate-800 bg-slate-900">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+              <div>
+                <CardTitle className="text-sm text-slate-200">Catégories & budgets</CardTitle>
+                <p className="mt-0.5 text-[10px] text-slate-500">Clique sur une catégorie ou sous-catégorie pour afficher son détail.</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setManagementView('budgets')} className="h-8">
+                <Settings2 className="mr-1 h-3.5 w-3.5"/>Gérer
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            {compactBudgets.length === 0 ? (
-              <p className="py-2 text-xs text-slate-600">Aucun budget variable actif ce mois.</p>
-            ) : (
-              <div className="grid gap-x-5 gap-y-2 md:grid-cols-2">
-                {compactBudgets.map((item: any) => (
-                  <button key={item.id} type="button" onClick={() => openBudgetModal(item.id)} className="group text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 text-center">{item.icone || '📂'}</span>
-                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-300 group-hover:text-slate-100">{item.nom}</span>
-                      <span className={'text-[10px] font-semibold ' + (item.remaining < 0 ? 'text-rose-300' : item.percent >= 80 ? 'text-amber-300' : 'text-emerald-300')}>
-                        {formatEuro(item.remaining)} reste
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 pl-7">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
-                        <div className={'h-full rounded-full ' + (item.percent > 100 ? 'bg-rose-400' : item.percent >= 80 ? 'bg-amber-400' : 'bg-emerald-400')} style={{ width: Math.min(100, item.percent) + '%' }} />
+            </CardHeader>
+            <CardContent className="space-y-2 p-3 pt-0">
+              {parentCategories.length === 0 ? (
+                <p className="py-4 text-xs text-slate-600">Aucune catégorie active.</p>
+              ) : parentCategories.map((cat:any) => {
+                const planned=budget(cat.id)
+                const actual=spent(cat.id)
+                const remaining=planned-actual
+                const percent=planned>0?Math.round(actual/planned*100):(actual>0?100:0)
+                const children=subCats(cat.id)
+                return (
+                  <div key={cat.id} className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/25">
+                    <button type="button" onClick={() => selectBudgetBrowse(cat.id)} className={'w-full px-3 py-2.5 text-left transition hover:bg-slate-800/35 '+(browseCategoryId===cat.id&&!browseSubcategoryId?'bg-slate-800/45':'')}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{cat.icone||'📂'}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-200">{cat.nom}</span>
+                        <span className={'text-[10px] font-semibold '+(remaining<0?'text-rose-300':percent>=80?'text-amber-300':'text-emerald-300')}>{formatEuro(remaining)} reste</span>
                       </div>
-                      <span className="w-24 text-right text-[9px] text-slate-600">{formatEuro(item.actual)} / {formatEuro(item.planned)}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      <div className="mt-1 flex items-center gap-2 pl-7">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800"><div className={'h-full rounded-full '+(percent>100?'bg-rose-400':percent>=80?'bg-amber-400':'bg-emerald-400')} style={{width:Math.min(100,percent)+'%'}}/></div>
+                        <span className="text-[9px] text-slate-600">{formatEuro(actual)} / {formatEuro(planned)}</span>
+                      </div>
+                    </button>
+                    {children.length>0 && <div className="border-t border-slate-800/60 px-2 py-1.5">
+                      {children.map((sub:any)=>{
+                        const subPlanned=budget(sub.id)
+                        const subActual=spent(sub.id,true)
+                        return <button key={sub.id} type="button" onClick={()=>selectBudgetBrowse(cat.id,sub.id)} className={'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition hover:bg-slate-800/35 '+(browseSubcategoryId===sub.id?'bg-indigo-500/10 text-indigo-200':'text-slate-400')}>
+                          <span className="w-5 text-center">{sub.icone||'•'}</span><span className="min-w-0 flex-1 truncate">{sub.nom}</span><span className="text-[10px] text-slate-600">{formatEuro(subActual)} / {formatEuro(subPlanned)}</span>
+                        </button>
+                      })}
+                    </div>}
+                  </div>
+                )
+              })}
+            </CardContent>
+          </Card>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {([
-                  ['all', 'Toutes'],
-                  ['planned', 'À valider'],
-                  ['validated', 'Validées'],
-                ] as const).map(([key, label]) => (
-                  <Button key={key} size="sm" variant={actualFilter === key ? 'default' : 'outline'} onClick={() => setActualFilter(key)}>{label}</Button>
-                ))}
+          <Card id="expense-right-panel" className="scroll-mt-20 border-slate-800 bg-slate-900">
+            <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
+              <div>
+                <CardTitle className="text-sm text-slate-200">{browsedCategory ? (browsedSubcategory ? browsedSubcategory.nom : browsedCategory.nom) : 'Dépenses réelles'}</CardTitle>
+                <p className="mt-0.5 text-[10px] text-slate-500">{browsedCategory ? 'Détail du budget et des dépenses validées.' : 'Mouvements validés du mois.'}</p>
               </div>
-
-              <div className="ml-auto flex flex-wrap items-center gap-2">
-                <label className="relative">
-                  <select
-                    value={actualSort}
-                    onChange={event => setActualSort(event.target.value as 'payment' | 'validation')}
-                    className="h-10 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs font-medium text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-400"
-                    aria-label="Trier les dépenses"
-                  >
-                    <option value="payment">Date de transaction</option>
-                    <option value="validation">Date de validation</option>
+              <div className="flex items-center gap-2">
+                {!browsedCategory && <label className="relative">
+                  <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-[11px] text-slate-300 outline-none">
+                    <option value="payment">Date de transaction</option><option value="validation">Date de validation</option>
                   </select>
-                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-                </label>
-                {!isAdminViewing && moisId && (
-                  <>
-                    <Button variant="outline" onClick={() => setManagementView('fixed')} className="h-10 gap-2">
-                      <CalendarClock className="h-4 w-4" />Charges fixes
-                    </Button>
-                    <Button onClick={() => setTxOpen(true)} className="hidden h-10 gap-2 md:inline-flex">
-                      <Plus className="h-4 w-4" />Dépense variable
-                    </Button>
-                  </>
-                )}
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500"/>
+                </label>}
+                {browsedCategory && <Button size="icon" variant="ghost" className="h-8 w-8" onClick={()=>{setBrowseCategoryId(null);setBrowseSubcategoryId(null)}} aria-label="Fermer le détail"><X className="h-4 w-4"/></Button>}
               </div>
-            </div>
-
-            {groupedEntries.length === 0 ? (
-              <EmptyStateV2 icon={ReceiptText} title="Aucune dépense dans ce filtre" description="Les dépenses du mois apparaîtront ici selon leur validation." actionLabel={!isAdminViewing && moisId ? 'Ajouter une dépense' : undefined} onAction={!isAdminViewing && moisId ? () => setTxOpen(true) : undefined} />
-            ) : (
-              <div className="space-y-4">
-                {groupedEntries.map(([label, entries]) => (
-                  <section key={label}>
-                    <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</h2>
-                    <div className="divide-y divide-slate-800/70 rounded-xl border border-slate-800/70 bg-slate-900">
-                      {entries.map((entry: any) => (
-                        <div
-                          key={entry.id}
-                          role={!isAdminViewing ? 'button' : undefined}
-                          tabIndex={!isAdminViewing ? 0 : undefined}
-                          onClick={() => {
-                            if (isAdminViewing) return
-                            if (entry.source === 'fixed') editFixedTarget(entry.sourceData)
-                            else setEditTx(entry.sourceData)
-                          }}
-                          onKeyDown={event => {
-                            if (isAdminViewing || (event.key !== 'Enter' && event.key !== ' ')) return
-                            if (entry.source === 'fixed') editFixedTarget(entry.sourceData)
-                            else setEditTx(entry.sourceData)
-                          }}
-                          className="flex cursor-pointer items-center gap-3 px-3 py-3 transition hover:bg-slate-800/30"
-                        >
-                          {!isAdminViewing && (
-                            <span onClick={event => event.stopPropagation()}>
-                              <Checkbox checked={entry.status === 'validated'} onCheckedChange={checked => toggleActualEntry(entry, checked)} />
-                            </span>
-                          )}
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p>
-                              <StatusBadge status={entry.status} />
-                              {entry.sourceData?.is_split && entry.sourceData?.children?.length > 0 && (
-                                <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[9px] font-medium text-indigo-300">{entry.sourceData.children.length} répartitions</span>
-                              )}
-                            </div>
-                            <p className="truncate text-[11px] text-slate-500">{entry.subcategory ? entry.subcategory + ' · ' : ''}{entry.info}</p>
-                            {entry.refund > 0 && (
-                              <p className="mt-1 text-[10px] text-slate-500">
-                                {formatEuro(entry.grossAmount)} dépensés · <span className="text-emerald-400">{formatEuro(entry.refund)} remboursés</span> · coût net {formatEuro(entry.amount)}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <strong className={entry.source === 'fixed' ? 'text-purple-300' : 'text-rose-300'}>{formatEuro(entry.amount)}</strong>
-                            <p className="text-[10px] text-slate-600">
-                              {actualSort === 'validation'
-                                ? 'Paiement : ' + formatDate(entry.paymentDate)
-                                : entry.validationDate
-                                  ? 'Validation : ' + formatDate(entry.validationDate)
-                                  : 'Non validée'}
-                            </p>
-                          </div>
-                          {!isAdminViewing && (
-                            <button
-                              className="shrink-0 p-1 text-slate-700 hover:text-rose-400"
-                              aria-label="Supprimer"
-                              onClick={event => {
-                                event.stopPropagation()
-                                if (entry.source === 'fixed') setDeleteFixed({ id: entry.sourceData.id, recurrentId: entry.sourceData.recurrent_id, nom: entry.sourceData.nom })
-                                else setDeleteTx(entry.sourceData)
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              {browsedCategory && (
+                <div className="mb-3 grid grid-cols-3 gap-2">
+                  <Metric label="Prévu" value={formatEuro(browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))}/>
+                  <Metric label="Réel" value={formatEuro(browsedSubcategory?spent(browsedSubcategory.id,true):spent(browsedCategory.id))}/>
+                  <Metric label="Restant" value={formatEuro((browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))-(browsedSubcategory?spent(browsedSubcategory.id,true):spent(browsedCategory.id)))}/>
+                </div>
+              )}
+              {browsedEntries.length===0 ? (
+                <EmptyStateV2 icon={ReceiptText} title={browsedCategory?'Aucune dépense validée':'Aucune dépense réelle'} description={browsedCategory?'Aucune dépense validée pour cette sélection ce mois.':'Les dépenses validées apparaîtront ici.'}/>
+              ) : (
+                <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70">
+                  {browsedEntries.map((entry:any)=>(
+                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex cursor-pointer items-center gap-3 px-3 py-3 transition hover:bg-slate-800/30">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
+                      <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-500">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
+                      <div className="text-right"><strong className={entry.source==='fixed'?'text-purple-300':'text-rose-300'}>{formatEuro(entry.amount)}</strong><p className="text-[10px] text-slate-600">{actualSort==='validation'?'Transaction : '+formatDate(entry.paymentDate):entry.validationDate?'Validation : '+formatDate(entry.validationDate):''}</p></div>
+                      {!isAdminViewing&&<button className="shrink-0 p-1 text-slate-700 hover:text-rose-400" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-3.5 w-3.5"/></button>}
                     </div>
-                  </section>
-                ))}
-              </div>
-            )}
-
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         <Dialog open={!!validationEntry} onOpenChange={open => { if (!open) { setValidationEntry(null); setValidationDate('') } }}>
           <DialogContent className="max-w-sm border-slate-700 bg-slate-900">
