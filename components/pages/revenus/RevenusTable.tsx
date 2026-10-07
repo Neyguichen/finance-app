@@ -69,7 +69,7 @@ export default function RevenusTable({
 }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const today = localDateISO()
-  const desktopGrid = 'grid-cols-[minmax(180px,1.5fr)_110px_140px_125px_120px_120px_56px_40px]'
+  const desktopGrid = 'grid-cols-[minmax(180px,1.5fr)_110px_140px_120px_120px_115px_115px_56px_40px]'
 
   const counts = {
     all: revenus.length + reprises.length,
@@ -109,7 +109,7 @@ export default function RevenusTable({
 
       <div className="hidden overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/55 md:block">
         <div className={`grid ${desktopGrid} gap-3 border-b border-slate-800 bg-slate-950/25 px-4 py-2.5 text-[11px] text-slate-500`}>
-          <span>Nom</span><span>Type</span><span>Récurrence</span><span>Date prévue</span><span className="text-right">Montant prévu</span><span className="text-right">Montant reçu</span><span className="text-center">Reçu</span><span></span>
+          <span>Nom</span><span>Type</span><span>Récurrence</span><span>Date prévue</span><span>Date réelle</span><span className="text-right">Montant prévu</span><span className="text-right">Montant reçu</span><span className="text-center">Reçu</span><span></span>
         </div>
 
         {filteredRevenus.map(rev => {
@@ -125,6 +125,7 @@ export default function RevenusTable({
               <span className={'w-fit rounded-full px-2 py-1 text-[10px] font-medium ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? 'Actif' : 'Passif'}</span>
               <span className="text-xs text-slate-400">{recurrenceLabel(rev.recurrent_id, recurrents)}</span>
               <span className="text-xs text-slate-400">{rev.date_prevue ? formatDate(rev.date_prevue) : '—'}</span>
+              <span className="text-xs text-slate-400">{rev.date_reelle ? formatDate(rev.date_reelle) : '—'}</span>
               <span className="text-right text-sm text-slate-200">{formatEuro(Number(rev.montant))}</span>
               <span className="text-right text-sm text-slate-200">{receivedAmount == null ? '—' : formatEuro(receivedAmount)}</span>
               <div className="flex justify-center" onClick={event => event.stopPropagation()}><Checkbox checked={rev.recu} onCheckedChange={checked => { if (!readOnly) onToggleRecu(rev.id, !!checked, checked ? (doubleDate ? null : today) : undefined) }} /></div>
@@ -141,6 +142,7 @@ export default function RevenusTable({
             <div className="flex min-w-0 items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-300"><RotateCcw className="h-4 w-4" /></span><span className="truncate text-sm font-medium text-slate-200">{label}</span></div>
             <span className="w-fit rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-medium text-cyan-300">Reprise</span>
             <span className="text-xs text-slate-500">Juste cette fois</span>
+            <span className="text-xs text-slate-500">—</span>
             <span className="text-xs text-slate-400">{rep.date ? formatDate(rep.date) : '—'}</span>
             <span className="text-right text-sm text-slate-200">{formatEuro(Number(rep.montant))}</span>
             <span className="text-right text-sm text-cyan-300">{formatEuro(Number(rep.montant))}</span>
