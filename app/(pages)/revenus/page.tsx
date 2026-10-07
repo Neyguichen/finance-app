@@ -13,6 +13,7 @@ import { localDateISO, plannedDateForMonth } from '@/lib/utils'
 
 import RevenusResume from '@/components/pages/revenus/RevenusResume'
 import RevenusTable from '@/components/pages/revenus/RevenusTable'
+import PlannedIncomeValidationPanel from '@/components/pages/revenus/PlannedIncomeValidationPanel'
 import RepartitionRevenus from '@/components/pages/revenus/RepartitionRevenus'
 import EvolutionRevenus from '@/components/pages/revenus/EvolutionRevenus'
 import RevenuForm from '@/components/pages/revenus/RevenuForm'
@@ -188,6 +189,13 @@ export default function RevenusPage() {
           totalActif={totalActif}
           totalPassif={totalPassif}
           carriedBalance={carried.data}
+        />
+
+        <PlannedIncomeValidationPanel
+          incomes={effectiveRevenus as any[]}
+          readOnly={isAdminViewing}
+          busy={toggleRecu.isPending}
+          onValidate={async (id, date) => { await toggleRecu.mutateAsync({ id, recu:true, dateReelle:date }) }}
         />
 
         <div className="grid gap-3 md:grid-cols-2">
