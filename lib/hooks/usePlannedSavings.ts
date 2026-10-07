@@ -11,6 +11,7 @@ export type PlannedSavingsOccurrence = {
   enveloppe_dest_id: string | null
   recurrent_id: string | null
   montant: number
+  date_prevue: string | null
   note: string | null
   ordre: number | null
   created_at: string | null
