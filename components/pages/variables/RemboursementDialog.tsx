@@ -13,11 +13,13 @@ type Props = {
   reimbursements: any[]
   onClose: () => void
   onCreate: (data: { transaction_id: string; montant: number; note: string | null; date: string }) => Promise<void>
+  onUpdate: (data: { id: string; transaction_id: string; montant: number; note: string | null; date: string }) => Promise<void>
   onRemove: (id: string) => Promise<void>
 }
 
-export default function RemboursementDialog({ tx, reimbursements, onClose, onCreate, onRemove }: Props) {
+export default function RemboursementDialog({ tx, reimbursements, onClose, onCreate, onUpdate, onRemove }: Props) {
   const [adding, setAdding] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [amount, setAmount] = useState(0)
   const [note, setNote] = useState('')
   const [date, setDate] = useState(localDateISO())
@@ -27,6 +29,7 @@ export default function RemboursementDialog({ tx, reimbursements, onClose, onCre
   useEffect(() => {
     if (!tx) {
       setAdding(false)
+      setEditingId(null)
       setAmount(0)
       setNote('')
       setDate(localDateISO())
@@ -40,25 +43,52 @@ export default function RemboursementDialog({ tx, reimbursements, onClose, onCre
     [reimbursements],
   )
   const net = Math.max(0, gross - reimbursed)
+  const editing = reimbursements.find(item => item.id === editingId) || null
   const maxNew = Math.max(0, gross - reimbursed)
+  const maxEditing = editing ? Math.max(0, gross - (reimbursed - Number(editing.montant))) : 0
+
+  const resetEditor = () => {
+    setAdding(false)
+    setEditingId(null)
+    setAmount(0)
+    setNote('')
+    setDate(localDateISO())
+    setError(null)
+  }
+
+  const startEdit = (reimbursement: any) => {
+    setAdding(false)
+    setEditingId(reimbursement.id)
+    setAmount(Number(reimbursement.montant))
+    setNote(reimbursement.note || '')
+    setDate(reimbursement.date || localDateISO())
+    setError(null)
+  }
 
   const submit = async () => {
     if (!tx || amount <= 0 || saving) return
     setSaving(true)
     setError(null)
     try {
-      await onCreate({
-        transaction_id: tx.id,
-        montant: amount,
-        note: note.trim() || null,
-        date,
-      })
-      setAmount(0)
-      setNote('')
-      setDate(localDateISO())
-      setAdding(false)
+      if (editingId) {
+        await onUpdate({
+          id: editingId,
+          transaction_id: tx.id,
+          montant: amount,
+          note: note.trim() || null,
+          date,
+        })
+      } else {
+        await onCreate({
+          transaction_id: tx.id,
+          montant: amount,
+          note: note.trim() || null,
+          date,
+        })
+      }
+      resetEditor()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible d’ajouter ce remboursement.')
+      setError(err instanceof Error ? err.message : 'Impossible d’enregistrer ce remboursement.')
     } finally {
       setSaving(false)
     }
@@ -97,13 +127,13 @@ export default function RemboursementDialog({ tx, reimbursements, onClose, onCre
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-600">Historique</p>
               {reimbursements.map(reimbursement => (
                 <div key={reimbursement.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800/70 bg-slate-950/35 p-3">
-                  <div className="min-w-0">
+                  <button type="button" onClick={() => startEdit(reimbursement)} className="min-w-0 flex-1 text-left">
                     <p className="font-semibold text-emerald-300">+ {formatEuro(Number(reimbursement.montant))}</p>
                     <div className="mt-0.5 flex flex-wrap gap-2 text-[11px] text-slate-600">
                       <span>{new Date(reimbursement.date + 'T12:00:00').toLocaleDateString('fr-FR')}</span>
                       {reimbursement.note && <span className="truncate">{reimbursement.note}</span>}
                     </div>
-                  </div>
+                  </button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -128,7 +158,7 @@ export default function RemboursementDialog({ tx, reimbursements, onClose, onCre
             </div>
           )}
 
-          {!adding ? (
+          {!adding && !editingId ? (
             <Button
               variant="outline"
               className="w-full"
@@ -141,8 +171,8 @@ export default function RemboursementDialog({ tx, reimbursements, onClose, onCre
           ) : (
             <div className="rounded-xl border border-indigo-400/15 bg-indigo-500/[0.04] p-3 space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-slate-200">Nouveau remboursement</p>
-                <span className="text-[11px] text-slate-600">Maximum {formatEuro(maxNew)}</span>
+                <p className="text-sm font-medium text-slate-200">{editingId ? 'Modifier le remboursement' : 'Nouveau remboursement'}</p>
+                <span className="text-[11px] text-slate-600">Maximum {formatEuro(editingId ? maxEditing : maxNew)}</span>
               </div>
               <CalculatorInput value={amount} onChange={setAmount} placeholder="Montant remboursé" />
               <div className="grid gap-2 sm:grid-cols-[1fr_160px]">
@@ -150,9 +180,9 @@ export default function RemboursementDialog({ tx, reimbursements, onClose, onCre
                 <Input type="date" value={date} onChange={event => setDate(event.target.value)} />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => { setAdding(false); setError(null) }}>Annuler</Button>
-                <Button size="sm" onClick={submit} disabled={amount <= 0 || amount - maxNew > 0.005 || saving}>
-                  {saving ? 'Enregistrement…' : 'Ajouter'}
+                <Button variant="ghost" size="sm" onClick={resetEditor}>Annuler</Button>
+                <Button size="sm" onClick={submit} disabled={amount <= 0 || amount - (editingId ? maxEditing : maxNew) > 0.005 || saving}>
+                  {saving ? 'Enregistrement…' : editingId ? 'Enregistrer' : 'Ajouter'}
                 </Button>
               </div>
             </div>
