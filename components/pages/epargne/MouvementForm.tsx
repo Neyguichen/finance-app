@@ -26,6 +26,7 @@ type Props = {
     sourceId: string | null
     destId: string | null
     frequence: number
+    jourPrevu: number
     date: string
   }) => Promise<void>
 }
@@ -48,6 +49,7 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
   }, [open, initialType, initialSourceId, initialDestId, initialDate])
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('monthly')
   const [customFrequency, setCustomFrequency] = useState(2)
+  const [jourPrevu, setJourPrevu] = useState<number | null>(null)
   const [creatingEnvelope, setCreatingEnvelope] = useState(false)
   const [newEnvelopeName, setNewEnvelopeName] = useState('')
   const [savingEnvelope, setSavingEnvelope] = useState(false)
@@ -73,6 +75,7 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
       sourceId: sourceRequired ? (sourceId || null) : null,
       destId: destRequired ? (destId || null) : null,
       frequence: frequency,
+      jourPrevu: Math.min(31, Math.max(1, Number(jourPrevu || 1))),
       date,
     })
     setMontant(0)
@@ -81,6 +84,7 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
     setDestId('')
     setRecurrenceMode('monthly')
     setCustomFrequency(2)
+    setJourPrevu(null)
     setCreatingEnvelope(false)
     setNewEnvelopeName('')
   }
@@ -222,6 +226,12 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
                   </button>
                 ))}
               </div>
+
+              {recurrenceMode !== 'once' && (
+                <label className="mt-2 block text-xs text-slate-500">Jour prévu <span className="text-slate-600">(facultatif)</span>
+                  <Input className="mt-1" type="number" min={1} max={31} placeholder="1 par défaut" value={jourPrevu ?? ''} onChange={event => setJourPrevu(event.target.value ? Number(event.target.value) : null)} />
+                </label>
+              )}
 
               {recurrenceMode === 'custom' && (
                 <label className="mt-2 flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/30 p-2.5">
