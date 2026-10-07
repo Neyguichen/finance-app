@@ -69,7 +69,6 @@ export default function RevenusTable({
 }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const today = localDateISO()
-  const desktopGrid = 'grid-cols-[minmax(180px,1.5fr)_110px_140px_120px_120px_115px_115px_56px_40px]'
 
   const counts = {
     all: revenus.length + reprises.length,
@@ -107,50 +106,58 @@ export default function RevenusTable({
         )}
       </div>
 
-      <div className="hidden overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/55 md:block">
-        <div className={`grid ${desktopGrid} gap-3 border-b border-slate-800 bg-slate-950/25 px-4 py-2.5 text-[11px] text-slate-500`}>
-          <span>Nom</span><span>Type</span><span>Récurrence</span><span>Date prévue</span><span>Date réelle</span><span className="text-right">Montant prévu</span><span className="text-right">Montant reçu</span><span className="text-center">Reçu</span><span></span>
-        </div>
-
-        {filteredRevenus.map(rev => {
-          const receivedAmount = rev.recu ? Number(rev.montant_reel ?? rev.montant) : null
-          return (
-            <div key={rev.id} role="button" tabIndex={0} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })} onKeyDown={event => { if (!readOnly && (event.key === 'Enter' || event.key === ' ')) onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle }) }} className={`grid ${desktopGrid} cursor-pointer items-center gap-3 border-b border-slate-800/65 px-4 py-3 transition last:border-b-0 hover:bg-slate-800/30`}>
-              <div className="flex min-w-0 items-center gap-2">
-                <span className={'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>
-                  {rev.type === 'actif' ? <TrendingUp className="h-4 w-4" /> : <WalletCards className="h-4 w-4" />}
-                </span>
-                <span className="truncate text-sm font-medium text-slate-200">{rev.nom}</span>
+      <div className="hidden overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-900 md:block">
+        <div className="divide-y divide-slate-800/70">
+          {filteredRevenus.map(rev => {
+            const receivedAmount = rev.recu ? Number(rev.montant_reel ?? rev.montant) : null
+            return (
+              <div key={rev.id} role="button" tabIndex={0}
+                onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })}
+                onKeyDown={event => { if (!readOnly && (event.key === 'Enter' || event.key === ' ')) onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle }) }}
+                className="grid cursor-pointer grid-cols-[minmax(0,1fr)_180px_220px_44px_36px] items-center gap-4 px-4 py-3 transition hover:bg-slate-800/30">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className={'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>
+                    {rev.type === 'actif' ? <TrendingUp className="h-4 w-4" /> : <WalletCards className="h-4 w-4" />}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-slate-200">{rev.nom}</p>
+                      <span className={'shrink-0 rounded-full px-2 py-0.5 text-[9px] font-medium ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? 'Actif' : 'Passif'}</span>
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-slate-500">{recurrenceLabel(rev.recurrent_id, recurrents)}</p>
+                  </div>
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  <p>Prévu : <span className="text-slate-300">{rev.date_prevue ? formatDate(rev.date_prevue) : '—'}</span></p>
+                  <p className="mt-1">Réel : <span className="text-slate-300">{rev.date_reelle ? formatDate(rev.date_reelle) : '—'}</span></p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-right">
+                  <div><p className="text-[9px] uppercase tracking-wide text-slate-600">Prévu</p><p className="text-sm font-semibold text-slate-200">{formatEuro(Number(rev.montant))}</p></div>
+                  <div><p className="text-[9px] uppercase tracking-wide text-slate-600">Reçu</p><p className={'text-sm font-semibold '+(receivedAmount==null?'text-slate-600':'text-emerald-300')}>{receivedAmount == null ? '—' : formatEuro(receivedAmount)}</p></div>
+                </div>
+                <div className="flex justify-center" onClick={event => event.stopPropagation()}><Checkbox checked={rev.recu} onCheckedChange={checked => { if (!readOnly) onToggleRecu(rev.id, !!checked, checked ? (doubleDate ? null : today) : undefined) }} /></div>
+                {!readOnly ? <button type="button" onClick={event => { event.stopPropagation(); onDelete({ id:rev.id, recurrentId:rev.recurrent_id || null, nom:rev.nom }) }} className="rounded-lg p-1.5 text-slate-700 hover:bg-slate-800 hover:text-rose-400" aria-label="Supprimer"><Trash2 className="h-3.5 w-3.5" /></button> : <span />}
               </div>
-              <span className={'w-fit rounded-full px-2 py-1 text-[10px] font-medium ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? 'Actif' : 'Passif'}</span>
-              <span className="text-xs text-slate-400">{recurrenceLabel(rev.recurrent_id, recurrents)}</span>
-              <span className="text-xs text-slate-400">{rev.date_prevue ? formatDate(rev.date_prevue) : '—'}</span>
-              <span className="text-xs text-slate-400">{rev.date_reelle ? formatDate(rev.date_reelle) : '—'}</span>
-              <span className="text-right text-sm text-slate-200">{formatEuro(Number(rev.montant))}</span>
-              <span className="text-right text-sm text-slate-200">{receivedAmount == null ? '—' : formatEuro(receivedAmount)}</span>
-              <div className="flex justify-center" onClick={event => event.stopPropagation()}><Checkbox checked={rev.recu} onCheckedChange={checked => { if (!readOnly) onToggleRecu(rev.id, !!checked, checked ? (doubleDate ? null : today) : undefined) }} /></div>
-              {!readOnly ? <div className="flex items-center justify-end">
-                <button type="button" onClick={event => { event.stopPropagation(); onDelete({ id:rev.id, recurrentId:rev.recurrent_id || null, nom:rev.nom }) }} className="rounded-lg p-1.5 text-slate-700 hover:bg-slate-800 hover:text-rose-400" aria-label="Supprimer"><Trash2 className="h-3.5 w-3.5" /></button>
-              </div> : <span />}
-            </div>
-          )
-        })}
+            )
+          })}
 
-        {filteredReprises.map(rep => {
-          const label = rep.note || getEnvNom(rep.enveloppe_source_id) || 'Reprise d’épargne'
-          return <div key={'rep-'+rep.id} className={`grid ${desktopGrid} items-center gap-3 border-b border-slate-800/65 px-4 py-3 last:border-b-0`}>
-            <div className="flex min-w-0 items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-300"><RotateCcw className="h-4 w-4" /></span><span className="truncate text-sm font-medium text-slate-200">{label}</span></div>
-            <span className="w-fit rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-medium text-cyan-300">Reprise</span>
-            <span className="text-xs text-slate-500">Juste cette fois</span>
-            <span className="text-xs text-slate-500">—</span>
-            <span className="text-xs text-slate-400">{rep.date ? formatDate(rep.date) : '—'}</span>
-            <span className="text-right text-sm text-slate-200">{formatEuro(Number(rep.montant))}</span>
-            <span className="text-right text-sm text-cyan-300">{formatEuro(Number(rep.montant))}</span>
-            <div className="flex justify-center"><CheckCircle2 className="h-4 w-4 text-cyan-300" /></div><span />
-          </div>
-        })}
+          {filteredReprises.map(rep => {
+            const label = rep.note || getEnvNom(rep.enveloppe_source_id) || 'Reprise d’épargne'
+            return (
+              <div key={'rep-'+rep.id} className="grid grid-cols-[minmax(0,1fr)_180px_220px_44px_36px] items-center gap-4 px-4 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-300"><RotateCcw className="h-4 w-4" /></span>
+                  <div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-200">{label}</p><p className="mt-0.5 text-[10px] text-cyan-300">Reprise d’épargne · ponctuelle</p></div>
+                </div>
+                <div className="text-[10px] text-slate-500"><p>Prévu : —</p><p className="mt-1">Réel : <span className="text-slate-300">{rep.date ? formatDate(rep.date) : '—'}</span></p></div>
+                <div className="grid grid-cols-2 gap-3 text-right"><div><p className="text-[9px] uppercase tracking-wide text-slate-600">Prévu</p><p className="text-sm font-semibold text-slate-200">{formatEuro(Number(rep.montant))}</p></div><div><p className="text-[9px] uppercase tracking-wide text-slate-600">Reçu</p><p className="text-sm font-semibold text-cyan-300">{formatEuro(Number(rep.montant))}</p></div></div>
+                <div className="flex justify-center"><CheckCircle2 className="h-4 w-4 text-cyan-300" /></div><span />
+              </div>
+            )
+          })}
 
-        {filteredRevenus.length === 0 && filteredReprises.length === 0 && <div className="px-4 py-10 text-center text-sm text-slate-600">Aucun revenu ne correspond à ces filtres.</div>}
+          {filteredRevenus.length === 0 && filteredReprises.length === 0 && <div className="px-4 py-10 text-center text-sm text-slate-600">Aucun revenu ne correspond à ces filtres.</div>}
+        </div>
       </div>
 
       <div className="space-y-2 md:hidden">
