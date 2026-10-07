@@ -128,6 +128,7 @@ export function EpargneRecurrenceEditDialog({ target, onClose, onSave }: Recurre
   const [montant, setMontant] = useState(0)
   const [frequence, setFrequence] = useState(1)
   const [note, setNote] = useState('')
+  const [jourPrevu, setJourPrevu] = useState(1)
 
   useEffect(() => {
     if (!target) return
