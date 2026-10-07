@@ -140,8 +140,8 @@ export default function RevenusRecurrentsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(280px,.8fr)_minmax(0,1.4fr)]">
-        <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/20">
-          <div className="border-b border-slate-800 px-4 py-3">
+        <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/25">
+          <div className="border-b border-slate-800/70 px-3 py-2.5">
             <p className="text-sm font-semibold text-slate-200">{showArchived ? 'Revenus archivés' : 'Revenus actifs'}</p>
             <p className="text-[11px] text-slate-500">{list.length} récurrence(s)</p>
           </div>
@@ -154,7 +154,7 @@ export default function RevenusRecurrentsPage() {
                 key={item.id}
                 type="button"
                 onClick={() => setSelectedId(item.id)}
-                className={'flex w-full items-center gap-3 border-b border-slate-800/60 px-4 py-3 text-left last:border-0 hover:bg-slate-800/30 ' + (selectedId === item.id ? 'bg-slate-800/45' : '')}
+                className={'flex w-full items-center gap-3 border-b border-slate-800/60 px-3 py-3 text-left last:border-0 transition hover:bg-slate-800/40 ' + (selectedId === item.id ? 'bg-slate-800/50' : '')}
               >
                 <span className={'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + (item.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>
                   <Icon className="h-4 w-4" />
@@ -169,7 +169,7 @@ export default function RevenusRecurrentsPage() {
           })}
         </section>
 
-        <section className="rounded-2xl border border-slate-800 bg-slate-950/20 p-4">
+        <section className="rounded-xl border border-slate-800 bg-slate-950/25 p-4">
           {!selected ? (
             <div className="flex min-h-64 items-center justify-center text-center text-sm text-slate-500">Sélectionne un revenu récurrent pour afficher son détail.</div>
           ) : (
@@ -227,7 +227,7 @@ export default function RevenusRecurrentsPage() {
               <div className="rounded-xl border border-slate-800 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div>
-                    <p className="text-xs font-semibold text-slate-300">Ajouter une occurrence</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Ajouter une occurrence</p>
                     <p className="text-[10px] text-slate-600">Crée manuellement une occurrence manquante pour un mois donné.</p>
                   </div>
                   <CalendarDays className="h-4 w-4 text-slate-600" />
@@ -244,7 +244,7 @@ export default function RevenusRecurrentsPage() {
 
               <div className="rounded-xl border border-slate-800 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-slate-300">Historique des occurrences</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Historique des occurrences</p>
                   <span className="text-[10px] text-slate-600">{occurrences.data?.length || 0}</span>
                 </div>
                 {occurrences.isLoading ? (
