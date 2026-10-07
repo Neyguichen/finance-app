@@ -152,10 +152,13 @@ export default function EnveloppeDetailPanel({
         </div>
 
         <div className="rounded-xl border border-slate-800/70 bg-slate-950/25">
-          <div className="flex items-center gap-2 border-b border-slate-800/70 px-3 py-2">
-            <Repeat2 className="h-3.5 w-3.5 text-indigo-300" />
-            <span className="text-xs font-semibold text-slate-300">Épargne récurrente</span>
-            <span className="ml-auto rounded-full bg-slate-900 px-2 py-0.5 text-[9px] text-slate-500">{recurringSavings.length}</span>
+          <div className="flex items-center gap-2 border-b border-slate-800/70 px-3 py-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-300"><Repeat2 className="h-3.5 w-3.5" /></span>
+            <div className="min-w-0 flex-1">
+              <span className="text-xs font-semibold text-slate-300">Épargne récurrente</span>
+              <p className="text-[10px] text-slate-600">Récurrences liées à cette enveloppe</p>
+            </div>
+            <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[9px] text-slate-500">{recurringSavings.length}</span>
           </div>
           {recurringSavings.length === 0 ? (
             <p className="p-3 text-xs text-slate-600">Aucune récurrence pour cette enveloppe. Utilisez « Épargner » et choisissez une fréquence pour en créer une.</p>
@@ -165,12 +168,14 @@ export default function EnveloppeDetailPanel({
                 const frequency = Number(rec.frequence_mois || 1)
                 const frequencyLabel = frequency === 1 ? 'Tous les mois' : frequency === 12 ? 'Tous les ans' : 'Tous les ' + frequency + ' mois'
                 return (
-                  <div key={rec.id} className="flex flex-wrap items-center gap-3 p-3">
+                  <div key={rec.id} className="flex flex-wrap items-center gap-3 p-3 transition hover:bg-slate-800/30">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-300"><PiggyBank className="h-4 w-4" /></span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-200">{formatEuro(Number(rec.montant))}</p>
                       <p className="mt-0.5 text-[10px] text-slate-500">{frequencyLabel} · depuis {String(rec.mois_debut || rec.created_at || '').slice(0,7) || '—'}</p>
                       {rec.note && <p className="mt-1 truncate text-[10px] text-slate-600">{rec.note}</p>}
                     </div>
+                    <span className={"rounded-full px-2 py-0.5 text-[9px] font-medium " + (rec.actif === false ? "bg-slate-800 text-slate-500" : "bg-emerald-500/10 text-emerald-300")}>{rec.actif === false ? 'Suspendue' : 'Active'}</span>
                     {onEditRecurring && (
                       <button
                         type="button"
