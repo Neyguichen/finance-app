@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Enveloppe, MouvementEpargne, EpargneRecurrente } from '@/lib/types'
+import { plannedDateForMonth } from '@/lib/utils'
 
 function assertValidSavingsMovement(mvt: Partial<MouvementEpargne>) {
   if (mvt.montant !== undefined) {
@@ -296,13 +297,24 @@ export function useEpargneRecurrentes(espaceId: string | undefined) {
 
       const { data: months, error: monthsError } = await supabase
         .from('mois')
-        .select('id')
+        .select('id, mois')
         .eq('espace_id', espaceId!)
         .gte('mois', normalizedMonth)
       if (monthsError) throw monthsError
 
       const monthIds = (months || []).map(row => row.id)
       if (!monthIds.length) return
+
+      if (updates.jour_prevu !== undefined) {
+        for (const monthRow of months || []) {
+          const { error: dateError } = await supabase
+            .from('epargne_prevues')
+            .update({ date_prevue: plannedDateForMonth(monthRow.mois, updates.jour_prevu) })
+            .eq('recurrent_id', id)
+            .eq('mois_id', monthRow.id)
+          if (dateError) throw dateError
+        }
+      }
 
       const plannedUpdates: Record<string, unknown> = {}
       if (updates.montant !== undefined) plannedUpdates.montant = updates.montant
