@@ -17,7 +17,7 @@ async function loadActualFlows(supabase: ReturnType<typeof createClient>, espace
     { data: savings, error: savingsError },
     { data: debts, error: debtsError },
   ] = await Promise.all([
-    monthIds.length ? supabase.from('revenus').select('mois_id, montant, recu, date_reelle').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
+    monthIds.length ? supabase.from('revenus').select('mois_id, montant, montant_reel, recu, date_reelle').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
     monthIds.length ? supabase.from('charges_fixes').select('mois_id, montant, montant_reel, payee, date_reelle').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
     monthIds.length ? supabase.from('transactions').select('id, montant, date, date_validation, is_split, parent_transaction_id, remboursements(montant, date)').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
     monthIds.length ? supabase.from('mouvements_epargne').select('type, montant, date').in('mois_id', monthIds) : Promise.resolve({ data: [], error: null }),
@@ -37,7 +37,7 @@ async function loadActualFlows(supabase: ReturnType<typeof createClient>, espace
   for (const income of incomes || []) {
     if (!income.recu) continue
     const date = income.date_reelle || monthDateById.get(income.mois_id)
-    if (date) flows.push({ kind: 'earned_income', amount: Number(income.montant), date })
+    if (date) flows.push({ kind: 'earned_income', amount: Number(income.montant_reel ?? income.montant), date })
   }
   for (const expense of fixedExpenses || []) {
     if (!expense.payee) continue
