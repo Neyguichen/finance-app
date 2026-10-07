@@ -143,33 +143,30 @@ export default function DepenseForm({
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs text-slate-400">{doubleDate ? "Date d'opération" : 'Date'}</label>
-                <Input type="date" value={txDate} onChange={event => setTxDate(event.target.value)} />
-              </div>
-              {doubleDate && (
-                <div>
-                  <label className="mb-1 block text-xs text-slate-400">Date de validation bancaire <span className="text-slate-600">(optionnel)</span></label>
-                  <Input type="date" value={txDateValidation} onChange={event => setTxDateValidation(event.target.value)} />
-                </div>
-              )}
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">Date de transaction</label>
+              <Input type="date" value={txDate} onChange={event => setTxDate(event.target.value)} />
             </div>
 
-            {!doubleDate && (
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm"
-                  checked={txValidated}
-                  onChange={event => {
-                    const checked = event.target.checked
-                    setTxValidated(checked)
-                    setTxDateValidation(checked ? (txDateValidation || localDateISO()) : '')
-                  }}
-                />
-                Dépense validée
-              </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                className="checkbox checkbox-sm"
+                checked={txValidated}
+                onChange={event => {
+                  const checked = event.target.checked
+                  setTxValidated(checked)
+                  setTxDateValidation(checked ? (txDateValidation || localDateISO()) : '')
+                }}
+              />
+              Dépense validée
+            </label>
+
+            {doubleDate && txValidated && (
+              <div>
+                <label className="mb-1 block text-xs text-slate-400">Date de validation</label>
+                <Input type="date" value={txDateValidation} onChange={event => setTxDateValidation(event.target.value)} />
+              </div>
             )}
 
             <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
@@ -252,7 +249,7 @@ export default function DepenseForm({
                       sous_categorie_id: txSubCat || null,
                       montant: txMontant,
                       date: txDate,
-                      date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? (txDateValidation || localDateISO()) : null),
+                      date_validation: txValidated ? (txDateValidation || localDateISO()) : null,
                       infos: txInfos || null,
                     })
                     resetForm()
