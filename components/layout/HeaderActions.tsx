@@ -21,7 +21,7 @@ export default function HeaderActions() {
   ] as const).filter(([, enabled]) => enabled).map(([family]) => family)
   const notifications = useNotifications(!isAdminViewing ? espace?.id : undefined, allowedFamilies)
   const todoEnabled = espace?.features?.todo !== false
-  const todos = useTodos(!isAdminViewing && todoEnabled ? espace?.id : undefined)
+  const todos = useTodos(!isAdminViewing && todoEnabled ? userId ?? undefined : undefined)
   const today = localDateISO()
 
   useEffect(() => {
