@@ -261,6 +261,7 @@ export default function DashboardQuickAdd() {
           reimbursements={reimbursements.data || []}
           onClose={() => setSelectedRefundTx(null)}
           onCreate={data => reimbursements.create.mutateAsync(data).then(() => undefined)}
+          onUpdate={data => reimbursements.update.mutateAsync(data).then(() => undefined)}
           onRemove={id => reimbursements.remove.mutateAsync(id)}
         />
       )}
