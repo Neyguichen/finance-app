@@ -9,7 +9,7 @@ import { useApp } from '@/components/AppContext'
 import { useAdminMoisData } from '@/lib/hooks/useAdminMoisData'
 import { useBalanceAtDate } from '@/lib/hooks/useBalanceAtDate'
 import { useIncomeHistory } from '@/lib/hooks/useIncomeHistory'
-import { localDateISO } from '@/lib/utils'
+import { localDateISO, plannedDateForMonth } from '@/lib/utils'
 
 import RevenusResume from '@/components/pages/revenus/RevenusResume'
 import RevenusTable from '@/components/pages/revenus/RevenusTable'
@@ -72,6 +72,7 @@ export default function RevenusPage() {
           id: revenue.id,
           nom: revenue.nom,
           montant: Number(revenue.montant),
+          montantReel: revenue.montant_reel == null ? null : Number(revenue.montant_reel),
           type: revenue.type,
           recurrentId: revenue.recurrent_id,
           datePrevue: revenue.date_prevue,
@@ -84,7 +85,7 @@ export default function RevenusPage() {
 
   const getEnvNom = (id: string | null | undefined) => effectiveEnveloppes.find((envelope: any) => envelope.id === id)?.nom || 'Reprise d’épargne'
 
-  const handleCreate = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => {
+  const handleCreate = async (values: { nom: string; montant: number; montantReel: number | null; type: 'actif' | 'passif'; frequence: number; jourPrevu: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => {
     if (isAdminViewing || !moisId || !espace) return
 
     if (values.frequence === 0) {
@@ -94,6 +95,7 @@ export default function RevenusPage() {
         type: values.type,
         nom: values.nom,
         montant: values.montant,
+        montant_reel: values.recu ? values.montantReel : null,
         recu: values.recu,
         date_prevue: values.datePrevue,
         date_reelle: values.recu ? values.dateReelle : null,
@@ -109,6 +111,7 @@ export default function RevenusPage() {
       montant: values.montant,
       actif: true,
       frequence_mois: values.frequence,
+      jour_prevu: values.jourPrevu || 1,
       ordre: effectiveRevenus.length,
       mois_debut: month,
     })
@@ -119,8 +122,9 @@ export default function RevenusPage() {
       type: values.type,
       nom: values.nom,
       montant: values.montant,
+      montant_reel: null,
       recu: false,
-      date_prevue: values.datePrevue,
+      date_prevue: plannedDateForMonth(month, values.jourPrevu),
       ordre: effectiveRevenus.length,
     })
   }
@@ -131,6 +135,7 @@ export default function RevenusPage() {
     const updates = {
       nom: data.nom,
       montant: data.montant,
+      montant_reel: data.recu ? data.montantReel : null,
       type: data.type,
       date_prevue: data.datePrevue ?? null,
       recu: !!data.recu,
