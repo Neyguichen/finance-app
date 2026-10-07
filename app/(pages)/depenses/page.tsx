@@ -48,6 +48,7 @@ import { EmojiPicker } from '@/components/ui/emoji-picker'
 import PlannedExpenseValidationPanel from '@/components/pages/depenses/PlannedExpenseValidationPanel'
 
 type ActualFilter = 'all' | 'planned' | 'validated'
+type CategorySort = 'az' | 'planned' | 'actual' | 'remaining'
 
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
@@ -62,6 +63,7 @@ export default function DepensesPage() {
   const [actualSort, setActualSort] = useState<'payment' | 'validation'>('payment')
   const [browseCategoryId, setBrowseCategoryId] = useState<string | null>(null)
   const [browseSubcategoryId, setBrowseSubcategoryId] = useState<string | null>(null)
+  const [categorySort, setCategorySort] = useState<CategorySort>('az')
   const [budgetModalId, setBudgetModalId] = useState<string | null>(null)
   const [budgetModalSubcategoryId, setBudgetModalSubcategoryId] = useState<string | null>(null)
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({})
@@ -86,16 +88,22 @@ export default function DepensesPage() {
     const requestedView = params.get('view')
     const requestedActualFilter = params.get('actualFilter')
     const savedSort = window.localStorage.getItem('depenses_actual_sort')
+    const savedCategorySort = window.localStorage.getItem('depenses_category_sort')
     if (requestedView === 'planned') setManagementView('budgets')
     if (requestedActualFilter === 'all' || requestedActualFilter === 'planned' || requestedActualFilter === 'validated') {
       setActualFilter(requestedActualFilter)
     }
     if (savedSort === 'payment' || savedSort === 'validation') setActualSort(savedSort)
+    if (savedCategorySort === 'az' || savedCategorySort === 'planned' || savedCategorySort === 'actual' || savedCategorySort === 'remaining') setCategorySort(savedCategorySort)
   }, [])
 
   useEffect(() => {
     window.localStorage.setItem('depenses_actual_sort', actualSort)
   }, [actualSort])
+
+  useEffect(() => {
+    window.localStorage.setItem('depenses_category_sort', categorySort)
+  }, [categorySort])
 
   useEffect(() => {
     if (isAdminViewing || !moisId) return
@@ -134,11 +142,36 @@ export default function DepensesPage() {
 
   const parentCategories = effectiveCategories.filter((c: any) => c.actif !== false && !c.parent_id)
   const archivedParentCategories = effectiveCategories.filter((c: any) => c.actif === false && !c.parent_id)
-  const subCats = (id: string, includeArchived = false) => subcategoriesEnabled ? effectiveCategories.filter((c: any) => c.parent_id === id && (includeArchived || c.actif !== false)) : []
+  const subCats = (id: string, includeArchived = false) => subcategoriesEnabled ? effectiveCategories
+    .filter((c: any) => c.parent_id === id && (includeArchived || c.actif !== false))
+    .sort((a: any, b: any) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity:'base' })) : []
   const budget = (id: string) => Number(effectiveBudgets.find((b: any) => b.categorie_id === id)?.prevu || 0)
   const refundTotal = (tx: any) => (tx.remboursements || []).reduce((sum: number, item: any) => sum + Number(item.montant), 0)
   const net = (tx: any) => Number(tx.montant) - refundTotal(tx)
   const spent = (id: string, sub = false) => effectiveFlat.filter((t: any) => (sub ? t.sous_categorie_id : t.categorie_id) === id).reduce((sum: number, t: any) => sum + net(t), 0)
+
+  const sortedParentCategories = useMemo(() => {
+    const rows = parentCategories.map((cat:any) => {
+      const planned = budget(cat.id)
+      const actual = spent(cat.id)
+      return { cat, planned, actual, remaining: planned - actual }
+    })
+    const alpha = (a:any,b:any) => String(a.cat.nom).localeCompare(String(b.cat.nom), 'fr', { sensitivity:'base' })
+    rows.sort((a:any,b:any) => {
+      if (categorySort === 'planned') {
+        const aHasPlanned = a.planned > 0
+        const bHasPlanned = b.planned > 0
+        if (aHasPlanned !== bHasPlanned) return aHasPlanned ? -1 : 1
+        if (aHasPlanned && bHasPlanned && b.planned !== a.planned) return b.planned - a.planned
+        if (!aHasPlanned && !bHasPlanned && b.actual !== a.actual) return b.actual - a.actual
+        return alpha(a,b)
+      }
+      if (categorySort === 'actual' && b.actual !== a.actual) return b.actual - a.actual
+      if (categorySort === 'remaining' && b.remaining !== a.remaining) return b.remaining - a.remaining
+      return alpha(a,b)
+    })
+    return rows.map((row:any) => row.cat)
+  }, [parentCategories, effectiveBudgets, effectiveFlat, categorySort])
 
   const parentCategoryIds = new Set(parentCategories.map((c: any) => c.id))
   const parentBudgets = effectiveBudgets.filter((b: any) => parentCategoryIds.has(b.categorie_id))
@@ -729,14 +762,30 @@ export default function DepensesPage() {
                 <CardTitle className="text-sm text-slate-200">Catégories & budgets</CardTitle>
                 <p className="mt-0.5 text-[10px] text-slate-500">Clique sur une catégorie ou sous-catégorie pour afficher son détail.</p>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setManagementView('budgets')} className="h-8">
-                <Settings2 className="mr-1 h-3.5 w-3.5"/>Gérer
-              </Button>
+              <div className="flex items-center gap-2">
+                <label className="relative">
+                  <select
+                    value={categorySort}
+                    onChange={event => setCategorySort(event.target.value as CategorySort)}
+                    className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-[11px] font-medium text-slate-300 outline-none hover:border-slate-600"
+                    aria-label="Trier les catégories"
+                  >
+                    <option value="az">A - Z</option>
+                    <option value="planned">Prévu</option>
+                    <option value="actual">Réel</option>
+                    <option value="remaining">Reste</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500"/>
+                </label>
+                <Button size="sm" variant="outline" onClick={() => setManagementView('budgets')} className="h-8">
+                  <Settings2 className="mr-1 h-3.5 w-3.5"/>Gérer
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2 p-3 pt-0">
               {parentCategories.length === 0 ? (
                 <p className="py-4 text-xs text-slate-600">Aucune catégorie active.</p>
-              ) : parentCategories.map((cat:any) => {
+              ) : sortedParentCategories.map((cat:any) => {
                 const planned=budget(cat.id)
                 const actual=spent(cat.id)
                 const remaining=planned-actual
