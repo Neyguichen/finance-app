@@ -12,6 +12,14 @@ export function localDateISO(date = new Date()): string {
   return format(date, 'yyyy-MM-dd')
 }
 
+export function plannedDateForMonth(month: string, day?: number | null): string {
+  const [year, monthNumber] = month.slice(0, 7).split('-').map(Number)
+  const safeDay = Math.min(Math.max(Number(day || 1), 1), 31)
+  const lastDay = new Date(year, monthNumber, 0).getDate()
+  const resolvedDay = Math.min(safeDay, lastDay)
+  return `${year}-${String(monthNumber).padStart(2, '0')}-${String(resolvedDay).padStart(2, '0')}`
+}
+
 export function formatEuro(amount: number): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
