@@ -746,7 +746,7 @@ export default function DepensesPage() {
                     className="h-10 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs font-medium text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-400"
                     aria-label="Trier les dépenses"
                   >
-                    <option value="payment">Date de paiement</option>
+                    <option value="payment">Date de transaction</option>
                     <option value="validation">Date de validation</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
