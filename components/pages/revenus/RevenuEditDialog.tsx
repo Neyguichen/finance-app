@@ -14,6 +14,7 @@ type EditTarget = {
   id: string
   nom: string
   montant: number
+  montantReel?: number | null
   type: 'actif' | 'passif'
   recurrentId?: string | null
   datePrevue?: string | null
@@ -27,12 +28,13 @@ type Props = {
   editTarget: EditTarget | null
   onClose: () => void
   doubleDate?: boolean
-  onSave: (data: { id: string; nom: string; montant: number; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null; recu: boolean; dateReelle: string | null }, scope: EditScope) => Promise<void>
+  onSave: (data: { id: string; nom: string; montant: number; montantReel: number | null; type: 'actif' | 'passif'; recurrentId?: string | null; datePrevue?: string | null; recu: boolean; dateReelle: string | null }, scope: EditScope) => Promise<void>
 }
 
 export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDate = false }: Props) {
   const [editNom, setEditNom] = useState('')
   const [editMontant, setEditMontant] = useState(0)
+  const [editMontantReel, setEditMontantReel] = useState<number | null>(null)
   const [editType, setEditType] = useState<'actif' | 'passif'>('actif')
   const [editDatePrevue, setEditDatePrevue] = useState('')
   const [editRecu, setEditRecu] = useState(false)
@@ -44,6 +46,7 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
     if (!editTarget) return
     setEditNom(editTarget.nom)
     setEditMontant(Number(editTarget.montant))
+    setEditMontantReel(editTarget.montantReel == null ? null : Number(editTarget.montantReel))
     setEditType(editTarget.type)
     setEditDatePrevue(editTarget.datePrevue || '')
     setEditRecu(!!editTarget.recu)
@@ -62,6 +65,7 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
       id: editTarget.id,
       nom: editNom.trim(),
       montant: editMontant,
+      montantReel: editRecu ? Number(editMontantReel ?? editMontant) : null,
       type: editType,
       recurrentId: editTarget.recurrentId,
       datePrevue: editDatePrevue || null,
@@ -89,7 +93,7 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
   return (
     <>
       <Dialog open={!!editTarget && !scopeOpen} onOpenChange={open => { if (!open) onClose() }}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Modifier le revenu</DialogTitle>
             <DialogDescription>Ajustez les informations de cette entrée sans modifier son historique.</DialogDescription>
@@ -100,9 +104,7 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
               <FormField label="Nom">
                 <Input placeholder="Nom du revenu" value={editNom} onChange={event => setEditNom(event.target.value)} />
               </FormField>
-              <FormField label="Montant">
-                <CalculatorInput value={editMontant} onChange={setEditMontant} placeholder="0,00 €" />
-              </FormField>
+              <FormField label="Montant prévu"><CalculatorInput value={editMontant} onChange={setEditMontant} placeholder="0,00 €" /></FormField>
             </FormSection>
 
             <FormSection title="Type" description="Cette information reste secondaire dans l’affichage." icon={<Repeat2 className="h-4 w-4" />}>
@@ -124,12 +126,13 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
 
             <FormSection title="Validation" description="Vous pouvez valider ou remettre ce revenu en attente directement depuis l’édition." icon={<CheckCircle2 className="h-4 w-4" />}>
               <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-3">
-                <Checkbox checked={editRecu} onCheckedChange={checked => setEditRecu(!!checked)} />
+                <Checkbox checked={editRecu} onCheckedChange={checked => { const next=!!checked; setEditRecu(next); if(next && editMontantReel == null) setEditMontantReel(editMontant); if(!next) setEditMontantReel(null) }} />
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-slate-200">Revenu reçu</span>
                   <span className="mt-0.5 block text-xs text-slate-500">Cochez lorsque le revenu a bien été perçu.</span>
                 </span>
               </label>
+              {editRecu && <FormField label="Montant réellement reçu"><CalculatorInput value={Number(editMontantReel ?? editMontant)} onChange={setEditMontantReel} placeholder="Montant reçu" /></FormField>}
               {doubleDate && editRecu && (
                 <FormField label="Date de validation" hint="Facultatif">
                   <Input type="date" value={editDateReelle} onChange={event => setEditDateReelle(event.target.value)} />
