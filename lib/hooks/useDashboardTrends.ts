@@ -16,7 +16,7 @@ export function useDashboardTrends(espaceId?: string) {
       const ids = months.map(m => m.id)
       const map = new Map(months.map(m => [m.id, String(m.mois).slice(0, 7)]))
       const [rev, fixed, tx, savings, debts] = await Promise.all([
-        supabase.from('revenus').select('montant, recu, mois_id').in('mois_id', ids),
+        supabase.from('revenus').select('montant, montant_reel, recu, mois_id').in('mois_id', ids),
         supabase.from('charges_fixes').select('montant, montant_reel, payee, mois_id').in('mois_id', ids),
         supabase.from('transactions').select('montant, mois_id, is_split, parent_transaction_id, remboursements(montant)').in('mois_id', ids),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', ids),
@@ -29,7 +29,7 @@ export function useDashboardTrends(espaceId?: string) {
         const d = new Date(`${key}-01T12:00:00`)
         byMonth.set(key, { month: key, label: d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }), revenus: 0, depenses: 0, epargne: 0, resultat: 0, remboursements: 0, remboursementsRecus: 0 })
       })
-      rev.data?.forEach((r:any) => { if (!r.recu) return; const k=map.get(r.mois_id); if(k) byMonth.get(k)!.revenus += Number(r.montant) })
+      rev.data?.forEach((r:any) => { if (!r.recu) return; const k=map.get(r.mois_id); if(k) byMonth.get(k)!.revenus += Number(r.montant_reel ?? r.montant) })
       fixed.data?.forEach((r:any) => { if (!r.payee) return; const k=map.get(r.mois_id); if(k) byMonth.get(k)!.depenses += Number(r.montant_reel ?? r.montant) })
       tx.data?.forEach((r:any) => { if (r.is_split && !r.parent_transaction_id) return; const k=map.get(r.mois_id); if(!k) return; const refunded=(r.remboursements||[]).reduce((s:number,x:any)=>s+Number(x.montant),0); byMonth.get(k)!.depenses += Number(r.montant)-refunded })
       savings.data?.forEach((r:any) => { const k=map.get(r.mois_id); if(!k) return; byMonth.get(k)!.epargne += r.type === 'epargne' ? Number(r.montant) : -Number(r.montant) })
