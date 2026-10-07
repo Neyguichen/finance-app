@@ -357,7 +357,6 @@ export default function DepenseForm({
               </Button>
             )}
           </div>
-          </div>
         </DialogContent>
       </Dialog>
 
