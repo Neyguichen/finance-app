@@ -93,21 +93,21 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
   return (
     <>
       <Dialog open={!!editTarget && !scopeOpen} onOpenChange={open => { if (!open) onClose() }}>
-        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
+        <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Modifier le revenu</DialogTitle>
             <DialogDescription>Ajustez les informations de cette entrée sans modifier son historique.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <FormSection title="Revenu" icon={<Coins className="h-4 w-4" />}>
+          <div className="space-y-3">
+            <FormSection title="Revenu" icon={<Coins className="h-4 w-4" />} compact>
               <FormField label="Nom">
                 <Input placeholder="Nom du revenu" value={editNom} onChange={event => setEditNom(event.target.value)} />
               </FormField>
               <FormField label="Montant prévu"><CalculatorInput value={editMontant} onChange={setEditMontant} placeholder="0,00 €" /></FormField>
             </FormSection>
 
-            <FormSection title="Type" description="Cette information reste secondaire dans l’affichage." icon={<Repeat2 className="h-4 w-4" />}>
+            <FormSection title="Type" description="Cette information reste secondaire dans l’affichage." icon={<Repeat2 className="h-4 w-4" />} compact>
               <SegmentedControl
                 value={editType}
                 onChange={setEditType}
@@ -118,13 +118,13 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
               />
             </FormSection>
 
-            <FormSection title="Date prévue" icon={<CalendarDays className="h-4 w-4" />}>
+            <FormSection title="Date prévue" icon={<CalendarDays className="h-4 w-4" />} compact>
               <FormField label="Date de réception" hint="Facultatif">
                 <Input type="date" value={editDatePrevue} onChange={event => setEditDatePrevue(event.target.value)} />
               </FormField>
             </FormSection>
 
-            <FormSection title="Validation" description="Vous pouvez valider ou remettre ce revenu en attente directement depuis l’édition." icon={<CheckCircle2 className="h-4 w-4" />}>
+            <FormSection title="Validation" description="Vous pouvez valider ou remettre ce revenu en attente directement depuis l’édition." icon={<CheckCircle2 className="h-4 w-4" />} compact>
               <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-3">
                 <Checkbox checked={editRecu} onCheckedChange={checked => { const next=!!checked; setEditRecu(next); if(next && editMontantReel == null) setEditMontantReel(editMontant); if(!next) setEditMontantReel(null) }} />
                 <span className="min-w-0">
