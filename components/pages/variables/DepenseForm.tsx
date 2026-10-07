@@ -140,39 +140,78 @@ export default function DepenseForm({
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[88vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">Date de transaction</label>
-              <Input type="date" value={txDate} onChange={event => setTxDate(event.target.value)} />
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-[170px_150px_1fr] sm:items-end">
+              <div>
+                <label className="mb-1 block text-xs text-slate-400">Date de transaction</label>
+                <Input type="date" value={txDate} onChange={event => setTxDate(event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-slate-400">Montant</label>
+                <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="0,00 €" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-slate-400">Description <span className="text-slate-600">(optionnel)</span></label>
+                <Input placeholder="Ex. Hyper U" value={txInfos} onChange={event => setTxInfos(event.target.value)} />
+              </div>
             </div>
 
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
-              <input
-                type="checkbox"
-                className="checkbox checkbox-sm"
-                checked={txValidated}
-                onChange={event => {
-                  const checked = event.target.checked
-                  setTxValidated(checked)
-                  setTxDateValidation(checked ? (txDateValidation || localDateISO()) : '')
-                }}
-              />
-              Dépense validée
-            </label>
+            {!splitMode && (
+              <div className="rounded-xl border border-slate-800/70 bg-slate-950/30 p-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs text-slate-500">Catégorie</label>
+                    <div className="grid grid-cols-[1fr_40px] gap-2">
+                      <SearchableSelect
+                        value={txCat}
+                        options={parentOptions}
+                        onChange={value => { setTxCat(value); setTxSubCat('') }}
+                        placeholder="Sélectionner une catégorie"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-10 w-10 p-0"
+                        aria-label="Créer une catégorie"
+                        onClick={() => setCategoryTarget({ scope: 'main', parentId: null })}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
 
-            {doubleDate && txValidated && (
-              <div>
-                <label className="mb-1 block text-xs text-slate-400">Date de validation</label>
-                <Input type="date" value={txDateValidation} onChange={event => setTxDateValidation(event.target.value)} />
+                  {subcategoriesEnabled && (
+                    <div>
+                      <label className="mb-1.5 block text-xs text-slate-500">Sous-catégorie <span className="text-slate-700">(optionnel)</span></label>
+                      <div className="grid grid-cols-[1fr_40px] gap-2">
+                        <SearchableSelect
+                          value={txSubCat}
+                          options={[
+                            { value: '', label: 'Aucune sous-catégorie', icon: '—' },
+                            ...subCats.map((sub: any) => ({ value: sub.id, label: sub.nom, icon: sub.icone })),
+                          ]}
+                          onChange={setTxSubCat}
+                          placeholder={txCat ? 'Aucune sous-catégorie' : 'Choisir une catégorie'}
+                          disabled={!txCat}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-10 w-10 p-0"
+                          aria-label="Créer une sous-catégorie"
+                          disabled={!txCat}
+                          onClick={() => txCat && setCategoryTarget({ scope: 'main', parentId: txCat })}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-
-            <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
-              <CalculatorInput value={txMontant} onChange={setTxMontant} placeholder="Montant total" />
-              <Input placeholder="Informations (optionnel)" value={txInfos} onChange={event => setTxInfos(event.target.value)} />
-            </div>
 
             {splitEnabled && (
               <button
@@ -185,195 +224,139 @@ export default function DepenseForm({
               </button>
             )}
 
-            {!splitMode && (
-              <>
-                <div className="rounded-xl border border-slate-800/70 bg-slate-950/30 p-3">
-                  <p className="mb-3 text-sm font-medium text-slate-200">Classement</p>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="mb-1.5 block text-xs text-slate-500">Catégorie</label>
-                      <div className="grid grid-cols-[1fr_44px] gap-2">
-                        <SearchableSelect
-                          value={txCat}
-                          options={parentOptions}
-                          onChange={value => { setTxCat(value); setTxSubCat('') }}
-                          placeholder="Sélectionner une catégorie"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-11 w-11 p-0"
-                          aria-label="Créer une catégorie"
-                          onClick={() => setCategoryTarget({ scope: 'main', parentId: null })}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {subcategoriesEnabled && txCat && (
-                      <div>
-                        <label className="mb-1.5 block text-xs text-slate-500">Sous-catégorie <span className="text-slate-700">(optionnel)</span></label>
-                        <div className="grid grid-cols-[1fr_44px] gap-2">
-                          <SearchableSelect
-                            value={txSubCat}
-                            options={[
-                              { value: '', label: 'Aucune sous-catégorie', icon: '—' },
-                              ...subCats.map((sub: any) => ({ value: sub.id, label: sub.nom, icon: sub.icone })),
-                            ]}
-                            onChange={setTxSubCat}
-                            placeholder="Aucune sous-catégorie"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="h-11 w-11 p-0"
-                            aria-label="Créer une sous-catégorie"
-                            onClick={() => setCategoryTarget({ scope: 'main', parentId: txCat })}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <Button
-                  className="w-full"
-                  disabled={!txCat || txMontant <= 0}
-                  onClick={async () => {
-                    if (!txCat || txMontant <= 0) return
-                    await onSubmit({
-                      categorie_id: txCat,
-                      sous_categorie_id: txSubCat || null,
-                      montant: txMontant,
-                      date: txDate,
-                      date_validation: txValidated ? (txDateValidation || localDateISO()) : null,
-                      infos: txInfos || null,
-                    })
-                    resetForm()
-                    onOpenChange(false)
-                  }}
-                >
-                  Ajouter la dépense
-                </Button>
-              </>
-            )}
-
             {splitEnabled && splitMode && (
-              <>
-                <div className="space-y-3">
-                  {splitLines.map((line, index) => {
-                    const lineSubs = line.categorie_id ? getSubCats(line.categorie_id) : []
-                    return (
-                      <div key={index} className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/35 p-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-400">Répartition {index + 1}</span>
-                          {splitLines.length > 2 && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-400" onClick={() => setSplitLines(prev => prev.filter((_, i) => i !== index))}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </div>
+              <div className="space-y-2.5">
+                {splitLines.map((line, index) => {
+                  const lineSubs = line.categorie_id ? getSubCats(line.categorie_id) : []
+                  return (
+                    <div key={index} className="rounded-xl border border-slate-800 bg-slate-950/35 p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-400">Répartition {index + 1}</span>
+                        {splitLines.length > 2 && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-400" onClick={() => setSplitLines(prev => prev.filter((_, i) => i !== index))}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
 
-                        <div className="grid grid-cols-[1fr_44px] gap-2">
+                      <div className="grid gap-2 sm:grid-cols-[1fr_1fr_130px]">
+                        <div className="grid grid-cols-[1fr_40px] gap-2">
                           <SearchableSelect
                             value={line.categorie_id}
                             options={parentOptions}
                             onChange={value => updateSplitLine(index, 'categorie_id', value)}
                             placeholder="Catégorie"
                           />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="h-11 w-11 p-0"
-                            onClick={() => setCategoryTarget({ scope: 'split', lineIndex: index, parentId: null })}
-                            aria-label="Créer une catégorie"
-                          >
+                          <Button type="button" variant="outline" className="h-10 w-10 p-0" onClick={() => setCategoryTarget({ scope: 'split', lineIndex: index, parentId: null })} aria-label="Créer une catégorie">
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
 
-                        {subcategoriesEnabled && line.categorie_id && (
-                          <div className="grid grid-cols-[1fr_44px] gap-2">
-                            <SearchableSelect
-                              value={line.sous_categorie_id}
-                              options={[
-                                { value: '', label: 'Aucune sous-catégorie', icon: '—' },
-                                ...lineSubs.map((sub: any) => ({ value: sub.id, label: sub.nom, icon: sub.icone })),
-                              ]}
-                              onChange={value => updateSplitLine(index, 'sous_categorie_id', value)}
-                              placeholder="Sous-catégorie"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="h-11 w-11 p-0"
-                              onClick={() => setCategoryTarget({ scope: 'split', lineIndex: index, parentId: line.categorie_id })}
-                              aria-label="Créer une sous-catégorie"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-
-                        <div className="grid gap-2 sm:grid-cols-[150px_1fr]">
-                          <CalculatorInput value={line.montant} onChange={value => updateSplitLine(index, 'montant', value)} placeholder="Montant" />
-                          <Input placeholder="Informations (optionnel)" value={line.infos} onChange={event => updateSplitLine(index, 'infos', event.target.value)} />
+                        <div className="grid grid-cols-[1fr_40px] gap-2">
+                          <SearchableSelect
+                            value={line.sous_categorie_id}
+                            options={[
+                              { value: '', label: 'Aucune sous-catégorie', icon: '—' },
+                              ...lineSubs.map((sub: any) => ({ value: sub.id, label: sub.nom, icon: sub.icone })),
+                            ]}
+                            onChange={value => updateSplitLine(index, 'sous_categorie_id', value)}
+                            placeholder="Sous-catégorie"
+                            disabled={!line.categorie_id || !subcategoriesEnabled}
+                          />
+                          <Button type="button" variant="outline" className="h-10 w-10 p-0" disabled={!line.categorie_id || !subcategoriesEnabled} onClick={() => line.categorie_id && setCategoryTarget({ scope: 'split', lineIndex: index, parentId: line.categorie_id })} aria-label="Créer une sous-catégorie">
+                            <Plus className="h-4 w-4" />
+                          </Button>
                         </div>
+
+                        <CalculatorInput value={line.montant} onChange={value => updateSplitLine(index, 'montant', value)} placeholder="Montant" />
                       </div>
-                    )
-                  })}
-                </div>
 
-                <Button variant="outline" size="sm" className="w-full" onClick={() => setSplitLines(prev => [...prev, { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' }])}>
-                  <Plus className="mr-1 h-3.5 w-3.5" /> Ajouter une répartition
-                </Button>
-
-                <div className={`rounded-xl border p-3 text-sm ${Math.abs(splitRemaining) < 0.01 ? 'border-emerald-500/25 bg-emerald-500/10' : 'border-amber-500/25 bg-amber-500/10'}`}>
-                  <div className="flex justify-between"><span className="text-slate-500">Total</span><span className="font-bold text-slate-100">{formatEuro(txMontant)}</span></div>
-                  <div className="mt-1 flex justify-between"><span className="text-slate-500">Réparti</span><span className="font-semibold text-slate-100">{formatEuro(sumSplitLines)}</span></div>
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="text-slate-500">Reste</span>
-                    <div className="flex items-center gap-2">
-                      <span className={`font-bold ${Math.abs(splitRemaining) < 0.01 ? 'text-emerald-300' : 'text-amber-300'}`}>{formatEuro(splitRemaining)}</span>
-                      {splitRemaining > 0.01 && (
-                        <button
-                          type="button"
-                          onClick={() => setSplitLines(prev => prev.map((line, i) => i === prev.length - 1 ? { ...line, montant: Math.round((line.montant + splitRemaining) * 100) / 100 } : line))}
-                          className="text-[10px] font-medium text-indigo-300 hover:text-indigo-200"
-                        >
-                          Compléter
-                        </button>
-                      )}
+                      <Input className="mt-2" placeholder="Description de cette répartition (optionnel)" value={line.infos} onChange={event => updateSplitLine(index, 'infos', event.target.value)} />
                     </div>
+                  )
+                })}
+
+                <div className="grid gap-2 sm:grid-cols-[1fr_210px]">
+                  <Button variant="outline" size="sm" onClick={() => setSplitLines(prev => [...prev, { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' }])}>
+                    <Plus className="mr-1 h-3.5 w-3.5" />Ajouter une répartition
+                  </Button>
+                  <div className={`flex items-center justify-between rounded-xl border px-3 py-2 text-xs ${Math.abs(splitRemaining) < 0.01 ? 'border-emerald-500/25 bg-emerald-500/10' : 'border-amber-500/25 bg-amber-500/10'}`}>
+                    <span className="text-slate-500">Reste à répartir</span>
+                    <span className={`font-bold ${Math.abs(splitRemaining) < 0.01 ? 'text-emerald-300' : 'text-amber-300'}`}>{formatEuro(splitRemaining)}</span>
                   </div>
                 </div>
-
-                <Button
-                  className="w-full"
-                  disabled={!splitValid || txMontant <= 0}
-                  onClick={async () => {
-                    if (!onSubmitSplit || !splitValid) return
-                    await onSubmitSplit(
-                      {
-                        categorie_id: splitLines[0].categorie_id,
-                        montant: txMontant,
-                        date: txDate,
-                        date_validation: doubleDate ? (txDateValidation || null) : (txValidated ? (txDateValidation || localDateISO()) : null),
-                        infos: txInfos || null,
-                      },
-                      splitLines.map(line => ({ ...line, sous_categorie_id: line.sous_categorie_id || null, infos: line.infos || null })) as any,
-                    )
-                    resetForm()
-                    onOpenChange(false)
-                  }}
-                >
-                  Créer la dépense répartie
-                </Button>
-              </>
+              </div>
             )}
+
+            <div className="rounded-xl border border-slate-800/70 bg-slate-950/25 p-3">
+              <div className={`grid gap-3 ${doubleDate && txValidated ? 'sm:grid-cols-[1fr_180px]' : ''}`}>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-sm"
+                    checked={txValidated}
+                    onChange={event => {
+                      const checked = event.target.checked
+                      setTxValidated(checked)
+                      setTxDateValidation(checked ? (txDateValidation || localDateISO()) : '')
+                    }}
+                  />
+                  Dépense validée
+                </label>
+
+                {doubleDate && txValidated && (
+                  <div>
+                    <label className="mb-1 block text-xs text-slate-400">Date de validation</label>
+                    <Input type="date" value={txDateValidation} onChange={event => setTxDateValidation(event.target.value)} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {!splitMode ? (
+              <Button
+                className="w-full"
+                disabled={!txCat || txMontant <= 0}
+                onClick={async () => {
+                  if (!txCat || txMontant <= 0) return
+                  await onSubmit({
+                    categorie_id: txCat,
+                    sous_categorie_id: txSubCat || null,
+                    montant: txMontant,
+                    date: txDate,
+                    date_validation: txValidated ? (txDateValidation || localDateISO()) : null,
+                    infos: txInfos || null,
+                  })
+                  resetForm()
+                  onOpenChange(false)
+                }}
+              >
+                Ajouter la dépense
+              </Button>
+            ) : (
+              <Button
+                className="w-full"
+                disabled={!splitValid || txMontant <= 0}
+                onClick={async () => {
+                  if (!onSubmitSplit || !splitValid) return
+                  await onSubmitSplit(
+                    {
+                      categorie_id: splitLines[0].categorie_id,
+                      montant: txMontant,
+                      date: txDate,
+                      date_validation: txValidated ? (txDateValidation || localDateISO()) : null,
+                      infos: txInfos || null,
+                    },
+                    splitLines.map(line => ({ ...line, sous_categorie_id: line.sous_categorie_id || null, infos: line.infos || null })) as any,
+                  )
+                  resetForm()
+                  onOpenChange(false)
+                }}
+              >
+                Créer la dépense répartie
+              </Button>
+            )}
+          </div>
           </div>
         </DialogContent>
       </Dialog>
