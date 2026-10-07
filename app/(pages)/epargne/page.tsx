@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { ArchiveRestore, ChevronDown, PiggyBank, Plus } from 'lucide-react'
+import { ArchiveRestore, ChevronDown, PiggyBank, Plus, Repeat2 } from 'lucide-react'
 
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
@@ -17,6 +17,7 @@ import MouvementForm from '@/components/pages/epargne/MouvementForm'
 import { EpargneRecurrenceEditDialog, MouvementEditDialog, MouvementScopeDialog, MouvementDeleteDialog } from '@/components/pages/epargne/MouvementDialogs'
 import DettesPanel from '@/components/pages/epargne/DettesPanel'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 import { useEnveloppes, useMouvements, useEpargneRecurrentes } from '@/lib/hooks/useEpargne'
 import { useEnveloppesAtMonth } from '@/lib/hooks/useEnveloppesAtMonth'
@@ -38,6 +39,7 @@ export default function EpargnePage() {
   const [openMvt, setOpenMvt] = useState(false)
   const [openEnvelope, setOpenEnvelope] = useState(false)
   const [openSavingsInitialization, setOpenSavingsInitialization] = useState(false)
+  const [openRecurringManager, setOpenRecurringManager] = useState(false)
 
   useEffect(() => {
     const syncFromUrl = () => {
@@ -126,6 +128,13 @@ export default function EpargnePage() {
       if (movement) setEditMvt({ id:movement.id, montant:Number(movement.montant), note:movement.note || null, recurrentId:movement.recurrent_id || null, date:String(movement.date).slice(0,10) })
     }
   }, [isAdminViewing, moisId, effectiveMouvements])
+
+  const selectEnvelope = (id: string) => {
+    setSelectedEnvelopeId(id)
+    if (typeof window !== 'undefined' && window.innerWidth < 1280) {
+      window.setTimeout(() => document.getElementById('savings-right-panel')?.scrollIntoView({ behavior:'smooth', block:'start' }), 0)
+    }
+  }
 
   const openMovement = (type:MovementType, envelopeId?:string) => {
     setMovementType(type)
@@ -305,6 +314,7 @@ export default function EpargnePage() {
                   </label>
                   {!isAdminViewing && (
                     <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setOpenRecurringManager(true)}><Repeat2 className="mr-1 h-4 w-4"/>Récurrences</Button>
                       <Button size="sm" variant="outline" onClick={() => setOpenSavingsInitialization(true)}>Initialiser l’épargne</Button>
                       <Button size="sm" onClick={() => setOpenEnvelope(true)}><Plus className="mr-1 h-4 w-4"/>Nouvelle enveloppe</Button>
                     </div>
@@ -322,7 +332,7 @@ export default function EpargnePage() {
                         readOnly={isAdminViewing}
                         selected={selectedEnvelopeId === env.id}
                         monthlyNet={monthlyNetFor(env.id)}
-                        onSelect={() => setSelectedEnvelopeId(env.id)}
+                        onSelect={() => selectEnvelope(env.id)}
                         onArchive={id => archive.mutate(id)}
                       />
                     ))}
@@ -337,6 +347,7 @@ export default function EpargnePage() {
                 )}
               </div>
 
+              <div id="savings-right-panel" className="scroll-mt-20">
               {selectedEnvelope ? (
                 <EnveloppeDetailPanel
                   env={selectedEnvelope}
@@ -384,10 +395,40 @@ export default function EpargnePage() {
                   }) : undefined}
                 />
               )}
+              </div>
             </div>
 
           </div>
         ) : <DettesPanel />}
+
+        <Dialog open={openRecurringManager} onOpenChange={setOpenRecurringManager}>
+          <DialogContent className="max-w-2xl border-slate-700 bg-slate-900">
+            <DialogHeader>
+              <DialogTitle>Épargne récurrente</DialogTitle>
+              <p className="text-xs text-slate-500">Vue globale des récurrences d’épargne, toutes enveloppes confondues.</p>
+            </DialogHeader>
+            <div className="max-h-[65vh] divide-y divide-slate-800/70 overflow-y-auto rounded-xl border border-slate-800/70">
+              {savingsRecurrents.length === 0 ? (
+                <p className="p-5 text-sm text-slate-500">Aucune récurrence d’épargne.</p>
+              ) : savingsRecurrents.map((rec:any) => {
+                const envName = effectiveEnveloppes.find((env:any)=>env.id===rec.enveloppe_dest_id)?.nom || 'Enveloppe'
+                const frequency = Number(rec.frequence_mois || 1)
+                const frequencyLabel = frequency===1?'Tous les mois':frequency===12?'Tous les ans':'Tous les '+frequency+' mois'
+                return (
+                  <div key={rec.id} className="flex items-center gap-3 px-3 py-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-300"><PiggyBank className="h-4 w-4"/></span>
+                    <button type="button" onClick={()=>{setEditRecurring(rec);setOpenRecurringManager(false)}} className="min-w-0 flex-1 text-left">
+                      <p className="truncate text-sm font-semibold text-slate-200">{envName}</p>
+                      <p className="text-[10px] text-slate-500">{frequencyLabel} · jour {Number(rec.jour_prevu || 1)} · {Number(rec.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</p>
+                    </button>
+                    <span className={"rounded-full px-2 py-0.5 text-[9px] "+(rec.actif===false?'bg-slate-800 text-slate-500':'bg-emerald-500/10 text-emerald-300')}>{rec.actif===false?'Suspendue':'Active'}</span>
+                    {!isAdminViewing && <Button size="sm" variant="ghost" onClick={()=>updateRecurrent.mutate({id:rec.id,actif:rec.actif===false})}>{rec.actif===false?'Réactiver':'Suspendre'}</Button>}
+                  </div>
+                )
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <EnveloppeEditDialog editEnv={editEnv} onClose={() => setEditEnv(null)} onSave={handleSaveEditEnv} />
         <MouvementForm
