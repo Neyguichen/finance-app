@@ -15,7 +15,7 @@ const familyLabels = {
 } as const
 
 export default function NotificationsPage() {
-  const { espace, isAdminViewing } = useApp()
+  const { espace, isAdminViewing, userId } = useApp()
   const todoEnabled = espace?.features?.todo !== false
   const allowedFamilies = ([
     ['finances', espace?.features?.notification_finances !== false],
@@ -23,7 +23,7 @@ export default function NotificationsPage() {
     ['neyguichen', espace?.features?.notification_neyguichen !== false],
   ] as const).filter(([, enabled]) => enabled).map(([family]) => family)
   const notifications = useNotifications(espace?.id, allowedFamilies)
-  const todos = useTodos(todoEnabled ? espace?.id : undefined)
+  const todos = useTodos(todoEnabled && !isAdminViewing ? userId ?? undefined : undefined)
   const [family, setFamily] = useState<'all' | 'finances' | 'actions' | 'neyguichen'>('all')
   const [unreadOnly, setUnreadOnly] = useState(false)
 

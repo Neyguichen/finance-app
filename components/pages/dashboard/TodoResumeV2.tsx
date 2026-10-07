@@ -9,9 +9,9 @@ import { useTodos, type TodoItem } from '@/lib/hooks/useTodos'
 import { formatDate, localDateISO } from '@/lib/utils'
 
 export default function TodoResumeV2() {
-  const { espace, isAdminViewing } = useApp()
+  const { espace, isAdminViewing, userId } = useApp()
   const todoEnabled = espace?.features?.todo !== false
-  const todos = useTodos(!isAdminViewing && todoEnabled ? espace?.id : undefined)
+  const todos = useTodos(!isAdminViewing && todoEnabled ? userId ?? undefined : undefined)
   const [adding, setAdding] = useState(false)
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')

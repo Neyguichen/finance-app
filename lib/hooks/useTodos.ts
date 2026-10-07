@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 
 export type TodoItem = {
   id: string
-  espace_id: string
+  owner_user_id: string
+  espace_id: string | null
   title: string
   status: 'todo' | 'done'
   due_date: string | null
@@ -19,18 +20,17 @@ export type TodoItem = {
   completed_at: string | null
 }
 
-export function useTodos(espaceId: string | undefined) {
+export function useTodos(userId: string | undefined) {
   const supabase = createClient()
   const queryClient = useQueryClient()
 
   const query = useQuery({
-    queryKey: ['todos', espaceId],
-    enabled: !!espaceId,
+    queryKey: ['todos', userId],
+    enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('todos')
         .select('*')
-        .eq('espace_id', espaceId!)
         .order('status', { ascending: true })
         .order('due_date', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false })
@@ -48,14 +48,15 @@ export function useTodos(espaceId: string | undefined) {
       link_href?: string | null
       object_type?: string | null
       object_id?: string | null
+      espace_id?: string | null
     }) => {
-      if (!espaceId) throw new Error('Budget manquant')
+      if (!userId) throw new Error('Utilisateur manquant')
 
       if (input.object_type && input.object_id) {
         const { data: existing, error: existingError } = await supabase
           .from('todos')
           .select('*')
-          .eq('espace_id', espaceId)
+          .eq('owner_user_id', userId)
           .eq('object_type', input.object_type)
           .eq('object_id', input.object_id)
           .order('created_at', { ascending: false })
@@ -68,7 +69,8 @@ export function useTodos(espaceId: string | undefined) {
       const { data, error } = await supabase
         .from('todos')
         .insert({
-          espace_id: espaceId,
+          owner_user_id: userId,
+          espace_id: input.espace_id || null,
           title: input.title.trim(),
           due_date: input.due_date || null,
           note: input.note?.trim() || null,
@@ -82,7 +84,7 @@ export function useTodos(espaceId: string | undefined) {
       if (error) throw error
       return data as TodoItem
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', espaceId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', userId] }),
   })
 
   const updateTodo = useMutation({
@@ -91,7 +93,7 @@ export function useTodos(espaceId: string | undefined) {
         ...updates,
         updated_at: new Date().toISOString(),
       }
-      delete payload.espace_id
+      delete payload.owner_user_id
       delete payload.created_at
       const { data, error } = await supabase
         .from('todos')
@@ -102,7 +104,7 @@ export function useTodos(espaceId: string | undefined) {
       if (error) throw error
       return data as TodoItem
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', espaceId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', userId] }),
   })
 
   const toggleTodo = useMutation({
@@ -118,7 +120,7 @@ export function useTodos(espaceId: string | undefined) {
         .eq('id', todo.id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', espaceId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', userId] }),
   })
 
   const deleteTodo = useMutation({
@@ -126,7 +128,7 @@ export function useTodos(espaceId: string | undefined) {
       const { error } = await supabase.from('todos').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', espaceId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', userId] }),
   })
 
   return { ...query, createTodo, updateTodo, toggleTodo, deleteTodo }
