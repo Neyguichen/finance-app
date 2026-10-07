@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Repeat2 } from 'lucide-react'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
 import { useMouvements, useEnveloppes } from '@/lib/hooks/useEpargne'
@@ -21,7 +20,6 @@ import RevenuEditDialog from '@/components/pages/revenus/RevenuEditDialog'
 import RevenuDeleteDialog from '@/components/pages/revenus/RevenuDeleteDialog'
 import RevenusFab from '@/components/pages/revenus/RevenusFab'
 import { summarizeIncome } from '@/lib/income-summary'
-import { Button } from '@/components/ui/button'
 
 function previousMonthEnd(month: string) {
   const [year, monthNumber] = month.slice(0,7).split('-').map(Number)
@@ -176,11 +174,6 @@ export default function RevenusPage() {
       <div className="mx-auto w-full max-w-7xl space-y-4 p-3 pb-28 sm:p-4">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="min-w-0 flex-1 text-xl font-bold">Revenus</h1>
-          {!isAdminViewing && (
-            <Button size="sm" variant="outline" onClick={() => router.push('/revenus/recurrents')}>
-              <Repeat2 className="mr-1.5 h-4 w-4" />Revenus récurrents
-            </Button>
-          )}
         </div>
 
         <RevenusResume
@@ -205,6 +198,7 @@ export default function RevenusPage() {
           doubleDate={espace?.double_date ?? false}
           getEnvNom={getEnvNom}
           onAdd={() => setFormOpen(true)}
+          onManageRecurring={() => router.push('/revenus/recurrents')}
           onToggleRecu={(id, recu, dateReelle) => toggleRecu.mutate({ id, recu, dateReelle })}
           onEdit={setEditTarget}
           onDelete={setDeleteTarget}
