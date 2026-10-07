@@ -17,6 +17,7 @@ type EditProps = {
 export function MouvementEditDialog({ editMvt, onClose, onSave }: EditProps) {
   const [montant, setMontant] = useState(0)
   const [note, setNote] = useState('')
+  const [jourPrevu, setJourPrevu] = useState(1)
   const [date, setDate] = useState('')
 
   useEffect(() => {
@@ -118,9 +119,9 @@ export function MouvementDeleteDialog({ target, onClose, onDelete }: DeleteProps
 
 
 type RecurrenceEditProps = {
-  target: { id: string; montant: number; frequence_mois: number; note?: string | null } | null
+  target: { id: string; montant: number; frequence_mois: number; jour_prevu?: number | null; note?: string | null } | null
   onClose: () => void
-  onSave: (data: { id: string; montant: number; frequence_mois: number; note: string | null }) => void
+  onSave: (data: { id: string; montant: number; frequence_mois: number; jour_prevu: number; note: string | null }) => void
 }
 
 export function EpargneRecurrenceEditDialog({ target, onClose, onSave }: RecurrenceEditProps) {
@@ -133,6 +134,7 @@ export function EpargneRecurrenceEditDialog({ target, onClose, onSave }: Recurre
     setMontant(Number(target.montant))
     setFrequence(Number(target.frequence_mois || 1))
     setNote(target.note || '')
+    setJourPrevu(Number(target.jour_prevu || 1))
   }, [target])
 
   return (
@@ -162,6 +164,9 @@ export function EpargneRecurrenceEditDialog({ target, onClose, onSave }: Recurre
                 <option value={12}>Tous les ans</option>
               </select>
             </FormField>
+            <FormField label="Jour prévu" hint="1 par défaut">
+              <Input type="number" min={1} max={31} value={jourPrevu} onChange={e => setJourPrevu(Math.min(31, Math.max(1, Number(e.target.value) || 1)))} />
+            </FormField>
             <FormField label="Note" hint="Facultatif">
               <Input value={note} onChange={e => setNote(e.target.value)} placeholder="Ex. Épargne vacances" />
             </FormField>
@@ -171,7 +176,7 @@ export function EpargneRecurrenceEditDialog({ target, onClose, onSave }: Recurre
           <Button variant="ghost" onClick={onClose}>Annuler</Button>
           <Button
             disabled={montant <= 0}
-            onClick={() => target && onSave({ id:target.id, montant, frequence_mois:frequence, note:note || null })}
+            onClick={() => target && onSave({ id:target.id, montant, frequence_mois:frequence, jour_prevu:jourPrevu, note:note || null })}
           >
             Appliquer aux prochains mois
           </Button>
