@@ -776,13 +776,19 @@ export default function DepensesPage() {
                 <CardTitle className="text-sm text-slate-200">{browsedCategory ? (browsedSubcategory ? browsedSubcategory.nom : browsedCategory.nom) : 'Dépenses réelles'}</CardTitle>
                 <p className="mt-0.5 text-[10px] text-slate-500">{browsedCategory ? 'Détail du budget et des dépenses validées.' : 'Mouvements validés du mois.'}</p>
               </div>
-              <div className="flex items-center gap-2">
-                {!browsedCategory && <label className="relative">
-                  <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-[11px] text-slate-300 outline-none">
-                    <option value="payment">Date de transaction</option><option value="validation">Date de validation</option>
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500"/>
-                </label>}
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {!browsedCategory && <>
+                  <label className="relative">
+                    <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-[11px] text-slate-300 outline-none">
+                      <option value="payment">Date de transaction</option><option value="validation">Date de validation</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500"/>
+                  </label>
+                  {!isAdminViewing && <>
+                    <Button size="sm" variant="outline" className="h-8" onClick={()=>setManagementView('fixed')}><CalendarClock className="mr-1 h-3.5 w-3.5"/>Charges fixes</Button>
+                    <Button size="sm" className="hidden h-8 md:inline-flex" onClick={()=>setTxOpen(true)}><Plus className="mr-1 h-3.5 w-3.5"/>Dépense</Button>
+                  </>}
+                </>}
                 {browsedCategory && <Button size="icon" variant="ghost" className="h-8 w-8" onClick={()=>{setBrowseCategoryId(null);setBrowseSubcategoryId(null)}} aria-label="Fermer le détail"><X className="h-4 w-4"/></Button>}
               </div>
             </CardHeader>
