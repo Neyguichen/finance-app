@@ -107,7 +107,7 @@ export default function DepensesPage() {
   const { data: fixedRecurrents = [], create: createFixedRecurring, update: updateFixedRecurring } = useChargesFixesRecurrentes(espace?.id)
   const { data: selectedOccurrences = [], add: addOccurrence, remove: removeOccurrence, updateScope: updateOccurrenceScope } = useChargeFixeOccurrences(selectedFixedRecurringId, espace?.id)
   const { data: adminData } = useAdminMoisData(month)
-  const { data: remboursements = [], create: createRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
+  const { data: remboursements = [], create: createRemb, update: updateRemb, remove: removeRemb } = useRemboursements(rembTx?.id)
 
   const subcategoriesEnabled = espace?.features?.subcategories !== false
   const splitEnabled = espace?.features?.split_transactions !== false
@@ -1175,7 +1175,7 @@ export default function DepensesPage() {
         <DepenseEditDialog editTx={editTx} onClose={() => setEditTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} doubleDate={espace?.double_date ?? false} subcategoriesEnabled={subcategoriesEnabled} onSave={async (data:any) => { await updateTx.mutateAsync(data); setEditTx(null) }} onRemb={reimbursementsEnabled ? ((tx:any) => { setEditTx(null); setRembTx(tx) }) : undefined} onSplit={splitEnabled ? ((tx:any) => { setEditTx(null); setSplitTx(tx) }) : undefined} onUnsplit={splitEnabled ? (async(tx:any) => { await unsplit.mutateAsync(tx.id); setEditTx(null) }) : undefined} />
         <DepenseDeleteDialog target={deleteTx} onClose={() => setDeleteTx(null)} onDelete={(id:string) => { removeTx.mutate(id); setDeleteTx(null) }} />
         {splitEnabled && <SplitDialog tx={splitTx} onClose={() => setSplitTx(null)} categories={effectiveCategories} espaceId={espace?.id} createCat={createCat} onSave={async(parentId:string, lines:any[]) => { await split.mutateAsync({ parentId, lines }); setSplitTx(null) }} />}
-        {reimbursementsEnabled && <RemboursementDialog tx={rembTx} reimbursements={remboursements} onClose={() => setRembTx(null)} onCreate={data => createRemb.mutateAsync(data).then(() => undefined)} onRemove={id => removeRemb.mutateAsync(id)} />}
+        {reimbursementsEnabled && <RemboursementDialog tx={rembTx} reimbursements={remboursements} onClose={() => setRembTx(null)} onCreate={data => createRemb.mutateAsync(data).then(() => undefined)} onUpdate={data => updateRemb.mutateAsync(data).then(() => undefined)} onRemove={id => removeRemb.mutateAsync(id)} />}
       </div>
     </div>
   )
