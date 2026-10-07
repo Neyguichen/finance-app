@@ -8,11 +8,11 @@ import { formatEuro } from '@/lib/utils'
 const palette = ['#0ea5e9','#34d399','#c084fc','#fbbf24','#fb7185','#60a5fa','#2dd4bf','#a78bfa']
 
 type Props = {
-  revenus: Array<{ id:string; nom:string; montant:number; recu:boolean }>
+  revenus: Array<{ id:string; nom:string; montant:number; montant_reel?:number|null; recu:boolean }>
 }
 
 export default function RepartitionRevenus({ revenus }: Props) {
-  const rows = useMemo(() => revenus.filter(item => item.recu && Number(item.montant) > 0).map(item => ({ id:item.id, name:item.nom, value:Number(item.montant) })).sort((a,b) => b.value-a.value), [revenus])
+  const rows = useMemo(() => revenus.filter(item => item.recu && Number(item.montant_reel ?? item.montant) > 0).map(item => ({ id:item.id, name:item.nom, value:Number(item.montant_reel ?? item.montant) })).sort((a,b) => b.value-a.value), [revenus])
   const total = rows.reduce((sum,row) => sum + row.value, 0)
   const [selected, setSelected] = useState<string | null>(null)
   const selectedRow = rows.find(row => row.id === selected)
