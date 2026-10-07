@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { ChargeFixe, ChargeFixeRecurrente } from '@/lib/types'
-import { localDateISO } from '@/lib/utils'
+import { localDateISO, plannedDateForMonth } from '@/lib/utils'
 
 export function useChargesFixes(moisId: string | undefined) {
   const supabase = createClient()
@@ -174,6 +174,7 @@ export function useChargeFixeOccurrences(recurrentId: string | null | undefined,
           categorie_id: null,
           sous_categorie_id: null,
           payee: false,
+          date_prevue: plannedDateForMonth(normalizedMonth, recurring.jour_prevu),
           ordre: recurring.ordre || 0,
         })
         .select()
