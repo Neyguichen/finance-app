@@ -17,7 +17,7 @@ import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { useEnveloppes, useEpargneRecurrentes, useMouvements } from '@/lib/hooks/useEpargne'
 import { useRemboursements } from '@/lib/hooks/useRemboursements'
-import { formatDate, formatEuro } from '@/lib/utils'
+import { formatDate, formatEuro, plannedDateForMonth } from '@/lib/utils'
 
 const actions = [
   { key: 'income', label: 'Revenu', icon: ArrowUpCircle, tone: 'text-emerald-300 bg-emerald-500/10' },
@@ -54,7 +54,7 @@ export default function DashboardQuickAdd() {
     setActiveForm(key)
   }
 
-  const createIncomeHandler = async (values: { nom: string; montant: number; type: 'actif' | 'passif'; frequence: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => {
+  const createIncomeHandler = async (values: { nom: string; montant: number; montantReel: number | null; type: 'actif' | 'passif'; frequence: number; jourPrevu: number; datePrevue: string | null; recu: boolean; dateReelle: string | null }) => {
     if (!moisId || !espace) return
     let recurrentId: string | null = null
     if (values.frequence > 0) {
@@ -65,6 +65,7 @@ export default function DashboardQuickAdd() {
         montant: values.montant,
         actif: true,
         frequence_mois: values.frequence,
+        jour_prevu: values.jourPrevu || 1,
         ordre: revenus.length,
         mois_debut: month,
       })
@@ -76,15 +77,16 @@ export default function DashboardQuickAdd() {
       type: values.type,
       nom: values.nom,
       montant: values.montant,
+      montant_reel: values.recu ? values.montantReel : null,
       recu: values.recu,
-      date_prevue: values.datePrevue,
+      date_prevue: values.frequence > 0 ? plannedDateForMonth(month, values.jourPrevu) : values.datePrevue,
       date_reelle: values.recu ? values.dateReelle : null,
       ordre: revenus.length,
     })
     setActiveForm(null)
   }
 
-  const createFixedHandler = async (values: { nom: string; montant: number; frequence: number }) => {
+  const createFixedHandler = async (values: { nom: string; montant: number; frequence: number; jourPrevu: number }) => {
     if (!moisId || !espace) return
     const recurrent = await createFixedRecurring.mutateAsync({
       espace_id: espace.id,
@@ -94,6 +96,7 @@ export default function DashboardQuickAdd() {
       sous_categorie_id: null,
       actif: true,
       frequence_mois: Math.max(1, values.frequence),
+      jour_prevu: values.jourPrevu || 1,
       ordre: fixedCharges.length,
       mois_debut: month,
     })
@@ -105,6 +108,7 @@ export default function DashboardQuickAdd() {
       categorie_id: null,
       sous_categorie_id: null,
       payee: false,
+      date_prevue: plannedDateForMonth(month, values.jourPrevu),
       ordre: fixedCharges.length,
     })
     setActiveForm(null)
@@ -136,7 +140,7 @@ export default function DashboardQuickAdd() {
     return { id: created.id }
   }
 
-  const createSavingHandler = async (data: { type: 'epargne' | 'reprise' | 'transfert'; montant: number; note: string | null; sourceId: string | null; destId: string | null; frequence: number; date: string }) => {
+  const createSavingHandler = async (data: { type: 'epargne' | 'reprise' | 'transfert'; montant: number; note: string | null; sourceId: string | null; destId: string | null; frequence: number; jourPrevu: number; date: string }) => {
     if (!moisId || !espace) return
     if (data.frequence > 0 && data.type === 'epargne' && data.destId) {
       const recurrent = await createRecurringSaving.mutateAsync({
@@ -145,6 +149,7 @@ export default function DashboardQuickAdd() {
         montant: data.montant,
         actif: true,
         frequence_mois: data.frequence,
+        jour_prevu: data.jourPrevu || 1,
         mois_debut: month,
         note: data.note,
         ordre: 0,
