@@ -919,6 +919,23 @@ export default function DepensesPage() {
                       <div className="flex items-center gap-2"><span className={'rounded-full px-2 py-0.5 text-[9px] font-medium ' + (selectedFixedRecurring.actif === false ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500/10 text-emerald-300')}>{selectedFixedRecurring.actif === false ? 'Archivée' : 'Active'}</span><strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong></div>
                     </div>
                     <div className="rounded-xl border border-slate-800 p-3">
+                      <label className="text-[10px] text-slate-500">Jour prévu <span className="text-slate-600">(1 par défaut)</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={31}
+                          value={Number(selectedFixedRecurring.jour_prevu || 1)}
+                          disabled={isAdminViewing}
+                          onChange={event => updateFixedRecurring.mutate({
+                            id: selectedFixedRecurring.id,
+                            jour_prevu: Math.min(31, Math.max(1, Number(event.target.value) || 1)),
+                          })}
+                          className="input input-bordered input-sm mt-1 w-full"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Ajouter une occurrence</p>
                         <CalendarDays className="h-4 w-4 text-slate-600" />
