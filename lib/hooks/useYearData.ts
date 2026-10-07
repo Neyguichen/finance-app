@@ -31,7 +31,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       const monthByPrefix = new Map(moisList.map(mois => [String(mois.mois).slice(0, 7), mois.mois]))
 
       const [revResult, charResult, txResult, mvtResult, debtResult, budgetResult] = await Promise.all([
-        supabase.from('revenus').select('montant, type, recu, mois_id').in('mois_id', moisIds),
+        supabase.from('revenus').select('montant, montant_reel, type, recu, mois_id').in('mois_id', moisIds),
         supabase.from('charges_fixes').select('montant, montant_reel, payee, categorie_id, sous_categorie_id, mois_id').in('mois_id', moisIds),
         supabase.from('transactions').select('id, montant, categorie_id, sous_categorie_id, mois_id, is_split, parent_transaction_id, remboursements(montant)').in('mois_id', moisIds),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', moisIds),
@@ -94,7 +94,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
         const mois = moisMap.get(revenu.mois_id)
         if (mois && monthlyData[mois]) {
           monthlyData[mois].revenus += Number(revenu.montant)
-          if (revenu.recu) monthlyData[mois].revenusRecus += Number(revenu.montant)
+          if (revenu.recu) monthlyData[mois].revenusRecus += Number(revenu.montant_reel ?? revenu.montant)
         }
       }
 
