@@ -879,7 +879,18 @@ export default function DepensesPage() {
                     <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 sm:flex-nowrap sm:gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
                       <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-500">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
-                      <div className="ml-auto min-w-0 text-right"><strong className={entry.source==='fixed'?'text-purple-300':'text-rose-300'}>{formatEuro(entry.amount)}</strong><span className="ml-2 inline-block rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">Validé</span><p className="text-[10px] text-slate-600">{actualSort==='validation'?'Transaction : '+formatDate(entry.paymentDate):entry.validationDate?'Validation : '+formatDate(entry.validationDate):''}</p></div>
+                      <div className="ml-auto min-w-0 text-right">
+                        <div className="flex flex-wrap items-center justify-end gap-1.5">
+                          <strong className={entry.source==='fixed'?'text-purple-300':'text-rose-300'}>{formatEuro(entry.amount)}</strong>
+                          <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">Validé</span>
+                        </div>
+                        {entry.refund > 0 && <div className="mt-1 space-y-0.5">
+                          <p className="text-[10px] text-slate-500"><span className="line-through">{formatEuro(entry.grossAmount)}</span><span className="ml-1.5 text-emerald-300">Remboursé : {formatEuro(entry.refund)}</span></p>
+                          {!isAdminViewing && reimbursementsEnabled && entry.source==='transaction' &&
+                            <button type="button" className="text-[10px] font-medium text-indigo-300 hover:text-indigo-200" onClick={event=>{event.stopPropagation();setRembTx(entry.sourceData)}}>Gérer le remboursement</button>}
+                        </div>}
+                        <p className="text-[10px] text-slate-600">{actualSort==='validation'?'Transaction : '+formatDate(entry.paymentDate):entry.validationDate?'Validation : '+formatDate(entry.validationDate):''}</p>
+                      </div>
                       {!isAdminViewing&&<button className="shrink-0 p-1 text-slate-700 hover:text-rose-400" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-3.5 w-3.5"/></button>}
                     </div>
                   ))}
