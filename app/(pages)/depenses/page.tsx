@@ -767,19 +767,34 @@ export default function DepensesPage() {
             title: entry.title,
             subtitle: entry.subcategory ? entry.subcategory + ' · ' + entry.info : entry.info,
             amount: entry.amount,
+            recurring: entry.source === 'fixed' && !!entry.sourceData?.recurrent_id,
             plannedDate: entry.paymentDate,
           }))}
           readOnly={isAdminViewing}
           busy={togglePayee.isPending || updateFixed.isPending || updateTx.isPending}
-          onValidate={async (id, date, amount) => {
+          onValidate={async (id, date, amount, scope) => {
             const entry = pendingActualEntries.find((item:any) => item.id === id)
             if (!entry) return
             if (entry.source === 'fixed') {
+              if (scope === 'future' && entry.sourceData.recurrent_id) {
+                await updateOccurrenceScope.mutateAsync({
+                  recurrentId: entry.sourceData.recurrent_id,
+                  currentMonth: month,
+                  scope: 'future',
+                  updates: { montant: amount },
+                  pendingOnly: true,
+                })
+                await updateFixedRecurring.mutateAsync({
+                  id: entry.sourceData.recurrent_id,
+                  montant: amount,
+                })
+              }
               await updateFixed.mutateAsync({
                 id: entry.sourceData.id,
                 payee: true,
                 date_reelle: date,
                 montant_reel: amount,
+                ...(scope === 'future' ? { montant: amount } : {}),
               })
             } else {
               await updateTx.mutateAsync({
