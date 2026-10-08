@@ -1215,14 +1215,14 @@ export default function DepensesPage() {
         <Dialog open={!!moveCategoryId} onOpenChange={open => {if(!open){setMoveCategoryId(null);setMoveError('')}}}>
           <DialogContent className="max-w-md border-slate-700 bg-slate-900">
             <DialogHeader><DialogTitle>Réorganiser une catégorie</DialogTitle></DialogHeader>
-            <p className="text-xs text-slate-400">Le déplacement s'applique aussi aux dépenses et charges récurrentes de l'historique. Les montants de budgets restent inchangés.</p>
+            <p className="text-xs text-slate-400">Le déplacement s&apos;applique aussi aux dépenses et charges récurrentes de l&apos;historique. Les montants de budgets restent inchangés.</p>
             <label className="block text-sm text-slate-300">Nouvel emplacement
               <select className="input input-bordered mt-2 w-full" value={moveParentId} onChange={event => {setMoveParentId(event.target.value);setMoveError('')}}>
                 <option value="">Catégorie principale</option>
                 {parentCategories.filter((cat:any) => cat.id !== moveCategoryId).map((cat:any) => <option key={cat.id} value={cat.id}>Sous-catégorie de {cat.nom}</option>)}
               </select>
             </label>
-            {!!moveCategoryId && parentCategories.some((cat:any) => cat.id === moveCategoryId) && moveParentId !== '' && subCats(moveCategoryId).length > 0 && <p className="text-xs text-amber-300">Déplace d'abord les sous-catégories existantes de cette catégorie.</p>}
+            {!!moveCategoryId && parentCategories.some((cat:any) => cat.id === moveCategoryId) && moveParentId !== '' && subCats(moveCategoryId).length > 0 && <p className="text-xs text-amber-300">Déplace d&apos;abord les sous-catégories existantes de cette catégorie.</p>}
             {moveError && <p role="alert" className="text-xs text-rose-300">{moveError}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setMoveCategoryId(null)}>Annuler</Button>
