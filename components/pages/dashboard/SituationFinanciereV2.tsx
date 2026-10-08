@@ -3,6 +3,7 @@
 import { CalendarDays, CircleDollarSign, Info, Landmark, Scale, Sparkles, TrendingDown, TrendingUp, WalletCards } from 'lucide-react'
 import { useState } from 'react'
 import Link from 'next/link'
+import { createPortal } from 'react-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatEuro } from '@/lib/utils'
 import type { CashSummary } from '@/lib/financial-engine'
@@ -29,6 +30,7 @@ export default function SituationFinanciereV2({
   balance, openingBalance, summary, loading, today, selectedMonth, plannedMonthResult,
   projectedRemainingCashMovement, experimentalRemainingCashMovement,
 }: Props) {
+  const [helpPosition, setHelpPosition] = useState({ top: 0, left: 0 })
   const [help, setHelp] = useState<'available' | 'planned' | 'projection' | 'daily' | 'cashflow' | null>(null)
   const currentMonth = today.slice(0, 7)
   const isCurrentMonth = selectedMonth.slice(0, 7) === currentMonth
@@ -51,11 +53,11 @@ export default function SituationFinanciereV2({
 
   const HelpButton = ({ id }: { id: keyof typeof helpTexts | 'cashflow' }) => (
     <span className="relative inline-flex">
-      <button type="button" aria-label="Afficher l'explication" onClick={() => setHelp(help === id ? null : id)} className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-current/35 text-current/75 transition hover:bg-white/5">
+      <button type="button" aria-label="Afficher l'explication" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setHelpPosition({ top: rect.bottom + 8, left: Math.max(12, Math.min(rect.left, window.innerWidth - (id === 'cashflow' ? 340 : 280))) }); setHelp(help === id ? null : id) }} className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-current/35 text-current/75 transition hover:bg-white/5">
         <Info className="h-2.5 w-2.5" />
       </button>
-      {help === id && (
-        <span className={"absolute left-0 top-6 z-20 rounded-xl border border-slate-700 bg-slate-950 p-3 text-[11px] font-normal leading-4 text-slate-300 shadow-2xl " + (id === 'cashflow' ? 'w-80' : 'w-64')}>
+      {help === id && typeof document !== 'undefined' && createPortal(
+        <span role="tooltip" style={{ top: helpPosition.top, left: helpPosition.left }} className={"fixed z-[9999] max-w-[calc(100vw-24px)] rounded-xl border border-slate-700 bg-slate-950 p-3 text-[11px] font-normal leading-4 text-slate-300 shadow-2xl " + (id === 'cashflow' ? 'w-80' : 'w-64')}>
           {id === 'cashflow' ? (
             <span className="block space-y-1.5">
               <span className="mb-2 block font-semibold text-slate-200">Calcul de la variation de trésorerie</span>
@@ -70,7 +72,7 @@ export default function SituationFinanciereV2({
               <span className="mt-2 flex justify-between gap-4 border-t border-slate-800 pt-2 font-semibold text-slate-100"><span>= Variation de trésorerie</span><strong className={actualResult >= 0 ? 'text-emerald-300' : 'text-rose-300'}>{formatEuro(actualResult)}</strong></span>
             </span>
           ) : helpTexts[id]}
-        </span>
+        </span>, document.body
       )}
     </span>
   )
