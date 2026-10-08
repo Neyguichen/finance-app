@@ -91,7 +91,7 @@ export default function DettesPanel() {
   const isDebt = tab === 'je_dois'
 
   return (
-    <section className="space-y-3">
+    <section className="min-w-0 max-w-full space-y-3">
       <DetteForm open={openAdd} onOpenChange={setOpenAdd} tab={tab} onSubmit={handleAdd} />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -102,9 +102,9 @@ export default function DettesPanel() {
         {!isAdminViewing && <Button size="sm" className="ml-auto" onClick={() => setOpenAdd(true)}><Plus className="mr-1 h-4 w-4" />Ajouter</Button>}
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[1.05fr_.95fr]">
-        <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2">
+      <div className="grid min-w-0 max-w-full gap-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)]">
+        <div className="min-w-0 space-y-3">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
             <Summary label={isDebt ? 'Total restant dû' : 'Total à récupérer'} value={formatEuro(totalRemaining)} tone={isDebt ? 'text-rose-300' : 'text-emerald-300'} />
             <Summary label={isDebt ? 'Remboursé ce mois' : 'Récupéré ce mois'} value={formatEuro(repaidThisMonth)} tone="text-emerald-300" />
             <Summary label="Mensualité estimée" value={formatEuro(estimatedMonthly)} tone="text-amber-300" help="selon les échéances renseignées" />
@@ -137,13 +137,13 @@ export default function DettesPanel() {
           </Card>
         </div>
 
-        <Card className="nf-card-hover">
-          <CardContent className="p-0">
+        <Card className="nf-card-hover min-w-0 max-w-full">
+          <CardContent className="min-w-0 p-0">
             <div className="border-b border-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-200">{isDebt ? 'Mes dettes' : 'Mes créances'}</div>
             {active.length === 0 ? (
               <div className="p-8 text-center"><Handshake className="mx-auto h-6 w-6 text-slate-700"/><p className="mt-2 text-sm text-slate-500">{isDebt ? 'Aucune dette enregistrée.' : 'Aucune créance enregistrée.'}</p></div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
                 <table className="w-full min-w-[620px] text-xs">
                   <thead className="bg-slate-950/40 text-slate-500"><tr><th className="px-3 py-2 text-left">Nom</th><th className="px-3 py-2 text-left">Personne / organisme</th><th className="px-3 py-2 text-right">Restant</th><th className="px-3 py-2 text-right">Fin prévue</th><th className="px-3 py-2 text-right">Statut</th></tr></thead>
                   <tbody>
@@ -186,5 +186,5 @@ export default function DettesPanel() {
 }
 
 function Summary({label,value,tone,help}:{label:string;value:string;tone:string;help?:string}) {
-  return <Card className="nf-card-hover"><CardContent className="p-3"><p className="text-[10px] text-slate-500">{label}</p><p className={'mt-1 text-base font-bold '+tone}>{value}</p>{help&&<p className="mt-1 text-[9px] text-slate-700">{help}</p>}</CardContent></Card>
+  return <Card className="nf-card-hover min-w-0"><CardContent className="min-w-0 p-3"><p className="text-[10px] text-slate-500">{label}</p><p className={'mt-1 break-words text-base font-bold '+tone}>{value}</p>{help&&<p className="mt-1 text-[9px] text-slate-700">{help}</p>}</CardContent></Card>
 }
