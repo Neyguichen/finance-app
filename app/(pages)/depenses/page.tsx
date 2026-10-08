@@ -693,7 +693,7 @@ export default function DepensesPage() {
 
           <Card className="h-full border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel par type</CardTitle></CardHeader>
-            <CardContent className="space-y-2 p-3 pt-0">
+            <CardContent className="min-w-0 space-y-2 p-3 pt-0">
               <div className="rounded-xl border border-slate-800 bg-slate-950/25 px-3 py-2.5">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-3">
                   <div className="flex min-w-0 items-center gap-2">
@@ -765,9 +765,9 @@ export default function DepensesPage() {
           }}
         />
 
-        <div className="grid gap-3 xl:grid-cols-[1.05fr_1.45fr]">
-          <Card className="border-slate-800 bg-slate-900">
-            <CardHeader className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pb-2">
+        <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.45fr)]">
+          <Card className="min-w-0 max-w-full border-slate-800 bg-slate-900">
+            <CardHeader className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 pb-2">
               <div className="min-w-0 flex-1">
                 <CardTitle className="text-sm text-slate-200">Catégories & budgets</CardTitle>
                 <p className="mt-0.5 text-[10px] text-slate-500">Clique sur une catégorie ou sous-catégorie pour afficher son détail.</p>
@@ -807,11 +807,11 @@ export default function DepensesPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-base">{cat.icone||'📂'}</span>
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-200">{cat.nom}</span>
-                        <span className={'text-[10px] font-semibold '+(remaining<0?'text-rose-300':percent>=80?'text-amber-300':'text-emerald-300')}>{formatEuro(remaining)} reste</span>
+                        <span className={'shrink-0 text-right text-[10px] font-semibold '+(remaining<0?'text-rose-300':percent>=80?'text-amber-300':'text-emerald-300')}>{formatEuro(remaining)} reste</span>
                       </div>
                       <div className="mt-1 flex items-center gap-2 pl-7">
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800"><div className={'h-full rounded-full '+(percent>100?'bg-rose-400':percent>=80?'bg-amber-400':'bg-emerald-400')} style={{width:Math.min(100,percent)+'%'}}/></div>
-                        <span className="text-[9px] text-slate-600">{formatEuro(actual)} / {formatEuro(planned)}</span>
+                        <span className="shrink-0 text-[9px] text-slate-600">{formatEuro(actual)} / {formatEuro(planned)}</span>
                       </div>
                     </button>
                     {children.length>0 && <div className="border-t border-slate-800/60 px-2 py-1.5">
@@ -829,13 +829,13 @@ export default function DepensesPage() {
             </CardContent>
           </Card>
 
-          <Card id="expense-right-panel" className="scroll-mt-20 border-slate-800 bg-slate-900">
-            <CardHeader className="flex flex-col items-start gap-2 pb-2 sm:flex-row sm:items-start sm:justify-between">
+          <Card id="expense-right-panel" className="min-w-0 max-w-full scroll-mt-20 border-slate-800 bg-slate-900">
+            <CardHeader className="flex min-w-0 flex-col items-start gap-2 pb-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <CardTitle className="text-sm text-slate-200">{browsedCategory ? (browsedSubcategory ? browsedSubcategory.nom : browsedCategory.nom) : 'Dépenses réelles'}</CardTitle>
                 <p className="mt-0.5 text-[10px] text-slate-500">{browsedCategory ? 'Détail du budget et des dépenses validées.' : 'Mouvements validés du mois.'}</p>
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                 {!browsedCategory && <>
                   <label className="relative">
                     <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-[11px] text-slate-300 outline-none">
@@ -851,9 +851,9 @@ export default function DepensesPage() {
                 {browsedCategory && <Button size="icon" variant="ghost" className="h-8 w-8" onClick={()=>{setBrowseCategoryId(null);setBrowseSubcategoryId(null)}} aria-label="Fermer le détail"><X className="h-4 w-4"/></Button>}
               </div>
             </CardHeader>
-            <CardContent className="p-3 pt-0">
+            <CardContent className="min-w-0 p-3 pt-0">
               {browsedCategory && (
-                <div className="mb-3 grid grid-cols-3 gap-2">
+                <div className="mb-3 grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-3">
                   <Metric label="Prévu" value={formatEuro(browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))}/>
                   <Metric label="Réel" value={formatEuro(browsedSubcategory?spent(browsedSubcategory.id,true):spent(browsedCategory.id))}/>
                   <Metric label="Restant" value={formatEuro((browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))-(browsedSubcategory?spent(browsedSubcategory.id,true):spent(browsedCategory.id)))}/>
@@ -864,10 +864,10 @@ export default function DepensesPage() {
               ) : (
                 <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70">
                   {browsedEntries.map((entry:any)=>(
-                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex cursor-pointer items-center gap-3 px-3 py-3 transition hover:bg-slate-800/30">
+                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 sm:flex-nowrap sm:gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
                       <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-500">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
-                      <div className="text-right"><strong className={entry.source==='fixed'?'text-purple-300':'text-rose-300'}>{formatEuro(entry.amount)}</strong><span className="ml-2 inline-block rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">Validé</span><p className="text-[10px] text-slate-600">{actualSort==='validation'?'Transaction : '+formatDate(entry.paymentDate):entry.validationDate?'Validation : '+formatDate(entry.validationDate):''}</p></div>
+                      <div className="ml-auto min-w-0 text-right"><strong className={entry.source==='fixed'?'text-purple-300':'text-rose-300'}>{formatEuro(entry.amount)}</strong><span className="ml-2 inline-block rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">Validé</span><p className="text-[10px] text-slate-600">{actualSort==='validation'?'Transaction : '+formatDate(entry.paymentDate):entry.validationDate?'Validation : '+formatDate(entry.validationDate):''}</p></div>
                       {!isAdminViewing&&<button className="shrink-0 p-1 text-slate-700 hover:text-rose-400" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-3.5 w-3.5"/></button>}
                     </div>
                   ))}
