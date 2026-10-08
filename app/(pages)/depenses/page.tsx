@@ -767,12 +767,12 @@ export default function DepensesPage() {
 
         <div className="grid gap-3 xl:grid-cols-[1.05fr_1.45fr]">
           <Card className="border-slate-800 bg-slate-900">
-            <CardHeader className="flex flex-col items-start gap-2 pb-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+            <CardHeader className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pb-2">
+              <div className="min-w-0 flex-1">
                 <CardTitle className="text-sm text-slate-200">Catégories & budgets</CardTitle>
                 <p className="mt-0.5 text-[10px] text-slate-500">Clique sur une catégorie ou sous-catégorie pour afficher son détail.</p>
               </div>
-              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <label className="relative">
                   <select
                     value={categorySort}
