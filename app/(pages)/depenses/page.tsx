@@ -84,6 +84,9 @@ export default function DepensesPage() {
   const [rembTx, setRembTx] = useState<any>(null)
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
   const [categoryDialogParentId, setCategoryDialogParentId] = useState<string | null>(null)
+  const [moveCategoryId, setMoveCategoryId] = useState<string | null>(null)
+  const [moveParentId, setMoveParentId] = useState('')
+  const [moveError, setMoveError] = useState('')
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -114,7 +117,7 @@ export default function DepensesPage() {
     if (add === 'variable') setTxOpen(true)
   }, [isAdminViewing, moisId])
 
-  const { data: categories = [], create: createCat, update: updateCat, remove: archiveCat } = useCategories(espace?.id)
+  const { data: categories = [], create: createCat, update: updateCat, move: moveCat, remove: archiveCat } = useCategories(espace?.id)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], allFlat, create: createTx, update: updateTx, remove: removeTx, split, unsplit } = useTransactions(moisId)
   const { data: charges = [], togglePayee, create: createFixed, update: updateFixed, remove: removeFixed, removeDefinitif } = useChargesFixes(moisId)
@@ -1070,6 +1073,7 @@ export default function DepensesPage() {
                             <span className="text-xl">{cat.icone || '📂'}</span>
                             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{cat.nom}</p><p className="text-[10px] text-slate-500">{formatEuro(planned)} prévu · {formatEuro(actual)} réel</p></div>
                           </button>
+                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>}
                           {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="ghost" onClick={() => openCategoryDialog(cat.id)}><Plus className="mr-1 h-3.5 w-3.5" />Sous-cat.</Button>}
                           {!isAdminViewing && (
                             showArchivedCategories
@@ -1084,6 +1088,7 @@ export default function DepensesPage() {
                                 <span className="truncate text-xs text-slate-300">{sub.icone || '•'} {sub.nom}</span>
                                 <span className="text-[10px] text-slate-500">{formatEuro(budget(sub.id))} · {formatEuro(spent(sub.id, true))}</span>
                               </button>
+                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>}
                               {!isAdminViewing && (
                                 showArchivedCategories
                                   ? <button className="p-1.5 text-slate-600 hover:text-emerald-300" aria-label="Désarchiver" onClick={() => setCategoryActive(sub.id, true)}><RotateCcw className="h-3.5 w-3.5" /></button>
@@ -1204,6 +1209,25 @@ export default function DepensesPage() {
                 </div>
               </>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!moveCategoryId} onOpenChange={open => {if(!open){setMoveCategoryId(null);setMoveError('')}}}>
+          <DialogContent className="max-w-md border-slate-700 bg-slate-900">
+            <DialogHeader><DialogTitle>Réorganiser une catégorie</DialogTitle></DialogHeader>
+            <p className="text-xs text-slate-400">Le déplacement s'applique aussi aux dépenses et charges récurrentes de l'historique. Les montants de budgets restent inchangés.</p>
+            <label className="block text-sm text-slate-300">Nouvel emplacement
+              <select className="input input-bordered mt-2 w-full" value={moveParentId} onChange={event => {setMoveParentId(event.target.value);setMoveError('')}}>
+                <option value="">Catégorie principale</option>
+                {parentCategories.filter((cat:any) => cat.id !== moveCategoryId).map((cat:any) => <option key={cat.id} value={cat.id}>Sous-catégorie de {cat.nom}</option>)}
+              </select>
+            </label>
+            {!!moveCategoryId && parentCategories.some((cat:any) => cat.id === moveCategoryId) && moveParentId !== '' && subCats(moveCategoryId).length > 0 && <p className="text-xs text-amber-300">Déplace d'abord les sous-catégories existantes de cette catégorie.</p>}
+            {moveError && <p role="alert" className="text-xs text-rose-300">{moveError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setMoveCategoryId(null)}>Annuler</Button>
+              <Button disabled={moveCat.isPending || (!!moveCategoryId && parentCategories.some((cat:any) => cat.id === moveCategoryId) && moveParentId !== '' && subCats(moveCategoryId).length > 0)} onClick={async () => {if(!moveCategoryId)return;try{await moveCat.mutateAsync({id:moveCategoryId,parentId:moveParentId||null});setMoveCategoryId(null);setBrowseCategoryId(null);setBrowseSubcategoryId(null)}catch(error){setMoveError(error instanceof Error?error.message:'Déplacement impossible')}}}>Confirmer le déplacement</Button>
+            </div>
           </DialogContent>
         </Dialog>
 
