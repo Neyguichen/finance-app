@@ -73,5 +73,24 @@ export function useCategories(espaceId: string | undefined) {
     },
   })
 
-  return { ...query, create, update, move, remove: archive }
+  const merge = useMutation({
+    mutationFn: async ({ sourceId, destinationId, budgetRule, previewOnly = false }: {
+      sourceId: string; destinationId: string; budgetRule: 'destination' | 'sum' | 'max'; previewOnly?: boolean
+    }) => {
+      const { data, error } = await supabase.rpc('merge_categories_global', {
+        p_source_id: sourceId, p_destination_id: destinationId,
+        p_budget_rule: budgetRule, p_preview_only: previewOnly,
+      })
+      if (error) throw error
+      return data as { transactions:number; fixed_expenses:number; recurrences:number; monthly_budgets:number; budget_templates:number; children:number }
+    },
+    onSuccess: (_data, params) => {
+      if (params.previewOnly) return
+      for (const prefix of ['categories', 'budgets', 'transactions', 'charges_fixes', 'charges_fixes_recurrentes', 'dashboard', 'month_preparation', 'habits']) {
+        queryClient.invalidateQueries({ queryKey: [prefix] })
+      }
+    },
+  })
+
+  return { ...query, create, update, move, merge, remove: archive }
 }
