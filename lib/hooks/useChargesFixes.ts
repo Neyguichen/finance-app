@@ -205,6 +205,7 @@ export function useChargeFixeOccurrences(recurrentId: string | null | undefined,
       currentMonth,
       scope,
       updates,
+      pendingOnly = false,
     }: {
       recurrentId: string
       currentMonth: string
