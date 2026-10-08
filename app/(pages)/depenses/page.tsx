@@ -889,7 +889,10 @@ export default function DepensesPage() {
                           {!isAdminViewing && reimbursementsEnabled && entry.source==='transaction' &&
                             <button type="button" className="text-[10px] font-medium text-indigo-300 hover:text-indigo-200" onClick={event=>{event.stopPropagation();setRembTx(entry.sourceData)}}>Gérer le remboursement</button>}
                         </div>}
-                        <p className="text-[10px] text-slate-600">{actualSort==='validation'?'Transaction : '+formatDate(entry.paymentDate):entry.validationDate?'Validation : '+formatDate(entry.validationDate):''}</p>
+                        <div className="mt-0.5 flex flex-wrap justify-end gap-x-2 gap-y-0.5 text-[10px] text-slate-500">
+                          <span>Transaction : {entry.paymentDate ? formatDate(entry.paymentDate) : '—'}</span>
+                          <span>Validation : {entry.validationDate ? formatDate(entry.validationDate) : '—'}</span>
+                        </div>
                       </div>
                       {!isAdminViewing&&<button className="shrink-0 p-1 text-slate-700 hover:text-rose-400" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-3.5 w-3.5"/></button>}
                     </div>
