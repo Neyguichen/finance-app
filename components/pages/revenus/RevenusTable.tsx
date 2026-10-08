@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { CalendarDays, CheckCircle2, Plus, Repeat2, RotateCcw, Trash2, TrendingUp, WalletCards } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { formatDate, formatEuro, localDateISO } from '@/lib/utils'
+import { formatDate, formatEuro } from '@/lib/utils'
 
 type RevenuRow = {
   id: string
@@ -59,25 +58,23 @@ export default function RevenusTable({
   reprises,
   recurrents,
   readOnly,
-  doubleDate = false,
   getEnvNom,
   onAdd,
   onManageRecurring,
-  onToggleRecu,
   onEdit,
   onDelete,
 }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
-  const today = localDateISO()
+  const validatedRevenus = revenus.filter(item => item.recu)
 
   const counts = {
-    all: revenus.length + reprises.length,
-    actif: revenus.filter(item => item.type === 'actif').length,
-    passif: revenus.filter(item => item.type === 'passif').length,
+    all: validatedRevenus.length + reprises.length,
+    actif: validatedRevenus.filter(item => item.type === 'actif').length,
+    passif: validatedRevenus.filter(item => item.type === 'passif').length,
     reprise: reprises.length,
   }
 
-  const filteredRevenus = revenus.filter(item => filter === 'all' || filter === item.type)
+  const filteredRevenus = validatedRevenus.filter(item => filter === 'all' || filter === item.type)
   const filteredReprises = reprises.filter(() => filter === 'all' || filter === 'reprise')
 
   const filters: Array<[Filter,string]> = [['all','Tous'],['actif','Actifs'],['passif','Passifs'],['reprise','Reprises d’épargne']]
@@ -114,7 +111,7 @@ export default function RevenusTable({
               <div key={rev.id} role="button" tabIndex={0}
                 onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })}
                 onKeyDown={event => { if (!readOnly && (event.key === 'Enter' || event.key === ' ')) onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle }) }}
-                className="grid cursor-pointer grid-cols-[minmax(0,1fr)_180px_220px_44px_36px] items-center gap-4 px-4 py-3 transition hover:bg-slate-800/30">
+                className="grid cursor-pointer grid-cols-[minmax(0,1fr)_180px_220px_76px_36px] items-center gap-4 px-4 py-3 transition hover:bg-slate-800/30">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className={'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>
                     {rev.type === 'actif' ? <TrendingUp className="h-4 w-4" /> : <WalletCards className="h-4 w-4" />}
@@ -135,7 +132,7 @@ export default function RevenusTable({
                   <div><p className="text-[9px] uppercase tracking-wide text-slate-600">Prévu</p><p className="text-sm font-semibold text-slate-200">{formatEuro(Number(rev.montant))}</p></div>
                   <div><p className="text-[9px] uppercase tracking-wide text-slate-600">Reçu</p><p className={'text-sm font-semibold '+(receivedAmount==null?'text-slate-600':'text-emerald-300')}>{receivedAmount == null ? '—' : formatEuro(receivedAmount)}</p></div>
                 </div>
-                <div className="flex justify-center" onClick={event => event.stopPropagation()}><Checkbox checked={rev.recu} onCheckedChange={checked => { if (!readOnly) onToggleRecu(rev.id, !!checked, checked ? (doubleDate ? null : today) : undefined) }} /></div>
+                <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-center text-[10px] font-semibold text-emerald-300">Validé</span>
                 {!readOnly ? <button type="button" onClick={event => { event.stopPropagation(); onDelete({ id:rev.id, recurrentId:rev.recurrent_id || null, nom:rev.nom }) }} className="rounded-lg p-1.5 text-slate-700 hover:bg-slate-800 hover:text-rose-400" aria-label="Supprimer"><Trash2 className="h-3.5 w-3.5" /></button> : <span />}
               </div>
             )
@@ -175,7 +172,7 @@ export default function RevenusTable({
               <span className={'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? <TrendingUp className="h-4 w-4" /> : <WalletCards className="h-4 w-4" />}</span>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{rev.nom}</p><p className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-slate-500"><span className={'rounded-full px-1.5 py-0.5 font-medium '+(rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? 'Actif' : 'Passif'}</span><span>{recurrenceLabel(rev.recurrent_id, recurrents)}</span></p>{rev.date_prevue && <p className="mt-1 flex items-center gap-1 text-[10px] text-slate-600"><CalendarDays className="h-3 w-3" />Prévu : {formatDate(rev.date_prevue)}</p>}{rev.date_reelle && <p className="mt-0.5 text-[10px] text-slate-500">Reçu : {formatDate(rev.date_reelle)}</p>}</div>
               <div className="text-right"><p className="text-[9px] uppercase text-slate-500">{rev.recu ? 'Reçu' : 'Prévu'}</p><p className="text-sm font-semibold">{rev.recu ? formatEuro(Number(rev.montant_reel ?? rev.montant)) : formatEuro(Number(rev.montant))}</p><p className={'mt-1 text-[10px] ' + (rev.recu ? 'text-emerald-300' : 'text-amber-300')}>{rev.recu ? `Reçu · prévu ${formatEuro(Number(rev.montant))}` : 'En attente'}</p></div>
-              <Checkbox checked={rev.recu} onCheckedChange={checked => { if (!readOnly) onToggleRecu(rev.id, !!checked, checked ? (doubleDate ? null : today) : undefined) }} />
+              <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-300">Validé</span>
             </div>
             {!readOnly && <div className="mt-2 flex justify-end border-t border-slate-800/70 pt-2"><button onClick={event => { event.stopPropagation(); onDelete({ id:rev.id, recurrentId:rev.recurrent_id || null, nom:rev.nom }) }} className="rounded-lg p-1.5 text-slate-600" aria-label="Supprimer"><Trash2 className="h-3.5 w-3.5" /></button></div>}
           </div>
