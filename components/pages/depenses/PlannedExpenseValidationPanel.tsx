@@ -9,6 +9,7 @@ type PendingExpense = {
   title: string
   subtitle?: string | null
   amount: number
+  recurring?: boolean
   plannedDate?: string | null
 }
 
@@ -16,7 +17,7 @@ type Props = {
   entries: PendingExpense[]
   readOnly?: boolean
   busy?: boolean
-  onValidate: (id: string, date: string, amount: number) => Promise<void> | void
+  onValidate: (id: string, date: string, amount: number, scope: 'occurrence' | 'future') => Promise<void> | void
 }
 
 function defaultDate(item: PendingExpense) {
@@ -26,6 +27,7 @@ function defaultDate(item: PendingExpense) {
 export default function PlannedExpenseValidationPanel({ entries, readOnly=false, busy=false, onValidate }: Props) {
   const [dates,setDates]=useState<Record<string,string>>({})
   const [amounts,setAmounts]=useState<Record<string,string>>({})
+  const [scopePrompt,setScopePrompt]=useState<{id:string;date:string;amount:number}|null>(null)
 
   useEffect(()=>{
     setDates(current=>{
@@ -67,11 +69,20 @@ export default function PlannedExpenseValidationPanel({ entries, readOnly=false,
               <label className="text-[10px] text-slate-500">Date réelle
                 <input type="date" value={date} disabled={readOnly||busy} onChange={e=>setDates(prev=>({...prev,[item.id]:e.target.value}))} className="mt-1 h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200 outline-none disabled:opacity-60"/>
               </label>
-              {!readOnly && <button type="button" disabled={busy||!date||!validAmount} onClick={()=>onValidate(item.id,date,amount)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-3 text-xs font-semibold text-slate-950 disabled:opacity-50"><CheckCircle2 className="h-3.5 w-3.5"/>Valider</button>}
+              {!readOnly && <button type="button" disabled={busy||!date||!validAmount} onClick={()=>{if(item.recurring && Math.abs(amount-Number(item.amount))>=0.005) setScopePrompt({id:item.id,date,amount}); else void onValidate(item.id,date,amount,'occurrence')}} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-3 text-xs font-semibold text-slate-950 disabled:opacity-50"><CheckCircle2 className="h-3.5 w-3.5"/>Valider</button>}
             </div>
           )
         })}
       </div>
+      {scopePrompt && <div className="border-t border-slate-700 px-4 py-3" role="group" aria-label="Portée de la modification du montant">
+        <p className="mb-2 text-xs text-slate-200">Appliquer le nouveau montant à :</p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={busy} onClick={async()=>{const x=scopePrompt;await onValidate(x.id,x.date,x.amount,'occurrence');setScopePrompt(null)}} className="rounded-lg border border-slate-600 px-3 py-2 text-xs text-slate-200 disabled:opacity-50">Cette occurrence uniquement</button>
+          <button type="button" disabled={busy} onClick={async()=>{const x=scopePrompt;await onValidate(x.id,x.date,x.amount,'future');setScopePrompt(null)}} className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-slate-950 disabled:opacity-50">Cette occurrence et les suivantes</button>
+          <button type="button" disabled={busy} onClick={()=>setScopePrompt(null)} className="rounded-lg px-3 py-2 text-xs text-slate-400">Annuler</button>
+        </div>
+        <p className="mt-2 text-[10px] text-slate-500">Les mois passés ne seront pas modifiés.</p>
+      </div>}
     </section>
   )
 }
