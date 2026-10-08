@@ -32,17 +32,17 @@ export default function EpargneResume({
       <CardContent className="p-3 sm:p-4">
         <div className="grid gap-3 xl:grid-cols-[1.45fr_.75fr]">
           <div className="grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl border border-sky-400/15 bg-sky-500/[0.06] p-3">
+            <div className="flex min-h-[82px] flex-col justify-center rounded-xl border border-sky-400/15 bg-sky-500/[0.06] p-3 xl:min-h-[96px]">
               <div className="flex items-center gap-2 text-[11px] font-medium text-sky-300"><PiggyBank className="h-4 w-4" />Total épargné</div>
-              <p className="mt-1.5 text-xl font-bold text-sky-300">{formatEuro(totalDisponible)}</p>
+              <p className="mt-2 text-xl font-bold text-sky-300 xl:text-2xl">{formatEuro(totalDisponible)}</p>
             </div>
-            <div className="rounded-xl border border-emerald-400/15 bg-emerald-500/[0.06] p-3">
+            <div className="flex min-h-[82px] flex-col justify-center rounded-xl border border-emerald-400/15 bg-emerald-500/[0.06] p-3 xl:min-h-[96px]">
               <div className="flex items-center gap-2 text-[11px] font-medium text-emerald-300"><ShieldCheck className="h-4 w-4" />Épargné ce mois</div>
-              <p className="mt-1.5 text-xl font-bold text-emerald-300">+ {formatEuro(totalEpargne)}</p>
+              <p className="mt-2 text-xl font-bold text-emerald-300 xl:text-2xl">+ {formatEuro(totalEpargne)}</p>
             </div>
-            <div className="rounded-xl border border-rose-400/15 bg-rose-500/[0.06] p-3">
+            <div className="flex min-h-[82px] flex-col justify-center rounded-xl border border-rose-400/15 bg-rose-500/[0.06] p-3 xl:min-h-[96px]">
               <div className="flex items-center gap-2 text-[11px] font-medium text-rose-300"><ArrowUpFromLine className="h-4 w-4" />Repris ce mois</div>
-              <p className="mt-1.5 text-xl font-bold text-rose-300">− {formatEuro(totalReprise)}</p>
+              <p className="mt-2 text-xl font-bold text-rose-300 xl:text-2xl">− {formatEuro(totalReprise)}</p>
             </div>
           </div>
 
