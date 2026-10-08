@@ -770,10 +770,24 @@ export default function DepensesPage() {
             plannedDate: entry.paymentDate,
           }))}
           readOnly={isAdminViewing}
-          busy={togglePayee.isPending || updateTx.isPending}
-          onValidate={async (id, date) => {
+          busy={togglePayee.isPending || updateFixed.isPending || updateTx.isPending}
+          onValidate={async (id, date, amount) => {
             const entry = pendingActualEntries.find((item:any) => item.id === id)
-            if (entry) await applyActualValidation(entry, true, date)
+            if (!entry) return
+            if (entry.source === 'fixed') {
+              await updateFixed.mutateAsync({
+                id: entry.sourceData.id,
+                payee: true,
+                date_reelle: date,
+                montant_reel: amount,
+              })
+            } else {
+              await updateTx.mutateAsync({
+                id: entry.sourceData.id,
+                montant: amount,
+                date_validation: date,
+              })
+            }
           }}
         />
 
