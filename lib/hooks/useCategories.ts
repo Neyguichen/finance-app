@@ -58,5 +58,20 @@ export function useCategories(espaceId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
   
-  return { ...query, create, update, remove: archive }
+  const move = useMutation({
+    mutationFn: async ({ id, parentId }: { id: string; parentId: string | null }) => {
+      const { error } = await supabase.rpc('move_category_global', {
+        p_category_id: id, p_new_parent_id: parentId,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', espaceId] })
+      for (const prefix of ['budgets', 'transactions', 'charges_fixes', 'charges_fixes_recurrentes', 'dashboard', 'month_preparation']) {
+        queryClient.invalidateQueries({ queryKey: [prefix] })
+      }
+    },
+  })
+
+  return { ...query, create, update, move, remove: archive }
 }
