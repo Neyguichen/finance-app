@@ -87,6 +87,11 @@ export default function DepensesPage() {
   const [moveCategoryId, setMoveCategoryId] = useState<string | null>(null)
   const [moveParentId, setMoveParentId] = useState('')
   const [moveError, setMoveError] = useState('')
+  const [mergeSourceId, setMergeSourceId] = useState<string | null>(null)
+  const [mergeDestinationId, setMergeDestinationId] = useState('')
+  const [mergeBudgetRule, setMergeBudgetRule] = useState<'destination'|'sum'|'max'>('destination')
+  const [mergePreview, setMergePreview] = useState<{transactions:number;fixed_expenses:number;recurrences:number;monthly_budgets:number;budget_templates:number;children:number}|null>(null)
+  const [mergeError, setMergeError] = useState('')
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -117,7 +122,7 @@ export default function DepensesPage() {
     if (add === 'variable') setTxOpen(true)
   }, [isAdminViewing, moisId])
 
-  const { data: categories = [], create: createCat, update: updateCat, move: moveCat, remove: archiveCat } = useCategories(espace?.id)
+  const { data: categories = [], create: createCat, update: updateCat, move: moveCat, merge: mergeCat, remove: archiveCat } = useCategories(espace?.id)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], allFlat, create: createTx, update: updateTx, remove: removeTx, split, unsplit } = useTransactions(moisId)
   const { data: charges = [], togglePayee, create: createFixed, update: updateFixed, remove: removeFixed, removeDefinitif } = useChargesFixes(moisId)
@@ -1074,6 +1079,7 @@ export default function DepensesPage() {
                             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{cat.nom}</p><p className="text-[10px] text-slate-500">{formatEuro(planned)} prévu · {formatEuro(actual)} réel</p></div>
                           </button>
                           {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>}
+                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
                           {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="ghost" onClick={() => openCategoryDialog(cat.id)}><Plus className="mr-1 h-3.5 w-3.5" />Sous-cat.</Button>}
                           {!isAdminViewing && (
                             showArchivedCategories
@@ -1089,6 +1095,7 @@ export default function DepensesPage() {
                                 <span className="text-[10px] text-slate-500">{formatEuro(budget(sub.id))} · {formatEuro(spent(sub.id, true))}</span>
                               </button>
                               {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>}
+                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
                               {!isAdminViewing && (
                                 showArchivedCategories
                                   ? <button className="p-1.5 text-slate-600 hover:text-emerald-300" aria-label="Désarchiver" onClick={() => setCategoryActive(sub.id, true)}><RotateCcw className="h-3.5 w-3.5" /></button>
@@ -1227,6 +1234,44 @@ export default function DepensesPage() {
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setMoveCategoryId(null)}>Annuler</Button>
               <Button disabled={moveCat.isPending || (!!moveCategoryId && parentCategories.some((cat:any) => cat.id === moveCategoryId) && moveParentId !== '' && subCats(moveCategoryId).length > 0)} onClick={async () => {if(!moveCategoryId)return;try{await moveCat.mutateAsync({id:moveCategoryId,parentId:moveParentId||null});setMoveCategoryId(null);setBrowseCategoryId(null);setBrowseSubcategoryId(null)}catch(error){setMoveError(error instanceof Error?error.message:'Déplacement impossible')}}}>Confirmer le déplacement</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!mergeSourceId} onOpenChange={open => {if(!open){setMergeSourceId(null);setMergePreview(null);setMergeError('')}}}>
+          <DialogContent className="max-w-md border-slate-700 bg-slate-900">
+            <DialogHeader><DialogTitle>Fusionner deux catégories</DialogTitle></DialogHeader>
+            <p className="text-xs text-slate-400">La catégorie source sera archivée. Les opérations et récurrences historiques seront conservées et rattachées à la destination. Les sous-catégories seront transférées.</p>
+            <label className="block text-xs text-slate-300">Catégorie conservée
+              <select value={mergeDestinationId} onChange={event=>{setMergeDestinationId(event.target.value);setMergePreview(null);setMergeError('')}} className="input input-bordered mt-2 w-full">
+                <option value="">Choisir une destination</option>
+                {effectiveCategories.filter((cat:any)=>cat.actif!==false&&cat.id!==mergeSourceId&&cat.parent_id===(effectiveCategories.find((src:any)=>src.id===mergeSourceId)?.parent_id||null)).map((cat:any)=><option key={cat.id} value={cat.id}>{cat.nom}</option>)}
+              </select>
+            </label>
+            <label className="block text-xs text-slate-300">Règle pour les budgets communs aux deux catégories
+              <select value={mergeBudgetRule} onChange={event=>{setMergeBudgetRule(event.target.value as 'destination'|'sum'|'max');setMergePreview(null)}} className="input input-bordered mt-2 w-full">
+                <option value="destination">Conserver le montant de destination</option>
+                <option value="sum">Additionner les montants</option>
+                <option value="max">Conserver le plus élevé</option>
+              </select>
+            </label>
+            {mergePreview && <section className="rounded-xl border border-slate-700 p-3 text-xs text-slate-300">
+              <p className="mb-2 font-semibold">Éléments concernés dans tout l&apos;historique</p>
+              <p>{mergePreview.transactions} dépenses · {mergePreview.fixed_expenses} charges fixes · {mergePreview.recurrences} récurrences</p>
+              <p>{mergePreview.monthly_budgets} budgets mensuels · {mergePreview.budget_templates} modèles · {mergePreview.children} sous-catégories</p>
+              <p className="mt-2 text-amber-300">Cette fusion concerne également les mois précédents. Confirme seulement après avoir vérifié ces informations.</p>
+            </section>}
+            {mergeError && <p role="alert" className="text-xs text-rose-300">{mergeError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={()=>setMergeSourceId(null)}>Annuler</Button>
+              <Button disabled={!mergeSourceId||!mergeDestinationId||mergeCat.isPending} onClick={async()=>{
+                if(!mergeSourceId||!mergeDestinationId)return
+                try {
+                  const args={sourceId:mergeSourceId,destinationId:mergeDestinationId,budgetRule:mergeBudgetRule}
+                  if(!mergePreview){setMergePreview(await mergeCat.mutateAsync({...args,previewOnly:true}))}
+                  else {await mergeCat.mutateAsync(args);setMergeSourceId(null);setMergePreview(null);setBrowseCategoryId(null);setBrowseSubcategoryId(null)}
+                } catch(error){setMergeError(error instanceof Error?error.message:'Fusion impossible')}
+              }}>{mergeCat.isPending?'Traitement…':mergePreview?'Confirmer la fusion':'Prévisualiser'}</Button>
             </div>
           </DialogContent>
         </Dialog>
