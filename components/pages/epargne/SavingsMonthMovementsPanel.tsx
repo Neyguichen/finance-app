@@ -80,9 +80,9 @@ export default function SavingsMonthMovementsPanel({
                         {typeLabel(movement)}{movement.note ? ' · ' + movement.note : ''}
                       </p>
                     </div>
-                    <span className={"font-semibold " + (isDeposit ? "text-emerald-300" : isWithdrawal ? "text-rose-300" : "text-cyan-300")}>
+                    <span className="flex flex-col items-end gap-1"><span className={"font-semibold " + (isDeposit ? "text-emerald-300" : isWithdrawal ? "text-rose-300" : "text-cyan-300")}>
                       {isDeposit ? '+' : isWithdrawal ? '−' : ''}{formatEuro(Number(movement.montant))}
-                    </span>
+                    </span><span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">Validé</span></span>
                   </button>
                   {!readOnly && onDeleteMovement && (
                     <button
