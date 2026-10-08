@@ -140,7 +140,7 @@ export default function DepenseForm({
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-h-[88vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[88dvh] max-w-2xl min-w-0 overscroll-contain overflow-y-auto [-webkit-overflow-scrolling:touch]">
           <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-[170px_150px_1fr] sm:items-end">
