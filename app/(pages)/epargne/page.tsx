@@ -313,8 +313,8 @@ export default function EpargnePage() {
                     <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500"/>
                   </label>
                   {!isAdminViewing && (
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setOpenRecurringManager(true)}><Repeat2 className="mr-1 h-4 w-4"/>Récurrences</Button>
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                      <Button size="sm" variant="outline" onClick={() => setOpenRecurringManager(true)><Repeat2 className="mr-1 h-4 w-4"/>Récurrences</Button>
                       <Button size="sm" variant="outline" onClick={() => setOpenSavingsInitialization(true)}>Initialiser l’épargne</Button>
                       <Button size="sm" onClick={() => setOpenEnvelope(true)}><Plus className="mr-1 h-4 w-4"/>Nouvelle enveloppe</Button>
                     </div>
@@ -415,14 +415,14 @@ export default function EpargnePage() {
                 const frequency = Number(rec.frequence_mois || 1)
                 const frequencyLabel = frequency===1?'Tous les mois':frequency===12?'Tous les ans':'Tous les '+frequency+' mois'
                 return (
-                  <div key={rec.id} className="flex items-center gap-3 px-3 py-3">
+                  <div key={rec.id} className="flex flex-wrap items-center gap-3 px-3 py-3">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-300"><PiggyBank className="h-4 w-4"/></span>
                     <button type="button" onClick={()=>{setEditRecurring(rec);setOpenRecurringManager(false)}} className="min-w-0 flex-1 text-left">
                       <p className="truncate text-sm font-semibold text-slate-200">{envName}</p>
                       <p className="text-[10px] text-slate-500">{frequencyLabel} · jour {Number(rec.jour_prevu || 1)} · {Number(rec.montant).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</p>
                     </button>
                     <span className={"rounded-full px-2 py-0.5 text-[9px] "+(rec.actif===false?'bg-slate-800 text-slate-500':'bg-emerald-500/10 text-emerald-300')}>{rec.actif===false?'Suspendue':'Active'}</span>
-                    {!isAdminViewing && <Button size="sm" variant="ghost" onClick={()=>updateRecurrent.mutate({id:rec.id,actif:rec.actif===false})}>{rec.actif===false?'Réactiver':'Suspendre'}</Button>}
+                    {!isAdminViewing && <Button size="sm" variant="ghost" className="ml-auto sm:ml-0" onClick={()=>updateRecurrent.mutate({id:rec.id,actif:rec.actif===false})}>{rec.actif===false?'Réactiver':'Suspendre'}</Button>}
                   </div>
                 )
               })}
