@@ -155,7 +155,19 @@ export default function DepensesPage() {
   const subCats = (id: string, includeArchived = false) => subcategoriesEnabled ? effectiveCategories
     .filter((c: any) => c.parent_id === id && (includeArchived || c.actif !== false))
     .sort((a: any, b: any) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity:'base' })) : []
-  const budget = (id: string) => Number(effectiveBudgets.find((b: any) => b.categorie_id === id)?.prevu || 0)
+  // A parent category displays the sum of its sub-budgets when those budgets exist.
+  // Preserve the standalone parent amount for categories without configured sub-budgets.
+  const budget = (id: string) => {
+    const children = subCats(id)
+    const configured = children.filter((child: any) =>
+      effectiveBudgets.some((entry: any) => entry.categorie_id === child.id)
+    )
+    if (configured.length > 0) {
+      return configured.reduce((total: number, child: any) =>
+        total + Number(effectiveBudgets.find((entry: any) => entry.categorie_id === child.id)?.prevu || 0), 0)
+    }
+    return Number(effectiveBudgets.find((entry: any) => entry.categorie_id === id)?.prevu || 0)
+  }
   const refundTotal = (tx: any) => (tx.remboursements || []).reduce((sum: number, item: any) => sum + Number(item.montant), 0)
   const net = (tx: any) => Number(tx.montant) - refundTotal(tx)
   const spent = (id: string, sub = false) => effectiveFlat.filter((t: any) => (sub ? t.sous_categorie_id : t.categorie_id) === id).reduce((sum: number, t: any) => sum + net(t), 0)
