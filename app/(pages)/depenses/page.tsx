@@ -759,12 +759,12 @@ export default function DepensesPage() {
 
         <div className="grid gap-3 xl:grid-cols-[1.05fr_1.45fr]">
           <Card className="border-slate-800 bg-slate-900">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+            <CardHeader className="flex flex-col items-start gap-2 pb-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="text-sm text-slate-200">Catégories & budgets</CardTitle>
                 <p className="mt-0.5 text-[10px] text-slate-500">Clique sur une catégorie ou sous-catégorie pour afficher son détail.</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                 <label className="relative">
                   <select
                     value={categorySort}
@@ -822,7 +822,7 @@ export default function DepensesPage() {
           </Card>
 
           <Card id="expense-right-panel" className="scroll-mt-20 border-slate-800 bg-slate-900">
-            <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
+            <CardHeader className="flex flex-col items-start gap-2 pb-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <CardTitle className="text-sm text-slate-200">{browsedCategory ? (browsedSubcategory ? browsedSubcategory.nom : browsedCategory.nom) : 'Dépenses réelles'}</CardTitle>
                 <p className="mt-0.5 text-[10px] text-slate-500">{browsedCategory ? 'Détail du budget et des dépenses validées.' : 'Mouvements validés du mois.'}</p>
