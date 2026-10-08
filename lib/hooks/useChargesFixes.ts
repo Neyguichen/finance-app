@@ -279,6 +279,27 @@ export function useChargesFixesRecurrentes(espaceId: string | undefined) {
         .update(updates)
         .eq('id', id)
       if (error) throw error
+
+      // Le jour prévu appartient au modèle récurrent : lorsqu'il change,
+      // réaligner les occurrences déjà générées qui ne sont pas encore validées.
+      if (updates.jour_prevu !== undefined) {
+        const { data: occurrences, error: occurrencesError } = await supabase
+          .from('charges_fixes')
+          .select('id, mois:mois!inner(mois)')
+          .eq('recurrent_id', id)
+          .eq('payee', false)
+        if (occurrencesError) throw occurrencesError
+
+        for (const occurrence of occurrences || []) {
+          const occurrenceMonth = (occurrence as any).mois?.mois
+          if (!occurrenceMonth) continue
+          const { error: dateError } = await supabase
+            .from('charges_fixes')
+            .update({ date_prevue: plannedDateForMonth(occurrenceMonth, updates.jour_prevu) })
+            .eq('id', occurrence.id)
+          if (dateError) throw dateError
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
