@@ -50,7 +50,7 @@ export function SearchableSelect({
   }, [])
 
   return (
-    <div ref={rootRef} className={cn('relative', className)}>
+    <div ref={rootRef} className={cn('relative min-w-0', className)}>
       <button
         type="button"
         onClick={() => { if (!disabled) setOpen(current => !current) }}
@@ -66,12 +66,11 @@ export function SearchableSelect({
       </button>
 
       {open && !disabled && (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-[80] overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1627] shadow-2xl shadow-black/40">
+        <div className="relative z-[80] mt-1.5 min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1627] shadow-2xl shadow-black/40 sm:absolute sm:left-0 sm:right-0 sm:top-[calc(100%+6px)] sm:mt-0">
           <div className="border-b border-slate-800 p-2">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
               <input
-                autoFocus
                 value={search}
                 onChange={event => setSearch(event.target.value)}
                 placeholder="Rechercher…"
@@ -79,7 +78,7 @@ export function SearchableSelect({
               />
             </label>
           </div>
-          <div className="max-h-56 overflow-y-auto p-1.5">
+          <div className="max-h-[min(42dvh,320px)] min-h-0 touch-pan-y overscroll-contain overflow-y-auto p-1.5 [-webkit-overflow-scrolling:touch] sm:max-h-56">
             {filtered.length === 0 ? (
               <p className="px-3 py-5 text-center text-xs text-slate-600">{emptyLabel}</p>
             ) : filtered.map(option => (
