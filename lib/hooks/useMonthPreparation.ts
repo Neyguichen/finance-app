@@ -32,13 +32,14 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
         return { mode, items, sourceMonth: previous.mois }
       }
 
-      const [revenus, fixes, savings, budgetHabits, envelopes, currentMonth] = await Promise.all([
+      const [revenus, fixes, savings, budgetHabits, envelopes, currentMonth, previousMonth] = await Promise.all([
         supabase.from('revenus_recurrents').select('*').eq('espace_id', espaceId!),
         supabase.from('charges_fixes_recurrentes').select('*').eq('espace_id', espaceId!),
         supabase.from('epargne_recurrentes').select('*').eq('espace_id', espaceId!),
         supabase.from('budget_habitudes').select('*, categorie:categories(nom)').eq('espace_id', espaceId!),
         supabase.from('enveloppes').select('id, nom').eq('espace_id', espaceId!),
         supabase.from('mois').select('id').eq('espace_id', espaceId!).eq('mois', targetDate).maybeSingle(),
+        supabase.from('mois').select('id').eq('espace_id', espaceId!).lt('mois',targetDate).order('mois',{ascending:false}).limit(1).maybeSingle(),
       ])
       if (revenus.error) throw revenus.error
       if (fixes.error) throw fixes.error
@@ -46,6 +47,7 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
       if (budgetHabits.error) throw budgetHabits.error
       if (envelopes.error) throw envelopes.error
       if (currentMonth.error) throw currentMonth.error
+      if (previousMonth.error) throw previousMonth.error
 
       const envelopeNames = new Map((envelopes.data || []).map(e => [e.id, e.nom]))
       const existingIncomeSources = new Set<string>()
@@ -99,6 +101,24 @@ export function useMonthPreparation(espaceId: string | undefined, targetMonth: s
         if (isHabitDue({ ...row, actif: true }, targetDate) && !existingBudgetCategories.has(row.categorie_id)) {
           const inactive = row.actif === false
           items.push({ id: `budget:${row.id}`, kind: 'budget', label: (row.categorie as { nom?: string } | null)?.nom || 'Budget variable', amount: Number(row.montant), sourceId: row.id, categoryId: row.categorie_id, order: row.ordre || 0, selected: !inactive, inactive })
+        }
+      }
+      // Fall back to the latest month's explicit budgets when no recurring
+      // template exists for that category. Never overwrite a target-month budget.
+      if (previousMonth.data?.id) {
+        const { data: previousBudgets, error: previousBudgetError } = await supabase
+          .from('budgets').select('id, categorie_id, prevu, categorie:categories(nom)')
+          .eq('mois_id', previousMonth.data.id)
+        if (previousBudgetError) throw previousBudgetError
+        const templatedCategories = new Set((budgetHabits.data || []).map(row => row.categorie_id))
+        for (const row of previousBudgets || []) {
+          if (Number(row.prevu) <= 0 || templatedCategories.has(row.categorie_id) || existingBudgetCategories.has(row.categorie_id)) continue
+          items.push({
+            id: `budget:${row.id}`, kind: 'budget',
+            label: (row.categorie as { nom?: string } | null)?.nom || 'Budget variable',
+            amount: Number(row.prevu), sourceId: row.id,
+            categoryId: row.categorie_id, selected: true,
+          })
         }
       }
       return { mode, items, sourceMonth: undefined }
