@@ -15,6 +15,7 @@ import {
   Check,
   ChartPie,
   ChevronDown,
+  Info,
   Plus,
   ReceiptText,
   RotateCcw,
@@ -943,50 +944,76 @@ export default function DepensesPage() {
                       <div><h3 className="font-semibold text-slate-100">{selectedFixedRecurring.nom}</h3><p className="mt-1 text-xs text-slate-500">{fixedFrequencyLabel(selectedFixedRecurring)} · depuis {selectedFixedRecurring.mois_debut ? formatDate(selectedFixedRecurring.mois_debut) : 'date non renseignée'}</p></div>
                       <div className="flex items-center gap-2"><span className={'rounded-full px-2 py-0.5 text-[9px] font-medium ' + (selectedFixedRecurring.actif === false ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500/10 text-emerald-300')}>{selectedFixedRecurring.actif === false ? 'Archivée' : 'Active'}</span><strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong></div>
                     </div>
-                    <div className="rounded-xl border border-slate-800 p-3">
-                      <label className="text-[10px] text-slate-500">Jour prévu <span className="text-slate-600">(1 par défaut)</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={31}
-                          value={Number(selectedFixedRecurring.jour_prevu || 1)}
-                          disabled={isAdminViewing}
-                          onChange={event => updateFixedRecurring.mutate({
-                            id: selectedFixedRecurring.id,
-                            jour_prevu: Math.min(31, Math.max(1, Number(event.target.value) || 1)),
-                          })}
-                          className="input input-bordered input-sm mt-1 w-full"
-                        />
-                      </label>
-                    </div>
+
+                    {!isAdminViewing && selectedFixedRecurring.actif === false && (
+                      <Button className="w-full" onClick={() => setFixedRecurringActive(selectedFixedRecurring.id, true)}>
+                        <RotateCcw className="mr-1 h-4 w-4" />Désarchiver la charge
+                      </Button>
+                    )}
+                    {selectedFixedRecurring.actif !== false && (
+                      <>
+                        <div className="rounded-xl border border-slate-800 p-3">
+                          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                            <span>Jour prévu</span>
+                            <span title="Définit le jour du mois utilisé pour la date prévue de cette charge récurrente. Les occurrences déjà générées mais non validées sont réalignées sur ce jour." aria-label="À quoi sert le jour prévu ?" className="inline-flex cursor-help text-slate-500"><Info className="h-3.5 w-3.5" /></span>
+                          </div>
+                          <label className="text-[10px] text-slate-500">Jour du mois <span className="text-slate-600">(1 par défaut)</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={31}
+                              value={Number(selectedFixedRecurring.jour_prevu || 1)}
+                              disabled={isAdminViewing}
+                              onChange={event => updateFixedRecurring.mutate({
+                                id: selectedFixedRecurring.id,
+                                jour_prevu: Math.min(31, Math.max(1, Number(event.target.value) || 1)),
+                              })}
+                              className="input input-bordered input-sm mt-1 w-full"
+                            />
+                          </label>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-800 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Ajouter une occurrence</p>
+                              <span title="Crée manuellement cette charge sur un mois où aucune occurrence n’existe encore." aria-label="À quoi sert l'ajout d'une occurrence ?" className="inline-flex cursor-help text-slate-500"><Info className="h-3.5 w-3.5" /></span>
+                            </div>
+                            <CalendarDays className="h-4 w-4 text-slate-600" />
+                          </div>
+                          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                            <input type="month" value={occurrenceMonth} onChange={event => setOccurrenceMonth(event.target.value)} className="input input-bordered input-sm flex-1" />
+                            {!isAdminViewing && (
+                              <Button size="sm" onClick={addSelectedFixedOccurrence} disabled={addOccurrence.isPending || selectedOccurrences.some((item: any) => String(item.mois?.mois || '').slice(0, 7) === occurrenceMonth)}>
+                                <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-800 p-3">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Suspendre une période</p>
+                            <span title="Empêche la création automatique de cette charge pendant la période choisie, sans supprimer le modèle ni son historique." aria-label="À quoi sert la suspension ?" className="inline-flex cursor-help text-slate-500"><Info className="h-3.5 w-3.5" /></span>
+                          </div>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            <label className="text-[10px] text-slate-500">Du<input type="month" value={suspensionFrom} onChange={event => setSuspensionFrom(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
+                            <label className="text-[10px] text-slate-500">Au<input type="month" value={suspensionUntil} onChange={event => setSuspensionUntil(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
+                          </div>
+                          {!isAdminViewing && <Button size="sm" variant="outline" className="mt-2 w-full" onClick={saveSuspension} disabled={updateFixedRecurring.isPending}>Enregistrer la suspension</Button>}
+                          {(selectedFixedRecurring.suspended_from || selectedFixedRecurring.suspended_until) && <p className="mt-2 text-[10px] text-amber-300">Suspendue {selectedFixedRecurring.suspended_from ? 'à partir de ' + formatDate(selectedFixedRecurring.suspended_from) : ''}{selectedFixedRecurring.suspended_until ? ' jusqu’au ' + formatDate(selectedFixedRecurring.suspended_until) : ''}.</p>}
+                        </div>
+                      </>
+                    )}
 
                     <div className="rounded-xl border border-slate-800 p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Ajouter une occurrence</p>
-                        <CalendarDays className="h-4 w-4 text-slate-600" />
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Historique des occurrences</p>
+                          <span title="Liste toutes les occurrences déjà créées pour cette charge, y compris lorsqu’elle est archivée. L’archivage ne supprime pas cet historique." aria-label="À quoi sert l'historique ?" className="inline-flex cursor-help text-slate-500"><Info className="h-3.5 w-3.5" /></span>
+                        </div>
+                        <span className="text-[10px] text-slate-600">{selectedOccurrences.length}</span>
                       </div>
-                      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                        <input type="month" value={occurrenceMonth} onChange={event => setOccurrenceMonth(event.target.value)} className="input input-bordered input-sm flex-1" />
-                        {!isAdminViewing && selectedFixedRecurring.actif !== false && (
-                          <Button size="sm" onClick={addSelectedFixedOccurrence} disabled={addOccurrence.isPending || selectedOccurrences.some((item: any) => String(item.mois?.mois || '').slice(0, 7) === occurrenceMonth)}>
-                            <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-slate-800 p-3">
-                      <p className="text-[10px] uppercase tracking-wide text-slate-600">Suspendre une période</p>
-                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        <label className="text-[10px] text-slate-500">Du<input type="month" value={suspensionFrom} onChange={event => setSuspensionFrom(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
-                        <label className="text-[10px] text-slate-500">Au<input type="month" value={suspensionUntil} onChange={event => setSuspensionUntil(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
-                      </div>
-                      {!isAdminViewing && <Button size="sm" variant="outline" className="mt-2 w-full" onClick={saveSuspension} disabled={updateFixedRecurring.isPending}>Enregistrer la suspension</Button>}
-                      {(selectedFixedRecurring.suspended_from || selectedFixedRecurring.suspended_until) && <p className="mt-2 text-[10px] text-amber-300">Suspendue {selectedFixedRecurring.suspended_from ? 'à partir de ' + formatDate(selectedFixedRecurring.suspended_from) : ''}{selectedFixedRecurring.suspended_until ? ' jusqu’au ' + formatDate(selectedFixedRecurring.suspended_until) : ''}.</p>}
-                    </div>
-
-                    <div className="rounded-xl border border-slate-800 p-3">
-                      <div className="mb-2 flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Historique des occurrences</p><span className="text-[10px] text-slate-600">{selectedOccurrences.length}</span></div>
                       {selectedOccurrences.length === 0 ? <p className="text-xs text-slate-500">Aucune occurrence enregistrée.</p> : (
                         <div className="max-h-64 divide-y divide-slate-800/70 overflow-y-auto">
                           {selectedOccurrences.map((occurrence: any) => (
@@ -1002,10 +1029,8 @@ export default function DepensesPage() {
                       )}
                     </div>
 
-                    {!isAdminViewing && (
-                      selectedFixedRecurring.actif === false
-                        ? <Button className="w-full" onClick={() => setFixedRecurringActive(selectedFixedRecurring.id, true)}><RotateCcw className="mr-1 h-4 w-4" />Désarchiver la charge</Button>
-                        : <Button className="w-full" variant="outline" onClick={() => setFixedRecurringActive(selectedFixedRecurring.id, false)}><Archive className="mr-1 h-4 w-4" />Archiver la charge</Button>
+                    {!isAdminViewing && selectedFixedRecurring.actif !== false && (
+                      <Button className="w-full" variant="outline" onClick={() => setFixedRecurringActive(selectedFixedRecurring.id, false)}><Archive className="mr-1 h-4 w-4" />Archiver la charge</Button>
                     )}
                     <p className="text-[10px] leading-4 text-slate-600">Modifier une occurrence depuis l’historique permet ensuite de choisir : cette occurrence uniquement, cette occurrence et les suivantes, ou toute la série. Archiver conserve tout l’historique.</p>
                   </div>
