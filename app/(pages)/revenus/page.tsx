@@ -191,17 +191,17 @@ export default function RevenusPage() {
           carriedBalance={carried.data}
         />
 
+        <div className="grid gap-3 md:grid-cols-2">
+          <RepartitionRevenus revenus={effectiveRevenus as any[]} />
+          <EvolutionRevenus monthly={history.data?.monthly || []} loading={history.isLoading} />
+        </div>
+
         <PlannedIncomeValidationPanel
           incomes={effectiveRevenus as any[]}
           readOnly={isAdminViewing}
           busy={toggleRecu.isPending}
           onValidate={async (id, date) => { await toggleRecu.mutateAsync({ id, recu:true, dateReelle:date }) }}
         />
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <RepartitionRevenus revenus={effectiveRevenus as any[]} />
-          <EvolutionRevenus monthly={history.data?.monthly || []} loading={history.isLoading} />
-        </div>
 
         <RevenusTable
           revenus={effectiveRevenus as any[]}
