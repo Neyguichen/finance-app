@@ -210,6 +210,7 @@ export function useChargeFixeOccurrences(recurrentId: string | null | undefined,
       currentMonth: string
       scope: 'future' | 'all'
       updates: Partial<ChargeFixe>
+      pendingOnly?: boolean
     }) => {
       if (!espaceId) throw new Error('Budget manquant')
       let monthsQuery = supabase.from('mois').select('id').eq('espace_id', espaceId)
@@ -218,11 +219,13 @@ export function useChargeFixeOccurrences(recurrentId: string | null | undefined,
       if (monthsError) throw monthsError
       const ids = (monthRows || []).map(row => row.id)
       if (ids.length === 0) return
-      const { error } = await supabase
+      let updateQuery = supabase
         .from('charges_fixes')
         .update(updates)
         .eq('recurrent_id', recurrentId)
         .in('mois_id', ids)
+      if (pendingOnly) updateQuery = updateQuery.eq('payee', false)
+      const { error } = await updateQuery
       if (error) throw error
 
     },
