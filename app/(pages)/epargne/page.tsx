@@ -314,7 +314,7 @@ export default function EpargnePage() {
                   </label>
                   {!isAdminViewing && (
                     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                      <Button size="sm" variant="outline" onClick={() => setOpenRecurringManager(true)><Repeat2 className="mr-1 h-4 w-4"/>Récurrences</Button>
+                      <Button size="sm" variant="outline" onClick={() => setOpenRecurringManager(true)}><Repeat2 className="mr-1 h-4 w-4"/>Récurrences</Button>
                       <Button size="sm" variant="outline" onClick={() => setOpenSavingsInitialization(true)}>Initialiser l’épargne</Button>
                       <Button size="sm" onClick={() => setOpenEnvelope(true)}><Plus className="mr-1 h-4 w-4"/>Nouvelle enveloppe</Button>
                     </div>
