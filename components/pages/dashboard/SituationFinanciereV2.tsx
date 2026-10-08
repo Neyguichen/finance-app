@@ -29,7 +29,7 @@ export default function SituationFinanciereV2({
   balance, openingBalance, summary, loading, today, selectedMonth, plannedMonthResult,
   projectedRemainingCashMovement, experimentalRemainingCashMovement,
 }: Props) {
-  const [help, setHelp] = useState<'available' | 'planned' | 'projection' | 'cashflow' | null>(null)
+  const [help, setHelp] = useState<'available' | 'planned' | 'projection' | 'daily' | 'cashflow' | null>(null)
   const currentMonth = today.slice(0, 7)
   const isCurrentMonth = selectedMonth.slice(0, 7) === currentMonth
   const periodLabel = monthLabel(selectedMonth)
@@ -46,6 +46,7 @@ export default function SituationFinanciereV2({
     available: 'Solde calculé à partir des mouvements réellement enregistrés jusqu’à aujourd’hui.',
     planned: 'Solde actuel + revenus encore attendus − charges fixes restantes − dépenses variables prévues restantes − épargne prévue restante.',
     projection: 'Estimation dynamique : rythme moyen des dépenses variables observé depuis le début du mois × jours restants, puis ajout des revenus attendus et retrait des charges fixes et de l’épargne encore à venir.',
+    daily: 'Montant indicatif disponible par jour jusqu’à la fin du mois : disponible aujourd’hui ÷ nombre de jours restants. Il ne s’agit pas d’un budget à dépenser obligatoirement chaque jour.',
   }
 
   const HelpButton = ({ id }: { id: keyof typeof helpTexts | 'cashflow' }) => (
@@ -110,9 +111,9 @@ export default function SituationFinanciereV2({
             </CardContent>
           </Card>
 
-          <div className="grid gap-2.5">
-            <Card className="nf-card-hover">
-              <CardContent className="grid min-h-[54px] grid-cols-[28px_1fr] items-center gap-2 !px-3 !py-2.5">
+          <div className="grid grid-rows-2 gap-2.5">
+            <Card className="nf-card-hover h-full">
+              <CardContent className="grid h-full min-h-[54px] grid-cols-[28px_1fr] items-center gap-2 !px-3 !py-2.5">
                 <CalendarDays className="h-5 w-5 justify-self-start text-slate-300" />
                 <div className="min-w-0 text-center">
                   <p className="text-sm font-semibold leading-none text-slate-100">{daysRemaining} jours</p>
@@ -121,12 +122,12 @@ export default function SituationFinanciereV2({
               </CardContent>
             </Card>
 
-            <Card className="nf-card-hover">
-              <CardContent className="grid min-h-[54px] grid-cols-[28px_1fr] items-center gap-2 !px-3 !py-2.5">
+            <Card className="nf-card-hover h-full">
+              <CardContent className="grid h-full min-h-[54px] grid-cols-[28px_1fr] items-center gap-2 !px-3 !py-2.5">
                 <CircleDollarSign className="h-5 w-5 justify-self-start text-slate-300" />
                 <div className="min-w-0 text-center">
                   <p className="text-sm font-semibold leading-none text-slate-100">{dailyAvailable == null ? '—' : formatEuro(dailyAvailable)}</p>
-                  <p className="mt-1 text-[10px] leading-none text-slate-500">par jour</p>
+                  <div className="mt-1 flex items-center justify-center gap-1 text-[10px] leading-none text-slate-500"><span>par jour</span><HelpButton id="daily" /></div>
                 </div>
               </CardContent>
             </Card>
