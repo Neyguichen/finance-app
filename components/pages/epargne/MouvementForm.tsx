@@ -28,6 +28,7 @@ type Props = {
     frequence: number
     jourPrevu: number
     date: string
+    validationStatus: 'pending' | 'realized'
   }) => Promise<void>
 }
 
@@ -39,6 +40,7 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
   const [sourceId, setSourceId] = useState('')
   const [destId, setDestId] = useState('')
   const [date, setDate] = useState(initialDate)
+  const [validationStatus, setValidationStatus] = useState<'pending' | 'realized'>('realized')
 
   useEffect(() => {
     if (!open) return
@@ -77,6 +79,7 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
       frequence: frequency,
       jourPrevu: Math.min(31, Math.max(1, Number(jourPrevu || 1))),
       date,
+      validationStatus,
     })
     setMontant(0)
     setNote('')
@@ -85,6 +88,7 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
     setRecurrenceMode('monthly')
     setCustomFrequency(2)
     setJourPrevu(null)
+    setValidationStatus('realized')
     setCreatingEnvelope(false)
     setNewEnvelopeName('')
   }
@@ -125,7 +129,9 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-slate-400">Date du mouvement</label>
+            <label className="mb-1 block text-sm text-slate-400">
+              {type === 'epargne' && recurrenceMode === 'once' && validationStatus === 'pending' ? 'Date prévue' : 'Date du mouvement'}
+            </label>
             <Input type="date" value={date} onChange={event => setDate(event.target.value)} />
           </div>
 
@@ -206,6 +212,30 @@ export default function MouvementForm({ open, onOpenChange, enveloppesActives, o
           {sameEnvelope && <p className="text-xs text-rose-400">La source et la destination doivent être différentes.</p>}
 
           <Input placeholder="Note (optionnel)" value={note} onChange={event => setNote(event.target.value)} />
+
+          {type === 'epargne' && recurrenceMode === 'once' && (
+            <div>
+              <label className="mb-1 block text-sm text-slate-400">Statut</label>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-1">
+                {([
+                  ['pending', 'En attente'],
+                  ['realized', 'Validé'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setValidationStatus(value)}
+                    className={`rounded-lg px-2 py-2 text-xs font-medium transition ${validationStatus === value ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] leading-4 text-slate-500">
+                En attente : le versement reste prévu et n’augmente l’épargne réelle qu’après validation.
+              </p>
+            </div>
+          )}
 
           {type === 'epargne' && (
             <div>
