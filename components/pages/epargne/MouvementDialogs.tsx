@@ -97,13 +97,17 @@ export function MouvementDeleteDialog({ target, onClose, onDelete }: DeleteProps
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Supprimer ce mouvement ?</DialogTitle>
-          <DialogDescription>Choisissez la portée de la suppression.</DialogDescription>
+          <DialogDescription>
+            {target?.recurrentId ? 'Choisissez la portée de la suppression.' : 'Cette action supprimera uniquement ce mouvement ponctuel.'}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
-          <button type="button" onClick={() => onDelete('mois')} className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4 text-left hover:border-slate-700">
-            <span className="block text-sm font-semibold text-slate-100">Ce mois seulement</span>
-            <span className="mt-1 block text-xs text-slate-500">La récurrence continuera les mois suivants.</span>
-          </button>
+          {target?.recurrentId && (
+            <button type="button" onClick={() => onDelete('mois')} className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4 text-left hover:border-slate-700">
+              <span className="block text-sm font-semibold text-slate-100">Ce mois seulement</span>
+              <span className="mt-1 block text-xs text-slate-500">La récurrence continuera les mois suivants.</span>
+            </button>
+          )}
           {target?.recurrentId && (
             <button type="button" onClick={() => onDelete('definitif')} className="rounded-2xl border border-rose-500/25 bg-rose-500/10 p-4 text-left hover:bg-rose-500/15">
               <span className="block text-sm font-semibold text-rose-300">Arrêter définitivement</span>
@@ -111,7 +115,12 @@ export function MouvementDeleteDialog({ target, onClose, onDelete }: DeleteProps
             </button>
           )}
         </div>
-        <FormActions><Button variant="ghost" onClick={onClose}>Annuler</Button></FormActions>
+        <FormActions>
+          <Button variant="ghost" onClick={onClose}>Annuler</Button>
+          {!target?.recurrentId && (
+            <Button variant="destructive" onClick={() => onDelete('mois')}>Supprimer le mouvement</Button>
+          )}
+        </FormActions>
       </DialogContent>
     </Dialog>
   )
