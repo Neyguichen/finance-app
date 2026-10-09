@@ -64,7 +64,7 @@ export default function EpargnePage() {
   const { create: createEnv, update: updateEnv, archive, unarchive } = useEnveloppes(espace?.id)
   const { data: enveloppes = [] } = useEnveloppesAtMonth(espace?.id, month)
   const { data: mouvements = [], create: createMvt, update: updateMvt, remove: removeMvt, removeDefinitif } = useMouvements(moisId)
-  const { data: plannedSavings = [], updateOccurrence, validateOccurrence, ignoreOccurrence, restoreOccurrence } = usePlannedSavings(isAdminViewing ? undefined : moisId)
+  const { data: plannedSavings = [], createOccurrence, updateOccurrence, validateOccurrence, ignoreOccurrence, restoreOccurrence } = usePlannedSavings(isAdminViewing ? undefined : moisId)
   const { data: savingsRecurrents = [], create: createRecurrent, update: updateRecurrent, updateFromMonth: updateRecurrentFromMonth } = useEpargneRecurrentes(espace?.id)
   const { data: adminData } = useAdminMoisData(month)
   const savingsHistory = useSavingsHistory(espace?.id)
@@ -183,17 +183,27 @@ export default function EpargnePage() {
     setEditEnv(null)
   }
 
-  const handleCreateMvt = async (data:{ type:MovementType; montant:number; note:string|null; sourceId:string|null; destId:string|null; frequence:number; jourPrevu:number; date:string }) => {
+  const handleCreateMvt = async (data:{ type:MovementType; montant:number; note:string|null; sourceId:string|null; destId:string|null; frequence:number; jourPrevu:number; date:string; validationStatus:'pending'|'realized' }) => {
     if (isAdminViewing || !moisId || !espace || data.montant <= 0) return
     if (data.type === 'reprise' && !data.sourceId) return
     if (data.type === 'epargne' && !data.destId) return
     if (data.type === 'transfert' && (!data.sourceId || !data.destId)) return
 
     if (data.frequence === 0) {
-      await createMvt.mutateAsync({
-        mois_id:moisId, recurrent_id:null, enveloppe_source_id:data.sourceId, enveloppe_dest_id:data.destId,
-        montant:data.montant, type:data.type, date:data.date || month, note:data.note,
-      })
+      if (data.type === 'epargne' && data.validationStatus === 'pending') {
+        await createOccurrence.mutateAsync({
+          mois_id: moisId,
+          enveloppe_dest_id: data.destId!,
+          montant: data.montant,
+          date_prevue: data.date || month,
+          note: data.note,
+        })
+      } else {
+        await createMvt.mutateAsync({
+          mois_id:moisId, recurrent_id:null, enveloppe_source_id:data.sourceId, enveloppe_dest_id:data.destId,
+          montant:data.montant, type:data.type, date:data.date || month, note:data.note,
+        })
+      }
     } else {
       const rec = await createRecurrent.mutateAsync({
         espace_id:espace.id, enveloppe_dest_id:data.destId!, montant:data.montant, actif:true,
