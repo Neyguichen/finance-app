@@ -91,6 +91,30 @@ export function useBalanceReconciliationSuggestions(
         if (item.date_validation) continue
         add({ id: 'variable:' + item.id, kind: 'variable', title: item.infos || 'Dépense variable', detail: 'Dépense sans validation bancaire en mode double date.', effect: -Number(item.montant), date: item.date, href: '/depenses', actions: [{ kind: 'variable', id: item.id }], autoCorrectable: true })
       }
+      // Investigate already-counted expenses as potential duplicates or date/amount
+      // errors. Removing or correcting such a flow would INCREASE the app balance.
+      // These are strictly review-only: matching a number never justifies deletion.
+      for (const item of transactions || []) {
+        const accountedDate = doubleDate ? item.date_validation : item.date
+        if (!accountedDate) continue
+        add({
+          id: 'review-variable:' + item.id,
+          kind: 'variable',
+          title: item.infos || 'Dépense enregistrée',
+          detail: 'Dépense déjà incluse dans le solde : contrôler sur le relevé si elle est en double, datée trop tôt ou avec un montant incorrect. Ne pas supprimer sur la seule base de ce rapprochement.',
+          effect: Number(item.montant),
+          date: accountedDate, href: '/depenses', actions: [], autoCorrectable: false,
+        })
+      }
+      // A recorded cash outflow already deducted may also explain a positive
+      // discrepancy if its amount, date or paid status is wrong.
+      for (const item of fixed || []) {
+        if (!item.payee) continue
+        const date = item.date_prevue || monthDate.get(item.mois_id) || ''
+        add({ id: 'review-fixed:' + item.id, kind: 'fixed', title: item.nom || 'Charge enregistrée',
+          detail: 'Charge déjà comptabilisée : vérifier un doublon, une date ou un montant erroné.',
+          effect: Number(item.montant_reel ?? item.montant), date, href: '/depenses', actions: [], autoCorrectable: false })
+      }
       for (const item of savingsPlanned || []) {
         const date = item.date_prevue || monthDate.get(item.mois_id) || ''
         add({ id: 'saving:' + item.id, kind: 'savings', title: item.note || 'Versement épargne prévu', detail: 'Versement en attente : vérifier si le virement bancaire a eu lieu. Validation manuelle depuis Épargne.', effect: -Number(item.montant), date, href: '/epargne', actions: [], autoCorrectable: false })
