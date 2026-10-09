@@ -50,6 +50,46 @@ export function usePlannedSavings(moisId?: string) {
     queryClient.invalidateQueries({ queryKey: ['savings_history'] })
   }
 
+  const createOccurrence = useMutation({
+    mutationFn: async ({
+      mois_id,
+      enveloppe_dest_id,
+      montant,
+      date_prevue,
+      note,
+    }: {
+      mois_id: string
+      enveloppe_dest_id: string
+      montant: number
+      date_prevue: string | null
+      note: string | null
+    }) => {
+      if (!Number.isFinite(Number(montant)) || Number(montant) <= 0) {
+        throw new Error('Le montant prévu doit être strictement positif.')
+      }
+
+      const { data, error } = await supabase
+        .from('epargne_prevues')
+        .insert({
+          mois_id,
+          enveloppe_dest_id,
+          recurrent_id: null,
+          montant: Number(montant),
+          date_prevue,
+          note,
+          statut: 'pending',
+          mouvement_id: null,
+          realise_at: null,
+          ignore_at: null,
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data as PlannedSavingsOccurrence
+    },
+    onSuccess: invalidateSavings,
+  })
+
   const updateOccurrence = useMutation({
     mutationFn: async ({ id, montant, note }: { id: string; montant?: number; note?: string | null }) => {
       if (montant !== undefined && (!Number.isFinite(Number(montant)) || Number(montant) <= 0)) {
@@ -115,6 +155,7 @@ export function usePlannedSavings(moisId?: string) {
 
   return {
     ...query,
+    createOccurrence,
     updateOccurrence,
     validateOccurrence,
     ignoreOccurrence,
