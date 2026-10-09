@@ -150,6 +150,33 @@ export default function DepensesPage() {
     }
   })
 
+  useEffect(() => {
+    if (isAdminViewing) return
+
+    const params = new URLSearchParams(window.location.search)
+    const focusTransaction = params.get('focusTransaction')
+    const focusFixed = params.get('focusFixed')
+
+    if (focusTransaction) {
+      const transaction = effectiveFlat.find((item:any) => String(item.id) === focusTransaction)
+        || effectiveTransactions.find((item:any) => String(item.id) === focusTransaction)
+      if (transaction) {
+        setEditTx(transaction)
+        params.delete('focusTransaction')
+        const next = params.toString()
+        window.history.replaceState(null, '', window.location.pathname + (next ? '?' + next : ''))
+      }
+    } else if (focusFixed) {
+      const charge = effectiveCharges.find((item:any) => String(item.id) === focusFixed)
+      if (charge) {
+        setEditFixed(charge)
+        params.delete('focusFixed')
+        const next = params.toString()
+        window.history.replaceState(null, '', window.location.pathname + (next ? '?' + next : ''))
+      }
+    }
+  }, [isAdminViewing, effectiveFlat, effectiveTransactions, effectiveCharges])
+
   const parentCategories = effectiveCategories.filter((c: any) => c.actif !== false && !c.parent_id)
   const archivedParentCategories = effectiveCategories.filter((c: any) => c.actif === false && !c.parent_id)
   const subCats = (id: string, includeArchived = false) => subcategoriesEnabled ? effectiveCategories
