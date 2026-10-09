@@ -165,7 +165,13 @@ export default function VerificationSoldePage() {
                 </div>
               </div>
 
-              {suggestions.isLoading ? (
+              {suggestions.isError ? (
+                <div className="mt-4 rounded-lg border border-red-800/60 bg-red-950/25 p-3" role="alert">
+                  <p className="text-sm font-medium text-red-300">La recherche n’a pas pu aboutir.</p>
+                  <p className="mt-1 text-xs text-red-200/80">{suggestions.error instanceof Error ? suggestions.error.message : 'Erreur de chargement des opérations.'}</p>
+                  <button type="button" onClick={() => suggestions.refetch()} className="mt-2 text-sm text-blue-300 underline">Réessayer</button>
+                </div>
+              ) : suggestions.isLoading ? (
                 <p className="mt-4 text-sm text-slate-500">Recherche des pistes…</p>
               ) : suggestions.data && suggestions.data.length > 0 ? (
                 <div className="mt-4 space-y-2">
@@ -210,7 +216,7 @@ export default function VerificationSoldePage() {
                 </div>
               ) : (
                 <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-3">
-                  <p className="text-sm text-slate-300">Aucune correspondance évidente trouvée.</p>
+                  <p className="text-sm text-slate-300">Aucune correspondance parmi les pistes actuellement analysées.</p>
                   <p className="mt-1 text-xs text-slate-500">
                     L&apos;écart peut venir d&apos;une opération absente, d&apos;une mauvaise date, d&apos;un montant différent ou d&apos;une combinaison plus complexe.
                   </p>
