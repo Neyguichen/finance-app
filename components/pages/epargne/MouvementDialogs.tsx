@@ -118,7 +118,7 @@ export function MouvementDeleteDialog({ target, onClose, onDelete }: DeleteProps
         <FormActions>
           <Button variant="ghost" onClick={onClose}>Annuler</Button>
           {!target?.recurrentId && (
-            <Button variant="destructive" onClick={() => onDelete('mois')}>Supprimer le mouvement</Button>
+            <Button variant="default" className="bg-rose-600 hover:bg-rose-500" onClick={() => onDelete('mois')}>Supprimer le mouvement</Button>
           )}
         </FormActions>
       </DialogContent>
