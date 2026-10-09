@@ -45,7 +45,8 @@ export default function VerificationSoldePage() {
     espace?.id,
     targetDate,
     espace?.date_solde_reference,
-    beforeReference ? null : delta
+    beforeReference ? null : delta,
+    espace?.double_date ?? false
   )
 
   const confirmCorrection = async () => {
@@ -159,7 +160,7 @@ export default function VerificationSoldePage() {
                   <h2 className="font-semibold">Pistes de rapprochement</h2>
                   <p className="mt-1 text-sm text-slate-400">
                     Neyguichen cherche des opérations qui pourraient expliquer un écart de {formatEuro(delta)}.
-                    Ce sont uniquement des suggestions : aucune donnée n&apos;est modifiée automatiquement.
+                    Le diagnostic couvre les revenus, dépenses, épargne, remboursements et dettes/créances. Une égalité de montants n&apos;est pas une preuve : vérifie les opérations avant toute correction.
                   </p>
                 </div>
               </div>
@@ -179,7 +180,7 @@ export default function VerificationSoldePage() {
                                 ? 'bg-emerald-950 text-emerald-300'
                                 : 'bg-slate-800 text-slate-400'
                             }`}>
-                              {suggestion.confidence === 'forte' ? 'Correspondance exacte' : 'À vérifier'}
+                              {suggestion.confidence === 'forte' ? 'Montant exact · à confirmer' : 'À vérifier'}
                             </span>
                           </div>
                           <p className="mt-1 text-xs text-slate-500">{suggestion.detail}</p>
@@ -195,13 +196,13 @@ export default function VerificationSoldePage() {
                             Vérifier
                             <ChevronRight className="h-4 w-4" />
                           </Link>
-                          <button
+                          {suggestion.actions.length > 0 && <button
                             type="button"
                             onClick={() => setSelectedSuggestion(suggestion)}
                             className="rounded-lg border border-emerald-800/60 bg-emerald-950/30 px-3 py-1.5 text-sm text-emerald-300 hover:bg-emerald-950/50"
                           >
                             Utiliser cette correction
-                          </button>
+                          </button>}
                         </div>
                       </div>
                     </div>
