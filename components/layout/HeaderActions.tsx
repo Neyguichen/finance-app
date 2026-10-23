@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '@/components/AppContext'
 import { useNotifications } from '@/lib/hooks/useNotifications'
+import QuickTodoDialog from '@/components/todo/QuickTodoDialog'
 import { useTodos } from '@/lib/hooks/useTodos'
 import { localDateISO } from '@/lib/utils'
 import { isAdmin } from '@/lib/utils'
@@ -12,6 +13,7 @@ import { isAdmin } from '@/lib/utils'
 export default function HeaderActions() {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [quickTodoOpen, setQuickTodoOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const { espace, isAdminViewing, userId } = useApp()
   const allowedFamilies = ([
@@ -61,7 +63,7 @@ export default function HeaderActions() {
       {!isAdminViewing && todoEnabled && (
         <button
           type="button"
-          onClick={() => router.push('/todo')}
+          onClick={() => setQuickTodoOpen(true)}
           className="relative rounded-xl p-2 text-slate-400 transition hover:bg-slate-800/60 hover:text-white"
           aria-label="Todo"
         >
@@ -134,6 +136,7 @@ export default function HeaderActions() {
           </div>
         )}
       </div>
+      <QuickTodoDialog open={quickTodoOpen} onOpenChange={setQuickTodoOpen} />
     </div>
   )
 }
