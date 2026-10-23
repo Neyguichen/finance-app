@@ -923,7 +923,12 @@ export default function DepensesPage() {
             <CardContent className="min-w-0 p-3 pt-0">
               {browsedCategory && (
                 <div className="mb-3 grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-3">
-                  <Metric label="Prévu" value={formatEuro(browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))}/>
+                  <Metric
+                    label="Prévu"
+                    value={formatEuro(browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))}
+                    hint={!isAdminViewing ? 'Modifier' : undefined}
+                    onClick={!isAdminViewing ? () => openBudgetModal(browsedCategory.id, browsedSubcategory?.id ?? null) : undefined}
+                  />
                   <Metric label="Réel" value={formatEuro(browsedSubcategory?spent(browsedSubcategory.id,true):spent(browsedCategory.id))}/>
                   <Metric label="Restant" value={formatEuro((browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))-(browsedSubcategory?spent(browsedSubcategory.id,true):spent(browsedCategory.id)))}/>
                 </div>
@@ -1399,8 +1404,24 @@ function SummaryCard({ icon: Icon, label, value, detail, tone, signed = false }:
   )
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-[10px] text-slate-600">{label}</p><p className="mt-1 text-sm font-semibold text-slate-200">{value}</p></div>
+function Metric({ label, value, hint, onClick }: { label: string; value: string; hint?: string; onClick?: () => void }) {
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-800/55 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        aria-label={hint ? `${label} — ${hint}` : label}
+      >
+        <div className="flex items-center gap-1.5">
+          <p className="text-[10px] text-slate-600 group-hover:text-slate-500">{label}</p>
+          {hint && <span className="text-[9px] font-medium text-indigo-400 opacity-70 group-hover:opacity-100">{hint}</span>}
+        </div>
+        <p className="mt-1 text-sm font-semibold text-slate-200 group-hover:text-indigo-200">{value}</p>
+      </button>
+    )
+  }
+  return <div className="px-2 py-1.5"><p className="text-[10px] text-slate-600">{label}</p><p className="mt-1 text-sm font-semibold text-slate-200">{value}</p></div>
 }
 
 function StatusBadge({ status }: { status: 'planned' | 'validated' }) {
