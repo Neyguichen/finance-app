@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, ReceiptText, Scissors, X } from 'lucide-react'
+import { CheckSquare2, Plus, ReceiptText, Scissors, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import CategorieDialog from './CategorieDialog'
+import QuickTodoDialog from '@/components/todo/QuickTodoDialog'
 import { formatEuro, localDateISO } from '@/lib/utils'
 
 type Props = {
@@ -45,6 +46,7 @@ export default function DepenseEditDialog({
   const [catId, setCatId] = useState('')
   const [subCatId, setSubCatId] = useState('')
   const [categoryDialogParentId, setCategoryDialogParentId] = useState<string | null | undefined>(undefined)
+  const [quickTodoOpen, setQuickTodoOpen] = useState(false)
 
   const parentCategories = useMemo(
     () => categories.filter((c: any) => !c.parent_id && c.actif !== false).sort((a: any, b: any) => a.nom.localeCompare(b.nom)),
@@ -172,6 +174,9 @@ export default function DepenseEditDialog({
                     <ReceiptText className="mr-2 h-4 w-4" />Ajouter un remboursement
                   </Button>
                 )}
+                <Button variant="outline" className="border-indigo-800 text-indigo-300" onClick={() => setQuickTodoOpen(true)}>
+                  <CheckSquare2 className="mr-2 h-4 w-4" />Tâche liée
+                </Button>
                 {onSplit && (
                   <Button variant="outline" className="border-indigo-800 text-indigo-300" onClick={() => { handleClose(); onSplit(editTx) }}>
                     <Scissors className="mr-2 h-4 w-4" />Modifier la répartition
@@ -281,6 +286,11 @@ export default function DepenseEditDialog({
                     <ReceiptText className="mr-2 h-4 w-4" />Remboursement
                   </Button>
                 )}
+                {!isSplitChild && (
+                  <Button variant="outline" className="border-indigo-800 text-indigo-300" onClick={() => setQuickTodoOpen(true)}>
+                    <CheckSquare2 className="mr-2 h-4 w-4" />Tâche liée
+                  </Button>
+                )}
                 {onSplit && !isSplitChild && (
                   <Button variant="outline" className="border-indigo-800 text-indigo-300" onClick={() => { handleClose(); onSplit(editTx) }}>
                     <Scissors className="mr-2 h-4 w-4" />Répartir
@@ -292,6 +302,18 @@ export default function DepenseEditDialog({
           )}
         </DialogContent>
       </Dialog>
+
+      <QuickTodoDialog
+        open={quickTodoOpen}
+        onOpenChange={setQuickTodoOpen}
+        linkedObject={editTx ? {
+          type: 'transaction',
+          id: editTx.parent_transaction_id || editTx.id,
+          label: editTx.infos || editTx.categorie?.nom || 'Dépense',
+          href: '/depenses?focusTransaction=' + (editTx.parent_transaction_id || editTx.id),
+        } : null}
+        titlePlaceholder="Ex. Remboursement à recevoir"
+      />
 
       <CategorieDialog
         open={categoryDialogParentId !== undefined}
