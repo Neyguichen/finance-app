@@ -116,8 +116,9 @@ export default function DashboardQuickAdd() {
 
   const createExpenseHandler = async (data: any) => {
     if (!moisId) return
-    await createTx.mutateAsync({ mois_id: moisId, ...data })
+    const created = await createTx.mutateAsync({ mois_id: moisId, ...data })
     setActiveForm(null)
+    return created
   }
 
   const createSplitExpenseHandler = async (data: any, lines: any[]) => {
@@ -125,6 +126,7 @@ export default function DashboardQuickAdd() {
     const parent = await createTx.mutateAsync({ mois_id: moisId, ...data })
     await split.mutateAsync({ parentId: parent.id, lines })
     setActiveForm(null)
+    return parent
   }
 
   const createEnvelopeInline = async (name: string) => {

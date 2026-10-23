@@ -547,13 +547,14 @@ export default function DepensesPage() {
 
   const createTransaction = async (data: any) => {
     if (!moisId || isAdminViewing) return
-    await createTx.mutateAsync({ mois_id: moisId, ...data })
+    return createTx.mutateAsync({ mois_id: moisId, ...data })
   }
 
   const createSplitTransaction = async (data: any, lines: any[]) => {
     if (!moisId || isAdminViewing) return
     const parent = await createTx.mutateAsync({ mois_id: moisId, ...data })
     await split.mutateAsync({ parentId: parent.id, lines })
+    return parent
   }
 
   const createFixedExpense = async (value: { nom: string; montant: number; frequence: number; jourPrevu: number }) => {

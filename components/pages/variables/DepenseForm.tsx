@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Scissors, Trash2 } from 'lucide-react'
+import { CheckSquare2, Plus, Scissors, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import CategorieDialog from './CategorieDialog'
+import QuickTodoDialog from '@/components/todo/QuickTodoDialog'
 import { formatEuro, localDateISO } from '@/lib/utils'
 
 type SplitLine = {
@@ -31,8 +32,8 @@ type Props = {
   doubleDate?: boolean
   subcategoriesEnabled?: boolean
   splitEnabled?: boolean
-  onSubmit: (data: { categorie_id: string; sous_categorie_id: string | null; montant: number; date: string; date_validation: string | null; infos: string | null }) => Promise<void>
-  onSubmitSplit?: (data: { categorie_id: string; montant: number; date: string; date_validation: string | null; infos: string | null }, lines: SplitLine[]) => Promise<void>
+  onSubmit: (data: { categorie_id: string; sous_categorie_id: string | null; montant: number; date: string; date_validation: string | null; infos: string | null }) => Promise<{ id: string } | void>
+  onSubmitSplit?: (data: { categorie_id: string; montant: number; date: string; date_validation: string | null; infos: string | null }, lines: SplitLine[]) => Promise<{ id: string } | void>
 }
 
 export default function DepenseForm({
@@ -55,6 +56,9 @@ export default function DepenseForm({
   const [txDateValidation, setTxDateValidation] = useState('')
   const [txValidated, setTxValidated] = useState(false)
   const [splitMode, setSplitMode] = useState(false)
+  const [createLinkedTask, setCreateLinkedTask] = useState(false)
+  const [quickTodoOpen, setQuickTodoOpen] = useState(false)
+  const [linkedTransaction, setLinkedTransaction] = useState<{ id: string; label: string } | null>(null)
   const [categoryTarget, setCategoryTarget] = useState<CategoryTarget>(null)
   const [splitLines, setSplitLines] = useState<SplitLine[]>([
     { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' },
@@ -97,6 +101,7 @@ export default function DepenseForm({
     setTxDateValidation('')
     setTxValidated(false)
     setSplitMode(false)
+    setCreateLinkedTask(false)
     setCategoryTarget(null)
     setSplitLines([
       { categorie_id: '', sous_categorie_id: '', montant: 0, infos: '' },
@@ -288,6 +293,24 @@ export default function DepenseForm({
               </div>
             )}
 
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-800/70 bg-slate-950/25 p-3">
+              <input
+                type="checkbox"
+                className="checkbox checkbox-sm mt-0.5"
+                checked={createLinkedTask}
+                onChange={event => setCreateLinkedTask(event.target.checked)}
+              />
+              <span>
+                <span className="flex items-center gap-1.5 text-sm font-medium text-slate-300">
+                  <CheckSquare2 className="h-4 w-4 text-indigo-300" />
+                  Créer une tâche liée après l’ajout
+                </span>
+                <span className="mt-0.5 block text-xs text-slate-600">
+                  Ex. « Remboursement à recevoir ». La tâche restera liée à cette dépense.
+                </span>
+              </span>
+            </label>
+
             <div className="rounded-xl border border-slate-800/70 bg-slate-950/25 p-3">
               {doubleDate ? (
                 <div>
@@ -317,7 +340,9 @@ export default function DepenseForm({
                 disabled={!txCat || txMontant <= 0}
                 onClick={async () => {
                   if (!txCat || txMontant <= 0) return
-                  await onSubmit({
+                  const shouldCreateTask = createLinkedTask
+                  const label = txInfos.trim() || 'Dépense'
+                  const created = await onSubmit({
                     categorie_id: txCat,
                     sous_categorie_id: txSubCat || null,
                     montant: txMontant,
@@ -327,6 +352,10 @@ export default function DepenseForm({
                   })
                   resetForm()
                   onOpenChange(false)
+                  if (shouldCreateTask && created?.id) {
+                    setLinkedTransaction({ id: created.id, label })
+                    setQuickTodoOpen(true)
+                  }
                 }}
               >
                 Ajouter la dépense
@@ -337,7 +366,9 @@ export default function DepenseForm({
                 disabled={!splitValid || txMontant <= 0}
                 onClick={async () => {
                   if (!onSubmitSplit || !splitValid) return
-                  await onSubmitSplit(
+                  const shouldCreateTask = createLinkedTask
+                  const label = txInfos.trim() || 'Dépense répartie'
+                  const created = await onSubmitSplit(
                     {
                       categorie_id: splitLines[0].categorie_id,
                       montant: txMontant,
@@ -349,6 +380,10 @@ export default function DepenseForm({
                   )
                   resetForm()
                   onOpenChange(false)
+                  if (shouldCreateTask && created?.id) {
+                    setLinkedTransaction({ id: created.id, label })
+                    setQuickTodoOpen(true)
+                  }
                 }}
               >
                 Créer la dépense répartie
@@ -357,6 +392,21 @@ export default function DepenseForm({
           </div>
         </DialogContent>
       </Dialog>
+
+      <QuickTodoDialog
+        open={quickTodoOpen}
+        onOpenChange={value => {
+          setQuickTodoOpen(value)
+          if (!value) setLinkedTransaction(null)
+        }}
+        linkedObject={linkedTransaction ? {
+          type: 'transaction',
+          id: linkedTransaction.id,
+          label: linkedTransaction.label,
+          href: '/depenses?focusTransaction=' + linkedTransaction.id,
+        } : null}
+        titlePlaceholder="Ex. Remboursement à recevoir"
+      />
 
       <CategorieDialog
         open={categoryTarget !== null}
