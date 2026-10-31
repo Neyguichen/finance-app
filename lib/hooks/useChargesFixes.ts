@@ -61,6 +61,40 @@ export function useChargesFixes(moisId: string | undefined) {
     },
   })
 
+  const ignoreOccurrence = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('charges_fixes')
+        .update({ ignore_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('payee', false)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+    },
+  })
+
+  const restoreOccurrence = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('charges_fixes')
+        .update({ ignore_at: null })
+        .eq('id', id)
+        .eq('payee', false)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+    },
+  })
+
   const update = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ChargeFixe> & { id: string }) => {
       const { error } = await supabase
@@ -108,7 +142,7 @@ export function useChargesFixes(moisId: string | undefined) {
     },
   })
 
-  return { ...query, create, togglePayee, update, remove, removeDefinitif }
+  return { ...query, create, togglePayee, ignoreOccurrence, restoreOccurrence, update, remove, removeDefinitif }
 }
 
 // Hook pour gérer les charges fixes récurrentes (modèles par espace)
