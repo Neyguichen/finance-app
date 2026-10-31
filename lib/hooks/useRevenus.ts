@@ -178,6 +178,42 @@ export function useRevenus(moisId: string | undefined) {
     },
   })
 
+  const ignoreOccurrence = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('revenus')
+        .update({ ignore_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('recu', false)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+      queryClient.invalidateQueries({ queryKey: ['income_history'] })
+    },
+  })
+
+  const restoreOccurrence = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('revenus')
+        .update({ ignore_at: null })
+        .eq('id', id)
+        .eq('recu', false)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      queryClient.invalidateQueries({ queryKey: ['actual_flows'] })
+      queryClient.invalidateQueries({ queryKey: ['balance_at_date'] })
+      queryClient.invalidateQueries({ queryKey: ['actual_cash_summary'] })
+      queryClient.invalidateQueries({ queryKey: ['income_history'] })
+    },
+  })
+
   const toggleRecu = useMutation({
     mutationFn: async ({ id, recu, dateReelle }: { id: string; recu: boolean; dateReelle?: string | null }) => {
       const effectiveDate = recu
@@ -198,7 +234,7 @@ export function useRevenus(moisId: string | undefined) {
     },
   })
 
-  return { ...query, create, update, updateFromMonth, remove, removeDefinitif, removeFromMonth, toggleRecu }
+  return { ...query, create, update, updateFromMonth, remove, removeDefinitif, removeFromMonth, toggleRecu, ignoreOccurrence, restoreOccurrence }
 }
 
 // Hook pour gérer les revenus récurrents (modèles par espace)
