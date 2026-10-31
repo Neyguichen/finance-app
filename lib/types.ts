@@ -58,6 +58,7 @@ export interface Revenu {
   recu: boolean
   date_prevue?: string | null
   date_reelle?: string | null
+  ignore_at?: string | null
   ordre: number
 }
 
@@ -90,6 +91,7 @@ export interface ChargeFixe {
   payee: boolean
   date_prevue?: string | null
   date_reelle?: string | null
+  ignore_at?: string | null
   ordre: number
 }
 
@@ -120,6 +122,7 @@ export interface Transaction {
   date: string
   /** V2: en mode standard, date de validation; en mode double date, date de débit bancaire. */
   date_validation?: string | null
+  ignore_at?: string | null
   montant: number
   infos: string | null
   categorie?: Categorie
