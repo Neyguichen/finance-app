@@ -30,7 +30,7 @@ function previousMonthEnd(month: string) {
 export default function RevenusPage() {
   const router = useRouter()
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
-  const { data: revenus = [], toggleRecu, create, update, updateFromMonth, remove, removeFromMonth } = useRevenus(moisId)
+  const { data: revenus = [], toggleRecu, create, update, updateFromMonth, remove, removeFromMonth, ignoreOccurrence, restoreOccurrence } = useRevenus(moisId)
   const { data: recurrents = [], create: createRecurrent } = useRevenusRecurrents(espace?.id)
   const { data: mouvements = [] } = useMouvements(moisId)
   const { data: enveloppes = [] } = useEnveloppes(espace?.id)
@@ -199,8 +199,28 @@ export default function RevenusPage() {
         <PlannedIncomeValidationPanel
           incomes={effectiveRevenus as any[]}
           readOnly={isAdminViewing}
-          busy={toggleRecu.isPending}
-          onValidate={async (id, date) => { await toggleRecu.mutateAsync({ id, recu:true, dateReelle:date }) }}
+          busy={toggleRecu.isPending || update.isPending || updateFromMonth.isPending || ignoreOccurrence.isPending || restoreOccurrence.isPending}
+          onValidate={async (id, date, amount, scope) => {
+            const revenue = effectiveRevenus.find((item:any) => item.id === id)
+            if (!revenue) return
+            if (scope === 'future' && revenue.recurrent_id) {
+              await updateFromMonth.mutateAsync({
+                recurrentId: revenue.recurrent_id,
+                month,
+                updates: { montant: amount },
+              })
+            }
+            await update.mutateAsync({
+              id,
+              recu: true,
+              date_reelle: date,
+              montant_reel: amount,
+              ignore_at: null,
+              ...(scope === 'future' ? { montant: amount } : {}),
+            })
+          }}
+          onIgnore={async id => { await ignoreOccurrence.mutateAsync(id) }}
+          onRestore={async id => { await restoreOccurrence.mutateAsync(id) }}
         />
 
         <RevenusTable
