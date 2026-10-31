@@ -31,9 +31,9 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       const monthByPrefix = new Map(moisList.map(mois => [String(mois.mois).slice(0, 7), mois.mois]))
 
       const [revResult, charResult, txResult, mvtResult, debtResult, budgetResult] = await Promise.all([
-        supabase.from('revenus').select('montant, montant_reel, type, recu, mois_id').in('mois_id', moisIds),
-        supabase.from('charges_fixes').select('montant, montant_reel, payee, categorie_id, sous_categorie_id, mois_id').in('mois_id', moisIds),
-        supabase.from('transactions').select('id, montant, categorie_id, sous_categorie_id, mois_id, is_split, parent_transaction_id, remboursements(montant)').in('mois_id', moisIds),
+        supabase.from('revenus').select('montant, montant_reel, type, recu, mois_id, ignore_at').in('mois_id', moisIds),
+        supabase.from('charges_fixes').select('montant, montant_reel, payee, categorie_id, sous_categorie_id, mois_id, ignore_at').in('mois_id', moisIds),
+        supabase.from('transactions').select('id, montant, categorie_id, sous_categorie_id, mois_id, is_split, parent_transaction_id, ignore_at, remboursements(montant)').in('mois_id', moisIds),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', moisIds),
         supabase.from('dettes').select('type, remboursements_dette(montant, date, impacte_budget)').eq('espace_id', espaceId!),
         supabase.from('budgets').select('prevu, categorie_id, mois_id, categorie:categories(parent_id)').in('mois_id', moisIds),
@@ -93,7 +93,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       for (const revenu of revenus) {
         const mois = moisMap.get(revenu.mois_id)
         if (mois && monthlyData[mois]) {
-          monthlyData[mois].revenus += Number(revenu.montant)
+          if (!revenu.ignore_at) monthlyData[mois].revenus += Number(revenu.montant)
           if (revenu.recu) monthlyData[mois].revenusRecus += Number(revenu.montant_reel ?? revenu.montant)
         }
       }
@@ -101,6 +101,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       for (const charge of charges) {
         const mois = moisMap.get(charge.mois_id)
         if (mois && monthlyData[mois]) {
+          if (charge.ignore_at) continue
           monthlyData[mois].charges += Number(charge.montant)
           if (charge.categorie_id) {
             monthlyData[mois].catPrevues[charge.categorie_id] =
@@ -128,6 +129,7 @@ export function useYearData(espaceId: string | undefined, currentMonth: string) 
       // Split parents are cash containers. Children carry the analytical allocation,
       // so category statistics use children and ordinary non-split transactions only.
       for (const transaction of transactions as any[]) {
+        if (transaction.ignore_at) continue
         if (transaction.is_split && !transaction.parent_transaction_id) continue
         const mois = moisMap.get(transaction.mois_id)
         if (!mois || !monthlyData[mois]) continue
