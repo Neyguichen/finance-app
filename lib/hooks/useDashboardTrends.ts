@@ -18,7 +18,7 @@ export function useDashboardTrends(espaceId?: string) {
       const [rev, fixed, tx, savings, debts] = await Promise.all([
         supabase.from('revenus').select('montant, montant_reel, recu, mois_id').in('mois_id', ids),
         supabase.from('charges_fixes').select('montant, montant_reel, payee, mois_id').in('mois_id', ids),
-        supabase.from('transactions').select('montant, mois_id, is_split, parent_transaction_id, remboursements(montant)').in('mois_id', ids),
+        supabase.from('transactions').select('montant, mois_id, is_split, parent_transaction_id, ignore_at, remboursements(montant)').in('mois_id', ids),
         supabase.from('mouvements_epargne').select('type, montant, mois_id').in('mois_id', ids),
         supabase.from('dettes').select('type, remboursements_dette(montant, date, impacte_budget)').eq('espace_id', espaceId!),
       ])
@@ -31,7 +31,7 @@ export function useDashboardTrends(espaceId?: string) {
       })
       rev.data?.forEach((r:any) => { if (!r.recu) return; const k=map.get(r.mois_id); if(k) byMonth.get(k)!.revenus += Number(r.montant_reel ?? r.montant) })
       fixed.data?.forEach((r:any) => { if (!r.payee) return; const k=map.get(r.mois_id); if(k) byMonth.get(k)!.depenses += Number(r.montant_reel ?? r.montant) })
-      tx.data?.forEach((r:any) => { if (r.is_split && !r.parent_transaction_id) return; const k=map.get(r.mois_id); if(!k) return; const refunded=(r.remboursements||[]).reduce((s:number,x:any)=>s+Number(x.montant),0); byMonth.get(k)!.depenses += Number(r.montant)-refunded })
+      tx.data?.forEach((r:any) => { if (r.ignore_at) return; if (r.is_split && !r.parent_transaction_id) return; const k=map.get(r.mois_id); if(!k) return; const refunded=(r.remboursements||[]).reduce((s:number,x:any)=>s+Number(x.montant),0); byMonth.get(k)!.depenses += Number(r.montant)-refunded })
       savings.data?.forEach((r:any) => { const k=map.get(r.mois_id); if(!k) return; byMonth.get(k)!.epargne += r.type === 'epargne' ? Number(r.montant) : -Number(r.montant) })
       debts.data?.forEach((d:any) => {
         const repayments = Array.isArray(d.remboursements_dette)
