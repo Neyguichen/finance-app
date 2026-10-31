@@ -125,6 +125,47 @@ export function useTransactions(moisId: string | undefined) {
     onSuccess: invalidate,
   })
 
+  const ignoreOccurrence = useMutation({
+    mutationFn: async (id: string) => {
+      const { data: current, error: currentErr } = await supabase
+        .from('transactions')
+        .select('id, is_split, parent_transaction_id, date_validation')
+        .eq('id', id)
+        .single()
+      if (currentErr) throw currentErr
+      if (current.parent_transaction_id || current.date_validation) return
+
+      const ignoreAt = new Date().toISOString()
+      const { error } = await supabase.from('transactions').update({ ignore_at: ignoreAt }).eq('id', id)
+      if (error) throw error
+      if (current.is_split) {
+        const { error: childErr } = await supabase.from('transactions').update({ ignore_at: ignoreAt }).eq('parent_transaction_id', id)
+        if (childErr) throw childErr
+      }
+    },
+    onSuccess: invalidate,
+  })
+
+  const restoreOccurrence = useMutation({
+    mutationFn: async (id: string) => {
+      const { data: current, error: currentErr } = await supabase
+        .from('transactions')
+        .select('id, is_split, parent_transaction_id, date_validation')
+        .eq('id', id)
+        .single()
+      if (currentErr) throw currentErr
+      if (current.parent_transaction_id || current.date_validation) return
+
+      const { error } = await supabase.from('transactions').update({ ignore_at: null }).eq('id', id)
+      if (error) throw error
+      if (current.is_split) {
+        const { error: childErr } = await supabase.from('transactions').update({ ignore_at: null }).eq('parent_transaction_id', id)
+        if (childErr) throw childErr
+      }
+    },
+    onSuccess: invalidate,
+  })
+
   const remove = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('transactions').delete().eq('id', id)
@@ -191,6 +232,8 @@ export function useTransactions(moisId: string | undefined) {
     allFlat: allFlat.data ?? [],
     create,
     update,
+    ignoreOccurrence,
+    restoreOccurrence,
     remove,
     split,
     unsplit,
