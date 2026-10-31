@@ -56,14 +56,17 @@ export function useDashboardV2() {
     const actualMonthResult = actualIncome + savingsWithdrawals - actualFixed - actualVariable - actualSavingsDeposits
 
     const remainingIncomeCash = revenus
+      .filter(item => !item.ignore_at)
       .filter(item => !item.recu || Boolean(item.date_reelle && item.date_reelle > today))
       .reduce((sum, item) => sum + Number(item.montant), 0)
 
     const remainingFixedCash = charges
+      .filter(item => !item.ignore_at)
       .filter(item => !item.payee || Boolean(item.date_reelle && item.date_reelle > today))
       .reduce((sum, item) => sum + Number(item.payee ? (item.montant_reel ?? item.montant) : item.montant), 0)
 
     const pendingVariableCash = transactions
+      .filter(item => !item.ignore_at)
       .filter(item => !item.date_validation || item.date_validation > today)
       .reduce((sum, item) => sum + Number(item.montant), 0)
 
@@ -94,7 +97,7 @@ export function useDashboardV2() {
       const daysInMonth = new Date(year, monthNumber, 0).getDate()
       const daysRemaining = Math.max(0, daysInMonth - elapsedDays)
       const actualVariableToDate = transactions
-        .filter(transaction => transaction.date <= today)
+        .filter(transaction => !transaction.ignore_at && transaction.date <= today)
         .reduce((sum, transaction) => sum + getMontantNet(transaction), 0)
       const dailyVariablePace = actualVariableToDate / elapsedDays
       experimentalVariableForecast = Math.max(0, dailyVariablePace * daysRemaining)
@@ -111,7 +114,7 @@ export function useDashboardV2() {
       .map(budget => {
         const planned = Number(budget.prevu || 0)
         const actual = transactions
-          .filter(transaction => transaction.categorie_id === budget.categorie_id)
+          .filter(transaction => !transaction.ignore_at && transaction.categorie_id === budget.categorie_id)
           .reduce((sum, transaction) => sum + getMontantNet(transaction), 0)
         return {
           id: budget.id,
