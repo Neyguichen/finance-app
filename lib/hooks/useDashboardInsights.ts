@@ -32,7 +32,7 @@ export function useDashboardInsights() {
 
   const summary = summarizeAnalyticalExpenses(chg, parentBudgets, txn)
   const totalActiveIncome = rev
-    .filter((item: any) => item.type === 'actif')
+    .filter((item: any) => item.type === 'actif' && !item.ignore_at)
     .reduce((sum: number, item: any) => sum + Number(item.montant), 0)
 
   const ratioChargesRevenus = totalActiveIncome > 0
@@ -43,12 +43,14 @@ export function useDashboardInsights() {
     ? Math.round((summary.actualVariable / summary.plannedVariable) * 100)
     : null
 
-  const topExpense = [...txn]
+  const activeTxn = txn.filter((item: any) => !item.ignore_at)
+
+  const topExpense = [...activeTxn]
     .sort((a: any, b: any) => getMontantNet(b) - getMontantNet(a))[0] || null
 
   const topCategory = parentCats
     .map((category: any) => {
-      const depense = txn
+      const depense = activeTxn
         .filter((transaction: any) => transaction.categorie_id === category.id)
         .reduce((sum: number, transaction: any) => sum + getMontantNet(transaction), 0)
 
