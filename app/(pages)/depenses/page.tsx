@@ -124,8 +124,8 @@ export default function DepensesPage() {
 
   const { data: categories = [], create: createCat, update: updateCat, move: moveCat, merge: mergeCat, remove: archiveCat } = useCategories(espace?.id)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
-  const { data: transactions = [], allFlat, create: createTx, update: updateTx, remove: removeTx, split, unsplit } = useTransactions(moisId)
-  const { data: charges = [], togglePayee, create: createFixed, update: updateFixed, remove: removeFixed, removeDefinitif } = useChargesFixes(moisId)
+  const { data: transactions = [], allFlat, create: createTx, update: updateTx, ignoreOccurrence: ignoreTransaction, restoreOccurrence: restoreTransaction, remove: removeTx, split, unsplit } = useTransactions(moisId)
+  const { data: charges = [], togglePayee, ignoreOccurrence: ignoreFixed, restoreOccurrence: restoreFixed, create: createFixed, update: updateFixed, remove: removeFixed, removeDefinitif } = useChargesFixes(moisId)
   const { data: fixedRecurrents = [], create: createFixedRecurring, update: updateFixedRecurring } = useChargesFixesRecurrentes(espace?.id)
   const { data: selectedOccurrences = [], add: addOccurrence, remove: removeOccurrence, updateScope: updateOccurrenceScope } = useChargeFixeOccurrences(selectedFixedRecurringId, espace?.id)
   const { data: adminData } = useAdminMoisData(month)
@@ -197,7 +197,7 @@ export default function DepensesPage() {
   }
   const refundTotal = (tx: any) => (tx.remboursements || []).reduce((sum: number, item: any) => sum + Number(item.montant), 0)
   const net = (tx: any) => Number(tx.montant) - refundTotal(tx)
-  const spent = (id: string, sub = false) => effectiveFlat.filter((t: any) => (sub ? t.sous_categorie_id : t.categorie_id) === id).reduce((sum: number, t: any) => sum + net(t), 0)
+  const spent = (id: string, sub = false) => effectiveFlat.filter((t: any) => !t.ignore_at && (sub ? t.sous_categorie_id : t.categorie_id) === id).reduce((sum: number, t: any) => sum + net(t), 0)
 
   const sortedParentCategories = useMemo(() => {
     const rows = parentCategories.map((cat:any) => {
@@ -417,7 +417,7 @@ export default function DepensesPage() {
         validationDate,
         createdAt: charge.created_at || null,
         entryOrder: Number(charge.ordre || 0),
-        status: validated ? 'validated' as const : 'planned' as const,
+        status: charge.ignore_at && !validated ? 'ignored' as const : (validated ? 'validated' as const : 'planned' as const),
         title: charge.nom,
         subcategory: null,
         icon: '📌',
@@ -439,7 +439,7 @@ export default function DepensesPage() {
         validationDate: tx.date_validation ? String(tx.date_validation).slice(0, 10) : null,
         createdAt: tx.created_at || null,
         entryOrder: Number(tx.ordre || 0),
-        status: validated ? 'validated' as const : 'planned' as const,
+        status: tx.ignore_at && !validated ? 'ignored' as const : (validated ? 'validated' as const : 'planned' as const),
         title: tx.is_split && tx.children?.length ? 'Dépense répartie' : (tx.categorie?.nom || 'Sans catégorie'),
         subcategory: tx.is_split && tx.children?.length
           ? tx.children.map((child: any) => child.categorie?.nom || 'Sans catégorie').filter((name: string, index: number, all: string[]) => all.indexOf(name) === index).join(' · ')
@@ -456,6 +456,7 @@ export default function DepensesPage() {
   }, [effectiveCharges, effectiveTransactions, month])
 
   const pendingActualEntries = actualEntries.filter(entry => entry.status === 'planned')
+  const ignoredActualEntries = actualEntries.filter(entry => entry.status === 'ignored')
   const filteredActualEntries = actualEntries.filter(entry => entry.status === 'validated')
 
   const sortedActualEntries = useMemo(() => {
@@ -790,16 +791,17 @@ export default function DepensesPage() {
         </div>
 
         <PlannedExpenseValidationPanel
-          entries={pendingActualEntries.map((entry:any) => ({
+          entries={[...pendingActualEntries, ...ignoredActualEntries].map((entry:any) => ({
             id: entry.id,
             title: entry.title,
             subtitle: entry.subcategory ? entry.subcategory + ' · ' + entry.info : entry.info,
             amount: entry.amount,
             recurring: entry.source === 'fixed' && !!entry.sourceData?.recurrent_id,
             plannedDate: entry.paymentDate,
+            ignored: entry.status === 'ignored',
           }))}
           readOnly={isAdminViewing}
-          busy={togglePayee.isPending || updateFixed.isPending || updateTx.isPending}
+          busy={togglePayee.isPending || updateFixed.isPending || updateTx.isPending || ignoreFixed.isPending || restoreFixed.isPending || ignoreTransaction.isPending || restoreTransaction.isPending}
           onValidate={async (id, date, amount, scope) => {
             const entry = pendingActualEntries.find((item:any) => item.id === id)
             if (!entry) return
@@ -831,6 +833,18 @@ export default function DepensesPage() {
                 date_validation: date,
               })
             }
+          }}
+          onIgnore={async id => {
+            const entry = pendingActualEntries.find((item:any) => item.id === id)
+            if (!entry) return
+            if (entry.source === 'fixed') await ignoreFixed.mutateAsync(entry.sourceData.id)
+            else await ignoreTransaction.mutateAsync(entry.sourceData.id)
+          }}
+          onRestore={async id => {
+            const entry = ignoredActualEntries.find((item:any) => item.id === id)
+            if (!entry) return
+            if (entry.source === 'fixed') await restoreFixed.mutateAsync(entry.sourceData.id)
+            else await restoreTransaction.mutateAsync(entry.sourceData.id)
           }}
         />
 
