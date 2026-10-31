@@ -105,17 +105,43 @@ export default function RevenusRecurrentsPage() {
       date_reelle: data.dateReelle ?? null,
     })
     if (scope === 'future' && data.recurrentId) {
+      const realAmountChanged = !!editOccurrence?.recu
+        && data.recu
+        && data.montantReel != null
+        && Math.abs(Number(data.montantReel) - Number(editOccurrence.montantReel ?? editOccurrence.montant)) >= 0.005
+      const futureAmount = realAmountChanged ? Number(data.montantReel) : Number(data.montant)
+      const plannedDateChanged = (data.datePrevue || null) !== (editOccurrence?.datePrevue || null)
+      const plannedDay = plannedDateChanged && data.datePrevue
+        ? Number(String(data.datePrevue).slice(8, 10))
+        : undefined
+
       await updateFromMonth.mutateAsync({
         recurrentId: data.recurrentId,
         month: editOccurrenceMonth || month,
-        updates: { nom:data.nom, montant:data.montant, type:data.type },
+        updates: { nom:data.nom, montant:futureAmount, type:data.type },
+        plannedDay,
       })
     }
   }
 
-  const updateTemplate = (updates:any) => {
+  const updateTemplate = async (updates:any) => {
     if (!selected || isAdminViewing) return
-    updateRecurrent.mutate({ id:selected.id, ...updates })
+    await updateRecurrent.mutateAsync({ id:selected.id, ...updates })
+
+    const propagatedUpdates: Record<string, unknown> = {}
+    if (updates.nom !== undefined) propagatedUpdates.nom = updates.nom
+    if (updates.montant !== undefined) propagatedUpdates.montant = updates.montant
+    if (updates.type !== undefined) propagatedUpdates.type = updates.type
+    const plannedDay = updates.jour_prevu !== undefined ? Number(updates.jour_prevu) : undefined
+
+    if (Object.keys(propagatedUpdates).length || plannedDay !== undefined) {
+      await updateFromMonth.mutateAsync({
+        recurrentId: selected.id,
+        month,
+        updates: propagatedUpdates,
+        plannedDay,
+      })
+    }
   }
 
   return (
@@ -264,7 +290,7 @@ export default function RevenusRecurrentsPage() {
                       <div key={item.id} className="flex items-center gap-2 py-2">
                         <button type="button" onClick={() => openOccurrence(item)} className="min-w-0 flex-1 text-left">
                           <p className="text-xs font-medium text-slate-200">{formatDate(item.mois?.mois || item.date_prevue || month)}</p>
-                          <p className="text-[10px] text-slate-500">{item.recu ? 'Reçu' : 'Prévu'} · {formatEuro(Number(item.montant))}</p>
+                          <p className="text-[10px] text-slate-500">{item.recu ? 'Reçu' : 'Prévu'} · {formatEuro(Number(item.recu ? (item.montant_reel ?? item.montant) : item.montant))}</p>
                         </button>
                         {!isAdminViewing && (
                           <Button size="sm" variant="ghost" aria-label="Retirer cette occurrence" onClick={() => occurrences.remove.mutate(item.id)}>
