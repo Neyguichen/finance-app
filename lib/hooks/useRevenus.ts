@@ -103,11 +103,21 @@ export function useRevenus(moisId: string | undefined) {
   })
 
   const updateFromMonth = useMutation({
-    mutationFn: async ({ recurrentId, month, updates }: { recurrentId: string; month: string; updates: Partial<Revenu> }) => {
+    mutationFn: async ({
+      recurrentId,
+      month,
+      updates,
+      plannedDay,
+    }: {
+      recurrentId: string
+      month: string
+      updates: Partial<Revenu>
+      plannedDay?: number
+    }) => {
       const targetMonth = month.length === 7 ? month + '-01' : month
       const { data: months, error: monthsError } = await supabase
         .from('mois')
-        .select('id')
+        .select('id, mois')
         .gte('mois', targetMonth)
       if (monthsError) throw monthsError
       const monthIds = (months || []).map(item => item.id)
@@ -119,17 +129,31 @@ export function useRevenus(moisId: string | undefined) {
           .eq('recurrent_id', recurrentId)
           .in('mois_id', monthIds)
         if (incomeError) throw incomeError
+
+        if (plannedDay !== undefined) {
+          for (const item of months || []) {
+            const { error: dateError } = await supabase
+              .from('revenus')
+              .update({ date_prevue: plannedDateForMonth(String(item.mois), plannedDay) })
+              .eq('recurrent_id', recurrentId)
+              .eq('mois_id', item.id)
+            if (dateError) throw dateError
+          }
+        }
       }
 
       const recurrentUpdates: Record<string, unknown> = {}
       if (updates.nom !== undefined) recurrentUpdates.nom = updates.nom
       if (updates.montant !== undefined) recurrentUpdates.montant = updates.montant
       if (updates.type !== undefined) recurrentUpdates.type = updates.type
-      const { error: recurrentError } = await supabase
-        .from('revenus_recurrents')
-        .update(recurrentUpdates)
-        .eq('id', recurrentId)
-      if (recurrentError) throw recurrentError
+      if (plannedDay !== undefined) recurrentUpdates.jour_prevu = plannedDay
+      if (Object.keys(recurrentUpdates).length) {
+        const { error: recurrentError } = await supabase
+          .from('revenus_recurrents')
+          .update(recurrentUpdates)
+          .eq('id', recurrentId)
+        if (recurrentError) throw recurrentError
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['revenus'] })
