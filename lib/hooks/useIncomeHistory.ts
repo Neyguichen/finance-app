@@ -15,6 +15,7 @@ export type IncomeHistoryOccurrence = {
   recu: boolean
   datePrevue: string | null
   dateReelle: string | null
+  ignoreAt: string | null
 }
 
 export type IncomeHistoryMonth = {
@@ -75,7 +76,7 @@ export function useIncomeHistory(espaceId?: string) {
 
       const { data: incomes, error: incomeError } = await supabase
         .from('revenus')
-        .select('id, mois_id, recurrent_id, nom, montant, montant_reel, type, recu, date_prevue, date_reelle')
+        .select('id, mois_id, recurrent_id, nom, montant, montant_reel, type, recu, date_prevue, date_reelle, ignore_at')
         .in('mois_id', monthIds)
 
       if (incomeError) throw incomeError
@@ -93,7 +94,7 @@ export function useIncomeHistory(espaceId?: string) {
         const monthKey = fullMonth.slice(0, 7)
         const monthRow = monthlyMap.get(monthKey)
         if (monthRow) {
-          monthRow.planned += Number(income.montant)
+          if (!income.ignore_at) monthRow.planned += Number(income.montant)
           if (income.recu) monthRow.received += Number(income.montant_reel ?? income.montant)
         }
 
@@ -111,6 +112,7 @@ export function useIncomeHistory(espaceId?: string) {
             recu: !!income.recu,
             datePrevue: income.date_prevue || null,
             dateReelle: income.date_reelle || null,
+            ignoreAt: income.ignore_at || null,
           }
           occurrencesByRecurrent.set(income.recurrent_id, current)
         }
