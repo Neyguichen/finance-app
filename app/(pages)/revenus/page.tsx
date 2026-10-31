@@ -144,15 +144,26 @@ export default function RevenusPage() {
     }
 
     if (scope === 'future' && data.recurrentId) {
+      const realAmountChanged = !!editTarget?.recu
+        && data.recu
+        && data.montantReel != null
+        && Math.abs(Number(data.montantReel) - Number(editTarget.montantReel ?? editTarget.montant)) >= 0.005
+      const futureAmount = realAmountChanged ? Number(data.montantReel) : Number(data.montant)
+      const plannedDateChanged = (data.datePrevue || null) !== (editTarget?.datePrevue || null)
+      const plannedDay = plannedDateChanged && data.datePrevue
+        ? Number(String(data.datePrevue).slice(8, 10))
+        : undefined
+
       await update.mutateAsync({ id: data.id, ...updates })
       await updateFromMonth.mutateAsync({
         recurrentId: data.recurrentId,
         month,
         updates: {
           nom: data.nom,
-          montant: data.montant,
+          montant: futureAmount,
           type: data.type,
         },
+        plannedDay,
       })
       return
     }
