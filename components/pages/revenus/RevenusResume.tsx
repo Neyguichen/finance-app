@@ -26,7 +26,7 @@ export default function RevenusResume({
   const receivedRate = plannedIncome > 0 ? Math.round((receivedIncome / plannedIncome) * 100) : 0
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="income-summary-grid grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Card className="nf-card-hover border-blue-400/25 bg-blue-500/[0.07]">
         <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
           <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-400/10 text-blue-300">
