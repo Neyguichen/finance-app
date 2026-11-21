@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect, CSSProperties } from 'react'
+import { useRef, useState, useEffect, useLayoutEffect, CSSProperties } from 'react'
 import { usePathname } from 'next/navigation'
 import EspaceSelector from '@/components/layout/EspaceSelector'
 import AdminBanner from '@/components/layout/AdminBanner'
@@ -26,6 +26,49 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false)
   const lastScrollY = useRef(0)
   const ticking = useRef(false)
+
+  // Some Android browsers restore focus to a stale field after client-side
+  // navigation. On the summary page, that can open the software keyboard even
+  // though the user only tapped the bottom navigation. Protect only the
+  // transition window, never a later, deliberate tap into a form/search field.
+  useLayoutEffect(() => {
+    if (pathname !== '/dashboard' || window.innerWidth >= 768) return
+
+    let userInteracted = false
+    const isEditable = (element: Element | null): element is HTMLElement =>
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      element instanceof HTMLSelectElement ||
+      (element instanceof HTMLElement && element.isContentEditable)
+
+    const releaseStaleFocus = (target: Element | null) => {
+      if (userInteracted || !isEditable(target)) return
+      // Useful when diagnosing an Android-specific focus regression.
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[Résumé] Focus automatique annulé :', target)
+      }
+      target.blur()
+    }
+
+    const onUserPointer = () => { userInteracted = true }
+    const onFocus = (event: FocusEvent) => releaseStaleFocus(event.target as Element)
+
+    document.addEventListener('pointerdown', onUserPointer, true)
+    document.addEventListener('focusin', onFocus, true)
+    releaseStaleFocus(document.activeElement)
+
+    const frame = window.requestAnimationFrame(() => releaseStaleFocus(document.activeElement))
+    const timeout = window.setTimeout(() => {
+      document.removeEventListener('pointerdown', onUserPointer, true)
+      document.removeEventListener('focusin', onFocus, true)
+    }, 1200)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(timeout)
+      document.removeEventListener('pointerdown', onUserPointer, true)
+      document.removeEventListener('focusin', onFocus, true)
+    }
+  }, [pathname])
 
   useEffect(() => {
     const check = () => {
