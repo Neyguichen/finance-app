@@ -27,12 +27,28 @@ export function DialogTrigger({ children }: { children: React.ReactNode; asChild
 export function DialogContent({ className, children }: { className?: string; children: React.ReactNode }) {
   const { open, onOpenChange } = useContext(DialogContext)
   const ref = useRef<HTMLDialogElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
     if (open) {
       if (!el.open) el.showModal()
+
+      // Native showModal() can automatically focus an input lower in a long
+      // form and scroll the modal-box to it (especially on mobile). Also, the
+      // modal-box stays mounted between openings and can retain its scroll.
+      // Put focus on the visible close action without scrolling and always
+      // start the dialog at its heading.
+      const resetScroll = () => {
+        el.scrollTop = 0
+        if (contentRef.current) contentRef.current.scrollTop = 0
+      }
+      closeRef.current?.focus({ preventScroll: true })
+      resetScroll()
+      const frame = window.requestAnimationFrame(resetScroll)
+      return () => window.cancelAnimationFrame(frame)
     } else if (el.open) {
       el.close()
     }
@@ -45,12 +61,14 @@ export function DialogContent({ className, children }: { className?: string; chi
       onClose={() => onOpenChange(false)}
     >
       <div
+        ref={contentRef}
         className={cn(
           'modal-box relative max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1rem)] max-w-lg overflow-y-auto rounded-3xl border border-slate-800/90 bg-slate-900 p-5 shadow-2xl shadow-black/30 sm:w-full sm:p-6',
           className,
         )}
       >
         <button
+          ref={closeRef}
           type="button"
           aria-label="Fermer"
           onClick={() => onOpenChange(false)}
