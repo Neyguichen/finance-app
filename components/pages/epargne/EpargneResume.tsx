@@ -31,16 +31,16 @@ export default function EpargneResume({
     <Card className="nf-card-hover">
       <CardContent className="p-3 sm:p-4">
         <div className="grid gap-3 xl:grid-cols-[1.45fr_.75fr]">
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div className="flex min-h-[82px] flex-col rounded-xl border border-sky-400/15 bg-sky-500/[0.06] p-3 xl:min-h-[96px]">
+          <div className="savings-summary-metrics grid gap-2 sm:grid-cols-3">
+            <div className="savings-metric savings-metric-total flex min-h-[82px] flex-col rounded-xl border border-sky-400/15 bg-sky-500/[0.06] p-3 xl:min-h-[96px]">
               <div className="flex items-center gap-2 text-[11px] font-medium text-sky-300"><PiggyBank className="h-4 w-4" />Total épargné</div>
               <p className="flex flex-1 items-center justify-center text-center text-xl font-bold text-sky-300 xl:text-2xl">{formatEuro(totalDisponible)}</p>
             </div>
-            <div className="flex min-h-[82px] flex-col rounded-xl border border-emerald-400/15 bg-emerald-500/[0.06] p-3 xl:min-h-[96px]">
+            <div className="savings-metric savings-metric-in flex min-h-[82px] flex-col rounded-xl border border-emerald-400/15 bg-emerald-500/[0.06] p-3 xl:min-h-[96px]">
               <div className="flex items-center gap-2 text-[11px] font-medium text-emerald-300"><ShieldCheck className="h-4 w-4" />Épargné ce mois</div>
               <p className="flex flex-1 items-center justify-center text-center text-xl font-bold text-emerald-300 xl:text-2xl">+ {formatEuro(totalEpargne)}</p>
             </div>
-            <div className="flex min-h-[82px] flex-col rounded-xl border border-rose-400/15 bg-rose-500/[0.06] p-3 xl:min-h-[96px]">
+            <div className="savings-metric savings-metric-out flex min-h-[82px] flex-col rounded-xl border border-rose-400/15 bg-rose-500/[0.06] p-3 xl:min-h-[96px]">
               <div className="flex items-center gap-2 text-[11px] font-medium text-rose-300"><ArrowUpFromLine className="h-4 w-4" />Repris ce mois</div>
               <p className="flex flex-1 items-center justify-center text-center text-xl font-bold text-rose-300 xl:text-2xl">− {formatEuro(totalReprise)}</p>
             </div>
@@ -68,7 +68,7 @@ export default function EpargneResume({
         </div>
 
         {!readOnly && (
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 hidden grid-cols-3 gap-2 md:grid">
             <button type="button" onClick={onSave} className="btn btn-primary btn-sm min-w-0 flex-col gap-1 px-1 py-2 text-[11px] leading-tight sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"><ArrowDownToLine className="h-4 w-4 shrink-0" /><span className="min-w-0">Épargner</span></button>
             <button type="button" onClick={onWithdraw} className="btn btn-primary btn-sm min-w-0 flex-col gap-1 px-1 py-2 text-[11px] leading-tight sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"><ArrowUpFromLine className="h-4 w-4 shrink-0" /><span className="min-w-0">Reprendre</span></button>
             <button type="button" onClick={onTransfer} className="btn btn-primary btn-sm min-w-0 flex-col gap-1 px-1 py-2 text-[11px] leading-tight sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"><ArrowLeftRight className="h-4 w-4 shrink-0" /><span className="min-w-0">Transférer</span></button>
