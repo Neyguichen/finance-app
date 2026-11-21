@@ -55,7 +55,7 @@ export default function PlannedExpenseValidationPanel({ entries, readOnly=false,
         </div>
         {pending.length > 0 && <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300">{formatEuro(total)} en attente</span>}
       </div>
-      <div className="expense-upcoming-list divide-y divide-slate-800/60">
+      <div className="expense-upcoming-list md:divide-y md:divide-slate-800/60">
         {pending.map(item=>{
           const date=dates[item.id]||defaultDate(item)
           const amountText=amounts[item.id] ?? String(item.amount)
