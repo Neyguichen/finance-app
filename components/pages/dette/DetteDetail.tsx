@@ -104,7 +104,7 @@ export default function DetteDetail({
   }
 
   return (
-    <Card className={'border-slate-800 bg-slate-900 ' + (dette.archived ? 'opacity-60' : '')}>
+    <Card className={'nf-mobile-section border-slate-800 bg-slate-900 ' + (dette.archived ? 'opacity-60' : '')}>
       <CardContent className="space-y-3 p-4">
         <button
           type="button"
@@ -123,7 +123,7 @@ export default function DetteDetail({
             <p className={'text-lg font-bold ' + (remaining <= 0 ? 'text-emerald-400' : isCredit ? 'text-indigo-300' : 'text-rose-400')}>
               {remaining <= 0 ? 'Soldé' : formatEuro(remaining)}
             </p>
-            <p className="text-[10px] text-slate-600">{isCredit ? 'capital restant dû' : 'restant'}</p>
+            <p className="text-[10px] max-md:text-xs text-slate-400">{isCredit ? 'capital restant dû' : 'restant'}</p>
           </div>
         </button>
 
@@ -157,7 +157,7 @@ export default function DetteDetail({
 
         {expanded && (
           <div className="space-y-3 border-t border-slate-800 pt-3">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 max-md:space-y-3">
               {rembList.length === 0 && <p className="rounded-xl border border-dashed border-slate-800 p-4 text-center text-xs text-slate-600">Aucun remboursement enregistré.</p>}
               {rembList.map(item => {
                 const editPending = pendingAction === 'edit-' + item.id
@@ -198,18 +198,18 @@ export default function DetteDetail({
                     tabIndex={0}
                     onClick={() => startRepaymentEdit(item)}
                     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') startRepaymentEdit(item) }}
-                    className="flex cursor-pointer items-center gap-3 rounded-xl bg-slate-800/55 px-3 py-2 transition hover:bg-slate-800"
+                    className="flex cursor-pointer items-center gap-3 rounded-xl bg-slate-800/55 px-3 py-2 transition hover:bg-slate-800 max-md:border max-md:border-slate-600/40 max-md:py-3"
                   >
                     <span className="text-xs text-slate-500">{formatDate(item.date)}</span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-emerald-300">{formatEuro(Number(item.montant))}</p>
-                      {isCredit && <p className="text-[10px] text-slate-600">dont {formatEuro(Number(item.capital_rembourse || 0))} de capital</p>}
+                      {isCredit && <p className="text-[10px] max-md:text-xs text-slate-400">dont {formatEuro(Number(item.capital_rembourse || 0))} de capital</p>}
                     </div>
-                    {item.impacte_budget && <span className="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[9px] text-blue-300">Budget</span>}
+                    {item.impacte_budget && <span className="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[9px] max-md:text-[11px] text-blue-300">Budget</span>}
                     <button
                       type="button"
                       aria-label="Supprimer le remboursement"
-                      className="rounded-lg p-1.5 text-slate-700 hover:bg-slate-900 hover:text-rose-400"
+                      className="rounded-lg p-1.5 nf-mobile-action text-slate-400 hover:bg-slate-900 hover:text-rose-400"
                       disabled={removePending}
                       onClick={event => {
                         event.stopPropagation()
