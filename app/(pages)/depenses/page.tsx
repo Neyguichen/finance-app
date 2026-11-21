@@ -1291,8 +1291,8 @@ export default function DepensesPage() {
                     const actual = spent(cat.id)
                     return (
                       <div key={cat.id} className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/20">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2 p-3">
-                          <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id) } }} className="flex min-w-0 basis-full flex-1 items-center gap-3 text-left sm:basis-auto">
+                        <div className="flex min-w-0 items-center gap-2 px-3 py-2.5">
+                          <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id) } }} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                             <span className="text-xl">{cat.icone || '📂'}</span>
                             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{cat.nom}</p><p className="text-[10px] text-slate-500">{formatEuro(planned)} prévu · {formatEuro(actual)} réel</p></div>
                           </button>
@@ -1315,7 +1315,7 @@ export default function DepensesPage() {
                         {children.length > 0 && <div className="border-t border-slate-800/70 px-3 py-2">
                           {children.map((sub: any) => (
                             <div key={sub.id} className="flex min-w-0 flex-wrap items-center gap-2 py-2 pl-2 sm:pl-8">
-                              <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id, sub.id) } }} className="flex min-w-0 basis-full flex-1 flex-wrap items-center justify-between gap-2 text-left sm:basis-auto">
+                              <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id, sub.id) } }} className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left">
                                 <span className="truncate text-xs text-slate-300">{sub.icone || '•'} {sub.nom}</span>
                                 <span className="text-[10px] text-slate-400">{formatEuro(budget(sub.id))} · {formatEuro(spent(sub.id, true))}</span>
                               </button>
