@@ -1065,7 +1065,7 @@ export default function DepensesPage() {
                   {browsedEntries.map((entry:any)=>(
                     <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="expense-mobile-entry flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 sm:flex-nowrap sm:gap-3">
                       <span className="expense-entry-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
-                      <div className="expense-entry-name min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-400">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
+                      <div className="expense-entry-name min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-400">{entry.subcategory || entry.info || 'Dépense'}</p></div>
                       <div className="expense-entry-amount ml-auto min-w-0 text-right">
                         <div className="flex flex-wrap items-center justify-end gap-1.5">
                           <strong className={entry.source==='fixed'?'text-purple-300':'text-rose-300'}>{formatEuro(entry.amount)}</strong>
@@ -1077,6 +1077,7 @@ export default function DepensesPage() {
                             <button type="button" className="text-[10px] font-medium text-indigo-300 hover:text-indigo-200" onClick={event=>{event.stopPropagation();setRembTx(entry.sourceData)}}>Gérer le remboursement</button>}
                         </div>}
                       </div>
+                      {entry.subcategory && entry.info && <p className="expense-entry-description hidden text-xs leading-snug text-slate-300 md:hidden">{entry.info}</p>}
                       <div className="expense-entry-dates flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">
                         <span>Transaction : {entry.paymentDate ? formatDate(entry.paymentDate) : '—'}</span>
                         <span>Validation : {entry.validationDate ? formatDate(entry.validationDate) : '—'}</span>
@@ -1163,11 +1164,12 @@ export default function DepensesPage() {
                 {!selectedFixedRecurring ? (
                   <div className="flex min-h-48 items-center justify-center text-center text-sm text-slate-500">Sélectionne une charge fixe pour gérer sa récurrence.</div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-purple-500/20 bg-purple-500/[0.055] p-3">
                     <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0"><h3 className="break-words font-semibold text-slate-100">{selectedFixedRecurring.nom}</h3><p className="mt-1 text-xs text-slate-500">{fixedFrequencyLabel(selectedFixedRecurring)} · depuis {selectedFixedRecurring.mois_debut ? formatDate(selectedFixedRecurring.mois_debut) : 'date non renseignée'}</p></div>
                       <div className="flex flex-wrap items-center gap-2"><span className={'rounded-full px-2 py-0.5 text-[9px] font-medium ' + (selectedFixedRecurring.actif === false ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500/10 text-emerald-300')}>{selectedFixedRecurring.actif === false ? 'Archivée' : 'Active'}</span><strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong></div>
-                    </div>
+                    </div></div>
 
                     {!isAdminViewing && selectedFixedRecurring.actif === false && (
                       <Button className="w-full" onClick={() => setFixedRecurringActive(selectedFixedRecurring.id, true)}>
@@ -1176,12 +1178,12 @@ export default function DepensesPage() {
                     )}
                     {selectedFixedRecurring.actif !== false && (
                       <>
-                        <div className="rounded-xl border border-slate-800 p-3">
-                          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                        <div className="expense-recurring-section rounded-xl border border-slate-800 p-3">
+                          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-200">
                             <span>Jour prévu</span>
                             <span className="relative inline-flex"><button type="button" aria-label="À quoi sert le jour prévu ?" aria-expanded={fixedHelp === 'day'} onClick={() => setFixedHelp(fixedHelp === 'day' ? null : 'day')} className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-600 text-slate-400 hover:text-slate-100"><Info className="h-3 w-3" /></button>{fixedHelp === 'day' && <span role="tooltip" className="absolute right-0 top-7 z-50 w-60 max-w-[80vw] rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-slate-200 shadow-2xl">Définit le jour du mois utilisé pour la date prévue de cette charge récurrente. Les occurrences déjà générées mais non validées sont réalignées sur ce jour.</span>}</span>
                           </div>
-                          <label className="text-[10px] text-slate-500">Jour du mois <span className="text-slate-600">(1 par défaut)</span>
+                          <label className="text-xs text-slate-400">Jour du mois <span className="text-slate-600">(1 par défaut)</span>
                             <input
                               type="number"
                               min={1}
@@ -1197,10 +1199,10 @@ export default function DepensesPage() {
                           </label>
                         </div>
 
-                        <div className="rounded-xl border border-slate-800 p-3">
+                        <div className="expense-recurring-section rounded-xl border border-slate-800 p-3">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Ajouter une occurrence</p>
+                              <p className="text-xs font-semibold text-slate-200">Ajouter une occurrence</p>
                               <span className="relative inline-flex"><button type="button" aria-label="À quoi sert l'ajout d'une occurrence ?" aria-expanded={fixedHelp === 'add'} onClick={() => setFixedHelp(fixedHelp === 'add' ? null : 'add')} className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-600 text-slate-400 hover:text-slate-100"><Info className="h-3 w-3" /></button>{fixedHelp === 'add' && <span role="tooltip" className="absolute right-0 top-7 z-50 w-60 max-w-[80vw] rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-slate-200 shadow-2xl">Crée manuellement cette charge sur un mois où aucune occurrence n’existe encore.</span>}</span>
                             </div>
                             <CalendarDays className="h-4 w-4 text-slate-600" />
@@ -1215,14 +1217,14 @@ export default function DepensesPage() {
                           </div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-800 p-3">
+                        <div className="expense-recurring-section rounded-xl border border-slate-800 p-3">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Suspendre une période</p>
+                            <p className="text-xs font-semibold text-slate-200">Suspendre une période</p>
                             <span className="relative inline-flex"><button type="button" aria-label="À quoi sert la suspension ?" aria-expanded={fixedHelp === 'suspend'} onClick={() => setFixedHelp(fixedHelp === 'suspend' ? null : 'suspend')} className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-600 text-slate-400 hover:text-slate-100"><Info className="h-3 w-3" /></button>{fixedHelp === 'suspend' && <span role="tooltip" className="absolute right-0 top-7 z-50 w-60 max-w-[80vw] rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-slate-200 shadow-2xl">Empêche la création automatique de cette charge pendant la période choisie, sans supprimer le modèle ni son historique.</span>}</span>
                           </div>
                           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                            <label className="text-[10px] text-slate-500">Du<input type="month" value={suspensionFrom} onChange={event => setSuspensionFrom(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
-                            <label className="text-[10px] text-slate-500">Au<input type="month" value={suspensionUntil} onChange={event => setSuspensionUntil(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
+                            <label className="text-xs text-slate-400">Du<input type="month" value={suspensionFrom} onChange={event => setSuspensionFrom(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
+                            <label className="text-xs text-slate-400">Au<input type="month" value={suspensionUntil} onChange={event => setSuspensionUntil(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
                           </div>
                           {!isAdminViewing && <Button size="sm" variant="outline" className="mt-2 w-full" onClick={saveSuspension} disabled={updateFixedRecurring.isPending}>Enregistrer la suspension</Button>}
                           {(selectedFixedRecurring.suspended_from || selectedFixedRecurring.suspended_until) && <p className="mt-2 text-[10px] text-amber-300">Suspendue {selectedFixedRecurring.suspended_from ? 'à partir de ' + formatDate(selectedFixedRecurring.suspended_from) : ''}{selectedFixedRecurring.suspended_until ? ' jusqu’au ' + formatDate(selectedFixedRecurring.suspended_until) : ''}.</p>}
@@ -1230,10 +1232,10 @@ export default function DepensesPage() {
                       </>
                     )}
 
-                    <div className="rounded-xl border border-slate-800 p-3">
+                    <div className="expense-recurring-section rounded-xl border border-slate-800 p-3">
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Historique des occurrences</p>
+                          <p className="text-xs font-semibold text-slate-200">Historique des occurrences</p>
                           <span className="relative inline-flex"><button type="button" aria-label="À quoi sert l'historique ?" aria-expanded={fixedHelp === 'history'} onClick={() => setFixedHelp(fixedHelp === 'history' ? null : 'history')} className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-600 text-slate-400 hover:text-slate-100"><Info className="h-3 w-3" /></button>{fixedHelp === 'history' && <span role="tooltip" className="absolute right-0 top-7 z-50 w-60 max-w-[80vw] rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-slate-200 shadow-2xl">Liste toutes les occurrences déjà créées pour cette charge, y compris lorsqu’elle est archivée. L’archivage ne supprime pas cet historique.</span>}</span>
                         </div>
                         <span className="text-[10px] text-slate-600">{selectedOccurrences.length}</span>
@@ -1244,7 +1246,7 @@ export default function DepensesPage() {
                             <div key={occurrence.id} className="flex items-center gap-2 py-2">
                               <button type="button" onClick={() => editOccurrenceFromHistory(occurrence)} className="min-w-0 flex-1 text-left">
                                 <p className="text-xs font-medium text-slate-200">{formatDate(occurrence.mois?.mois || occurrence.date_prevue || month)}</p>
-                                <p className="text-[10px] text-slate-500">{occurrence.payee ? 'Validée' : 'À valider'} · {formatEuro(Number(occurrence.montant))}</p>
+                                <p className="text-xs text-slate-400">{occurrence.payee ? 'Validée' : 'À valider'} · {formatEuro(Number(occurrence.montant))}</p>
                               </button>
                               {!isAdminViewing && <Button size="sm" variant="ghost" onClick={() => removeSelectedFixedOccurrence(occurrence.id)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                             </div>
