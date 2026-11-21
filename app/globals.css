@@ -1109,3 +1109,56 @@ body {
     padding-inline: .4rem;
   }
 }
+
+/* Debt creation, edit and linked repayment: compact mobile dialogs. */
+@media (max-width: 767px) {
+  .debt-form-dialog {
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1.25rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: .9rem;
+  }
+  .debt-form-dialog .debt-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    min-width: 0;
+  }
+  .debt-form-dialog .debt-form-fields > section {
+    min-width: 0;
+    padding: .75rem;
+    border-radius: .75rem;
+  }
+  .debt-form-dialog .debt-form-fields > section > div:first-child {
+    margin-bottom: .5rem;
+  }
+  .debt-form-dialog .debt-form-fields .grid {
+    min-width: 0;
+    gap: .5rem;
+  }
+  .debt-form-dialog .debt-form-fields .grid > * {
+    min-width: 0;
+  }
+  .debt-form-dialog .debt-form-fields input:not([type="checkbox"]),
+  .debt-form-dialog > div input:not([type="checkbox"]) {
+    min-width: 0;
+    width: 100%;
+    font-size: .85rem;
+    padding-inline: .45rem;
+  }
+  .debt-form-dialog input[type="date"] {
+    font-size: .72rem !important;
+    padding-inline: .3rem !important;
+  }
+  .debt-form-dialog .debt-form-actions {
+    flex-direction: row;
+    gap: .5rem;
+    padding-top: .7rem;
+  }
+  .debt-form-dialog .debt-form-actions button {
+    min-width: 0;
+    flex: 1;
+  }
+}
