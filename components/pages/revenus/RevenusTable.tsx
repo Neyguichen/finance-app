@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CalendarDays, CheckCircle2, Plus, Repeat2, RotateCcw, Trash2, TrendingUp, WalletCards } from 'lucide-react'
+import { CheckCircle2, Plus, Repeat2, RotateCcw, Trash2, TrendingUp, WalletCards } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDate, formatEuro } from '@/lib/utils'
 
@@ -199,18 +199,24 @@ export default function RevenusTable({
             const rep = item.rep
             const label = rep.note || getEnvNom(rep.enveloppe_source_id) || 'Reprise d’épargne'
             return <div key={'mobile-rep-'+rep.id} className="income-history-card rounded-xl border border-slate-800 bg-slate-900/55 p-3">
-              <div className="flex items-center gap-3"><RotateCcw className="h-5 w-5 text-cyan-300" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{label}</p><p className="mt-1 text-[10px] text-cyan-300">Reprise · Juste cette fois</p></div><p className="text-sm font-semibold text-cyan-300">{formatEuro(Number(rep.montant))}</p></div>
+              <div className="flex items-center gap-3"><RotateCcw className="h-5 w-5 text-cyan-300" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{label}</p><p className="mt-1 text-xs text-cyan-300">Reprise · {rep.date ? formatDate(rep.date) : 'Sans date'}</p></div><p className="shrink-0 text-sm font-semibold text-cyan-300">{formatEuro(Number(rep.montant))}</p></div>
             </div>
           }
           const rev = item.rev
           return <div key={'mobile-rev-'+rev.id} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })} className="income-history-card cursor-pointer rounded-xl border border-slate-800 bg-slate-900/55 p-3 transition active:bg-slate-800/50">
             <div className="income-history-main flex items-start gap-3">
               <span className={'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? <TrendingUp className="h-4 w-4" /> : <WalletCards className="h-4 w-4" />}</span>
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{rev.nom}</p><p className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-slate-500"><span className={'rounded-full px-1.5 py-0.5 font-medium '+(rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? 'Actif' : 'Passif'}</span><span>{recurrenceLabel(rev.recurrent_id, recurrents)}</span></p>{rev.date_prevue && <p className="mt-1 flex items-center gap-1 text-[10px] text-slate-600"><CalendarDays className="h-3 w-3" />Prévu : {formatDate(rev.date_prevue)}</p>}{rev.date_reelle && <p className="mt-0.5 text-[10px] text-slate-500">Reçu : {formatDate(rev.date_reelle)}</p>}</div>
-              <div className="text-right"><p className="text-[9px] uppercase text-slate-500">{rev.recu ? 'Reçu' : 'Prévu'}</p><p className="text-sm font-semibold">{rev.recu ? formatEuro(Number(rev.montant_reel ?? rev.montant)) : formatEuro(Number(rev.montant))}</p><p className={'mt-1 text-[10px] ' + (rev.recu ? 'text-emerald-300' : 'text-amber-300')}>{rev.recu ? `Reçu · prévu ${formatEuro(Number(rev.montant))}` : 'En attente'}</p></div>
-              <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-300">Validé</span>
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{rev.nom}</p><p className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-slate-500"><span className={'rounded-full px-1.5 py-0.5 font-medium '+(rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? 'Actif' : 'Passif'}</span><span>{recurrenceLabel(rev.recurrent_id, recurrents)}</span></p></div>
+              <div className="income-history-amount shrink-0 text-right"><p className="text-[10px] text-slate-400">Reçu</p><p className="text-sm font-bold text-emerald-300">{formatEuro(Number(rev.montant_reel ?? rev.montant))}</p><p className="mt-1 text-[10px] text-slate-400">Prévu {formatEuro(Number(rev.montant))}</p></div>
             </div>
-            {!readOnly && <div className="mt-2 flex justify-end border-t border-slate-800/70 pt-2"><button onClick={event => { event.stopPropagation(); onDelete({ id:rev.id, recurrentId:rev.recurrent_id || null, nom:rev.nom }) }} className="rounded-lg p-1.5 text-slate-600" aria-label="Supprimer"><Trash2 className="h-3.5 w-3.5" /></button></div>}
+            <div className="income-history-footer mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-700/50 pt-2">
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">
+                <span>Prévu : {rev.date_prevue ? formatDate(rev.date_prevue) : '—'}</span>
+                <span>Reçu : {rev.date_reelle ? formatDate(rev.date_reelle) : '—'}</span>
+              </div>
+              {!readOnly && <button type="button" onClick={event => { event.stopPropagation(); onDelete({ id:rev.id, recurrentId:rev.recurrent_id || null, nom:rev.nom }) }}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 text-rose-300" aria-label="Supprimer"><Trash2 className="h-4 w-4" /></button>}
+            </div>
           </div>
         })}
       </div>
