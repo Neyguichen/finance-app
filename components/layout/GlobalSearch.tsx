@@ -15,7 +15,7 @@ import {
   WalletCards,
   X,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useApp } from '@/components/AppContext'
 import { useGlobalSearch, type GlobalSearchResult } from '@/lib/hooks/useGlobalSearch'
 import { formatDate, formatEuro } from '@/lib/utils'
@@ -141,6 +141,7 @@ function SearchResults({
 
 export default function GlobalSearch() {
   const router = useRouter()
+  const pathname = usePathname()
   const { espace, setMonth, isAdminViewing } = useApp()
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
@@ -149,6 +150,12 @@ export default function GlobalSearch() {
   const [filter, setFilter] = useState<SearchFilter>('all')
   const desktopRef = useRef<HTMLDivElement>(null)
   const search = useGlobalSearch(!isAdminViewing ? espace?.id : undefined, debounced)
+
+  // Do not keep a search overlay (whose field has autoFocus) mounted after navigation.
+  useEffect(() => {
+    setMobileOpen(false)
+    setOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebounced(query), 180)
