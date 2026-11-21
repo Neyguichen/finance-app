@@ -70,7 +70,7 @@ export default function PlannedSavingsValidationPanel({
   }
 
   return (
-    <Card className="nf-card-hover border-amber-400/15 bg-amber-500/[0.025]">
+    <Card className="nf-card-hover nf-mobile-section border-amber-400/15 bg-amber-500/[0.025]">
       <CardHeader className="pb-2">
         <CardTitle className="flex flex-wrap items-center gap-2 text-base text-slate-100">
           <PiggyBank className="h-4 w-4 text-amber-300" />
@@ -96,7 +96,7 @@ export default function PlannedSavingsValidationPanel({
                 <p className="truncate text-sm font-semibold text-slate-200">
                   {item.enveloppe_dest_id ? envelopeNames.get(item.enveloppe_dest_id) || 'Enveloppe' : 'Enveloppe indisponible'}
                 </p>
-                <p className="mt-0.5 text-[10px] text-slate-500">
+                <p className="mt-0.5 text-[10px] max-md:text-xs text-slate-400">
                   {item.recurrent_id ? 'Versement récurrent' : 'Versement prévu'}
                   {item.note ? ' · ' + item.note : ''}
                 </p>
