@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
   return <div>
     <MonthSelector currentMonth={month} onChange={setMonth} />
-    <div className="dashboard-mobile-page mx-auto w-full max-w-7xl space-y-3 px-3 py-4 pb-24 sm:px-4">
+    <div className="dashboard-mobile-page dashboard-desktop-flow mx-auto w-full max-w-7xl space-y-3 px-3 py-4 pb-24 sm:px-4">
       <nav aria-label="Vues du résumé" className="dashboard-mobile-tabs md:hidden">
         {([['overview', 'Situation'], ['budgets', 'Budgets'], ['analysis', 'Analyses']] as const).map(([view, label]) => (
           <button key={view} type="button" aria-current={mobileView === view ? 'page' : undefined}
@@ -59,16 +59,16 @@ export default function DashboardPage() {
         ))}
       </nav>
       <section aria-label="Situation financière du mois" className={mobileView === 'overview' ? 'space-y-3' : 'hidden md:block md:space-y-3'}>
-      <SituationFinanciereV2 balance={v2Balance.data} openingBalance={v2OpeningBalance.data} summary={v2Summary.data} loading={v2Balance.isLoading||v2OpeningBalance.isLoading||v2Summary.isLoading} referenceDate={espace?.date_solde_reference} today={today} selectedMonth={month} plannedMonthResult={v2.plannedMonthResult} projectedRemainingCashMovement={v2.projectedRemainingCashMovement} experimentalRemainingCashMovement={v2.experimentalRemainingCashMovement} />
+      <div className="dashboard-desktop-situation min-w-0"><SituationFinanciereV2 balance={v2Balance.data} openingBalance={v2OpeningBalance.data} summary={v2Summary.data} loading={v2Balance.isLoading||v2OpeningBalance.isLoading||v2Summary.isLoading} referenceDate={espace?.date_solde_reference} today={today} selectedMonth={month} plannedMonthResult={v2.plannedMonthResult} projectedRemainingCashMovement={v2.projectedRemainingCashMovement} experimentalRemainingCashMovement={v2.experimentalRemainingCashMovement} /></div>
 
-      <div className="grid gap-3 xl:grid-cols-[1.45fr_.9fr]">
+      <div className="dashboard-desktop-plan min-w-0">
         <PrevuReelV2 plannedIncome={v2.plannedIncome} actualIncome={v2.actualIncome} expectedIncome={v2.expectedIncome} plannedFixed={v2.plannedFixed} actualFixed={v2.actualFixed} plannedVariable={v2.plannedVariable} actualVariable={v2.actualVariable} plannedSavingsDeposits={v2.plannedSavingsDeposits} actualSavingsDeposits={v2.actualSavingsDeposits} expenseReimbursements={v2Summary.data?.expenseReimbursements || 0} />
       </div>
-      <ASurveillerV2 budgetProgress={v2.budgetProgress} expectedIncome={v2.expectedIncome} plannedSavings={v2.plannedSavingsDeposits} actualSavings={v2.actualSavingsDeposits} today={today} selectedMonth={month} />
+      <div className="dashboard-desktop-alerts min-w-0"><ASurveillerV2 budgetProgress={v2.budgetProgress} expectedIncome={v2.expectedIncome} plannedSavings={v2.plannedSavingsDeposits} actualSavings={v2.actualSavingsDeposits} today={today} selectedMonth={month} /></div>
       </section>
 
       <section aria-label="Budgets et épargne" className={mobileView === 'budgets' ? 'space-y-3' : 'hidden md:block md:space-y-3'}>
-      <div className="grid gap-3 xl:grid-cols-[1.45fr_.9fr]">
+      <div className="dashboard-desktop-budgets grid min-w-0 gap-3 xl:grid-cols-[1.45fr_.9fr]">
         <BudgetsV2 budgets={v2.budgetProgress} />
         <EpargneDettesV2 savingsAvailable={v2.savingsDebtSummary.savingsAvailable} plannedSavings={v2.plannedSavingsDeposits} actualSavings={v2.actualSavingsDeposits} savingsWithdrawals={v2.savingsWithdrawals} debtRemaining={v2.savingsDebtSummary.debtRemaining} receivableRemaining={v2.savingsDebtSummary.receivableRemaining} debtRepaymentsIn={v2Summary.data?.debtRepaymentsIn || 0} debtRepaymentsOut={v2Summary.data?.debtRepaymentsOut || 0} loading={v2.savingsDebtLoading} />
       </div>
@@ -76,8 +76,8 @@ export default function DashboardPage() {
       </section>
 
       <section aria-label="Analyses et tendances" className={mobileView === 'analysis' ? 'space-y-3' : 'hidden md:block md:space-y-3'}>
-      <RepartitionDepensesV2 />
-      <TendancesFinancieresV2 espaceId={espace?.id} plannedIncome={v2.plannedIncome} plannedFixed={v2.plannedFixed} plannedVariable={v2.plannedVariable} actualVariable={v2.actualVariable} topCategory={insights.topCategory} />
+      <div className="dashboard-desktop-distribution min-w-0"><RepartitionDepensesV2 /></div>
+      <div className="dashboard-desktop-trends min-w-0"><TendancesFinancieresV2 espaceId={espace?.id} plannedIncome={v2.plannedIncome} plannedFixed={v2.plannedFixed} plannedVariable={v2.plannedVariable} actualVariable={v2.actualVariable} topCategory={insights.topCategory} /></div>
       </section>
     </div>
     <DashboardQuickAdd />
