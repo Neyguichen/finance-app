@@ -841,9 +841,11 @@ export default function DepensesPage() {
                   <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-800">
                   <div
                     className={actualVariable > plannedVariable && plannedVariable > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-orange-400'}
-                    style={{ width: Math.min(100, plannedVariable > 0 ? (actualVariable / plannedVariable) * 100 : (actualVariable > 0 ? 100 : 0)) + '%' }}
+                    style={{ width: Math.min(100, (actualVariable / plannedVariable) * 100) + '%' }}
                   />
-                </div>
+                  </div>
+                  <span className="text-[10px] text-slate-400">{Math.round(actualVariable / plannedVariable * 100)} %</span>
+                </div>}
               </div>
             </CardContent>
           </Card>
