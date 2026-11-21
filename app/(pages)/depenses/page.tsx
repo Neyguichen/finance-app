@@ -1269,7 +1269,7 @@ export default function DepensesPage() {
             <DialogHeader><DialogTitle>Catégories & budgets</DialogTitle></DialogHeader>
             <div className="min-w-0 space-y-3 md:max-h-[72vh] md:overflow-y-auto md:pr-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs text-slate-500">Clique sur une catégorie ou sous-catégorie pour voir son budget et les dépenses du mois.</p>
+                <p className="max-w-xl text-xs leading-relaxed text-slate-400">Touchez une catégorie pour modifier son budget et voir les opérations. Le menu <strong>⋯</strong> donne accès au déplacement, à la fusion, à l’ajout de sous-catégorie et à l’archivage. Les éléments archivés peuvent être restaurés.</p>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowArchivedCategories(value => !value)}>
                     {showArchivedCategories ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Archive className="mr-1 h-3.5 w-3.5" />}
@@ -1293,15 +1293,22 @@ export default function DepensesPage() {
                             <span className="text-xl">{cat.icone || '📂'}</span>
                             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{cat.nom}</p><p className="text-[10px] text-slate-500">{formatEuro(planned)} prévu · {formatEuro(actual)} réel</p></div>
                           </button>
-                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>}
-                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
-                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="ghost" onClick={() => openCategoryDialog(cat.id)}><Plus className="mr-1 h-3.5 w-3.5" />Sous-cat.</Button>}
+                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>}
+                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
+                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="ghost" className="hidden md:inline-flex" onClick={() => openCategoryDialog(cat.id)}><Plus className="mr-1 h-3.5 w-3.5" />Sous-cat.</Button>}
                           {!isAdminViewing && (
                             showArchivedCategories
-                              ? <button className="p-2 text-slate-500 hover:text-emerald-300" aria-label="Désarchiver" onClick={() => setCategoryActive(cat.id, true)}><RotateCcw className="h-4 w-4" /></button>
-                              : <button className="p-2 text-slate-600 hover:text-amber-300" aria-label="Archiver" onClick={() => setCategoryActive(cat.id, false)}><Archive className="h-4 w-4" /></button>
+                              ? <button type="button" className="ml-auto shrink-0 rounded-lg p-2 text-emerald-300 hover:bg-emerald-500/10 md:ml-0" aria-label="Désarchiver" onClick={() => setCategoryActive(cat.id, true)}><RotateCcw className="h-4 w-4" /></button>
+                              : <button type="button" className="hidden p-2 text-slate-600 hover:text-amber-300 md:inline-flex" aria-label="Archiver" onClick={() => setCategoryActive(cat.id, false)}><Archive className="h-4 w-4" /></button>
                           )}
+                          {!isAdminViewing && !showArchivedCategories && <button type="button" className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700/50 md:hidden" aria-label={'Options pour ' + cat.nom} aria-expanded={categoryActionMenu === cat.id} onClick={() => setCategoryActionMenu(old => old === cat.id ? null : cat.id)}><MoreHorizontal className="h-5 w-5" /></button>}
                         </div>
+                        {categoryActionMenu === cat.id && !showArchivedCategories && !isAdminViewing && <div className="flex flex-wrap gap-2 border-t border-slate-700/50 bg-slate-800/35 px-3 py-2 md:hidden">
+                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>
+                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>
+                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);openCategoryDialog(cat.id)}}><Plus className="mr-1 h-3.5 w-3.5" />Sous-catégorie</Button>
+                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setCategoryActive(cat.id,false)}}><Archive className="mr-1 h-3.5 w-3.5" />Archiver</Button>
+                        </div>}
                         {children.length > 0 && <div className="border-t border-slate-800/70 px-3 py-2">
                           {children.map((sub: any) => (
                             <div key={sub.id} className="flex min-w-0 flex-wrap items-center gap-2 py-2 pl-2 sm:pl-8">
@@ -1309,13 +1316,19 @@ export default function DepensesPage() {
                                 <span className="truncate text-xs text-slate-300">{sub.icone || '•'} {sub.nom}</span>
                                 <span className="text-[10px] text-slate-400">{formatEuro(budget(sub.id))} · {formatEuro(spent(sub.id, true))}</span>
                               </button>
-                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>}
-                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
+                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>}
+                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
                               {!isAdminViewing && (
                                 showArchivedCategories
-                                  ? <button className="p-1.5 text-slate-600 hover:text-emerald-300" aria-label="Désarchiver" onClick={() => setCategoryActive(sub.id, true)}><RotateCcw className="h-3.5 w-3.5" /></button>
-                                  : <button className="p-1.5 text-slate-700 hover:text-amber-300" aria-label="Archiver" onClick={() => setCategoryActive(sub.id, false)}><Archive className="h-3.5 w-3.5" /></button>
+                                  ? <button type="button" className="ml-auto shrink-0 rounded-lg p-2 text-emerald-300 hover:bg-emerald-500/10 md:ml-0" aria-label="Désarchiver" onClick={() => setCategoryActive(sub.id, true)}><RotateCcw className="h-3.5 w-3.5" /></button>
+                                  : <button type="button" className="hidden p-1.5 text-slate-700 hover:text-amber-300 md:inline-flex" aria-label="Archiver" onClick={() => setCategoryActive(sub.id, false)}><Archive className="h-3.5 w-3.5" /></button>
                               )}
+                              {!isAdminViewing && !showArchivedCategories && <button type="button" className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700/50 md:hidden" aria-label={'Options pour ' + sub.nom} aria-expanded={categoryActionMenu === sub.id} onClick={() => setCategoryActionMenu(old => old === sub.id ? null : sub.id)}><MoreHorizontal className="h-5 w-5" /></button>}
+                              {categoryActionMenu === sub.id && !showArchivedCategories && !isAdminViewing && <div className="flex basis-full flex-wrap gap-2 rounded-lg bg-slate-800/35 p-2 md:hidden">
+                                <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>
+                                <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>
+                                <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setCategoryActive(sub.id,false)}}><Archive className="mr-1 h-3.5 w-3.5" />Archiver</Button>
+                              </div>}
                             </div>
                           ))}
                         </div>}
