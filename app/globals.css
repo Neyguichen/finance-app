@@ -943,11 +943,16 @@ body {
     padding: .75rem;
     border-color: rgba(148, 163, 184, .22);
   }
-  .savings-mobile-page .savings-metric-in,
+  .savings-mobile-page .savings-metric-in {
+    order: 1;
+    min-height: 5.25rem;
+  }
   .savings-mobile-page .savings-metric-out {
+    order: 2;
     min-height: 5.25rem;
   }
   .savings-mobile-page .savings-metric-total {
+    order: 3;
     grid-column: 1 / -1;
     min-height: 4.75rem;
   }
