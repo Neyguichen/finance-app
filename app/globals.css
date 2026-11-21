@@ -232,3 +232,85 @@ body {
     justify-content: center;
   }
 }
+
+/* Stronger section separation and clearly readable mobile rows. */
+@media (max-width: 767px) {
+  .nf-mobile-section {
+    border-color: rgba(159, 179, 204, 0.36);
+    background: #102137;
+    box-shadow: 0 5px 18px rgba(0,0,0,.28);
+  }
+  .nf-mobile-data-card {
+    border-color: rgba(167, 186, 211, .38);
+    background: #1a3049;
+    box-shadow: 0 3px 10px rgba(0,0,0,.16);
+  }
+  .nf-mobile-record {
+    min-width: 0;
+    border: 1px solid rgba(167,186,211,.4);
+    border-radius: .875rem;
+    background: #1a3049;
+    padding: .875rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,.14);
+  }
+  .nf-mobile-pending-list {
+    padding: .75rem;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+  .nf-mobile-pending-item {
+    border: 1px solid rgba(251,191,36,.32);
+    border-radius: .875rem;
+    background: #1b2c40;
+    padding: .875rem;
+  }
+  .nf-mobile-pending-fields {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+    gap: .75rem;
+  }
+  .nf-mobile-pending-fields input {
+    min-width: 0;
+    height: 2.75rem;
+    width: 100%;
+    font-size: .875rem;
+  }
+  .nf-mobile-pending-item label,
+  .nf-mobile-pending-item .nf-mobile-field-label {
+    font-size: .75rem;
+    color: #cbd5e1;
+  }
+  .nf-mobile-pending-item button {
+    min-height: 2.75rem;
+  }
+  .nf-mobile-pending-section {
+    border-color: rgba(251,191,36,.32);
+    background: #102137;
+  }
+  .nf-mobile-pending-section > :first-child {
+    border-bottom-color: rgba(251,191,36,.3);
+  }
+  .nf-mobile-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: .5rem;
+    margin-top: .75rem;
+  }
+  .nf-mobile-metric {
+    background: #0c1b2e;
+    border: 1px solid rgba(148,163,184,.26);
+    border-radius: .625rem;
+    padding: .625rem;
+  }
+  .nf-mobile-metric-label {
+    color: #aebdd1;
+    font-size: .6875rem;
+    line-height: 1.25rem;
+  }
+  .nf-mobile-metric-value {
+    font-size: .9375rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}
