@@ -51,11 +51,11 @@ export default function PlannedExpenseValidationPanel({ entries, readOnly=false,
         <ReceiptText className="h-4 w-4 text-amber-300"/>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-slate-200">Dépenses prévues à valider</h2>
-          <p className="text-[10px] text-slate-500">Ces mouvements sont pris en compte dans le prévu mais pas encore dans le réel.</p>
+          <p className="text-[10px] max-md:text-xs text-slate-400">Ces mouvements sont pris en compte dans le prévu mais pas encore dans le réel.</p>
         </div>
         {pending.length > 0 && <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300">{formatEuro(total)} en attente</span>}
       </div>
-      <div className="divide-y divide-slate-800/60">
+      <div className="divide-y divide-slate-800/60 max-md:divide-y-0 max-md:space-y-3">
         {pending.map(item=>{
           const date=dates[item.id]||defaultDate(item)
           const amountText=amounts[item.id] ?? String(item.amount)
