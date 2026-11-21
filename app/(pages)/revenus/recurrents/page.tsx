@@ -274,7 +274,7 @@ export default function RevenusRecurrentsPage() {
                   <CalendarDays className="h-4 w-4 text-slate-600" />
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <input type="month" value={occurrenceMonth} onChange={e => setOccurrenceMonth(e.target.value)} className="input input-bordered input-sm min-w-0 flex-1" />
+                  <input type="month" value={occurrenceMonth} onChange={e => setOccurrenceMonth(e.target.value)} className="input input-bordered input-sm w-full min-w-0 sm:w-auto sm:flex-1" />
                   {!isAdminViewing && selected.actif !== false && (
                     <Button size="sm" onClick={addOccurrence} disabled={occurrences.add.isPending || (occurrences.data || []).some((item:any) => String(item.mois?.mois || '').slice(0,7) === occurrenceMonth)}>
                       <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
