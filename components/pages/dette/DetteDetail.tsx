@@ -185,8 +185,9 @@ export default function DetteDetail({
                       </div>
                       <label className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
                         <input type="checkbox" className="checkbox checkbox-xs" checked={editRembImpacteBudget} onChange={event => setEditRembImpacteBudget(event.target.checked)} />
-                        Ce paiement a réellement transité par le Budget
+                        Inclure dans le solde du compte
                       </label>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-400">À cocher si ce paiement est réellement passé par le compte bancaire suivi. Sinon il réduit simplement le montant restant dû, sans compter dans le solde du compte.</p>
                     </div>
                   )
                 }
@@ -224,7 +225,7 @@ export default function DetteDetail({
             </div>
 
             {!dette.archived && remaining > 0 && (
-              <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
+              <div className="hidden rounded-xl border border-slate-800 bg-slate-950/25 p-3 md:block">
                 <p className="mb-2 text-xs font-semibold text-slate-300">{isCredit ? 'Enregistrer une mensualité payée' : 'Ajouter un remboursement'}</p>
                 <div className="grid gap-2 sm:grid-cols-[1fr_150px_auto]">
                   <Input
@@ -260,8 +261,9 @@ export default function DetteDetail({
                 {isCredit && contractualMonthly ? <button type="button" className="mt-2 text-[11px] text-indigo-300" onClick={() => setNewMontant(String(contractualMonthly.toFixed(2)))}>Utiliser la mensualité contractuelle ({formatEuro(contractualMonthly)})</button> : <p className="mt-2 text-[11px] text-slate-600">Maximum : {formatEuro(remaining)}</p>}
                 <label className="mt-2 flex items-start gap-2 text-xs text-slate-500">
                   <input type="checkbox" className="checkbox checkbox-xs mt-0.5" checked={newImpacteBudget} onChange={event => setNewImpacteBudget(event.target.checked)} />
-                  <span>Ce paiement a réellement transité par ce Budget.</span>
+                  <span>Inclure dans le solde du compte</span>
                 </label>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">Coche si l’argent a réellement été débité ou crédité sur le compte suivi. Sans cette option, le remboursement met à jour la dette sans être intégré au solde bancaire calculé.</p>
               </div>
             )}
 
