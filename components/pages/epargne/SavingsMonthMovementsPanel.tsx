@@ -59,7 +59,7 @@ export default function SavingsMonthMovementsPanel({
               const isDeposit = movement.type === 'epargne'
               const isWithdrawal = movement.type === 'reprise'
               return (
-                <div key={movement.id} className="flex min-w-0 items-center max-md:rounded-xl max-md:border max-md:border-slate-600/40 max-md:bg-slate-800/60">
+                <div key={movement.id} className="flex min-w-0 items-center nf-mobile-record">
                   <button
                     type="button"
                     disabled={readOnly || !onEditMovement}
