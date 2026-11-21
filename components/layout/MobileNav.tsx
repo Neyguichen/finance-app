@@ -34,6 +34,11 @@ export default function MobileNav() {
               key={href}
               href={href}
               aria-current={active ? 'page' : undefined}
+              onPointerDownCapture={() => {
+                if (window.innerWidth >= 768) return
+                const focused = document.activeElement
+                if (focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement || focused instanceof HTMLSelectElement) focused.blur()
+              }}
               onClick={() => {
                 if (window.innerWidth >= 768) return
                 const focused = document.activeElement
