@@ -46,7 +46,7 @@ export default function PlannedExpenseValidationPanel({ entries, readOnly=false,
   const total=pending.reduce((sum,item)=>sum+Number(item.amount),0)
 
   return (
-    <section className="rounded-2xl border border-amber-400/15 bg-amber-500/[0.025]">
+    <section className="nf-mobile-pending-section rounded-2xl border border-amber-400/15 bg-amber-500/[0.025]">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-800/70 px-4 py-3">
         <ReceiptText className="h-4 w-4 text-amber-300"/>
         <div className="min-w-0 flex-1">
@@ -55,17 +55,17 @@ export default function PlannedExpenseValidationPanel({ entries, readOnly=false,
         </div>
         {pending.length > 0 && <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300">{formatEuro(total)} en attente</span>}
       </div>
-      <div className="divide-y divide-slate-800/60 max-md:divide-y-0 max-md:space-y-3">
+      <div className="divide-y divide-slate-800/60 max-md:divide-y-0 nf-mobile-pending-list">
         {pending.map(item=>{
           const date=dates[item.id]||defaultDate(item)
           const amountText=amounts[item.id] ?? String(item.amount)
           const amount=Number(amountText.replace(',', '.'))
           const validAmount=amountText.trim()!=='' && Number.isFinite(amount) && amount>=0
           return (
-            <div key={item.id} className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_130px_150px_auto] md:items-end">
+            <div key={item.id} className="nf-mobile-pending-item grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_130px_150px_auto] md:items-end">
               <div>
                 <p className="text-sm font-semibold text-slate-200">{item.title}</p>
-                {item.subtitle && <p className="mt-0.5 text-[10px] text-slate-500">{item.subtitle}</p>}
+                {item.subtitle && <p className="mt-0.5 text-[10px] max-md:text-xs max-md:text-slate-300">{item.subtitle}</p>}
               </div>
               <div>
                 <p className="text-[10px] text-slate-500">Montant</p>
