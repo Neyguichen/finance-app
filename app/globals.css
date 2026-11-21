@@ -170,3 +170,65 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* Mobile readability system: scoped below tablet width, preserving desktop layouts. */
+@media (max-width: 767px) {
+  .nf-mobile-section {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 1rem;
+    background: #101f34;
+    box-shadow: 0 8px 24px -18px rgba(0, 0, 0, 0.85);
+  }
+
+  .nf-mobile-data-card {
+    min-width: 0;
+    border: 1px solid rgba(148, 163, 184, 0.27);
+    border-radius: 0.875rem;
+    background: #15273d;
+    padding: 0.875rem;
+  }
+
+  .nf-mobile-data-card:focus-within {
+    border-color: rgba(129, 140, 248, 0.7);
+  }
+
+  .nf-mobile-data-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .nf-mobile-detail {
+    color: #aebdd1;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .nf-mobile-amount {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .nf-mobile-status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    white-space: nowrap;
+  }
+
+  .nf-mobile-action {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
