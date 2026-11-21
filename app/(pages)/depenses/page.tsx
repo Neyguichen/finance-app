@@ -1306,11 +1306,11 @@ export default function DepensesPage() {
                           )}
                           {!isAdminViewing && !showArchivedCategories && <button type="button" className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700/50 md:hidden" aria-label={'Options pour ' + cat.nom} aria-expanded={categoryActionMenu === cat.id} onClick={() => setCategoryActionMenu(old => old === cat.id ? null : cat.id)}><MoreHorizontal className="h-5 w-5" /></button>}
                         </div>
-                        {categoryActionMenu === cat.id && !showArchivedCategories && !isAdminViewing && <div className="flex flex-wrap gap-2 border-t border-slate-700/50 bg-slate-800/35 px-3 py-2 md:hidden">
+                        {categoryActionMenu === cat.id && !showArchivedCategories && !isAdminViewing && <div className="expense-category-actions grid grid-cols-3 gap-1.5 border-t border-slate-700/50 bg-slate-800/35 px-2 py-2 md:hidden">
                           <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>
                           <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>
                           <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);openCategoryDialog(cat.id)}}><Plus className="mr-1 h-3.5 w-3.5" />Sous-catégorie</Button>
-                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setCategoryActive(cat.id,false)}}><Archive className="mr-1 h-3.5 w-3.5" />Archiver</Button>
+                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setCategoryActive(cat.id,false)}}>Archiver</Button>
                         </div>}
                         {children.length > 0 && <div className="border-t border-slate-800/70 px-3 py-2">
                           {children.map((sub: any) => (
@@ -1327,10 +1327,10 @@ export default function DepensesPage() {
                                   : <button type="button" className="hidden p-1.5 text-slate-700 hover:text-amber-300 md:inline-flex" aria-label="Archiver" onClick={() => setCategoryActive(sub.id, false)}><Archive className="h-3.5 w-3.5" /></button>
                               )}
                               {!isAdminViewing && !showArchivedCategories && <button type="button" className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700/50 md:hidden" aria-label={'Options pour ' + sub.nom} aria-expanded={categoryActionMenu === sub.id} onClick={() => setCategoryActionMenu(old => old === sub.id ? null : sub.id)}><MoreHorizontal className="h-5 w-5" /></button>}
-                              {categoryActionMenu === sub.id && !showArchivedCategories && !isAdminViewing && <div className="flex basis-full flex-wrap gap-2 rounded-lg bg-slate-800/35 p-2 md:hidden">
+                              {categoryActionMenu === sub.id && !showArchivedCategories && !isAdminViewing && <div className="expense-category-actions grid basis-full grid-cols-3 gap-1.5 rounded-lg bg-slate-800/35 p-2 md:hidden">
                                 <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>
                                 <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>
-                                <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setCategoryActive(sub.id,false)}}><Archive className="mr-1 h-3.5 w-3.5" />Archiver</Button>
+                                <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setCategoryActive(sub.id,false)}}>Archiver</Button>
                               </div>}
                             </div>
                           ))}
