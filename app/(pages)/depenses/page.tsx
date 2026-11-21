@@ -720,6 +720,15 @@ export default function DepensesPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-100">Dépenses</h1>
         </div>
 
+        <div className="expense-mobile-shortcuts md:hidden">
+          <button type="button" onClick={() => setManagementView('budgets')} disabled={isAdminViewing}>
+            <Settings2 className="h-4 w-4" /> Gérer les budgets
+          </button>
+          <button type="button" onClick={() => setManagementView('fixed')} disabled={isAdminViewing}>
+            <CalendarClock className="h-4 w-4" /> Charges fixes
+          </button>
+        </div>
+
         <nav aria-label="Vues des dépenses" className="expense-mobile-tabs md:hidden">
           {([
             ['stats', 'Statistiques'],
@@ -744,33 +753,17 @@ export default function DepensesPage() {
           ))}
         </nav>
 
-        <div className="expense-mobile-shortcuts md:hidden">
-          <button type="button" onClick={() => setManagementView('budgets')} disabled={isAdminViewing}>
-            <Settings2 className="h-4 w-4" /> Gérer les budgets
-          </button>
-          <button type="button" onClick={() => setManagementView('fixed')} disabled={isAdminViewing}>
-            <CalendarClock className="h-4 w-4" /> Charges fixes
-          </button>
-        </div>
-
         <section aria-label="Statistiques des dépenses" className={mobileView === 'stats' ? 'block' : 'hidden md:block'}>
         <div className="grid items-stretch gap-3 xl:grid-cols-2">
           <Card className="h-full border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel</CardTitle></CardHeader>
             <CardContent className="space-y-3 p-3 pt-0">
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1">
                 <SummaryCard icon={ChartPie} label="Prévu ce mois" value={plannedTotal} tone="blue" />
                 <SummaryCard icon={WalletCards} label="Réel" value={actualTotal} detail={plannedTotal > 0 ? actualPercent + ' % du prévu' : 'Aucun prévu'} tone="emerald" />
                 <SummaryCard icon={variance <= 0 ? TrendingDown : TrendingUp} label="Écart" value={variance} detail={variance <= 0 ? formatEuro(Math.abs(variance)) + ' restant' : 'Dépassement'} tone={variance <= 0 ? 'amber' : 'rose'} signed />
               </div>
-              <div>
-                <div className="mb-1.5 flex items-center justify-between text-[10px] text-slate-500">
-                  <span>Avancement du budget</span><strong className="text-slate-300">{actualPercent} %</strong>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-slate-800">
-                  <div className={actualPercent > 100 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-emerald-400'} style={{ width: Math.min(100, actualPercent) + '%' }} />
-                </div>
-              </div>
+
             </CardContent>
           </Card>
 
@@ -792,10 +785,10 @@ export default function DepensesPage() {
                     <p className="text-xs font-semibold text-slate-100">{formatEuro(actualFixed)}</p>
                   </div>
                   <span className="w-9 text-right text-[10px] font-medium text-slate-500">
-                    {plannedFixed > 0 ? Math.round((actualFixed / plannedFixed) * 100) : (actualFixed > 0 ? 100 : 0)} %
+                    {plannedFixed > 0 ? Math.round((actualFixed / plannedFixed) * 100) + ' %' : '—'}
                   </span>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                <div className={plannedFixed > 0 ? "mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800" : "hidden"}>
                   <div
                     className={actualFixed > plannedFixed && plannedFixed > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-purple-400'}
                     style={{ width: Math.min(100, plannedFixed > 0 ? (actualFixed / plannedFixed) * 100 : (actualFixed > 0 ? 100 : 0)) + '%' }}
@@ -818,10 +811,10 @@ export default function DepensesPage() {
                     <p className="text-xs font-semibold text-slate-100">{formatEuro(actualVariable)}</p>
                   </div>
                   <span className="w-9 text-right text-[10px] font-medium text-slate-500">
-                    {plannedVariable > 0 ? Math.round((actualVariable / plannedVariable) * 100) : (actualVariable > 0 ? 100 : 0)} %
+                    {plannedVariable > 0 ? Math.round((actualVariable / plannedVariable) * 100) + ' %' : '—'}
                   </span>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                <div className={plannedVariable > 0 ? "mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800" : "hidden"}>
                   <div
                     className={actualVariable > plannedVariable && plannedVariable > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-orange-400'}
                     style={{ width: Math.min(100, plannedVariable > 0 ? (actualVariable / plannedVariable) * 100 : (actualVariable > 0 ? 100 : 0)) + '%' }}
@@ -833,9 +826,17 @@ export default function DepensesPage() {
         </div>
 
         <div className="md:hidden">
-          <div className="mb-2 mt-4 flex items-center justify-between gap-2">
+          <div className="mb-2 mt-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-slate-100">Budgets par catégorie</h2>
-            <span className="text-xs text-slate-400">Toucher pour voir les opérations</span>
+            <label className="flex items-center gap-2 text-xs text-slate-300">
+              Trier
+              <select aria-label="Trier les budgets par catégorie" className="expense-mobile-select rounded-lg px-2 py-2 text-xs" value={categorySort} onChange={event => setCategorySort(event.target.value as CategorySort)}>
+                <option value="az">A - Z</option>
+                <option value="planned">Prévu</option>
+                <option value="actual">Réel</option>
+                <option value="remaining">Reste</option>
+              </select>
+            </label>
           </div>
           <div className="space-y-2">
             {sortedParentCategories.map((cat: any) => {
@@ -923,10 +924,7 @@ export default function DepensesPage() {
             else await restoreTransaction.mutateAsync(entry.sourceData.id)
           }}
         />
-        <div className="mt-3 md:hidden">
-          <p className="text-xs text-slate-400">Les dépenses attendues apparaissent ici. Tu peux valider, modifier le montant ou ignorer une occurrence.</p>
-        </div>
-        </section>
+                </section>
 
         <section aria-label="Historique des dépenses" className={mobileView === 'history' ? 'block' : 'hidden md:block'}>
         <div className="mb-3 md:hidden">
@@ -1011,13 +1009,13 @@ export default function DepensesPage() {
               <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                 {!browsedCategory && <>
                   <label className="relative">
-                    <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-[11px] text-slate-300 outline-none">
+                    <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-9 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs text-slate-300 outline-none">
                       <option value="payment">Date de transaction</option><option value="validation">Date de validation</option>
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500"/>
                   </label>
                   {!isAdminViewing && <>
-                    <Button size="sm" variant="outline" className="h-8" onClick={()=>setManagementView('fixed')}><CalendarClock className="mr-1 h-3.5 w-3.5"/>Charges fixes</Button>
+                    <Button size="sm" variant="outline" className="hidden h-8 md:inline-flex" onClick={()=>setManagementView('fixed')}><CalendarClock className="mr-1 h-3.5 w-3.5"/>Charges fixes</Button>
                     <Button size="sm" className="hidden h-8 md:inline-flex" onClick={()=>setTxOpen(true)}><Plus className="mr-1 h-3.5 w-3.5"/>Dépense</Button>
                   </>}
                 </>}
@@ -1043,9 +1041,9 @@ export default function DepensesPage() {
                 <div className="expense-mobile-entries divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70">
                   {browsedEntries.map((entry:any)=>(
                     <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="expense-mobile-entry flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 sm:flex-nowrap sm:gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
-                      <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-500">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
-                      <div className="ml-auto min-w-0 text-right">
+                      <span className="expense-entry-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
+                      <div className="expense-entry-name min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-400">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
+                      <div className="expense-entry-amount ml-auto min-w-0 text-right">
                         <div className="flex flex-wrap items-center justify-end gap-1.5">
                           <strong className={entry.source==='fixed'?'text-purple-300':'text-rose-300'}>{formatEuro(entry.amount)}</strong>
                           <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">Validé</span>
@@ -1055,12 +1053,12 @@ export default function DepensesPage() {
                           {!isAdminViewing && reimbursementsEnabled && entry.source==='transaction' &&
                             <button type="button" className="text-[10px] font-medium text-indigo-300 hover:text-indigo-200" onClick={event=>{event.stopPropagation();setRembTx(entry.sourceData)}}>Gérer le remboursement</button>}
                         </div>}
-                        <div className="mt-0.5 flex flex-wrap justify-end gap-x-2 gap-y-0.5 text-[10px] text-slate-500">
-                          <span>Transaction : {entry.paymentDate ? formatDate(entry.paymentDate) : '—'}</span>
-                          <span>Validation : {entry.validationDate ? formatDate(entry.validationDate) : '—'}</span>
-                        </div>
                       </div>
-                      {!isAdminViewing&&<button className="shrink-0 p-1 text-slate-700 hover:text-rose-400" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-3.5 w-3.5"/></button>}
+                      <div className="expense-entry-dates flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">
+                        <span>Transaction : {entry.paymentDate ? formatDate(entry.paymentDate) : '—'}</span>
+                        <span>Validation : {entry.validationDate ? formatDate(entry.validationDate) : '—'}</span>
+                      </div>
+                      {!isAdminViewing&&<button type="button" className="expense-entry-delete shrink-0 rounded-lg p-2 text-rose-300 hover:bg-rose-500/10 hover:text-rose-200" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-4 w-4"/></button>}
                     </div>
                   ))}
                 </div>
