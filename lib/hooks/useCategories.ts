@@ -4,6 +4,22 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Categorie } from '@/lib/types'
 
+export type CategoryDependencyReport = {
+  subcategories: number
+  transactions: number
+  fixed_expenses: number
+  recurrences: number
+  monthly_budgets: number
+  budget_templates: number
+}
+
+export type CategoryRemovalResult = {
+  status: 'eligible' | 'blocked' | 'archived' | 'deleted'
+  can_delete: boolean
+  references: CategoryDependencyReport
+}
+
+
 export function useCategories(espaceId: string | undefined) {
   const supabase = createClient()
   const queryClient = useQueryClient()
@@ -47,15 +63,29 @@ export function useCategories(espaceId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 
+  // The server atomically checks every historical reference before deleting.
+  // If a linked category is archived, its budget/transactions/history stay intact.
+  const categoryRemoval = async (id: string, mode: 'check' | 'archive_or_delete' | 'delete_if_unused') => {
+    const { data, error } = await supabase.rpc('archive_or_delete_category', {
+      p_category_id: id,
+      p_mode: mode,
+    })
+    if (error) throw error
+    return data as CategoryRemovalResult
+  }
+
+  const checkRemoval = async (id: string) => categoryRemoval(id, 'check')
+
   const archive = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('categories')
-        .update({ actif: false })
-        .eq('id', id)
-      if (error) throw error
-    },
+    mutationFn: (id: string) => categoryRemoval(id, 'archive_or_delete'),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+
+  const deleteUnused = useMutation({
+    mutationFn: (id: string) => categoryRemoval(id, 'delete_if_unused'),
+    onSuccess: result => {
+      if (result.status === 'deleted') queryClient.invalidateQueries({ queryKey: key })
+    },
   })
   
   const move = useMutation({
@@ -92,5 +122,5 @@ export function useCategories(espaceId: string | undefined) {
     },
   })
 
-  return { ...query, create, update, move, merge, remove: archive }
+  return { ...query, create, update, move, merge, remove: archive, checkRemoval, deleteUnused }
 }
