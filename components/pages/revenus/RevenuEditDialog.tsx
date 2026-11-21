@@ -128,8 +128,9 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
             </FormSection>
 
             <FormSection title="Validation" icon={<CheckCircle2 className="h-4 w-4" />} className="p-3">
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-950/30 px-3 py-2.5">
+              <label className="income-received-toggle flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-950/30 px-3 py-2.5">
                 <Checkbox
+                  className="!h-5 !w-5 shrink-0"
                   checked={editRecu}
                   onCheckedChange={checked => {
                     const next = !!checked
