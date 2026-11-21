@@ -1026,14 +1026,14 @@ export default function DepensesPage() {
           </Card>
 
           <Card id="expense-right-panel" className="min-w-0 max-w-full scroll-mt-20 border-slate-800 bg-slate-900">
-            <CardHeader className="flex min-w-0 flex-col items-start gap-2 pb-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
+            <CardHeader className="flex min-w-0 flex-row items-center justify-between gap-2 pb-2">
+              <div className="min-w-0 flex-1">
                 <CardTitle className="text-sm text-slate-200">{browsedCategory ? (browsedSubcategory ? browsedSubcategory.nom : browsedCategory.nom) : 'Dépenses réelles'}</CardTitle>
                 <p className="mt-0.5 text-[10px] text-slate-500">{browsedCategory ? 'Détail du budget et des dépenses validées.' : 'Mouvements validés du mois.'}</p>
               </div>
-              <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+              <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                 <label className="relative">
-                    <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-9 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs text-slate-300 outline-none">
+                    <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-9 max-w-[152px] appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-2 pr-7 text-[11px] text-slate-300 outline-none sm:max-w-none sm:pl-3 sm:pr-8 sm:text-xs">
                       <option value="payment">Date de transaction</option><option value="validation">Date de validation</option>
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500"/>
