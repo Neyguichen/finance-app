@@ -78,7 +78,7 @@ export default function SituationFinanciereV2({
   )
 
   return (
-    <section className="space-y-2.5">
+    <section className="dashboard-situation space-y-2.5">
       <div className="flex items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight text-slate-100">Ma situation</h1>
         <span className="text-xs text-slate-500">{isCurrentMonth ? 'Aujourd’hui' : periodLabel}</span>
@@ -87,7 +87,7 @@ export default function SituationFinanciereV2({
       {loading ? (
         <Card className="nf-card-hover"><CardContent className="p-5"><span className="loading loading-spinner loading-sm" /></CardContent></Card>
       ) : isCurrentMonth ? (
-        <div className="grid gap-2.5 lg:grid-cols-[1fr_1fr_1fr_.48fr]">
+        <div className="dashboard-balance-grid grid gap-2.5 lg:grid-cols-[1fr_1fr_1fr_.48fr]">
           <Card className="nf-card-hover border-emerald-400/30 bg-gradient-to-br from-emerald-500/[0.13] to-emerald-950/[0.18]">
             <CardContent className="flex min-h-[118px] items-start gap-4 p-4">
               <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300"><WalletCards className="h-6 w-6" /></div>
@@ -113,7 +113,7 @@ export default function SituationFinanciereV2({
             </CardContent>
           </Card>
 
-          <div className="grid grid-rows-2 gap-2.5">
+          <div className="dashboard-days-grid grid grid-rows-2 gap-2.5">
             <Card className="nf-card-hover h-full">
               <CardContent className="grid h-full min-h-[54px] grid-cols-[28px_1fr] items-center gap-2 !px-3 !py-2.5">
                 <CalendarDays className="h-5 w-5 justify-self-start text-slate-300" />
@@ -136,7 +136,7 @@ export default function SituationFinanciereV2({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+        <div className="dashboard-past-grid grid grid-cols-2 gap-2.5 lg:grid-cols-4">
           <Card className="nf-card-hover border-blue-400/15 bg-blue-500/[0.05]"><CardContent className="flex min-h-[98px] items-center gap-3 p-4"><Landmark className="h-6 w-6 shrink-0 text-blue-300" /><div><p className="text-[11px] text-slate-400">Solde fin de mois</p><p className="mt-1 text-xl font-bold text-blue-300">{balance == null ? '—' : formatEuro(balance)}</p></div></CardContent></Card>
           <Card className="nf-card-hover"><CardContent className="flex min-h-[98px] items-center gap-3 p-4">{actualResult >= 0 ? <TrendingUp className="h-6 w-6 shrink-0 text-emerald-400" /> : <TrendingDown className="h-6 w-6 shrink-0 text-rose-400" />}<div><div className="flex items-center gap-1.5 text-[11px] text-slate-400">Variation de trésorerie <HelpButton id="cashflow" /></div><p className={'mt-1 text-xl font-bold ' + (actualResult >= 0 ? 'text-emerald-400' : 'text-rose-400')}>{formatEuro(actualResult)}</p></div></CardContent></Card>
           <Card className="nf-card-hover"><CardContent className="flex min-h-[98px] items-center gap-3 p-4"><TrendingUp className="h-6 w-6 shrink-0 text-emerald-400" /><div><p className="text-[11px] text-slate-400">Revenus reçus</p><p className="mt-1 text-xl font-bold text-emerald-400">{formatEuro(summary?.earnedIncome || 0)}</p></div></CardContent></Card>
