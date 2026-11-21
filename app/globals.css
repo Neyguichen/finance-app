@@ -662,3 +662,73 @@ body {
     font-size: .875rem;
   }
 }
+
+/* Revenus : detail sur mobile, graphique sélectionnable et formulaire compact. */
+@media (max-width: 767px) {
+  .income-edit-dialog {
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    padding: .875rem;
+    border-radius: 1rem;
+  }
+  .income-edit-dialog .income-edit-fields {
+    display: flex;
+    flex-direction: column;
+    gap: .625rem;
+  }
+  .income-edit-dialog .income-edit-fields > section {
+    min-width: 0;
+    padding: .7rem;
+    border-radius: .75rem;
+  }
+  .income-edit-dialog .income-edit-fields > section > div:first-child {
+    margin-bottom: .5rem;
+    gap: .5rem;
+  }
+  .income-edit-dialog .income-edit-fields > section > div:first-child > div:first-child {
+    display: none;
+  }
+  .income-edit-dialog .income-edit-fields > section > div:last-child {
+    gap: .5rem;
+  }
+  .income-edit-dialog .income-edit-fields .grid {
+    min-width: 0;
+    gap: .5rem;
+  }
+  .income-edit-dialog .income-edit-fields label {
+    min-width: 0;
+  }
+  .income-edit-dialog .income-edit-fields input {
+    width: 100%;
+    min-width: 0;
+    font-size: .8125rem;
+    padding-inline: .5rem;
+  }
+  .income-edit-dialog .income-edit-fields input[type="date"] {
+    font-size: .72rem;
+    padding-inline: .3rem;
+  }
+  .income-edit-dialog .income-edit-fields label > div:first-child {
+    gap: .25rem;
+  }
+  .income-edit-dialog .income-edit-fields label > div:first-child > span {
+    font-size: .72rem;
+  }
+  .income-edit-dialog .income-edit-fields label > div:first-child > span:last-child:not(:first-child) {
+    display: none;
+  }
+  .income-edit-dialog .income-edit-fields .grid button {
+    padding-inline: .35rem;
+    text-align: center;
+  }
+  .income-edit-dialog .income-edit-actions {
+    margin-top: .75rem;
+    flex-direction: row;
+    gap: .5rem;
+    padding-top: .7rem;
+  }
+  .income-edit-dialog .income-edit-actions button {
+    flex: 1;
+    min-width: 0;
+  }
+}
