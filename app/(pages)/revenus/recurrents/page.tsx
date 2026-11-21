@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Archive, ArrowLeft, CalendarDays, Plus, RotateCcw, Trash2, TrendingDown, TrendingUp } from 'lucide-react'
+import { Archive, ArrowLeft, CalendarDays, ChevronRight, Plus, RotateCcw, Trash2, TrendingDown, TrendingUp } from 'lucide-react'
 import { useApp } from '@/components/AppContext'
 import { useRevenuOccurrences, useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
 import RevenuForm from '@/components/pages/revenus/RevenuForm'
@@ -34,7 +34,8 @@ export default function RevenusRecurrentsPage() {
   }, [recurrents, selectedId])
 
   useEffect(() => {
-    if (!selectedId && list.length > 0) setSelectedId(list[0].id)
+    // Preserve the two-pane selection on desktop, but start at the list on mobile.
+    if (window.innerWidth >= 1024 && !selectedId && list.length > 0) setSelectedId(list[0].id)
   }, [list, selectedId])
 
   const frequencyLabel = (value:number) => {
@@ -156,7 +157,7 @@ export default function RevenusRecurrentsPage() {
             <p className="mt-1 text-xs leading-relaxed text-slate-500">Gère les modèles récurrents et leurs occurrences sans alourdir la vue mensuelle.</p>
           </div>
         </div>
-        <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:flex-wrap">
+        <div className={(selectedId ? 'hidden lg:flex' : 'flex') + ' flex-col gap-2 min-[420px]:flex-row min-[420px]:flex-wrap'}>
           {!isAdminViewing && !showArchived && (
             <Button size="sm" onClick={() => setFormOpen(true)} className="w-full min-[420px]:w-auto">
               <Plus className="mr-1.5 h-4 w-4" />Ajouter une récurrence
@@ -170,7 +171,7 @@ export default function RevenusRecurrentsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(280px,.8fr)_minmax(0,1.4fr)]">
-        <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/25">
+        <section className={(selectedId ? 'hidden lg:block' : 'block') + ' overflow-hidden rounded-xl border border-slate-800 bg-slate-950/25'}>
           <div className="border-b border-slate-800/70 px-3 py-2.5">
             <p className="text-sm font-semibold text-slate-200">{showArchived ? 'Revenus archivés' : 'Revenus actifs'}</p>
             <p className="text-[11px] text-slate-500">{list.length} récurrence(s)</p>
@@ -183,7 +184,7 @@ export default function RevenusRecurrentsPage() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setSelectedId(item.id)}
+                onClick={() => { setSelectedId(item.id); if (window.innerWidth < 1024) window.scrollTo({ top: 0, behavior: 'instant' }) }}
                 className={'flex w-full items-center gap-3 border-b border-slate-800/60 px-3 py-3 text-left last:border-0 transition hover:bg-slate-800/40 ' + (selectedId === item.id ? 'bg-slate-800/50' : '')}
               >
                 <span className={'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + (item.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>
@@ -193,13 +194,15 @@ export default function RevenusRecurrentsPage() {
                   <p className="truncate text-sm font-semibold text-slate-200">{item.nom}</p>
                   <p className="text-[10px] text-slate-500">{frequencyLabel(Number(item.frequence_mois || 1))}</p>
                 </div>
-                <strong className="text-sm text-emerald-300">{formatEuro(Number(item.montant))}</strong>
+                <strong className="shrink-0 text-sm text-emerald-300">{formatEuro(Number(item.montant))}</strong>
+                <ChevronRight className="h-4 w-4 shrink-0 text-slate-500 lg:hidden" />
               </button>
             )
           })}
         </section>
 
-        <section className="rounded-xl border border-slate-800 bg-slate-950/25 p-4">
+        <section id="income-recurring-detail" className={(selectedId ? 'block' : 'hidden lg:block') + ' min-w-0 rounded-xl border border-slate-800 bg-slate-950/25 p-3 sm:p-4'}>
+          {selected && <button type="button" onClick={() => setSelectedId(null)} className="mb-3 inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-indigo-300 lg:hidden"><ArrowLeft className="h-4 w-4" />Retour aux {showArchived ? 'revenus archivés' : 'revenus actifs'}</button>}
           {!selected ? (
             <div className="flex min-h-64 items-center justify-center text-center text-sm text-slate-500">Sélectionne un revenu récurrent pour afficher son détail.</div>
           ) : (
@@ -214,16 +217,17 @@ export default function RevenusRecurrentsPage() {
                 </span>
               </div>
 
-              <div key={selected.id} className="grid gap-3 rounded-xl border border-slate-800 p-3 sm:grid-cols-2">
-                <label className="text-[10px] text-slate-500">Nom
+              <div key={selected.id} className="grid min-w-0 grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-900/40 p-3 sm:gap-3">
+                <div className="col-span-2 mb-1 text-xs font-semibold text-slate-200">Informations du revenu récurrent</div>
+                <label className="col-span-2 text-xs text-slate-400 sm:col-span-1">Nom
                   <input
                     defaultValue={selected.nom}
                     disabled={isAdminViewing}
                     onBlur={e => { const value=e.target.value.trim(); if(value && value !== selected.nom) updateTemplate({nom:value}) }}
-                    className="input input-bordered input-sm mt-1 w-full"
+                    className="input input-bordered input-sm mt-1 min-w-0 w-full"
                   />
                 </label>
-                <label className="text-[10px] text-slate-500">Montant
+                <label className="min-w-0 text-xs text-slate-400">Montant
                   <input
                     type="number"
                     min="0.01"
@@ -231,17 +235,17 @@ export default function RevenusRecurrentsPage() {
                     defaultValue={Number(selected.montant)}
                     disabled={isAdminViewing}
                     onBlur={e => { const value=Number(e.target.value); if(Number.isFinite(value) && value>0 && value !== Number(selected.montant)) updateTemplate({montant:value}) }}
-                    className="input input-bordered input-sm mt-1 w-full"
+                    className="input input-bordered input-sm mt-1 min-w-0 w-full"
                   />
                 </label>
-                <label className="text-[10px] text-slate-500">Type
-                  <select value={selected.type} disabled={isAdminViewing} onChange={e => updateTemplate({type:e.target.value})} className="select select-bordered select-sm mt-1 w-full">
+                <label className="min-w-0 text-xs text-slate-400">Type
+                  <select value={selected.type} disabled={isAdminViewing} onChange={e => updateTemplate({type:e.target.value})} className="select select-bordered select-sm mt-1 min-w-0 w-full">
                     <option value="actif">Actif</option>
                     <option value="passif">Passif</option>
                   </select>
                 </label>
-                <label className="text-[10px] text-slate-500">Fréquence
-                  <select value={Number(selected.frequence_mois || 1)} disabled={isAdminViewing} onChange={e => updateTemplate({frequence_mois:Number(e.target.value)})} className="select select-bordered select-sm mt-1 w-full">
+                <label className="min-w-0 text-xs text-slate-400">Fréquence
+                  <select value={Number(selected.frequence_mois || 1)} disabled={isAdminViewing} onChange={e => updateTemplate({frequence_mois:Number(e.target.value)})} className="select select-bordered select-sm mt-1 min-w-0 w-full">
                     <option value={1}>Tous les mois</option>
                     <option value={2}>Tous les 2 mois</option>
                     <option value={3}>Tous les 3 mois</option>
@@ -249,11 +253,11 @@ export default function RevenusRecurrentsPage() {
                     <option value={12}>Tous les ans</option>
                   </select>
                 </label>
-                <label className="text-[10px] text-slate-500">Jour prévu
-                  <input type="number" min={1} max={31} value={Number(selected.jour_prevu || 1)} disabled={isAdminViewing} onChange={e => updateTemplate({jour_prevu:Math.min(31,Math.max(1,Number(e.target.value)||1))})} className="input input-bordered input-sm mt-1 w-full" />
+                <label className="min-w-0 text-xs text-slate-400">Jour prévu
+                  <input type="number" min={1} max={31} value={Number(selected.jour_prevu || 1)} disabled={isAdminViewing} onChange={e => updateTemplate({jour_prevu:Math.min(31,Math.max(1,Number(e.target.value)||1))})} className="input input-bordered input-sm mt-1 min-w-0 w-full" />
                 </label>
-                <label className="text-[10px] text-slate-500">Mois de début
-                  <input type="month" value={String(selected.mois_debut || '').slice(0,7)} disabled={isAdminViewing} onChange={e => updateTemplate({mois_debut:e.target.value + '-01'})} className="input input-bordered input-sm mt-1 w-full" />
+                <label className="min-w-0 text-xs text-slate-400">Mois de début
+                  <input type="month" value={String(selected.mois_debut || '').slice(0,7)} disabled={isAdminViewing} onChange={e => updateTemplate({mois_debut:e.target.value + '-01'})} className="input input-bordered input-sm mt-1 min-w-0 w-full" />
                 </label>
               </div>
 
@@ -266,7 +270,7 @@ export default function RevenusRecurrentsPage() {
                   <CalendarDays className="h-4 w-4 text-slate-600" />
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <input type="month" value={occurrenceMonth} onChange={e => setOccurrenceMonth(e.target.value)} className="input input-bordered input-sm flex-1" />
+                  <input type="month" value={occurrenceMonth} onChange={e => setOccurrenceMonth(e.target.value)} className="input input-bordered input-sm min-w-0 flex-1" />
                   {!isAdminViewing && selected.actif !== false && (
                     <Button size="sm" onClick={addOccurrence} disabled={occurrences.add.isPending || (occurrences.data || []).some((item:any) => String(item.mois?.mois || '').slice(0,7) === occurrenceMonth)}>
                       <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
