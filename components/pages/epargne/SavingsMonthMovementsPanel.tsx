@@ -9,6 +9,7 @@ type Props = {
   movements: MouvementEpargne[]
   envelopes: any[]
   readOnly?: boolean
+  mobileSort?: 'recent' | 'oldest' | 'amount'
   onEditMovement?: (movement: MouvementEpargne) => void
   onDeleteMovement?: (movement: MouvementEpargne) => void
 }
@@ -17,11 +18,16 @@ export default function SavingsMonthMovementsPanel({
   movements,
   envelopes,
   readOnly = false,
+  mobileSort = 'recent',
   onEditMovement,
   onDeleteMovement,
 }: Props) {
   const envelopeName = (id: string | null) => envelopes.find((env: any) => env.id === id)?.nom || '—'
-  const sorted = [...movements].sort((a, b) => String(b.date).localeCompare(String(a.date)))
+  const sorted = [...movements].sort((a, b) => {
+    if (mobileSort === 'oldest') return String(a.date).localeCompare(String(b.date))
+    if (mobileSort === 'amount') return Number(b.montant) - Number(a.montant)
+    return String(b.date).localeCompare(String(a.date))
+  })
 
   const destinationLabel = (movement: MouvementEpargne) => {
     if (movement.type === 'epargne') return envelopeName(movement.enveloppe_dest_id)
@@ -53,21 +59,21 @@ export default function SavingsMonthMovementsPanel({
             <p className="mt-2 text-xs text-slate-600">Aucun mouvement d’épargne ce mois.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-800/60">
+          <div className="savings-history-rows divide-y divide-slate-800/60 md:divide-y">
             {sorted.map(movement => {
               const recurrent = !!movement.recurrent_id
               const isDeposit = movement.type === 'epargne'
               const isWithdrawal = movement.type === 'reprise'
               return (
-                <div key={movement.id} className="flex items-center">
+                <div key={movement.id} className="savings-history-row flex min-w-0 items-center">
                   <button
                     type="button"
                     disabled={readOnly || !onEditMovement}
                     onClick={() => onEditMovement?.(movement)}
-                    className={"grid min-w-0 flex-1 grid-cols-[78px_minmax(0,1fr)_auto] items-center gap-2 px-3 py-3 text-left text-[11px] transition " + (!readOnly && onEditMovement ? "cursor-pointer hover:bg-slate-800/30" : "cursor-default")}
+                    className={"savings-history-main grid min-w-0 flex-1 grid-cols-[78px_minmax(0,1fr)_auto] items-center gap-2 px-3 py-3 text-left text-[11px] transition " + (!readOnly && onEditMovement ? "cursor-pointer hover:bg-slate-800/30" : "cursor-default")}
                   >
-                    <span className="text-slate-600">{formatDate(movement.date)}</span>
-                    <div className="min-w-0">
+                    <span className="savings-history-date text-slate-600">{formatDate(movement.date)}</span>
+                    <div className="savings-history-description min-w-0">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <p className="truncate font-medium text-slate-300">{destinationLabel(movement)}</p>
                         <span className={recurrent
@@ -80,7 +86,7 @@ export default function SavingsMonthMovementsPanel({
                         {typeLabel(movement)}{movement.note ? ' · ' + movement.note : ''}
                       </p>
                     </div>
-                    <span className="flex flex-col items-end gap-1"><span className={"font-semibold " + (isDeposit ? "text-emerald-300" : isWithdrawal ? "text-rose-300" : "text-cyan-300")}>
+                    <span className="savings-history-amount flex flex-col items-end gap-1"><span className={"font-semibold " + (isDeposit ? "text-emerald-300" : isWithdrawal ? "text-rose-300" : "text-cyan-300")}>
                       {isDeposit ? '+' : isWithdrawal ? '−' : ''}{formatEuro(Number(movement.montant))}
                     </span><span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">Validé</span></span>
                   </button>
@@ -89,10 +95,10 @@ export default function SavingsMonthMovementsPanel({
                       type="button"
                       title="Supprimer ce mouvement"
                       aria-label="Supprimer le mouvement"
-                      className="mr-2 rounded-md p-2 text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-400"
+                      className="savings-history-delete mr-2 rounded-md p-2 text-rose-300 transition hover:bg-rose-500/10 hover:text-rose-200"
                       onClick={() => onDeleteMovement(movement)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   )}
                 </div>
