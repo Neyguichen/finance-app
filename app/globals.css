@@ -732,3 +732,13 @@ body {
     min-width: 0;
   }
 }
+
+/* Avoid click-focus frames over the income donut; retain keyboard focus. */
+.income-distribution .recharts-sector:focus:not(:focus-visible),
+.income-distribution .recharts-pie-sector:focus:not(:focus-visible) {
+  outline: none;
+}
+.income-distribution .recharts-sector:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
+}
