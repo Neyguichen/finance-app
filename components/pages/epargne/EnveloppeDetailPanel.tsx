@@ -288,7 +288,6 @@ export default function EnveloppeDetailPanel({
               </div>
             )
           })}
-        </div>
 
       </CardContent>
     </Card>
