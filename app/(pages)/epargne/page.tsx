@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { ArchiveRestore, ChevronDown, PiggyBank, Plus, Repeat2 } from 'lucide-react'
+import { ArchiveRestore, ArrowLeft, ChevronDown, PiggyBank, Plus, Repeat2 } from 'lucide-react'
 
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
@@ -27,11 +27,21 @@ import { useSavingsHistory } from '@/lib/hooks/useSavingsHistory'
 
 type MovementType = 'epargne' | 'reprise' | 'transfert'
 type SortMode = 'az' | 'balance'
+type SavingsMobileView = 'stats' | 'upcoming' | 'history'
 
 export default function EpargnePage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
   const [section, setSection] = useState<'savings' | 'debts'>('savings')
   const [sortMode, setSortMode] = useState<SortMode>('az')
+  const [mobileView, setMobileView] = useState<SavingsMobileView>('stats')
+  const [movementSort, setMovementSort] = useState<'recent' | 'oldest' | 'amount'>('recent')
+
+  useEffect(() => {
+    const savedView = window.sessionStorage.getItem('epargne_mobile_view')
+    if (savedView === 'stats' || savedView === 'upcoming' || savedView === 'history') setMobileView(savedView)
+    const savedSort = window.localStorage.getItem('epargne_movement_sort')
+    if (savedSort === 'recent' || savedSort === 'oldest' || savedSort === 'amount') setMovementSort(savedSort)
+  }, [])
   const [selectedEnvelopeId, setSelectedEnvelopeId] = useState<string | null>(null)
   const [movementType, setMovementType] = useState<MovementType>('epargne')
   const [movementSourceId, setMovementSourceId] = useState<string | null>(null)
@@ -131,8 +141,14 @@ export default function EpargnePage() {
 
   const selectEnvelope = (id: string) => {
     setSelectedEnvelopeId(id)
-    if (typeof window !== 'undefined' && window.innerWidth < 1280) {
-      window.setTimeout(() => document.getElementById('savings-right-panel')?.scrollIntoView({ behavior:'smooth', block:'start' }), 0)
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 768) {
+        setMobileView('history')
+        window.sessionStorage.setItem('epargne_mobile_view', 'history')
+        window.scrollTo({ top: 0, behavior: 'instant' })
+      } else if (window.innerWidth < 1280) {
+        window.setTimeout(() => document.getElementById('savings-right-panel')?.scrollIntoView({ behavior:'smooth', block:'start' }), 0)
+      }
     }
   }
 
@@ -278,7 +294,7 @@ export default function EpargnePage() {
   return (
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
-      <div className="mx-auto max-w-7xl space-y-3 p-3 pb-24 sm:p-4">
+      <div className="savings-mobile-page mx-auto max-w-7xl space-y-3 p-3 pb-24 sm:p-4">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold tracking-tight text-slate-100">Épargne & Dette</h1>
           <div className="grid grid-cols-2 rounded-xl border border-slate-800/80 bg-slate-950/35 p-1">
@@ -289,6 +305,23 @@ export default function EpargnePage() {
 
         {section === 'savings' ? (
           <div className="space-y-3">
+            {!isAdminViewing && <div className="savings-mobile-shortcuts grid grid-cols-3 gap-2 md:hidden">
+              <button type="button" onClick={() => setOpenRecurringManager(true)}><Repeat2 className="h-4 w-4" />Récurrences</button>
+              <button type="button" onClick={() => setOpenSavingsInitialization(true)}><PiggyBank className="h-4 w-4" />Initialiser</button>
+              <button type="button" onClick={() => setOpenEnvelope(true)}><Plus className="h-4 w-4" />Enveloppe</button>
+            </div>}
+            <nav aria-label="Vues de l’épargne" className="savings-mobile-tabs md:hidden">
+              {([['stats', 'Statistiques'], ['upcoming', 'À venir'], ['history', 'Historique']] as const).map(([key, label]) => (
+                <button key={key} type="button" aria-current={mobileView === key ? 'page' : undefined}
+                  className={'savings-mobile-tab ' + (mobileView === key ? 'savings-mobile-tab-active' : '')}
+                  onClick={() => {setMobileView(key);window.sessionStorage.setItem('epargne_mobile_view',key)}}>
+                  {label}
+                  {key === 'upcoming' && effectivePlannedSavings.some((item:any) => item.statut === 'pending') &&
+                    <span className="savings-mobile-tab-count">{effectivePlannedSavings.filter((item:any) => item.statut === 'pending').length}</span>}
+                </button>
+              ))}
+            </nav>
+            <section aria-label="Statistiques de l’épargne" className={mobileView === 'stats' ? 'block' : 'hidden md:block'}>
             <EpargneResume
               totalDisponible={totalDisponible}
               totalEpargne={totalEpargne}
@@ -299,7 +332,11 @@ export default function EpargnePage() {
               onTransfer={() => openMovement('transfert')}
               readOnly={isAdminViewing}
             />
+            </section>
 
+            <section aria-label="Versements à venir" className={mobileView === 'upcoming' ? 'block' : 'hidden md:block'}>
+              {!effectivePlannedSavings.some((item:any) => item.statut === 'pending' || item.statut === 'ignored') &&
+                <div className="savings-mobile-empty md:hidden">Aucun versement prévu en attente ce mois.</div>}
             <PlannedSavingsValidationPanel
               occurrences={effectivePlannedSavings as any}
               envelopes={effectiveEnveloppes.map((env:any) => ({ id:env.id, nom:env.nom }))}
@@ -310,9 +347,10 @@ export default function EpargnePage() {
               onIgnore={async id => { await ignoreOccurrence.mutateAsync(id) }}
               onRestore={async id => { await restoreOccurrence.mutateAsync(id) }}
             />
+            </section>
 
-            <div className="grid gap-3 xl:grid-cols-[1.35fr_.9fr]">
-              <div className="space-y-3">
+            <div className={mobileView === 'upcoming' ? 'hidden md:grid md:gap-3 xl:grid-cols-[1.35fr_.9fr]' : 'grid gap-3 xl:grid-cols-[1.35fr_.9fr]' }>
+              <section aria-label="Enveloppes d’épargne" className={(mobileView === 'stats' ? 'block' : 'hidden md:block') + ' space-y-3'}>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-base font-semibold text-slate-100">Mes enveloppes d’épargne</h2>
                   <label className="relative ml-auto">
@@ -323,7 +361,7 @@ export default function EpargnePage() {
                     <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500"/>
                   </label>
                   {!isAdminViewing && (
-                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                    <div className="hidden w-full flex-wrap items-center gap-2 md:flex sm:w-auto">
                       <Button size="sm" variant="outline" onClick={() => setOpenRecurringManager(true)}><Repeat2 className="mr-1 h-4 w-4"/>Récurrences</Button>
                       <Button size="sm" variant="outline" onClick={() => setOpenSavingsInitialization(true)}>Initialiser l’épargne</Button>
                       <Button size="sm" onClick={() => setOpenEnvelope(true)}><Plus className="mr-1 h-4 w-4"/>Nouvelle enveloppe</Button>
@@ -355,9 +393,23 @@ export default function EpargnePage() {
                     {showArchived && <div className="mt-2 grid gap-2 sm:grid-cols-2">{archivedEnvelopes.map((env:any) => <div key={env.id} className="flex items-center justify-between rounded-xl border border-slate-800/60 bg-slate-950/20 px-3 py-2"><div><p className="text-sm text-slate-400">{env.nom}</p><p className="text-xs text-slate-600">{Number(env.solde).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</p></div>{!isAdminViewing&&<button onClick={()=>unarchive.mutate(env.id)} className="rounded-md p-2 text-slate-500 hover:text-indigo-300" title="Désarchiver"><ArchiveRestore className="h-4 w-4"/></button>}</div>)}</div>}
                   </div>
                 )}
-              </div>
+              </section>
 
-              <div id="savings-right-panel" className="scroll-mt-20">
+              <section aria-label="Historique des mouvements d’épargne" id="savings-right-panel" className={(mobileView === 'history' ? 'block' : 'hidden md:block') + ' min-w-0 scroll-mt-20'}>
+              <div className="mb-3 flex items-center justify-between gap-2 md:hidden">
+                {selectedEnvelope ? <button type="button" onClick={() => setSelectedEnvelopeId(null)}
+                    className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-indigo-300"><ArrowLeft className="h-4 w-4" />Tous les mouvements</button>
+                  : <h2 className="text-sm font-semibold text-slate-100">Mouvements réalisés</h2>}
+                {!selectedEnvelope && <label className="flex items-center gap-2 text-xs text-slate-300">Trier
+                  <select aria-label="Trier les mouvements d’épargne" value={movementSort}
+                    onChange={event => { const next = event.target.value as typeof movementSort; setMovementSort(next); window.localStorage.setItem('epargne_movement_sort', next) }}
+                    className="savings-mobile-sort rounded-lg border border-slate-700 bg-slate-900 px-2 py-2 text-xs">
+                    <option value="recent">Plus récents</option>
+                    <option value="oldest">Plus anciens</option>
+                    <option value="amount">Montant</option>
+                  </select>
+                </label>}
+              </div>
               {selectedEnvelope ? (
                 <EnveloppeDetailPanel
                   env={selectedEnvelope}
@@ -389,6 +441,7 @@ export default function EpargnePage() {
               ) : (
                 <SavingsMonthMovementsPanel
                   movements={effectiveMouvements as any}
+                  mobileSort={movementSort}
                   envelopes={effectiveEnveloppes as any}
                   readOnly={isAdminViewing}
                   onEditMovement={!isAdminViewing ? (movement:any) => setEditMvt({
@@ -405,7 +458,7 @@ export default function EpargnePage() {
                   }) : undefined}
                 />
               )}
-              </div>
+              </section>
             </div>
 
           </div>
