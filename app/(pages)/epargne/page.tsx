@@ -6,6 +6,7 @@ import { ArchiveRestore, ArrowLeft, ChevronDown, PiggyBank, Plus, Repeat2 } from
 import { useApp } from '@/components/AppContext'
 import MonthSelector from '@/components/layout/MonthSelector'
 import EpargneResume from '@/components/pages/epargne/EpargneResume'
+import EpargneFab from '@/components/pages/epargne/EpargneFab'
 import EnveloppeCard from '@/components/pages/epargne/EnveloppeCard'
 import EnveloppeEditDialog from '@/components/pages/epargne/EnveloppeEditDialog'
 import EnveloppeForm from '@/components/pages/epargne/EnveloppeForm'
@@ -305,10 +306,9 @@ export default function EpargnePage() {
 
         {section === 'savings' ? (
           <div className="space-y-3">
-            {!isAdminViewing && <div className="savings-mobile-shortcuts grid grid-cols-3 gap-2 md:hidden">
+            {!isAdminViewing && <div className="savings-mobile-shortcuts grid grid-cols-2 gap-2 md:hidden">
               <button type="button" onClick={() => setOpenRecurringManager(true)}><Repeat2 className="h-4 w-4" />Récurrences</button>
               <button type="button" onClick={() => setOpenSavingsInitialization(true)}><PiggyBank className="h-4 w-4" />Initialiser</button>
-              <button type="button" onClick={() => setOpenEnvelope(true)}><Plus className="h-4 w-4" />Enveloppe</button>
             </div>}
             <nav aria-label="Vues de l’épargne" className="savings-mobile-tabs md:hidden">
               {([['stats', 'Statistiques'], ['upcoming', 'À venir'], ['history', 'Historique']] as const).map(([key, label]) => (
@@ -463,6 +463,13 @@ export default function EpargnePage() {
 
           </div>
         ) : <DettesPanel />}
+
+        {section === 'savings' && !isAdminViewing && <EpargneFab
+          onEnvelope={() => setOpenEnvelope(true)}
+          onSave={() => openMovement('epargne')}
+          onWithdraw={() => openMovement('reprise')}
+          onTransfer={() => openMovement('transfert')}
+        />}
 
         <Dialog open={openRecurringManager} onOpenChange={setOpenRecurringManager}>
           <DialogContent className="max-w-2xl border-slate-700 bg-slate-900">
