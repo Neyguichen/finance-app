@@ -849,11 +849,11 @@ export default function DepensesPage() {
         />
 
         <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.45fr)]">
-          <Card className="min-w-0 max-w-full border-slate-800 bg-slate-900">
+          <Card className="nf-mobile-section min-w-0 max-w-full border-slate-800 bg-slate-900">
             <CardHeader className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 pb-2">
               <div className="min-w-0 flex-1">
                 <CardTitle className="text-sm text-slate-200">Catégories & budgets</CardTitle>
-                <p className="mt-0.5 text-[10px] text-slate-500">Clique sur une catégorie ou sous-catégorie pour afficher son détail.</p>
+                <p className="mt-0.5 text-[10px] max-md:text-xs text-slate-500">Clique sur une catégorie ou sous-catégorie pour afficher son détail.</p>
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <label className="relative">
@@ -885,7 +885,7 @@ export default function DepensesPage() {
                 const percent=planned>0?Math.round(actual/planned*100):(actual>0?100:0)
                 const children=subCats(cat.id)
                 return (
-                  <div key={cat.id} className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/25">
+                  <div key={cat.id} className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/25 max-md:border-slate-600/40 max-md:bg-slate-800/50">
                     <button type="button" onClick={() => selectBudgetBrowse(cat.id)} className={'w-full px-3 py-2.5 text-left transition hover:bg-slate-800/35 '+(browseCategoryId===cat.id&&!browseSubcategoryId?'bg-slate-800/45':'')}>
                       <div className="flex items-center gap-2">
                         <span className="text-base">{cat.icone||'📂'}</span>
@@ -894,7 +894,7 @@ export default function DepensesPage() {
                       </div>
                       <div className="mt-1 flex items-center gap-2 pl-7">
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800"><div className={'h-full rounded-full '+(percent>100?'bg-rose-400':percent>=80?'bg-amber-400':'bg-emerald-400')} style={{width:Math.min(100,percent)+'%'}}/></div>
-                        <span className="shrink-0 text-[9px] text-slate-600">{formatEuro(actual)} / {formatEuro(planned)}</span>
+                        <span className="shrink-0 text-[9px] max-md:text-xs text-slate-400">{formatEuro(actual)} / {formatEuro(planned)}</span>
                       </div>
                     </button>
                     {children.length>0 && <div className="border-t border-slate-800/60 px-2 py-1.5">
@@ -902,7 +902,7 @@ export default function DepensesPage() {
                         const subPlanned=budget(sub.id)
                         const subActual=spent(sub.id,true)
                         return <button key={sub.id} type="button" onClick={()=>selectBudgetBrowse(cat.id,sub.id)} className={'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition hover:bg-slate-800/35 '+(browseSubcategoryId===sub.id?'bg-indigo-500/10 text-indigo-200':'text-slate-400')}>
-                          <span className="w-5 text-center">{sub.icone||'•'}</span><span className="min-w-0 flex-1 truncate">{sub.nom}</span><span className="text-[10px] text-slate-600">{formatEuro(subActual)} / {formatEuro(subPlanned)}</span>
+                          <span className="w-5 text-center">{sub.icone||'•'}</span><span className="min-w-0 flex-1 truncate">{sub.nom}</span><span className="text-[10px] max-md:text-xs text-slate-400">{formatEuro(subActual)} / {formatEuro(subPlanned)}</span>
                         </button>
                       })}
                     </div>}
@@ -912,11 +912,11 @@ export default function DepensesPage() {
             </CardContent>
           </Card>
 
-          <Card id="expense-right-panel" className="min-w-0 max-w-full scroll-mt-20 border-slate-800 bg-slate-900">
+          <Card id="expense-right-panel" className="nf-mobile-section min-w-0 max-w-full scroll-mt-20 border-slate-800 bg-slate-900">
             <CardHeader className="flex min-w-0 flex-col items-start gap-2 pb-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <CardTitle className="text-sm text-slate-200">{browsedCategory ? (browsedSubcategory ? browsedSubcategory.nom : browsedCategory.nom) : 'Dépenses réelles'}</CardTitle>
-                <p className="mt-0.5 text-[10px] text-slate-500">{browsedCategory ? 'Détail du budget et des dépenses validées.' : 'Mouvements validés du mois.'}</p>
+                <p className="mt-0.5 text-[10px] max-md:text-xs text-slate-500">{browsedCategory ? 'Détail du budget et des dépenses validées.' : 'Mouvements validés du mois.'}</p>
               </div>
               <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                 {!browsedCategory && <>
@@ -950,15 +950,15 @@ export default function DepensesPage() {
               {browsedEntries.length===0 ? (
                 <EmptyStateV2 icon={ReceiptText} title={browsedCategory?'Aucune dépense validée':'Aucune dépense réelle'} description={browsedCategory?'Aucune dépense validée pour cette sélection ce mois.':'Les dépenses validées apparaîtront ici.'}/>
               ) : (
-                <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70">
+                <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70 max-md:divide-y-0 max-md:space-y-3 max-md:border-0 max-md:bg-transparent">
                   {browsedEntries.map((entry:any)=>(
-                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 sm:flex-nowrap sm:gap-3">
+                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 max-md:rounded-xl max-md:border max-md:border-slate-600/40 max-md:bg-slate-800/60 sm:flex-nowrap sm:gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
-                      <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-500">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
+                      <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] max-md:text-xs text-slate-400">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
                       <div className="ml-auto min-w-0 text-right">
                         <div className="flex flex-wrap items-center justify-end gap-1.5">
                           <strong className={entry.source==='fixed'?'text-purple-300':'text-rose-300'}>{formatEuro(entry.amount)}</strong>
-                          <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">Validé</span>
+                          <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] max-md:text-[11px] font-semibold text-emerald-300">Validé</span>
                         </div>
                         {entry.refund > 0 && <div className="mt-1 space-y-0.5">
                           <p className="text-[10px] text-slate-500"><span className="line-through">{formatEuro(entry.grossAmount)}</span><span className="ml-1.5 text-emerald-300">Remboursé : {formatEuro(entry.refund)}</span></p>
@@ -970,7 +970,7 @@ export default function DepensesPage() {
                           <span>Validation : {entry.validationDate ? formatDate(entry.validationDate) : '—'}</span>
                         </div>
                       </div>
-                      {!isAdminViewing&&<button className="shrink-0 p-1 text-slate-700 hover:text-rose-400" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-3.5 w-3.5"/></button>}
+                      {!isAdminViewing&&<button className="shrink-0 p-1 nf-mobile-action text-slate-400 hover:text-rose-400" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-3.5 w-3.5"/></button>}
                     </div>
                   ))}
                 </div>
