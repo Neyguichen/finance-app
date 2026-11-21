@@ -63,18 +63,18 @@ export default function PlannedIncomeValidationPanel({ incomes, readOnly=false, 
           const amount=Number(amountText.replace(',', '.'))
           const validAmount=amountText.trim()!=='' && Number.isFinite(amount) && amount>=0
           return (
-            <div key={item.id} className="nf-mobile-pending-item grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_130px_150px_auto] md:items-end">
-              <div>
+            <div key={item.id} className="nf-mobile-pending-item grid gap-3 max-md:grid-cols-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_130px_150px_auto] md:items-end">
+              <div className="max-md:col-span-2">
                 <p className="text-sm font-semibold text-slate-200">{item.nom}</p>
                 <p className="mt-0.5 text-[10px] max-md:text-xs max-md:text-slate-300">{item.date_prevue ? 'Prévu le '+new Date(item.date_prevue+'T12:00:00').toLocaleDateString('fr-FR') : 'Date prévue non renseignée'}</p>
               </div>
               <label className="text-[10px] text-slate-500">Montant
-                <input type="text" inputMode="decimal" aria-label={`Montant réel de ${item.nom}`} value={amountText} disabled={readOnly||busy} onChange={e=>setAmounts(prev=>({...prev,[item.id]:e.target.value}))} className="mt-1 h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs font-semibold text-slate-200 outline-none focus:border-emerald-500 disabled:opacity-60" />
+                <input type="text" inputMode="decimal" aria-label={`Montant réel de ${item.nom}`} value={amountText} disabled={readOnly||busy} onChange={e=>setAmounts(prev=>({...prev,[item.id]:e.target.value}))} className="mt-1 h-9 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs font-semibold text-slate-200 outline-none focus:border-emerald-500 disabled:opacity-60" />
               </label>
               <label className="text-[10px] text-slate-500">Date réelle
                 <input type="date" value={date} disabled={readOnly||busy} onChange={e=>setDates(prev=>({...prev,[item.id]:e.target.value}))} className="mt-1 h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200 outline-none disabled:opacity-60" />
               </label>
-              {!readOnly && <div className="flex flex-wrap gap-2">
+              {!readOnly && <div className="flex flex-wrap gap-2 max-md:col-span-2">
                 <button type="button" disabled={busy||!date||!validAmount} onClick={()=>{if(item.recurrent_id && Math.abs(amount-Number(item.montant))>=0.005) setScopePrompt({id:item.id,date,amount}); else void onValidate(item.id,date,amount,'occurrence')}} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-3 text-xs font-semibold text-slate-950 disabled:opacity-50"><CheckCircle2 className="h-3.5 w-3.5"/>Valider</button>
                 <button type="button" disabled={busy} onClick={()=>onIgnore(item.id)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-3 text-xs font-medium text-slate-400 transition hover:border-amber-500/40 hover:text-amber-300 disabled:opacity-50"><EyeOff className="h-3.5 w-3.5"/>Ignorer ce mois</button>
               </div>}
