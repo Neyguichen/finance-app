@@ -108,7 +108,7 @@ export default function DettesPanel() {
     setOpenAdd(true)
   }
   const showRepayment = (debtId?: string) => {
-    setRepDebtId(debtId || active.find(debt => !debt.archived)?.id || '')
+    setRepDebtId(debtId || dettes.find(debt => !debt.archived)?.id || '')
     setRepAmount('')
     setRepDate(new Date().toLocaleDateString('en-CA'))
     setRepImpactsBudget(false)
@@ -152,7 +152,7 @@ export default function DettesPanel() {
   return (
     <section className="debts-mobile-page min-w-0 max-w-full space-y-3">
       <DetteForm open={openAdd} onOpenChange={setOpenAdd} tab={createTab} onSubmit={handleAdd} />
-      {!isAdminViewing && <DebtFab onDebt={() => openNewDebt('je_dois')} onClaim={() => openNewDebt('jai_prete')} onRepayment={() => showRepayment()} />}
+      {!isAdminViewing && <DebtFab onDebt={() => openNewDebt('je_dois')} onClaim={() => openNewDebt('jai_prete')} onRepayment={() => showRepayment(mobileDetail?.archived ? undefined : mobileDetail?.id)} />}
       <Dialog open={openRepayment} onOpenChange={open => {if (!repSaving) setOpenRepayment(open)}}>
         <DialogContent className="debt-form-dialog max-w-lg">
           <DialogHeader>
