@@ -29,7 +29,7 @@ import {
   X,
 } from 'lucide-react'
 import { formatDate, formatEuro, localDateISO, plannedDateForMonth } from '@/lib/utils'
-import { useCategories } from '@/lib/hooks/useCategories'
+import { useCategories, type CategoryRemovalResult } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useChargeFixeOccurrences, useChargesFixes, useChargesFixesRecurrentes } from '@/lib/hooks/useChargesFixes'
@@ -60,6 +60,10 @@ export default function DepensesPage() {
   const [fixedHelp, setFixedHelp] = useState<string | null>(null)
   const [showArchivedCategories, setShowArchivedCategories] = useState(false)
   const [categoryActionMenu, setCategoryActionMenu] = useState<string | null>(null)
+  const [categoryDeleteTarget, setCategoryDeleteTarget] = useState<{ id: string; name: string; report: CategoryRemovalResult } | null>(null)
+  const [categoryDeleteBusy, setCategoryDeleteBusy] = useState(false)
+  const [categoryDeleteError, setCategoryDeleteError] = useState('')
+  const [categoryActionError, setCategoryActionError] = useState('')
   const [selectedFixedRecurringId, setSelectedFixedRecurringId] = useState<string | null>(null)
   const [occurrenceMonth, setOccurrenceMonth] = useState(month.slice(0, 7))
   const [suspensionFrom, setSuspensionFrom] = useState('')
@@ -128,7 +132,7 @@ export default function DepensesPage() {
     if (add === 'variable') setTxOpen(true)
   }, [isAdminViewing, moisId])
 
-  const { data: categories = [], create: createCat, update: updateCat, move: moveCat, merge: mergeCat, remove: archiveCat } = useCategories(espace?.id)
+  const { data: categories = [], create: createCat, update: updateCat, move: moveCat, merge: mergeCat, remove: archiveCat, checkRemoval, deleteUnused } = useCategories(espace?.id)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], allFlat, create: createTx, update: updateTx, ignoreOccurrence: ignoreTransaction, restoreOccurrence: restoreTransaction, remove: removeTx, split, unsplit } = useTransactions(moisId)
   const { data: charges = [], togglePayee, ignoreOccurrence: ignoreFixed, restoreOccurrence: restoreFixed, create: createFixed, update: updateFixed, remove: removeFixed, removeDefinitif } = useChargesFixes(moisId)
@@ -404,10 +408,60 @@ export default function DepensesPage() {
     if (!active && selectedFixedRecurringId === id) setSelectedFixedRecurringId(null)
   }
 
+  const requestCategoryDeletion = async (id: string) => {
+    if (isAdminViewing) return
+    const category = effectiveCategories.find((entry: any) => entry.id === id)
+    if (!category) return
+    setCategoryDeleteBusy(true)
+    setCategoryDeleteError('')
+    setCategoryActionError('')
+    try {
+      const report = await checkRemoval(id)
+      setCategoryDeleteTarget({ id, name: category.nom, report })
+    } catch (error) {
+      setCategoryActionError(error instanceof Error ? error.message : 'Vérification impossible')
+    } finally {
+      setCategoryDeleteBusy(false)
+    }
+  }
+
+  const confirmCategoryDeletion = async () => {
+    if (!categoryDeleteTarget || !categoryDeleteTarget.report.can_delete || isAdminViewing) return
+    setCategoryDeleteBusy(true)
+    setCategoryDeleteError('')
+    try {
+      // The server rechecks every reference under lock before deleting.
+      const result = await deleteUnused.mutateAsync(categoryDeleteTarget.id)
+      if (result.status === 'deleted') {
+        if (browseCategoryId === categoryDeleteTarget.id) setBrowseCategoryId(null)
+        if (browseSubcategoryId === categoryDeleteTarget.id) setBrowseSubcategoryId(null)
+        setCategoryDeleteTarget(null)
+        setCategoryActionMenu(null)
+      } else {
+        setCategoryDeleteTarget({ ...categoryDeleteTarget, report: result })
+        setCategoryDeleteError('Cette catégorie est de nouveau utilisée. Elle ne peut plus être supprimée.')
+      }
+    } catch (error) {
+      setCategoryDeleteError(error instanceof Error ? error.message : 'Suppression impossible')
+    } finally {
+      setCategoryDeleteBusy(false)
+    }
+  }
+
   const setCategoryActive = async (id: string, active: boolean) => {
     if (isAdminViewing) return
-    if (active) await updateCat.mutateAsync({ id, actif: true })
-    else await archiveCat.mutateAsync(id)
+    setCategoryActionError('')
+    try {
+      if (active) {
+        await updateCat.mutateAsync({ id, actif: true })
+      } else {
+        const report = await checkRemoval(id)
+        if (report.can_delete) await requestCategoryDeletion(id)
+        else await archiveCat.mutateAsync(id)
+      }
+    } catch (error) {
+      setCategoryActionError(error instanceof Error ? error.message : 'Action impossible')
+    }
   }
 
   const actualEntries = useMemo(() => {
@@ -1267,12 +1321,40 @@ export default function DepensesPage() {
           </DialogContent>
         </Dialog>
 
+        <Dialog open={!!categoryDeleteTarget} onOpenChange={open => { if (!open && !categoryDeleteBusy) {setCategoryDeleteTarget(null);setCategoryDeleteError('')} }}>
+          <DialogContent className="max-w-md border-slate-700 bg-slate-900">
+            <DialogHeader><DialogTitle>Suppression définitive</DialogTitle></DialogHeader>
+            {categoryDeleteTarget && <>
+              <p className="text-sm text-slate-300"><strong>{categoryDeleteTarget.name}</strong></p>
+              {categoryDeleteTarget.report.can_delete ? (
+                <>
+                  <p className="text-sm text-slate-300">Aucune opération, aucun budget, aucune récurrence ni aucune sous-catégorie ne fait référence à cet élément.</p>
+                  <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">Cette suppression est irréversible. La catégorie ne pourra pas être restaurée.</p>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-amber-300">Suppression impossible : cette catégorie possède encore des liens.</p>
+                  <p className="text-xs leading-5 text-slate-400">
+                    {categoryDeleteTarget.report.references.subcategories} sous-catégorie(s) · {categoryDeleteTarget.report.references.transactions} transaction(s) · {categoryDeleteTarget.report.references.fixed_expenses} charge(s) fixe(s) · {categoryDeleteTarget.report.references.recurrences} récurrence(s) · {categoryDeleteTarget.report.references.monthly_budgets} budget(s) mensuel(s) · {categoryDeleteTarget.report.references.budget_templates} modèle(s) budgétaire(s).
+                  </p>
+                  <p className="text-xs text-slate-400">Réaffecte ou supprime d’abord les éléments liés, puis réessaie. Une catégorie utilisée peut rester archivée sans perdre son historique.</p>
+                </div>
+              )}
+              {categoryDeleteError && <p role="alert" className="text-xs text-rose-300">{categoryDeleteError}</p>}
+              <div className="mt-4 flex justify-end gap-2">
+                <Button type="button" variant="ghost" disabled={categoryDeleteBusy} onClick={() => {setCategoryDeleteTarget(null);setCategoryDeleteError('')}}>Fermer</Button>
+                {categoryDeleteTarget.report.can_delete && <Button type="button" disabled={categoryDeleteBusy} className="bg-rose-600 text-white hover:bg-rose-500" onClick={() => void confirmCategoryDeletion()}>{categoryDeleteBusy ? 'Vérification…' : 'Supprimer définitivement'}</Button>}
+              </div>
+            </>}
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={managementView === 'budgets'} onOpenChange={open => { if (!open) setManagementView(null) }}>
           <DialogContent className="expense-management-modal max-w-4xl border-slate-700 bg-slate-900">
             <DialogHeader><DialogTitle>Catégories & budgets</DialogTitle></DialogHeader>
             <div className="min-w-0 space-y-3 md:max-h-[72vh] md:overflow-y-auto md:pr-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="max-w-xl text-xs leading-relaxed text-slate-400">Touchez une catégorie pour modifier son budget et voir les opérations. Le menu <strong>⋯</strong> donne accès au déplacement, à la fusion, à l’ajout de sous-catégorie et à l’archivage. Les éléments archivés peuvent être restaurés.</p>
+                <p className="max-w-xl text-xs leading-relaxed text-slate-400">Touchez une catégorie pour modifier son budget. Le menu <strong>⋯</strong> permet de déplacer, fusionner ou archiver. Sans aucune donnée liée, la suppression définitive est proposée à la place. Les catégories archivées peuvent être restaurées ou supprimées si elles ne sont plus utilisées.</p>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowArchivedCategories(value => !value)}>
                     {showArchivedCategories ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Archive className="mr-1 h-3.5 w-3.5" />}
@@ -1281,6 +1363,7 @@ export default function DepensesPage() {
                   {!isAdminViewing && !showArchivedCategories && <Button size="sm" onClick={() => openCategoryDialog(null)}><Plus className="mr-1 h-3.5 w-3.5" />Catégorie</Button>}
                 </div>
               </div>
+              {categoryActionError && <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{categoryActionError}</p>}
               {(showArchivedCategories ? archivedParentCategories : parentCategories).length === 0 ? (
                 <EmptyStateV2 icon={Tags} title={showArchivedCategories ? 'Aucune catégorie archivée' : 'Aucune catégorie'} description={showArchivedCategories ? 'Les catégories archivées apparaîtront ici.' : 'Crée une catégorie pour organiser tes budgets variables.'} />
               ) : (
@@ -1301,7 +1384,10 @@ export default function DepensesPage() {
                           {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="ghost" className="hidden md:inline-flex" onClick={() => openCategoryDialog(cat.id)}><Plus className="mr-1 h-3.5 w-3.5" />Sous-cat.</Button>}
                           {!isAdminViewing && (
                             showArchivedCategories
-                              ? <button type="button" className="ml-auto shrink-0 rounded-lg p-2 text-emerald-300 hover:bg-emerald-500/10 md:ml-0" aria-label="Désarchiver" onClick={() => setCategoryActive(cat.id, true)}><RotateCcw className="h-4 w-4" /></button>
+                              ? <div className="ml-auto flex shrink-0 items-center gap-1">
+                                 <button type="button" className="rounded-lg p-2 text-emerald-300 hover:bg-emerald-500/10" aria-label={'Désarchiver ' + cat.nom} onClick={() => void setCategoryActive(cat.id, true)}><RotateCcw className="h-4 w-4" /></button>
+                                 <button type="button" disabled={categoryDeleteBusy} className="rounded-lg p-2 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50" aria-label={'Supprimer définitivement ' + cat.nom} onClick={() => void requestCategoryDeletion(cat.id)}><Trash2 className="h-4 w-4" /></button>
+                               </div>
                               : <button type="button" className="hidden p-2 text-slate-600 hover:text-amber-300 md:inline-flex" aria-label="Archiver" onClick={() => setCategoryActive(cat.id, false)}><Archive className="h-4 w-4" /></button>
                           )}
                           {!isAdminViewing && !showArchivedCategories && <button type="button" className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700/50 md:hidden" aria-label={'Options pour ' + cat.nom} aria-expanded={categoryActionMenu === cat.id} onClick={() => setCategoryActionMenu(old => old === cat.id ? null : cat.id)}><MoreHorizontal className="h-5 w-5" /></button>}
@@ -1323,7 +1409,10 @@ export default function DepensesPage() {
                               {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
                               {!isAdminViewing && (
                                 showArchivedCategories
-                                  ? <button type="button" className="ml-auto shrink-0 rounded-lg p-2 text-emerald-300 hover:bg-emerald-500/10 md:ml-0" aria-label="Désarchiver" onClick={() => setCategoryActive(sub.id, true)}><RotateCcw className="h-3.5 w-3.5" /></button>
+                                  ? <div className="ml-auto flex shrink-0 items-center gap-1">
+                                 <button type="button" className="rounded-lg p-2 text-emerald-300 hover:bg-emerald-500/10" aria-label={'Désarchiver ' + sub.nom} onClick={() => void setCategoryActive(sub.id, true)}><RotateCcw className="h-4 w-4" /></button>
+                                 <button type="button" disabled={categoryDeleteBusy} className="rounded-lg p-2 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50" aria-label={'Supprimer définitivement ' + sub.nom} onClick={() => void requestCategoryDeletion(sub.id)}><Trash2 className="h-4 w-4" /></button>
+                               </div>
                                   : <button type="button" className="hidden p-1.5 text-slate-700 hover:text-amber-300 md:inline-flex" aria-label="Archiver" onClick={() => setCategoryActive(sub.id, false)}><Archive className="h-3.5 w-3.5" /></button>
                               )}
                               {!isAdminViewing && !showArchivedCategories && <button type="button" className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700/50 md:hidden" aria-label={'Options pour ' + sub.nom} aria-expanded={categoryActionMenu === sub.id} onClick={() => setCategoryActionMenu(old => old === sub.id ? null : sub.id)}><MoreHorizontal className="h-5 w-5" /></button>}
