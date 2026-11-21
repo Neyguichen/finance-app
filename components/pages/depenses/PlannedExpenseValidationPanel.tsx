@@ -46,26 +46,26 @@ export default function PlannedExpenseValidationPanel({ entries, readOnly=false,
   const total=pending.reduce((sum,item)=>sum+Number(item.amount),0)
 
   return (
-    <section className="rounded-2xl border border-amber-400/15 bg-amber-500/[0.025]">
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800/70 px-4 py-3">
+    <section className="expense-upcoming-panel rounded-2xl border border-amber-400/15 bg-amber-500/[0.025]">
+      <div className="expense-upcoming-header flex flex-wrap items-center gap-2 border-b border-slate-800/70 px-4 py-3">
         <ReceiptText className="h-4 w-4 text-amber-300"/>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-slate-200">Dépenses prévues à valider</h2>
-          <p className="text-[10px] text-slate-500">Ces mouvements sont pris en compte dans le prévu mais pas encore dans le réel.</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-400">Ces mouvements sont pris en compte dans le prévu mais pas encore dans le réel.</p>
         </div>
         {pending.length > 0 && <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300">{formatEuro(total)} en attente</span>}
       </div>
-      <div className="divide-y divide-slate-800/60">
+      <div className="expense-upcoming-list md:divide-y md:divide-slate-800/60">
         {pending.map(item=>{
           const date=dates[item.id]||defaultDate(item)
           const amountText=amounts[item.id] ?? String(item.amount)
           const amount=Number(amountText.replace(',', '.'))
           const validAmount=amountText.trim()!=='' && Number.isFinite(amount) && amount>=0
           return (
-            <div key={item.id} className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_130px_150px_auto] md:items-end">
+            <div key={item.id} className="expense-upcoming-item grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_130px_150px_auto] md:items-end">
               <div>
                 <p className="text-sm font-semibold text-slate-200">{item.title}</p>
-                {item.subtitle && <p className="mt-0.5 text-[10px] text-slate-500">{item.subtitle}</p>}
+                {item.subtitle && <p className="mt-0.5 text-xs text-slate-400">{item.subtitle}</p>}
               </div>
               <div>
                 <p className="text-[10px] text-slate-500">Montant</p>

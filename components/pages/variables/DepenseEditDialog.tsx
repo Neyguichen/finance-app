@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CheckSquare2, Plus, ReceiptText, Scissors, X } from 'lucide-react'
+import { CheckSquare2, Plus, ReceiptText, Scissors, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CalculatorInput } from '@/components/ui/calculator-input'
@@ -110,7 +110,7 @@ export default function DepenseEditDialog({
   return (
     <>
       <Dialog open={!!editTx} onOpenChange={value => { if (!value) handleClose() }}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="expense-edit-dialog max-w-xl">
           <DialogHeader>
             <DialogTitle>{isSplit ? 'Dépense répartie' : 'Modifier la dépense'}</DialogTitle>
             {isSplit && <DialogDescription>La dépense reste un seul flux bancaire, réparti analytiquement sur plusieurs catégories.</DialogDescription>}
@@ -194,13 +194,13 @@ export default function DepenseEditDialog({
           ) : (
             <div className="space-y-4">
               {!isSplitChild ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+                  <div className="min-w-0">
                     <label className="mb-1 block text-xs text-slate-500">{doubleDate ? "Date d'opération" : 'Date'}</label>
                     <Input type="date" value={date} onChange={event => setDate(event.target.value)} />
                   </div>
                   {doubleDate && (
-                    <div>
+                    <div className="min-w-0">
                       <label className="mb-1 block text-xs text-slate-500">Date de validation bancaire <span className="text-slate-700">(optionnel)</span></label>
                       <Input type="date" value={dateValidation} onChange={event => setDateValidation(event.target.value)} />
                     </div>
@@ -226,7 +226,7 @@ export default function DepenseEditDialog({
               <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/30 p-3">
                 <div>
                   <label className="mb-1.5 block text-xs text-slate-500">Catégorie</label>
-                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_42px] gap-2">
                     <SearchableSelect
                       value={catId}
                       placeholder="Sélectionner une catégorie"
@@ -236,8 +236,8 @@ export default function DepenseEditDialog({
                       ]}
                       onChange={value => { setCatId(value); setSubCatId('') }}
                     />
-                    <Button type="button" variant="outline" className="h-11 px-3" onClick={() => setCategoryDialogParentId(null)}>
-                      <Plus className="mr-1.5 h-4 w-4" />Nouvelle catégorie
+                    <Button type="button" variant="outline" className="h-11 w-10 p-0" aria-label="Ajouter une catégorie" title="Ajouter une catégorie" onClick={() => setCategoryDialogParentId(null)}>
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -245,7 +245,7 @@ export default function DepenseEditDialog({
                 {subcategoriesEnabled && catId && (
                   <div>
                     <label className="mb-1.5 block text-xs text-slate-500">Sous-catégorie <span className="text-slate-700">(optionnel)</span></label>
-                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_42px] gap-2">
                       <SearchableSelect
                         value={subCatId}
                         placeholder="Aucune sous-catégorie"
@@ -255,8 +255,8 @@ export default function DepenseEditDialog({
                         ]}
                         onChange={setSubCatId}
                       />
-                      <Button type="button" variant="outline" className="h-11 px-3" onClick={() => setCategoryDialogParentId(catId)}>
-                        <Plus className="mr-1.5 h-4 w-4" />Nouvelle sous-catégorie
+                      <Button type="button" variant="outline" className="h-11 w-10 p-0" aria-label="Ajouter une sous-catégorie" title="Ajouter une sous-catégorie" onClick={() => setCategoryDialogParentId(catId)}>
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -280,7 +280,7 @@ export default function DepenseEditDialog({
                 onClose()
               }}>Enregistrer</Button>
 
-              <div className="grid gap-2 border-t border-slate-800 pt-3 sm:grid-cols-2">
+              <div className="hidden gap-2 border-t border-slate-800 pt-3 md:grid md:grid-cols-2">
                 {onRemb && (
                   <Button variant="outline" className="border-emerald-800 text-emerald-300" onClick={() => { handleClose(); onRemb(editTx) }}>
                     <ReceiptText className="mr-2 h-4 w-4" />Remboursement
@@ -297,6 +297,17 @@ export default function DepenseEditDialog({
                   </Button>
                 )}
               </div>
+              <details className="expense-edit-more rounded-xl border border-slate-700/60 bg-slate-950/25 md:hidden">
+                <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 px-3 py-2.5 text-sm font-semibold text-slate-200">
+                  Options supplémentaires
+                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                </summary>
+                <div className="grid gap-2 border-t border-slate-700/50 p-3">
+                  {onRemb && <Button variant="outline" className="justify-start border-emerald-800 text-emerald-300" onClick={() => { handleClose(); onRemb(editTx) }}><ReceiptText className="mr-2 h-4 w-4" />Remboursement</Button>}
+                  {!isSplitChild && <Button variant="outline" className="justify-start border-indigo-800 text-indigo-300" onClick={() => setQuickTodoOpen(true)}><CheckSquare2 className="mr-2 h-4 w-4" />Tâche liée</Button>}
+                  {onSplit && !isSplitChild && <Button variant="outline" className="justify-start border-indigo-800 text-indigo-300" onClick={() => { handleClose(); onSplit(editTx) }}><Scissors className="mr-2 h-4 w-4" />Répartir</Button>}
+                </div>
+              </details>
               <Button className="w-full" variant="ghost" onClick={handleClose}>Annuler</Button>
             </div>
           )}

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   CalendarClock,
   Archive,
+  MoreHorizontal,
   CalendarDays,
   Check,
   ChartPie,
@@ -28,7 +29,7 @@ import {
   X,
 } from 'lucide-react'
 import { formatDate, formatEuro, localDateISO, plannedDateForMonth } from '@/lib/utils'
-import { useCategories } from '@/lib/hooks/useCategories'
+import { useCategories, type CategoryRemovalResult } from '@/lib/hooks/useCategories'
 import { useBudgets } from '@/lib/hooks/useBudgets'
 import { useTransactions } from '@/lib/hooks/useTransactions'
 import { useChargeFixeOccurrences, useChargesFixes, useChargesFixesRecurrentes } from '@/lib/hooks/useChargesFixes'
@@ -50,6 +51,7 @@ import PlannedExpenseValidationPanel from '@/components/pages/depenses/PlannedEx
 
 type ActualFilter = 'all' | 'planned' | 'validated'
 type CategorySort = 'az' | 'planned' | 'actual' | 'remaining'
+type MobileExpensesView = 'stats' | 'upcoming' | 'history'
 
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
@@ -57,11 +59,17 @@ export default function DepensesPage() {
   const [showArchivedFixed, setShowArchivedFixed] = useState(false)
   const [fixedHelp, setFixedHelp] = useState<string | null>(null)
   const [showArchivedCategories, setShowArchivedCategories] = useState(false)
+  const [categoryActionMenu, setCategoryActionMenu] = useState<string | null>(null)
+  const [categoryDeleteTarget, setCategoryDeleteTarget] = useState<{ id: string; name: string; report: CategoryRemovalResult } | null>(null)
+  const [categoryDeleteBusy, setCategoryDeleteBusy] = useState(false)
+  const [categoryDeleteError, setCategoryDeleteError] = useState('')
+  const [categoryActionError, setCategoryActionError] = useState('')
   const [selectedFixedRecurringId, setSelectedFixedRecurringId] = useState<string | null>(null)
   const [occurrenceMonth, setOccurrenceMonth] = useState(month.slice(0, 7))
   const [suspensionFrom, setSuspensionFrom] = useState('')
   const [suspensionUntil, setSuspensionUntil] = useState('')
   const [actualFilter, setActualFilter] = useState<ActualFilter>('all')
+  const [mobileView, setMobileView] = useState<MobileExpensesView>('stats')
   const [actualSort, setActualSort] = useState<'payment' | 'validation'>('payment')
   const [browseCategoryId, setBrowseCategoryId] = useState<string | null>(null)
   const [browseSubcategoryId, setBrowseSubcategoryId] = useState<string | null>(null)
@@ -104,6 +112,8 @@ export default function DepensesPage() {
       setActualFilter(requestedActualFilter)
     }
     if (savedSort === 'payment' || savedSort === 'validation') setActualSort(savedSort)
+    const savedMobileView = window.sessionStorage.getItem('depenses_mobile_view')
+    if (savedMobileView === 'stats' || savedMobileView === 'upcoming' || savedMobileView === 'history') setMobileView(savedMobileView)
     if (savedCategorySort === 'az' || savedCategorySort === 'planned' || savedCategorySort === 'actual' || savedCategorySort === 'remaining') setCategorySort(savedCategorySort)
   }, [])
 
@@ -122,7 +132,7 @@ export default function DepensesPage() {
     if (add === 'variable') setTxOpen(true)
   }, [isAdminViewing, moisId])
 
-  const { data: categories = [], create: createCat, update: updateCat, move: moveCat, merge: mergeCat, remove: archiveCat } = useCategories(espace?.id)
+  const { data: categories = [], create: createCat, update: updateCat, move: moveCat, merge: mergeCat, remove: archiveCat, checkRemoval, deleteUnused } = useCategories(espace?.id)
   const { data: budgets = [], upsert: upsertBudget } = useBudgets(moisId)
   const { data: transactions = [], allFlat, create: createTx, update: updateTx, ignoreOccurrence: ignoreTransaction, restoreOccurrence: restoreTransaction, remove: removeTx, split, unsplit } = useTransactions(moisId)
   const { data: charges = [], togglePayee, ignoreOccurrence: ignoreFixed, restoreOccurrence: restoreFixed, create: createFixed, update: updateFixed, remove: removeFixed, removeDefinitif } = useChargesFixes(moisId)
@@ -179,6 +189,10 @@ export default function DepensesPage() {
 
   const parentCategories = effectiveCategories.filter((c: any) => c.actif !== false && !c.parent_id)
   const archivedParentCategories = effectiveCategories.filter((c: any) => c.actif === false && !c.parent_id)
+  // Archived subcategories must remain accessible even if their parent is still active.
+  const archivedCategoryGroups = effectiveCategories.filter((c: any) => !c.parent_id && (
+    c.actif === false || effectiveCategories.some((sub: any) => sub.parent_id === c.id && sub.actif === false)
+  ))
   const subCats = (id: string, includeArchived = false) => subcategoriesEnabled ? effectiveCategories
     .filter((c: any) => c.parent_id === id && (includeArchived || c.actif !== false))
     .sort((a: any, b: any) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity:'base' })) : []
@@ -398,10 +412,60 @@ export default function DepensesPage() {
     if (!active && selectedFixedRecurringId === id) setSelectedFixedRecurringId(null)
   }
 
+  const requestCategoryDeletion = async (id: string) => {
+    if (isAdminViewing) return
+    const category = effectiveCategories.find((entry: any) => entry.id === id)
+    if (!category) return
+    setCategoryDeleteBusy(true)
+    setCategoryDeleteError('')
+    setCategoryActionError('')
+    try {
+      const report = await checkRemoval(id)
+      setCategoryDeleteTarget({ id, name: category.nom, report })
+    } catch (error) {
+      setCategoryActionError(error instanceof Error ? error.message : 'Vérification impossible')
+    } finally {
+      setCategoryDeleteBusy(false)
+    }
+  }
+
+  const confirmCategoryDeletion = async () => {
+    if (!categoryDeleteTarget || !categoryDeleteTarget.report.can_delete || isAdminViewing) return
+    setCategoryDeleteBusy(true)
+    setCategoryDeleteError('')
+    try {
+      // The server rechecks every reference under lock before deleting.
+      const result = await deleteUnused.mutateAsync(categoryDeleteTarget.id)
+      if (result.status === 'deleted') {
+        if (browseCategoryId === categoryDeleteTarget.id) setBrowseCategoryId(null)
+        if (browseSubcategoryId === categoryDeleteTarget.id) setBrowseSubcategoryId(null)
+        setCategoryDeleteTarget(null)
+        setCategoryActionMenu(null)
+      } else {
+        setCategoryDeleteTarget({ ...categoryDeleteTarget, report: result })
+        setCategoryDeleteError('Cette catégorie est de nouveau utilisée. Elle ne peut plus être supprimée.')
+      }
+    } catch (error) {
+      setCategoryDeleteError(error instanceof Error ? error.message : 'Suppression impossible')
+    } finally {
+      setCategoryDeleteBusy(false)
+    }
+  }
+
   const setCategoryActive = async (id: string, active: boolean) => {
     if (isAdminViewing) return
-    if (active) await updateCat.mutateAsync({ id, actif: true })
-    else await archiveCat.mutateAsync(id)
+    setCategoryActionError('')
+    try {
+      if (active) {
+        await updateCat.mutateAsync({ id, actif: true })
+      } else {
+        const report = await checkRemoval(id)
+        if (report.can_delete) await requestCategoryDeletion(id)
+        else await archiveCat.mutateAsync(id)
+      }
+    } catch (error) {
+      setCategoryActionError(error instanceof Error ? error.message : 'Action impossible')
+    }
   }
 
   const actualEntries = useMemo(() => {
@@ -516,8 +580,12 @@ export default function DepensesPage() {
 
   const selectBudgetBrowse = (categoryId: string, subcategoryId: string | null = null) => {
     setBrowseCategoryId(categoryId)
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setMobileView('history')
+      window.sessionStorage.setItem('depenses_mobile_view', 'history')
+    }
     setBrowseSubcategoryId(subcategoryId)
-    if (typeof window !== 'undefined' && window.innerWidth < 1280) {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth < 1280) {
       window.setTimeout(() => document.getElementById('expense-right-panel')?.scrollIntoView({ behavior:'smooth', block:'start' }), 0)
     }
   }
@@ -707,26 +775,72 @@ export default function DepensesPage() {
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
-      <div className="mx-auto w-full max-w-7xl space-y-3 p-3 pb-28 sm:p-4">
+      <div className="expense-mobile-page mx-auto w-full max-w-7xl space-y-3 p-3 pb-28 sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <h1 className="text-2xl font-bold tracking-tight text-slate-100">Dépenses</h1>
         </div>
 
+        <div className="expense-mobile-shortcuts md:hidden">
+          <button type="button" onClick={() => setManagementView('budgets')} disabled={isAdminViewing}>
+            <Settings2 className="h-4 w-4" /> Gérer les budgets
+          </button>
+          <button type="button" onClick={() => setManagementView('fixed')} disabled={isAdminViewing}>
+            <CalendarClock className="h-4 w-4" /> Charges fixes
+          </button>
+        </div>
+
+        <nav aria-label="Vues des dépenses" className="expense-mobile-tabs md:hidden">
+          {([
+            ['stats', 'Statistiques'],
+            ['upcoming', 'À venir'],
+            ['history', 'Historique'],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-current={mobileView === key ? 'page' : undefined}
+              onClick={() => {
+                setMobileView(key)
+                window.sessionStorage.setItem('depenses_mobile_view', key)
+              }}
+              className={'expense-mobile-tab ' + (mobileView === key ? 'expense-mobile-tab-active' : '')}
+            >
+              {label}
+              {key === 'upcoming' && pendingActualEntries.length > 0 && (
+                <span className="expense-mobile-tab-count">{pendingActualEntries.length}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <section aria-label="Statistiques des dépenses" className={mobileView === 'stats' ? 'block' : 'hidden md:block'}>
         <div className="grid items-stretch gap-3 xl:grid-cols-2">
           <Card className="h-full border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel</CardTitle></CardHeader>
             <CardContent className="space-y-3 p-3 pt-0">
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="hidden gap-2 md:grid md:grid-cols-3">
                 <SummaryCard icon={ChartPie} label="Prévu ce mois" value={plannedTotal} tone="blue" />
                 <SummaryCard icon={WalletCards} label="Réel" value={actualTotal} detail={plannedTotal > 0 ? actualPercent + ' % du prévu' : 'Aucun prévu'} tone="emerald" />
                 <SummaryCard icon={variance <= 0 ? TrendingDown : TrendingUp} label="Écart" value={variance} detail={variance <= 0 ? formatEuro(Math.abs(variance)) + ' restant' : 'Dépassement'} tone={variance <= 0 ? 'amber' : 'rose'} signed />
               </div>
-              <div>
-                <div className="mb-1.5 flex items-center justify-between text-[10px] text-slate-500">
-                  <span>Avancement du budget</span><strong className="text-slate-300">{actualPercent} %</strong>
+              <div className="grid grid-cols-2 gap-2 md:hidden">
+                <div className="rounded-xl border border-blue-400/20 bg-blue-500/[0.07] p-3">
+                  <p className="text-xs font-medium text-slate-300">Prévu</p>
+                  <p className="mt-1 text-lg font-bold text-blue-200 tabular-nums">{formatEuro(plannedTotal)}</p>
                 </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-slate-800">
-                  <div className={actualPercent > 100 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-emerald-400'} style={{ width: Math.min(100, actualPercent) + '%' }} />
+                <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.07] p-3">
+                  <p className="text-xs font-medium text-slate-300">Réel</p>
+                  <p className="mt-1 text-lg font-bold text-emerald-300 tabular-nums">{formatEuro(actualTotal)}</p>
+                </div>
+                <div className="col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                  <div>
+                    <p className="text-xs text-slate-400">{variance > 0 ? 'Dépassement' : 'Budget restant'}</p>
+                    <p className={'text-base font-bold tabular-nums '+(variance > 0 ? 'text-rose-300' : 'text-emerald-300')}>{formatEuro(Math.abs(variance))}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Du prévu</p>
+                    <p className={'text-xl font-bold tabular-nums '+(actualPercent > 100 ? 'text-rose-300' : 'text-indigo-200')}>{plannedTotal > 0 ? actualPercent + ' %' : '—'}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -749,16 +863,18 @@ export default function DepensesPage() {
                     <p className="text-[8px] uppercase tracking-wide text-slate-600">Réel</p>
                     <p className="text-xs font-semibold text-slate-100">{formatEuro(actualFixed)}</p>
                   </div>
-                  <span className="w-9 text-right text-[10px] font-medium text-slate-500">
-                    {plannedFixed > 0 ? Math.round((actualFixed / plannedFixed) * 100) : (actualFixed > 0 ? 100 : 0)} %
+                  <span className={'max-w-[85px] text-right text-[10px] font-semibold ' + (actualFixed > plannedFixed ? 'text-rose-300' : 'text-emerald-300')}>
+                    {plannedFixed > 0 ? (actualFixed > plannedFixed ? '+' + formatEuro(actualFixed - plannedFixed) : formatEuro(plannedFixed - actualFixed) + ' reste') : 'Sans prévu'}
                   </span>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                {plannedFixed > 0 && <div className="mt-2 flex items-center gap-2">
+                  <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-800">
                   <div
                     className={actualFixed > plannedFixed && plannedFixed > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-purple-400'}
                     style={{ width: Math.min(100, plannedFixed > 0 ? (actualFixed / plannedFixed) * 100 : (actualFixed > 0 ? 100 : 0)) + '%' }}
                   />
-                </div>
+                  </div><span className="text-[10px] text-slate-400">{Math.round(actualFixed / plannedFixed * 100)} %</span>
+                </div>}
               </div>
 
               <div className="rounded-xl border border-slate-800 bg-slate-950/25 px-3 py-2.5">
@@ -775,21 +891,66 @@ export default function DepensesPage() {
                     <p className="text-[8px] uppercase tracking-wide text-slate-600">Réel</p>
                     <p className="text-xs font-semibold text-slate-100">{formatEuro(actualVariable)}</p>
                   </div>
-                  <span className="w-9 text-right text-[10px] font-medium text-slate-500">
-                    {plannedVariable > 0 ? Math.round((actualVariable / plannedVariable) * 100) : (actualVariable > 0 ? 100 : 0)} %
+                  <span className={'max-w-[85px] text-right text-[10px] font-semibold ' + (actualVariable > plannedVariable ? 'text-rose-300' : 'text-emerald-300')}>
+                    {plannedVariable > 0 ? (actualVariable > plannedVariable ? '+' + formatEuro(actualVariable - plannedVariable) : formatEuro(plannedVariable - actualVariable) + ' reste') : 'Sans prévu'}
                   </span>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                {plannedVariable > 0 && <div className="mt-2 flex items-center gap-2">
+                  <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-800">
                   <div
                     className={actualVariable > plannedVariable && plannedVariable > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-orange-400'}
-                    style={{ width: Math.min(100, plannedVariable > 0 ? (actualVariable / plannedVariable) * 100 : (actualVariable > 0 ? 100 : 0)) + '%' }}
+                    style={{ width: Math.min(100, (actualVariable / plannedVariable) * 100) + '%' }}
                   />
-                </div>
+                  </div>
+                  <span className="text-[10px] text-slate-400">{Math.round(actualVariable / plannedVariable * 100)} %</span>
+                </div>}
               </div>
             </CardContent>
           </Card>
         </div>
 
+        <div className="md:hidden">
+          <div className="mb-2 mt-4 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-100">Budgets par catégorie</h2>
+            <label className="flex items-center gap-2 text-xs text-slate-300">
+              Trier
+              <select aria-label="Trier les budgets par catégorie" className="expense-mobile-select rounded-lg px-2 py-2 text-xs" value={categorySort} onChange={event => setCategorySort(event.target.value as CategorySort)}>
+                <option value="az">A - Z</option>
+                <option value="planned">Prévu</option>
+                <option value="actual">Réel</option>
+                <option value="remaining">Reste</option>
+              </select>
+            </label>
+          </div>
+          <div className="space-y-2">
+            {sortedParentCategories.map((cat: any) => {
+              const planned = budget(cat.id)
+              const actual = spent(cat.id)
+              const remain = planned - actual
+              const percent = planned > 0 ? Math.min(100, Math.round(actual / planned * 100)) : (actual > 0 ? 100 : 0)
+              return (
+                <button key={cat.id} type="button" onClick={() => selectBudgetBrowse(cat.id)}
+                  className="expense-mobile-category w-full rounded-xl px-3 py-3 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base" aria-hidden="true">{cat.icone || '📂'}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-100">{cat.nom}</span>
+                    <span className={'text-xs font-semibold ' + (remain < 0 ? 'text-rose-300' : 'text-emerald-300')}>{formatEuro(remain)} restant</span>
+                    <ChevronDown className="h-4 w-4 -rotate-90 text-slate-400" />
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-700">
+                      <div className={'h-full rounded-full ' + (remain < 0 ? 'bg-rose-400' : 'bg-indigo-400')} style={{width: percent + '%'}} />
+                    </div>
+                    <span className="text-xs text-slate-300">{formatEuro(actual)} / {formatEuro(planned)}</span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        </section>
+
+        <section aria-label="Dépenses à venir" className={mobileView === 'upcoming' ? 'block' : 'hidden md:block'}>
         <PlannedExpenseValidationPanel
           entries={[...pendingActualEntries, ...ignoredActualEntries].map((entry:any) => ({
             id: entry.id,
@@ -847,9 +1008,20 @@ export default function DepensesPage() {
             else await restoreTransaction.mutateAsync(entry.sourceData.id)
           }}
         />
+                </section>
 
+        <section aria-label="Historique des dépenses" className={mobileView === 'history' ? 'block' : 'hidden md:block'}>
+        <div className="mb-3 md:hidden">
+          <label htmlFor="mobile-expense-category" className="mb-1 block text-xs font-medium text-slate-300">Filtrer les opérations par catégorie</label>
+          <select id="mobile-expense-category" className="expense-mobile-select w-full rounded-lg px-3 py-2.5 text-sm"
+            value={browseCategoryId || ''}
+            onChange={event => { setBrowseCategoryId(event.target.value || null); setBrowseSubcategoryId(null) }}>
+            <option value="">Toutes les catégories</option>
+            {sortedParentCategories.map((cat: any) => <option key={cat.id} value={cat.id}>{cat.nom}</option>)}
+          </select>
+        </div>
         <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.45fr)]">
-          <Card className="min-w-0 max-w-full border-slate-800 bg-slate-900">
+          <Card className="hidden min-w-0 max-w-full border-slate-800 bg-slate-900 md:block">
             <CardHeader className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 pb-2">
               <div className="min-w-0 flex-1">
                 <CardTitle className="text-sm text-slate-200">Catégories & budgets</CardTitle>
@@ -913,30 +1085,28 @@ export default function DepensesPage() {
           </Card>
 
           <Card id="expense-right-panel" className="min-w-0 max-w-full scroll-mt-20 border-slate-800 bg-slate-900">
-            <CardHeader className="flex min-w-0 flex-col items-start gap-2 pb-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
+            <CardHeader className="flex min-w-0 flex-row items-center justify-between gap-2 pb-2">
+              <div className="min-w-0 flex-1">
                 <CardTitle className="text-sm text-slate-200">{browsedCategory ? (browsedSubcategory ? browsedSubcategory.nom : browsedCategory.nom) : 'Dépenses réelles'}</CardTitle>
                 <p className="mt-0.5 text-[10px] text-slate-500">{browsedCategory ? 'Détail du budget et des dépenses validées.' : 'Mouvements validés du mois.'}</p>
               </div>
-              <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-                {!browsedCategory && <>
-                  <label className="relative">
-                    <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-8 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-[11px] text-slate-300 outline-none">
+              <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                <label className="relative">
+                    <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-9 max-w-[152px] appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-2 pr-7 text-[11px] text-slate-300 outline-none sm:max-w-none sm:pl-3 sm:pr-8 sm:text-xs">
                       <option value="payment">Date de transaction</option><option value="validation">Date de validation</option>
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500"/>
                   </label>
-                  {!isAdminViewing && <>
-                    <Button size="sm" variant="outline" className="h-8" onClick={()=>setManagementView('fixed')}><CalendarClock className="mr-1 h-3.5 w-3.5"/>Charges fixes</Button>
+                  {!browsedCategory && !isAdminViewing && <>
+                    <Button size="sm" variant="outline" className="hidden h-8 md:inline-flex" onClick={()=>setManagementView('fixed')}><CalendarClock className="mr-1 h-3.5 w-3.5"/>Charges fixes</Button>
                     <Button size="sm" className="hidden h-8 md:inline-flex" onClick={()=>setTxOpen(true)}><Plus className="mr-1 h-3.5 w-3.5"/>Dépense</Button>
                   </>}
-                </>}
                 {browsedCategory && <Button size="icon" variant="ghost" className="h-8 w-8" onClick={()=>{setBrowseCategoryId(null);setBrowseSubcategoryId(null)}} aria-label="Fermer le détail"><X className="h-4 w-4"/></Button>}
               </div>
             </CardHeader>
             <CardContent className="min-w-0 p-3 pt-0">
               {browsedCategory && (
-                <div className="mb-3 grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-3">
+                <div className="expense-mobile-budget-metrics mb-3 grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
                   <Metric
                     label="Prévu"
                     value={formatEuro(browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))}
@@ -950,12 +1120,12 @@ export default function DepensesPage() {
               {browsedEntries.length===0 ? (
                 <EmptyStateV2 icon={ReceiptText} title={browsedCategory?'Aucune dépense validée':'Aucune dépense réelle'} description={browsedCategory?'Aucune dépense validée pour cette sélection ce mois.':'Les dépenses validées apparaîtront ici.'}/>
               ) : (
-                <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70">
+                <div className="expense-mobile-entries divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70">
                   {browsedEntries.map((entry:any)=>(
-                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 sm:flex-nowrap sm:gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
-                      <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-500">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
-                      <div className="ml-auto min-w-0 text-right">
+                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="expense-mobile-entry flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 sm:flex-nowrap sm:gap-3">
+                      <span className="expense-entry-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
+                      <div className="expense-entry-name min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-400">{entry.subcategory || entry.info || 'Dépense'}</p></div>
+                      <div className="expense-entry-amount ml-auto min-w-0 text-right">
                         <div className="flex flex-wrap items-center justify-end gap-1.5">
                           <strong className={entry.source==='fixed'?'text-purple-300':'text-rose-300'}>{formatEuro(entry.amount)}</strong>
                           <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">Validé</span>
@@ -965,12 +1135,13 @@ export default function DepensesPage() {
                           {!isAdminViewing && reimbursementsEnabled && entry.source==='transaction' &&
                             <button type="button" className="text-[10px] font-medium text-indigo-300 hover:text-indigo-200" onClick={event=>{event.stopPropagation();setRembTx(entry.sourceData)}}>Gérer le remboursement</button>}
                         </div>}
-                        <div className="mt-0.5 flex flex-wrap justify-end gap-x-2 gap-y-0.5 text-[10px] text-slate-500">
-                          <span>Transaction : {entry.paymentDate ? formatDate(entry.paymentDate) : '—'}</span>
-                          <span>Validation : {entry.validationDate ? formatDate(entry.validationDate) : '—'}</span>
-                        </div>
                       </div>
-                      {!isAdminViewing&&<button className="shrink-0 p-1 text-slate-700 hover:text-rose-400" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-3.5 w-3.5"/></button>}
+                      {entry.subcategory && entry.info && <p className="expense-entry-description hidden text-xs leading-snug text-slate-300 md:hidden">{entry.info}</p>}
+                      <div className="expense-entry-dates flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">
+                        <span>Transaction : {entry.paymentDate ? formatDate(entry.paymentDate) : '—'}</span>
+                        <span>Validation : {entry.validationDate ? formatDate(entry.validationDate) : '—'}</span>
+                      </div>
+                      {!isAdminViewing&&<button type="button" className="expense-entry-delete shrink-0 rounded-lg p-2 text-rose-300 hover:bg-rose-500/10 hover:text-rose-200" aria-label="Supprimer" onClick={event=>{event.stopPropagation();if(entry.source==='fixed')setDeleteFixed({id:entry.sourceData.id,recurrentId:entry.sourceData.recurrent_id,nom:entry.sourceData.nom});else setDeleteTx(entry.sourceData)}}><Trash2 className="h-4 w-4"/></button>}
                     </div>
                   ))}
                 </div>
@@ -978,6 +1149,7 @@ export default function DepensesPage() {
             </CardContent>
           </Card>
         </div>
+        </section>
 
         <Dialog open={!!validationEntry} onOpenChange={open => { if (!open) { setValidationEntry(null); setValidationDate('') } }}>
           <DialogContent className="max-w-sm border-slate-700 bg-slate-900">
@@ -1006,19 +1178,19 @@ export default function DepensesPage() {
         </Dialog>
 
         <Dialog open={managementView === 'fixed'} onOpenChange={open => { if (!open) { setManagementView(null); setSelectedFixedRecurringId(null) } }}>
-          <DialogContent className="max-w-4xl border-slate-700 bg-slate-900">
+          <DialogContent className="expense-management-modal max-w-4xl border-slate-700 bg-slate-900">
             <DialogHeader>
               <DialogTitle>Charges fixes récurrentes</DialogTitle>
               <p className="text-xs text-slate-500">Gère les modèles récurrents et leurs occurrences.</p>
             </DialogHeader>
-            <div className="grid max-h-[72vh] gap-4 overflow-y-auto pr-1 md:grid-cols-[1fr_1.05fr]">
-              <section>
+            <div className="grid min-w-0 gap-4 md:max-h-[72vh] md:overflow-y-auto md:pr-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+              <section className={selectedFixedRecurring ? "hidden min-w-0 md:block" : "min-w-0"}>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-slate-200">{showArchivedFixed ? 'Charges archivées' : 'Charges actives'}</p>
                     <p className="text-[11px] text-slate-500">{showArchivedFixed ? archivedFixedRecurrents.length : activeFixedRecurrents.length} charge(s)</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {!isAdminViewing && !showArchivedFixed && (
                       <Button size="sm" onClick={() => { setManagementView(null); setFixedOpen(true) }}>
                         <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
@@ -1035,7 +1207,7 @@ export default function DepensesPage() {
                     <p className="p-4 text-sm text-slate-500">Aucune charge dans cette liste.</p>
                   ) : (showArchivedFixed ? archivedFixedRecurrents : activeFixedRecurrents).map((recurring: any) => {
                     return (
-                      <button key={recurring.id} type="button" onClick={() => setSelectedFixedRecurringId(recurring.id)} className={'flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-slate-800/40 ' + (selectedFixedRecurringId === recurring.id ? 'bg-slate-800/50' : '')}>
+                      <button key={recurring.id} type="button" onClick={() => { setSelectedFixedRecurringId(recurring.id); document.querySelector('.expense-management-modal')?.scrollTo(0, 0) }} className={'flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-slate-800/40 ' + (selectedFixedRecurringId === recurring.id ? 'bg-slate-800/50' : '')}>
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-300"><CalendarClock className="h-4 w-4" /></span>
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{recurring.nom}</p><p className="text-[10px] text-slate-500">{fixedFrequencyLabel(recurring)}</p></div>
                         <strong className="text-sm text-purple-300">{formatEuro(Number(recurring.montant))}</strong>
@@ -1046,15 +1218,17 @@ export default function DepensesPage() {
 
               </section>
 
-              <section className="rounded-xl border border-slate-800 bg-slate-950/25 p-4">
+              <section className={(selectedFixedRecurring ? "min-w-0" : "hidden min-w-0 md:block") + " rounded-xl border border-slate-800 bg-slate-950/25 p-3 sm:p-4"}>
+                {selectedFixedRecurring && <button type="button" onClick={() => setSelectedFixedRecurringId(null)} className="mb-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-indigo-300 md:hidden"><ChevronDown className="h-4 w-4 rotate-90" />Retour aux charges fixes</button>}
                 {!selectedFixedRecurring ? (
                   <div className="flex min-h-48 items-center justify-center text-center text-sm text-slate-500">Sélectionne une charge fixe pour gérer sa récurrence.</div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div><h3 className="font-semibold text-slate-100">{selectedFixedRecurring.nom}</h3><p className="mt-1 text-xs text-slate-500">{fixedFrequencyLabel(selectedFixedRecurring)} · depuis {selectedFixedRecurring.mois_debut ? formatDate(selectedFixedRecurring.mois_debut) : 'date non renseignée'}</p></div>
-                      <div className="flex items-center gap-2"><span className={'rounded-full px-2 py-0.5 text-[9px] font-medium ' + (selectedFixedRecurring.actif === false ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500/10 text-emerald-300')}>{selectedFixedRecurring.actif === false ? 'Archivée' : 'Active'}</span><strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong></div>
-                    </div>
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-purple-500/20 bg-purple-500/[0.055] p-3">
+                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0"><h3 className="break-words font-semibold text-slate-100">{selectedFixedRecurring.nom}</h3><p className="mt-1 text-xs text-slate-500">{fixedFrequencyLabel(selectedFixedRecurring)} · depuis {selectedFixedRecurring.mois_debut ? formatDate(selectedFixedRecurring.mois_debut) : 'date non renseignée'}</p></div>
+                      <div className="flex flex-wrap items-center gap-2"><span className={'rounded-full px-2 py-0.5 text-[9px] font-medium ' + (selectedFixedRecurring.actif === false ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500/10 text-emerald-300')}>{selectedFixedRecurring.actif === false ? 'Archivée' : 'Active'}</span><strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong></div>
+                    </div></div>
 
                     {!isAdminViewing && selectedFixedRecurring.actif === false && (
                       <Button className="w-full" onClick={() => setFixedRecurringActive(selectedFixedRecurring.id, true)}>
@@ -1063,12 +1237,12 @@ export default function DepensesPage() {
                     )}
                     {selectedFixedRecurring.actif !== false && (
                       <>
-                        <div className="rounded-xl border border-slate-800 p-3">
-                          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                        <div className="expense-recurring-section rounded-xl border border-slate-800 p-3">
+                          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-200">
                             <span>Jour prévu</span>
                             <span className="relative inline-flex"><button type="button" aria-label="À quoi sert le jour prévu ?" aria-expanded={fixedHelp === 'day'} onClick={() => setFixedHelp(fixedHelp === 'day' ? null : 'day')} className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-600 text-slate-400 hover:text-slate-100"><Info className="h-3 w-3" /></button>{fixedHelp === 'day' && <span role="tooltip" className="absolute right-0 top-7 z-50 w-60 max-w-[80vw] rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-slate-200 shadow-2xl">Définit le jour du mois utilisé pour la date prévue de cette charge récurrente. Les occurrences déjà générées mais non validées sont réalignées sur ce jour.</span>}</span>
                           </div>
-                          <label className="text-[10px] text-slate-500">Jour du mois <span className="text-slate-600">(1 par défaut)</span>
+                          <label className="text-xs text-slate-400">Jour du mois <span className="text-slate-600">(1 par défaut)</span>
                             <input
                               type="number"
                               min={1}
@@ -1084,16 +1258,16 @@ export default function DepensesPage() {
                           </label>
                         </div>
 
-                        <div className="rounded-xl border border-slate-800 p-3">
+                        <div className="expense-recurring-section rounded-xl border border-slate-800 p-3">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Ajouter une occurrence</p>
+                              <p className="text-xs font-semibold text-slate-200">Ajouter une occurrence</p>
                               <span className="relative inline-flex"><button type="button" aria-label="À quoi sert l'ajout d'une occurrence ?" aria-expanded={fixedHelp === 'add'} onClick={() => setFixedHelp(fixedHelp === 'add' ? null : 'add')} className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-600 text-slate-400 hover:text-slate-100"><Info className="h-3 w-3" /></button>{fixedHelp === 'add' && <span role="tooltip" className="absolute right-0 top-7 z-50 w-60 max-w-[80vw] rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-slate-200 shadow-2xl">Crée manuellement cette charge sur un mois où aucune occurrence n’existe encore.</span>}</span>
                             </div>
                             <CalendarDays className="h-4 w-4 text-slate-600" />
                           </div>
                           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                            <input type="month" value={occurrenceMonth} onChange={event => setOccurrenceMonth(event.target.value)} className="input input-bordered input-sm flex-1" />
+                            <input type="month" value={occurrenceMonth} onChange={event => setOccurrenceMonth(event.target.value)} className="input input-bordered input-sm min-w-0 w-full flex-1" />
                             {!isAdminViewing && (
                               <Button size="sm" onClick={addSelectedFixedOccurrence} disabled={addOccurrence.isPending || selectedOccurrences.some((item: any) => String(item.mois?.mois || '').slice(0, 7) === occurrenceMonth)}>
                                 <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
@@ -1102,14 +1276,14 @@ export default function DepensesPage() {
                           </div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-800 p-3">
+                        <div className="expense-recurring-section rounded-xl border border-slate-800 p-3">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Suspendre une période</p>
+                            <p className="text-xs font-semibold text-slate-200">Suspendre une période</p>
                             <span className="relative inline-flex"><button type="button" aria-label="À quoi sert la suspension ?" aria-expanded={fixedHelp === 'suspend'} onClick={() => setFixedHelp(fixedHelp === 'suspend' ? null : 'suspend')} className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-600 text-slate-400 hover:text-slate-100"><Info className="h-3 w-3" /></button>{fixedHelp === 'suspend' && <span role="tooltip" className="absolute right-0 top-7 z-50 w-60 max-w-[80vw] rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-slate-200 shadow-2xl">Empêche la création automatique de cette charge pendant la période choisie, sans supprimer le modèle ni son historique.</span>}</span>
                           </div>
                           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                            <label className="text-[10px] text-slate-500">Du<input type="month" value={suspensionFrom} onChange={event => setSuspensionFrom(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
-                            <label className="text-[10px] text-slate-500">Au<input type="month" value={suspensionUntil} onChange={event => setSuspensionUntil(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
+                            <label className="text-xs text-slate-400">Du<input type="month" value={suspensionFrom} onChange={event => setSuspensionFrom(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
+                            <label className="text-xs text-slate-400">Au<input type="month" value={suspensionUntil} onChange={event => setSuspensionUntil(event.target.value)} className="input input-bordered input-sm mt-1 w-full" /></label>
                           </div>
                           {!isAdminViewing && <Button size="sm" variant="outline" className="mt-2 w-full" onClick={saveSuspension} disabled={updateFixedRecurring.isPending}>Enregistrer la suspension</Button>}
                           {(selectedFixedRecurring.suspended_from || selectedFixedRecurring.suspended_until) && <p className="mt-2 text-[10px] text-amber-300">Suspendue {selectedFixedRecurring.suspended_from ? 'à partir de ' + formatDate(selectedFixedRecurring.suspended_from) : ''}{selectedFixedRecurring.suspended_until ? ' jusqu’au ' + formatDate(selectedFixedRecurring.suspended_until) : ''}.</p>}
@@ -1117,10 +1291,10 @@ export default function DepensesPage() {
                       </>
                     )}
 
-                    <div className="rounded-xl border border-slate-800 p-3">
+                    <div className="expense-recurring-section rounded-xl border border-slate-800 p-3">
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Historique des occurrences</p>
+                          <p className="text-xs font-semibold text-slate-200">Historique des occurrences</p>
                           <span className="relative inline-flex"><button type="button" aria-label="À quoi sert l'historique ?" aria-expanded={fixedHelp === 'history'} onClick={() => setFixedHelp(fixedHelp === 'history' ? null : 'history')} className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-600 text-slate-400 hover:text-slate-100"><Info className="h-3 w-3" /></button>{fixedHelp === 'history' && <span role="tooltip" className="absolute right-0 top-7 z-50 w-60 max-w-[80vw] rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-slate-200 shadow-2xl">Liste toutes les occurrences déjà créées pour cette charge, y compris lorsqu’elle est archivée. L’archivage ne supprime pas cet historique.</span>}</span>
                         </div>
                         <span className="text-[10px] text-slate-600">{selectedOccurrences.length}</span>
@@ -1131,7 +1305,7 @@ export default function DepensesPage() {
                             <div key={occurrence.id} className="flex items-center gap-2 py-2">
                               <button type="button" onClick={() => editOccurrenceFromHistory(occurrence)} className="min-w-0 flex-1 text-left">
                                 <p className="text-xs font-medium text-slate-200">{formatDate(occurrence.mois?.mois || occurrence.date_prevue || month)}</p>
-                                <p className="text-[10px] text-slate-500">{occurrence.payee ? 'Validée' : 'À valider'} · {formatEuro(Number(occurrence.montant))}</p>
+                                <p className="text-xs text-slate-400">{occurrence.payee ? 'Validée' : 'À valider'} · {formatEuro(Number(occurrence.montant))}</p>
                               </button>
                               {!isAdminViewing && <Button size="sm" variant="ghost" onClick={() => removeSelectedFixedOccurrence(occurrence.id)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                             </div>
@@ -1151,13 +1325,41 @@ export default function DepensesPage() {
           </DialogContent>
         </Dialog>
 
+        <Dialog open={!!categoryDeleteTarget} onOpenChange={open => { if (!open && !categoryDeleteBusy) {setCategoryDeleteTarget(null);setCategoryDeleteError('')} }}>
+          <DialogContent className="max-w-md border-slate-700 bg-slate-900">
+            <DialogHeader><DialogTitle>Suppression définitive</DialogTitle></DialogHeader>
+            {categoryDeleteTarget && <>
+              <p className="text-sm text-slate-300"><strong>{categoryDeleteTarget.name}</strong></p>
+              {categoryDeleteTarget.report.can_delete ? (
+                <>
+                  <p className="text-sm text-slate-300">Aucune opération, aucun budget, aucune récurrence ni aucune sous-catégorie ne fait référence à cet élément.</p>
+                  <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">Cette suppression est irréversible. La catégorie ne pourra pas être restaurée.</p>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-amber-300">Suppression impossible : cette catégorie possède encore des liens.</p>
+                  <p className="text-xs leading-5 text-slate-400">
+                    {categoryDeleteTarget.report.references.subcategories} sous-catégorie(s) · {categoryDeleteTarget.report.references.transactions} transaction(s) · {categoryDeleteTarget.report.references.fixed_expenses} charge(s) fixe(s) · {categoryDeleteTarget.report.references.recurrences} récurrence(s) · {categoryDeleteTarget.report.references.monthly_budgets} budget(s) mensuel(s) · {categoryDeleteTarget.report.references.budget_templates} modèle(s) budgétaire(s).
+                  </p>
+                  <p className="text-xs text-slate-400">Réaffecte ou supprime d’abord les éléments liés, puis réessaie. Une catégorie utilisée peut rester archivée sans perdre son historique.</p>
+                </div>
+              )}
+              {categoryDeleteError && <p role="alert" className="text-xs text-rose-300">{categoryDeleteError}</p>}
+              <div className="mt-4 flex justify-end gap-2">
+                <Button type="button" variant="ghost" disabled={categoryDeleteBusy} onClick={() => {setCategoryDeleteTarget(null);setCategoryDeleteError('')}}>Fermer</Button>
+                {categoryDeleteTarget.report.can_delete && <Button type="button" disabled={categoryDeleteBusy} className="bg-rose-600 text-white hover:bg-rose-500" onClick={() => void confirmCategoryDeletion()}>{categoryDeleteBusy ? 'Vérification…' : 'Supprimer définitivement'}</Button>}
+              </div>
+            </>}
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={managementView === 'budgets'} onOpenChange={open => { if (!open) setManagementView(null) }}>
-          <DialogContent className="max-w-4xl border-slate-700 bg-slate-900">
+          <DialogContent className="expense-management-modal max-w-4xl border-slate-700 bg-slate-900">
             <DialogHeader><DialogTitle>Catégories & budgets</DialogTitle></DialogHeader>
-            <div className="max-h-[72vh] space-y-3 overflow-y-auto pr-1">
+            <div className="min-w-0 space-y-3 md:max-h-[72vh] md:overflow-y-auto md:pr-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs text-slate-500">Clique sur une catégorie ou sous-catégorie pour voir son budget et les dépenses du mois.</p>
-                <div className="flex gap-2">
+                <p className="max-w-xl text-xs leading-relaxed text-slate-400">Touchez une catégorie pour modifier son budget. Le menu <strong>⋯</strong> permet de déplacer, fusionner ou archiver. Sans aucune donnée liée, la suppression définitive est proposée à la place. Les catégories archivées peuvent être restaurées ou supprimées si elles ne sont plus utilisées.</p>
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowArchivedCategories(value => !value)}>
                     {showArchivedCategories ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Archive className="mr-1 h-3.5 w-3.5" />}
                     {showArchivedCategories ? 'Voir les actives' : 'Voir les archivées'}
@@ -1165,44 +1367,64 @@ export default function DepensesPage() {
                   {!isAdminViewing && !showArchivedCategories && <Button size="sm" onClick={() => openCategoryDialog(null)}><Plus className="mr-1 h-3.5 w-3.5" />Catégorie</Button>}
                 </div>
               </div>
-              {(showArchivedCategories ? archivedParentCategories : parentCategories).length === 0 ? (
+              {categoryActionError && <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{categoryActionError}</p>}
+              {(showArchivedCategories ? archivedCategoryGroups : parentCategories).length === 0 ? (
                 <EmptyStateV2 icon={Tags} title={showArchivedCategories ? 'Aucune catégorie archivée' : 'Aucune catégorie'} description={showArchivedCategories ? 'Les catégories archivées apparaîtront ici.' : 'Crée une catégorie pour organiser tes budgets variables.'} />
               ) : (
                 <div className="space-y-2">
-                  {(showArchivedCategories ? archivedParentCategories : parentCategories).map((cat: any) => {
+                  {(showArchivedCategories ? archivedCategoryGroups : parentCategories).map((cat: any) => {
                     const children = subCats(cat.id, showArchivedCategories).filter((sub: any) => showArchivedCategories ? sub.actif === false : sub.actif !== false)
                     const planned = budget(cat.id)
                     const actual = spent(cat.id)
                     return (
                       <div key={cat.id} className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/20">
-                        <div className="flex items-center gap-2 p-3">
+                        <div className="flex min-w-0 items-center gap-2 px-3 py-2.5">
                           <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id) } }} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                             <span className="text-xl">{cat.icone || '📂'}</span>
-                            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{cat.nom}</p><p className="text-[10px] text-slate-500">{formatEuro(planned)} prévu · {formatEuro(actual)} réel</p></div>
+                            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{cat.nom}</p><p className="text-[10px] text-slate-500">{showArchivedCategories && cat.actif !== false ? 'Catégorie active · sous-catégories archivées' : formatEuro(planned) + ' prévu · ' + formatEuro(actual) + ' réel'}</p></div>
                           </button>
-                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>}
-                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
-                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="ghost" onClick={() => openCategoryDialog(cat.id)}><Plus className="mr-1 h-3.5 w-3.5" />Sous-cat.</Button>}
-                          {!isAdminViewing && (
+                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>}
+                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
+                          {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="ghost" className="hidden md:inline-flex" onClick={() => openCategoryDialog(cat.id)}><Plus className="mr-1 h-3.5 w-3.5" />Sous-cat.</Button>}
+                          {!isAdminViewing && (!showArchivedCategories || cat.actif === false) && (
                             showArchivedCategories
-                              ? <button className="p-2 text-slate-500 hover:text-emerald-300" aria-label="Désarchiver" onClick={() => setCategoryActive(cat.id, true)}><RotateCcw className="h-4 w-4" /></button>
-                              : <button className="p-2 text-slate-600 hover:text-amber-300" aria-label="Archiver" onClick={() => setCategoryActive(cat.id, false)}><Archive className="h-4 w-4" /></button>
+                              ? <div className="ml-auto flex shrink-0 items-center gap-1">
+                                 <button type="button" className="rounded-lg p-2 text-emerald-300 hover:bg-emerald-500/10" aria-label={'Désarchiver ' + cat.nom} onClick={() => void setCategoryActive(cat.id, true)}><RotateCcw className="h-4 w-4" /></button>
+                                 <button type="button" disabled={categoryDeleteBusy} className="rounded-lg p-2 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50" aria-label={'Supprimer définitivement ' + cat.nom} onClick={() => void requestCategoryDeletion(cat.id)}><Trash2 className="h-4 w-4" /></button>
+                               </div>
+                              : <button type="button" className="hidden p-2 text-slate-600 hover:text-amber-300 md:inline-flex" aria-label="Archiver" onClick={() => setCategoryActive(cat.id, false)}><Archive className="h-4 w-4" /></button>
                           )}
+                          {!isAdminViewing && !showArchivedCategories && <button type="button" className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700/50 md:hidden" aria-label={'Options pour ' + cat.nom} aria-expanded={categoryActionMenu === cat.id} onClick={() => setCategoryActionMenu(old => old === cat.id ? null : cat.id)}><MoreHorizontal className="h-5 w-5" /></button>}
                         </div>
+                        {categoryActionMenu === cat.id && !showArchivedCategories && !isAdminViewing && <div className="expense-category-actions grid grid-cols-2 gap-1.5 border-t border-slate-700/50 bg-slate-800/35 px-2 py-2 md:hidden">
+                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>
+                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>
+                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);openCategoryDialog(cat.id)}}><Plus className="mr-1 h-3.5 w-3.5" />Sous-catégorie</Button>
+                          <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setCategoryActive(cat.id,false)}}>Archiver</Button>
+                        </div>}
                         {children.length > 0 && <div className="border-t border-slate-800/70 px-3 py-2">
                           {children.map((sub: any) => (
-                            <div key={sub.id} className="flex items-center gap-2 py-1.5 pl-8">
-                              <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id, sub.id) } }} className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                            <div key={sub.id} className="flex min-w-0 flex-wrap items-center gap-2 py-2 pl-2 sm:pl-8">
+                              <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id, sub.id) } }} className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left">
                                 <span className="truncate text-xs text-slate-300">{sub.icone || '•'} {sub.nom}</span>
-                                <span className="text-[10px] text-slate-500">{formatEuro(budget(sub.id))} · {formatEuro(spent(sub.id, true))}</span>
+                                <span className="text-[10px] text-slate-400">{formatEuro(budget(sub.id))} · {formatEuro(spent(sub.id, true))}</span>
                               </button>
-                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>}
-                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
+                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>}
+                              {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
                               {!isAdminViewing && (
                                 showArchivedCategories
-                                  ? <button className="p-1.5 text-slate-600 hover:text-emerald-300" aria-label="Désarchiver" onClick={() => setCategoryActive(sub.id, true)}><RotateCcw className="h-3.5 w-3.5" /></button>
-                                  : <button className="p-1.5 text-slate-700 hover:text-amber-300" aria-label="Archiver" onClick={() => setCategoryActive(sub.id, false)}><Archive className="h-3.5 w-3.5" /></button>
+                                  ? <div className="ml-auto flex shrink-0 items-center gap-1">
+                                 <button type="button" className="rounded-lg p-2 text-emerald-300 hover:bg-emerald-500/10" aria-label={'Désarchiver ' + sub.nom} onClick={() => void setCategoryActive(sub.id, true)}><RotateCcw className="h-4 w-4" /></button>
+                                 <button type="button" disabled={categoryDeleteBusy} className="rounded-lg p-2 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50" aria-label={'Supprimer définitivement ' + sub.nom} onClick={() => void requestCategoryDeletion(sub.id)}><Trash2 className="h-4 w-4" /></button>
+                               </div>
+                                  : <button type="button" className="hidden p-1.5 text-slate-700 hover:text-amber-300 md:inline-flex" aria-label="Archiver" onClick={() => setCategoryActive(sub.id, false)}><Archive className="h-3.5 w-3.5" /></button>
                               )}
+                              {!isAdminViewing && !showArchivedCategories && <button type="button" className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700/50 md:hidden" aria-label={'Options pour ' + sub.nom} aria-expanded={categoryActionMenu === sub.id} onClick={() => setCategoryActionMenu(old => old === sub.id ? null : sub.id)}><MoreHorizontal className="h-5 w-5" /></button>}
+                              {categoryActionMenu === sub.id && !showArchivedCategories && !isAdminViewing && <div className="expense-category-actions grid basis-full grid-cols-3 gap-1.5 rounded-lg bg-slate-800/35 p-2 md:hidden">
+                                <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>
+                                <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>
+                                <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setCategoryActive(sub.id,false)}}>Archiver</Button>
+                              </div>}
                             </div>
                           ))}
                         </div>}
@@ -1216,16 +1438,16 @@ export default function DepensesPage() {
         </Dialog>
 
         <Dialog open={!!budgetModalCategory} onOpenChange={open => { if (!open) { setBudgetModalId(null); setBudgetModalSubcategoryId(null); setBudgetNameDraft(''); setBudgetIconDraft('📂') } }}>
-          <DialogContent className="max-w-3xl border-slate-700 bg-slate-900">
+          <DialogContent className="expense-management-modal max-w-3xl border-slate-700 bg-slate-900">
             {budgetModalCategory && (
               <>
                 <DialogHeader>
                   <DialogTitle>{budgetModalSubcategory ? 'Modifier la sous-catégorie' : 'Modifier la catégorie'}</DialogTitle>
                 </DialogHeader>
 
-                <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+                <div className="min-w-0 space-y-4 md:max-h-[70vh] md:overflow-y-auto md:pr-1">
                   <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/25 p-4">
-                    <div className="flex items-end gap-3">
+                    <div className="flex min-w-0 items-end gap-3">
                       <div className="shrink-0">
                         <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-slate-600">Icône</label>
                         <EmojiPicker compact value={budgetIconDraft} onChange={setBudgetIconDraft} />
@@ -1236,8 +1458,8 @@ export default function DepensesPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 lg:grid-cols-[1.15fr_.85fr]">
-                      <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.05] p-3">
+                    <div className="grid min-w-0 gap-3 lg:grid-cols-[1.15fr_.85fr]">
+                      <div className="min-w-0 rounded-xl border border-indigo-500/20 bg-indigo-500/[0.05] p-3">
                         <label className="text-[10px] font-medium uppercase tracking-wide text-indigo-300/70">Budget prévu</label>
                         <div className="mt-2 flex items-center gap-2">
                           <input
@@ -1424,18 +1646,18 @@ function Metric({ label, value, hint, onClick }: { label: string; value: string;
       <button
         type="button"
         onClick={onClick}
-        className="group rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-800/55 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        className="group expense-budget-metric min-w-0 rounded-lg bg-slate-950/30 px-2 py-2 text-left transition hover:bg-slate-800/55 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
         aria-label={hint ? `${label} — ${hint}` : label}
       >
         <div className="flex items-center gap-1.5">
           <p className="text-[10px] text-slate-600 group-hover:text-slate-500">{label}</p>
           {hint && <span className="text-[9px] font-medium text-indigo-400 opacity-70 group-hover:opacity-100">{hint}</span>}
         </div>
-        <p className="mt-1 text-sm font-semibold text-slate-200 group-hover:text-indigo-200">{value}</p>
+        <p className="mt-1 break-words text-xs font-semibold text-slate-200 group-hover:text-indigo-200 sm:text-sm">{value}</p>
       </button>
     )
   }
-  return <div className="px-2 py-1.5"><p className="text-[10px] text-slate-600">{label}</p><p className="mt-1 text-sm font-semibold text-slate-200">{value}</p></div>
+  return <div className="expense-budget-metric min-w-0 rounded-lg bg-slate-950/30 px-2 py-2"><p className="text-[10px] text-slate-400">{label}</p><p className="mt-1 break-words text-xs font-semibold text-slate-200 sm:text-sm">{value}</p></div>
 }
 
 function StatusBadge({ status }: { status: 'planned' | 'validated' }) {
