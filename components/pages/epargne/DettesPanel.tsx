@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Handshake, Plus, WalletCards } from 'lucide-react'
+import { ArrowLeft, CalendarClock, ChevronRight, Handshake, Plus, WalletCards } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -24,6 +24,14 @@ export default function DettesPanel() {
   const [tab, setTab] = useState<'je_dois' | 'jai_prete'>('je_dois')
   const [openAdd, setOpenAdd] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [mobileView, setMobileView] = useState<'stats' | 'upcoming' | 'history'>('stats')
+  const [historySort, setHistorySort] = useState<'recent' | 'oldest' | 'amount'>('recent')
+  useEffect(() => {
+    const v = sessionStorage.getItem('dettes_mobile_view')
+    if (v === 'stats' || v === 'upcoming' || v === 'history') setMobileView(v)
+    const sort = localStorage.getItem('dettes_history_sort')
+    if (sort === 'recent' || sort === 'oldest' || sort === 'amount') setHistorySort(sort)
+  }, [])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -68,6 +76,21 @@ export default function DettesPanel() {
     .sort((a,b) => b.value-a.value)
 
   const selected = active.find(dette => dette.id === selectedId) || active[0] || null
+  const mobileDetail = [...active, ...archived].find(dette => dette.id === selectedId) || null
+  const openDebtDetail = (id: string) => {
+    setSelectedId(id)
+    document.querySelector('main.overflow-y-auto')?.scrollTo({top: 0, behavior: 'instant'})
+  }
+  const upcoming = active.filter(dette => getReste(dette) > 0)
+    .sort((a,b) => String(a.date_echeance || '9999').localeCompare(String(b.date_echeance || '9999')))
+  const recorded = rembData.filter(r => [...active, ...archived].some(d => d.id === r.dette_id))
+    .sort((a,b) => historySort === 'amount' ? Number(b.montant)-Number(a.montant)
+      : historySort === 'oldest' ? String(a.date).localeCompare(String(b.date)) : String(b.date).localeCompare(String(a.date)))
+  const changeMobileView = (view: typeof mobileView) => {
+    setSelectedId(null)
+    setMobileView(view)
+    sessionStorage.setItem('dettes_mobile_view',view)
+  }
 
   const handleAdd = async (data: {
     titre: string
@@ -85,13 +108,13 @@ export default function DettesPanel() {
     if (!espace || isAdminViewing) return
     const created = await create.mutateAsync({ espace_id: espace.id, type: tab, ...data })
     setOpenAdd(false)
-    if (created?.id) setSelectedId(created.id)
+    if (created?.id) openDebtDetail(created.id)
   }
 
   const isDebt = tab === 'je_dois'
 
   return (
-    <section className="min-w-0 max-w-full space-y-3">
+    <section className="debts-mobile-page min-w-0 max-w-full space-y-3">
       <DetteForm open={openAdd} onOpenChange={setOpenAdd} tab={tab} onSubmit={handleAdd} />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -102,9 +125,32 @@ export default function DettesPanel() {
         {!isAdminViewing && <Button size="sm" className="ml-auto" onClick={() => setOpenAdd(true)}><Plus className="mr-1 h-4 w-4" />Ajouter</Button>}
       </div>
 
+      <nav aria-label="Vues des dettes" className="debts-mobile-tabs md:hidden">
+        {([['stats','Statistiques'],['upcoming','À venir'],['history','Historique']] as const).map(([view,label]) => (
+          <button type="button" key={view} aria-current={mobileView === view ? 'page' : undefined}
+            className={'debts-mobile-tab '+(mobileView === view ? 'debts-mobile-tab-active':'')}
+            onClick={() => changeMobileView(view)}>{label}
+            {view === 'upcoming' && upcoming.length > 0 && <span className="debts-mobile-count">{upcoming.length}</span>}
+          </button>
+        ))}
+      </nav>
+      {mobileDetail && <div className="space-y-3 md:hidden">
+        <button type="button" className="inline-flex min-h-10 items-center gap-2 text-sm text-indigo-300" onClick={() => setSelectedId(null)}>
+          <ArrowLeft className="h-4 w-4" />Retour à la liste
+        </button>
+        <DetteDetail key={mobileDetail.id} dette={mobileDetail}
+          rembList={rembData.filter(r => r.dette_id === mobileDetail.id)}
+          onUpdate={data => update.mutateAsync(data)}
+          onAddRemboursement={data => addRemboursement.mutateAsync(data).then(() => undefined)}
+          onRemoveRemboursement={id => removeRemboursement.mutateAsync(id)}
+          onUpdateRemboursement={data => updateRemboursement.mutateAsync(data)}
+          onArchive={async id => {await archive.mutateAsync(id);setSelectedId(null)}}
+          onUnarchive={async id => {await unarchive.mutateAsync(id);setSelectedId(null)}} />
+      </div>}
+      <section aria-label="Statistiques des dettes" className={mobileDetail ? 'hidden md:block' : mobileView === 'stats' ? 'block' : 'hidden md:block'}>
       <div className="grid min-w-0 max-w-full gap-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)]">
         <div className="min-w-0 space-y-3">
-          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
+          <div className="debts-summary-grid grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
             <Summary label={isDebt ? 'Total restant dû' : 'Total à récupérer'} value={formatEuro(totalRemaining)} tone={isDebt ? 'text-rose-300' : 'text-emerald-300'} />
             <Summary label={isDebt ? 'Remboursé ce mois' : 'Récupéré ce mois'} value={formatEuro(repaidThisMonth)} tone="text-emerald-300" />
             <Summary label="Mensualité estimée" value={formatEuro(estimatedMonthly)} tone="text-amber-300" help="selon les échéances renseignées" />
@@ -143,7 +189,7 @@ export default function DettesPanel() {
             {active.length === 0 ? (
               <div className="p-8 text-center"><Handshake className="mx-auto h-6 w-6 text-slate-700"/><p className="mt-2 text-sm text-slate-500">{isDebt ? 'Aucune dette enregistrée.' : 'Aucune créance enregistrée.'}</p></div>
             ) : (
-              <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+              <div className="hidden w-full max-w-full overflow-x-auto overscroll-x-contain md:block">
                 <table className="w-full min-w-[620px] text-xs">
                   <thead className="bg-slate-950/40 text-slate-500"><tr><th className="px-3 py-2 text-left">Nom</th><th className="px-3 py-2 text-left">Personne / organisme</th><th className="px-3 py-2 text-right">Restant</th><th className="px-3 py-2 text-right">Fin prévue</th><th className="px-3 py-2 text-right">Statut</th></tr></thead>
                   <tbody>
@@ -159,9 +205,25 @@ export default function DettesPanel() {
           </CardContent>
         </Card>
       </div>
+      <div className="space-y-2 md:hidden">
+        <h3 className="text-sm font-semibold text-slate-200">{isDebt ? 'Mes dettes' : 'Mes créances'}</h3>
+        {active.length === 0 ? <p className="debts-mobile-empty">Aucun engagement actif.</p> : active.map(dette => (
+          <button type="button" key={dette.id} onClick={() => openDebtDetail(dette.id)}
+            className="debts-mobile-entry flex w-full min-w-0 items-center gap-2 rounded-xl border p-3 text-left">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-100">{dette.titre}</p>
+              <p className="mt-1 truncate text-xs text-slate-400">{dette.personne}</p>
+              {dette.date_echeance && <p className="mt-1 text-xs text-slate-400">Fin : {formatDate(dette.date_echeance)}</p>}
+            </div>
+            <strong className="shrink-0 text-sm text-rose-300">{formatEuro(getReste(dette))}</strong>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
+          </button>
+        ))}
+      </div>
+      </section>
 
       {selected && (
-        <DetteDetail
+        <div className="hidden md:block"><DetteDetail
           dette={selected}
           rembList={rembData.filter(r => r.dette_id === selected.id)}
           onUpdate={data => update.mutateAsync(data)}
@@ -170,11 +232,11 @@ export default function DettesPanel() {
           onUpdateRemboursement={data => updateRemboursement.mutateAsync(data)}
           onArchive={id => archive.mutateAsync(id)}
           onUnarchive={id => unarchive.mutateAsync(id)}
-        />
+        /></div>
       )}
 
       {archived.length > 0 && (
-        <details className="rounded-xl border border-slate-800/60 bg-slate-950/20 p-3">
+        <details className="hidden rounded-xl border border-slate-800/60 bg-slate-950/20 p-3 md:block">
           <summary className="cursor-pointer text-sm text-slate-500">Archives ({archived.length})</summary>
           <div className="mt-3 space-y-2">
             {archived.map(dette => <DetteDetail key={dette.id} dette={dette} rembList={rembData.filter(r => r.dette_id === dette.id)} onUpdate={data => update.mutateAsync(data)} onAddRemboursement={data => addRemboursement.mutateAsync(data).then(() => undefined)} onRemoveRemboursement={id => removeRemboursement.mutateAsync(id)} onUpdateRemboursement={data => updateRemboursement.mutateAsync(data)} onArchive={id => archive.mutateAsync(id)} onUnarchive={id => unarchive.mutateAsync(id)} />)}
