@@ -930,3 +930,86 @@ body {
     max-width: 152px;
   }
 }
+
+/* Épargne: compact overview and distinct envelope detail sections. */
+@media (max-width: 767px) {
+  .savings-mobile-page .savings-summary-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+  }
+  .savings-mobile-page .savings-metric {
+    min-width: 0;
+    min-height: 0;
+    padding: .75rem;
+    border-color: rgba(148, 163, 184, .22);
+  }
+  .savings-mobile-page .savings-metric-total {
+    grid-column: 1 / -1;
+    min-height: 5rem;
+  }
+  .savings-mobile-page .savings-metric-in,
+  .savings-mobile-page .savings-metric-out {
+    min-height: 5.25rem;
+  }
+  .savings-mobile-page .savings-metric p {
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(.875rem, 4vw, 1.15rem);
+    overflow-wrap: anywhere;
+  }
+  .savings-mobile-page .savings-metric-total p {
+    font-size: clamp(1.25rem, 5.6vw, 1.6rem);
+  }
+  .savings-envelope-detail > .nf-card {
+    border-color: rgba(148, 163, 184, .26);
+    background: #14263b;
+    min-width: 0;
+  }
+  .savings-envelope-detail .savings-recurring-row {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .5rem .65rem;
+    padding: .75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, .18);
+  }
+  .savings-envelope-detail .savings-recurring-row > .savings-recurring-info {
+    grid-column: 2;
+    min-width: 0;
+    width: 100%;
+  }
+  .savings-envelope-detail .savings-recurring-info p {
+    overflow-wrap: anywhere;
+    white-space: normal;
+    font-size: .75rem;
+    line-height: 1.35;
+  }
+  .savings-envelope-detail .savings-recurring-info p:first-child {
+    font-size: .875rem;
+  }
+  .savings-envelope-detail .savings-recurring-status {
+    grid-column: 3;
+    align-self: start;
+  }
+  .savings-envelope-detail .savings-recurring-edit,
+  .savings-envelope-detail .savings-recurring-toggle {
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .savings-envelope-detail .savings-recurring-edit {
+    grid-column: 2;
+  }
+  .savings-envelope-detail .savings-recurring-toggle {
+    grid-column: 3;
+  }
+  .savings-envelope-detail .savings-envelope-chart,
+  .savings-envelope-detail .savings-envelope-current,
+  .savings-envelope-detail .savings-envelope-history {
+    overflow: hidden;
+  }
+  .savings-envelope-detail .savings-envelope-chart .recharts-wrapper {
+    max-width: 100%;
+  }
+}
