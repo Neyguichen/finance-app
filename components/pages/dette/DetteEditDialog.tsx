@@ -101,7 +101,7 @@ export default function DetteEditDialog({ open, onOpenChange, dette, minimumMont
       if (!nextOpen) setError(null)
       onOpenChange(nextOpen)
     }}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="debt-form-dialog max-w-xl">
         <DialogHeader>
           <DialogTitle>{isCredit ? 'Modifier le crédit bancaire' : isDebt ? 'Modifier la dette' : 'Modifier la créance'}</DialogTitle>
           <DialogDescription>
@@ -109,7 +109,7 @@ export default function DetteEditDialog({ open, onOpenChange, dette, minimumMont
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="debt-form-fields space-y-4">
           <FormSection title="Informations" icon={isCredit ? <Building2 className="h-4 w-4" /> : <FileText className="h-4 w-4" />}>
             <FormField label={isCredit ? 'Nom du crédit' : 'Titre'}>
               <Input value={titre} onChange={event => setTitre(event.target.value)} />
@@ -130,7 +130,7 @@ export default function DetteEditDialog({ open, onOpenChange, dette, minimumMont
 
           {isCredit && (
             <FormSection title="Conditions du crédit" icon={<Percent className="h-4 w-4" />}>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-3">
                 <FormField label="Taux nominal annuel">
                   <Input type="number" min="0" step="0.001" value={taux} onChange={event => setTaux(event.target.value)} />
                 </FormField>
@@ -164,7 +164,7 @@ export default function DetteEditDialog({ open, onOpenChange, dette, minimumMont
           {error && <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-300">{error}</div>}
         </div>
 
-        <FormActions>
+        <FormActions className="debt-form-actions">
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Annuler</Button>
           <Button onClick={handleSave} disabled={!canSave || saving}>{saving ? 'Enregistrement…' : 'Enregistrer'}</Button>
         </FormActions>
