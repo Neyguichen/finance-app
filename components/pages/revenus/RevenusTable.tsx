@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CalendarDays, CheckCircle2, Plus, Repeat2, RotateCcw, Trash2, TrendingUp, WalletCards } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDate, formatEuro } from '@/lib/utils'
@@ -65,6 +65,11 @@ export default function RevenusTable({
   onDelete,
 }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
+  const [mobileSort, setMobileSort] = useState<'recent' | 'oldest' | 'amount' | 'name'>('recent')
+  useEffect(() => {
+    const saved = window.localStorage.getItem('revenus_history_sort')
+    if (saved === 'recent' || saved === 'oldest' || saved === 'amount' || saved === 'name') setMobileSort(saved)
+  }, [])
   const validatedRevenus = revenus.filter(item => item.recu)
 
   const counts = {
@@ -79,8 +84,39 @@ export default function RevenusTable({
 
   const filters: Array<[Filter,string]> = [['all','Tous'],['actif','Actifs'],['passif','Passifs'],['reprise','Reprises d’épargne']]
 
+  const mobileRows = [
+    ...filteredRevenus.map(rev => ({kind:'income' as const, rev})),
+    ...filteredReprises.map(rep => ({kind:'reprise' as const, rep})),
+  ].sort((a,b) => {
+    const dateOf = (item: typeof a) => item.kind === 'income' ? (item.rev.date_reelle || item.rev.date_prevue || '') : (item.rep.date || '')
+    const amountOf = (item: typeof a) => item.kind === 'income' ? Number(item.rev.montant_reel ?? item.rev.montant) : Number(item.rep.montant)
+    const nameOf = (item: typeof a) => item.kind === 'income' ? item.rev.nom : (item.rep.note || getEnvNom(item.rep.enveloppe_source_id) || 'Reprise')
+    if (mobileSort === 'name') return nameOf(a).localeCompare(nameOf(b), 'fr', {sensitivity:'base'})
+    if (mobileSort === 'amount') return amountOf(b) - amountOf(a)
+    return mobileSort === 'oldest' ? dateOf(a).localeCompare(dateOf(b)) : dateOf(b).localeCompare(dateOf(a))
+  })
+
   return (
     <section className="space-y-3">
+      <div className="flex items-center justify-between gap-2 md:hidden">
+        <h2 className="text-sm font-semibold text-slate-100">Revenus encaissés</h2>
+        <label className="flex items-center gap-2 text-xs text-slate-300">
+          Trier
+          <select aria-label="Trier les revenus reçus"
+            className="income-mobile-sort rounded-lg border border-slate-700 bg-slate-900 px-2 py-2 text-xs"
+            value={mobileSort}
+            onChange={event => {
+              const value = event.target.value as typeof mobileSort
+              setMobileSort(value)
+              window.localStorage.setItem('revenus_history_sort', value)
+            }}>
+            <option value="recent">Plus récents</option>
+            <option value="oldest">Plus anciens</option>
+            <option value="amount">Montant</option>
+            <option value="name">A - Z</option>
+          </select>
+        </label>
+      </div>
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
         <div className="flex flex-wrap gap-2">
           {filters.map(([value,label]) => (
@@ -92,7 +128,7 @@ export default function RevenusTable({
         </div>
 
         {!readOnly && (
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex">
             <Button variant="outline" onClick={onManageRecurring} className="h-10 gap-2">
               <Repeat2 className="h-4 w-4" />Revenus récurrents
             </Button>
@@ -157,18 +193,18 @@ export default function RevenusTable({
         </div>
       </div>
 
-      <div className="space-y-2 md:hidden">
-        {[...filteredRevenus.map(rev => ({kind:'income' as const, rev})), ...filteredReprises.map(rep => ({kind:'reprise' as const, rep}))].map(item => {
+      <div className="income-history-list space-y-2 md:hidden">
+        {mobileRows.map(item => {
           if (item.kind === 'reprise') {
             const rep = item.rep
             const label = rep.note || getEnvNom(rep.enveloppe_source_id) || 'Reprise d’épargne'
-            return <div key={'mobile-rep-'+rep.id} className="rounded-xl border border-slate-800 bg-slate-900/55 p-3">
+            return <div key={'mobile-rep-'+rep.id} className="income-history-card rounded-xl border border-slate-800 bg-slate-900/55 p-3">
               <div className="flex items-center gap-3"><RotateCcw className="h-5 w-5 text-cyan-300" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{label}</p><p className="mt-1 text-[10px] text-cyan-300">Reprise · Juste cette fois</p></div><p className="text-sm font-semibold text-cyan-300">{formatEuro(Number(rep.montant))}</p></div>
             </div>
           }
           const rev = item.rev
-          return <div key={'mobile-rev-'+rev.id} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/55 p-3 transition active:bg-slate-800/50">
-            <div className="flex items-start gap-3">
+          return <div key={'mobile-rev-'+rev.id} onClick={() => !readOnly && onEdit({ id:rev.id, nom:rev.nom, montant:Number(rev.montant), montantReel:rev.montant_reel == null ? null : Number(rev.montant_reel), type:rev.type, recurrentId:rev.recurrent_id, datePrevue:rev.date_prevue, recu:rev.recu, dateReelle:rev.date_reelle })} className="income-history-card cursor-pointer rounded-xl border border-slate-800 bg-slate-900/55 p-3 transition active:bg-slate-800/50">
+            <div className="income-history-main flex items-start gap-3">
               <span className={'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + (rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? <TrendingUp className="h-4 w-4" /> : <WalletCards className="h-4 w-4" />}</span>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{rev.nom}</p><p className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-slate-500"><span className={'rounded-full px-1.5 py-0.5 font-medium '+(rev.type === 'actif' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300')}>{rev.type === 'actif' ? 'Actif' : 'Passif'}</span><span>{recurrenceLabel(rev.recurrent_id, recurrents)}</span></p>{rev.date_prevue && <p className="mt-1 flex items-center gap-1 text-[10px] text-slate-600"><CalendarDays className="h-3 w-3" />Prévu : {formatDate(rev.date_prevue)}</p>}{rev.date_reelle && <p className="mt-0.5 text-[10px] text-slate-500">Reçu : {formatDate(rev.date_reelle)}</p>}</div>
               <div className="text-right"><p className="text-[9px] uppercase text-slate-500">{rev.recu ? 'Reçu' : 'Prévu'}</p><p className="text-sm font-semibold">{rev.recu ? formatEuro(Number(rev.montant_reel ?? rev.montant)) : formatEuro(Number(rev.montant))}</p><p className={'mt-1 text-[10px] ' + (rev.recu ? 'text-emerald-300' : 'text-amber-300')}>{rev.recu ? `Reçu · prévu ${formatEuro(Number(rev.montant))}` : 'En attente'}</p></div>
