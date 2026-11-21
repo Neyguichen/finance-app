@@ -235,7 +235,6 @@ export default function EnveloppeDetailPanel({
               </LineChart>
             </ResponsiveContainer>
           ) : <div className="flex h-32 items-center justify-center text-xs text-slate-600">Pas encore assez d’historique.</div>}
-        </div>
 
       </CardContent>
     </Card>
