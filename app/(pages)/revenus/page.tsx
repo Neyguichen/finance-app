@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Repeat2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import MonthSelector from '@/components/layout/MonthSelector'
 import { useRevenus, useRevenusRecurrents } from '@/lib/hooks/useRevenus'
@@ -60,6 +61,12 @@ export default function RevenusPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
+  const [mobileView, setMobileView] = useState<'stats' | 'upcoming' | 'history'>('stats')
+
+  useEffect(() => {
+    const saved = window.sessionStorage.getItem('revenus_mobile_view')
+    if (saved === 'stats' || saved === 'upcoming' || saved === 'history') setMobileView(saved)
+  }, [])
 
   useEffect(() => {
     if (isAdminViewing || !moisId) return
@@ -188,11 +195,39 @@ export default function RevenusPage() {
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
-      <div className="mx-auto w-full max-w-7xl space-y-4 p-3 pb-28 sm:p-4">
+      <div className="income-mobile-page mx-auto w-full max-w-7xl space-y-3 p-3 pb-28 sm:space-y-4 sm:p-4">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="min-w-0 flex-1 text-xl font-bold">Revenus</h1>
         </div>
 
+        <div className="mb-2 md:hidden">
+          {!isAdminViewing && <button type="button" className="income-mobile-shortcut" onClick={() => router.push('/revenus/recurrents')}>
+            <Repeat2 className="h-4 w-4" /> Gérer les revenus récurrents
+          </button>}
+        </div>
+
+        <nav aria-label="Vues des revenus" className="income-mobile-tabs md:hidden">
+          {([
+            ['stats', 'Statistiques'],
+            ['upcoming', 'À venir'],
+            ['history', 'Historique'],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-current={mobileView === key ? 'page' : undefined}
+              className={'income-mobile-tab ' + (mobileView === key ? 'income-mobile-tab-active' : '')}
+              onClick={() => { setMobileView(key); window.sessionStorage.setItem('revenus_mobile_view', key) }}
+            >
+              {label}
+              {key === 'upcoming' && effectiveRevenus.filter((item: any) => !item.recu && !item.ignore_at).length > 0 && (
+                <span className="income-mobile-count">{effectiveRevenus.filter((item: any) => !item.recu && !item.ignore_at).length}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <section aria-label="Statistiques des revenus" className={mobileView === 'stats' ? 'space-y-3' : 'hidden md:block md:space-y-3'}>
         <RevenusResume
           plannedIncome={plannedIncome}
           receivedIncome={receivedIncome}
@@ -206,7 +241,10 @@ export default function RevenusPage() {
           <RepartitionRevenus revenus={effectiveRevenus as any[]} />
           <EvolutionRevenus monthly={history.data?.monthly || []} loading={history.isLoading} />
         </div>
+        </section>
 
+        <section aria-label="Revenus à venir" className={mobileView === 'upcoming' ? 'block' : 'hidden md:block'}>
+          {effectiveRevenus.every((item: any) => item.recu || item.ignore_at) && <div className="income-mobile-empty md:hidden">Aucun revenu en attente de validation pour ce mois.</div>}
         <PlannedIncomeValidationPanel
           incomes={effectiveRevenus as any[]}
           readOnly={isAdminViewing}
@@ -233,7 +271,9 @@ export default function RevenusPage() {
           onIgnore={async id => { await ignoreOccurrence.mutateAsync(id) }}
           onRestore={async id => { await restoreOccurrence.mutateAsync(id) }}
         />
+        </section>
 
+        <section aria-label="Historique des revenus" className={mobileView === 'history' ? 'block' : 'hidden md:block'}>
         <RevenusTable
           revenus={effectiveRevenus as any[]}
           reprises={reprises as any[]}
@@ -247,6 +287,7 @@ export default function RevenusPage() {
           onEdit={setEditTarget}
           onDelete={setDeleteTarget}
         />
+        </section>
 
         <RevenuForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleCreate} doubleDate={espace?.double_date ?? false} />
         <RevenuEditDialog editTarget={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} doubleDate={espace?.double_date ?? false} />
