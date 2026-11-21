@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   CalendarClock,
   Archive,
+  MoreHorizontal,
   CalendarDays,
   Check,
   ChartPie,
@@ -58,6 +59,7 @@ export default function DepensesPage() {
   const [showArchivedFixed, setShowArchivedFixed] = useState(false)
   const [fixedHelp, setFixedHelp] = useState<string | null>(null)
   const [showArchivedCategories, setShowArchivedCategories] = useState(false)
+  const [categoryActionMenu, setCategoryActionMenu] = useState<string | null>(null)
   const [selectedFixedRecurringId, setSelectedFixedRecurringId] = useState<string | null>(null)
   const [occurrenceMonth, setOccurrenceMonth] = useState(month.slice(0, 7))
   const [suspensionFrom, setSuspensionFrom] = useState('')
@@ -758,12 +760,32 @@ export default function DepensesPage() {
           <Card className="h-full border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel</CardTitle></CardHeader>
             <CardContent className="space-y-3 p-3 pt-0">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1">
+              <div className="hidden gap-2 md:grid md:grid-cols-3">
                 <SummaryCard icon={ChartPie} label="Prévu ce mois" value={plannedTotal} tone="blue" />
                 <SummaryCard icon={WalletCards} label="Réel" value={actualTotal} detail={plannedTotal > 0 ? actualPercent + ' % du prévu' : 'Aucun prévu'} tone="emerald" />
                 <SummaryCard icon={variance <= 0 ? TrendingDown : TrendingUp} label="Écart" value={variance} detail={variance <= 0 ? formatEuro(Math.abs(variance)) + ' restant' : 'Dépassement'} tone={variance <= 0 ? 'amber' : 'rose'} signed />
               </div>
-
+              <div className="grid grid-cols-2 gap-2 md:hidden">
+                <div className="rounded-xl border border-blue-400/20 bg-blue-500/[0.07] p-3">
+                  <p className="text-xs font-medium text-slate-300">Prévu</p>
+                  <p className="mt-1 text-lg font-bold text-blue-200 tabular-nums">{formatEuro(plannedTotal)}</p>
+                </div>
+                <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.07] p-3">
+                  <p className="text-xs font-medium text-slate-300">Réel</p>
+                  <p className="mt-1 text-lg font-bold text-emerald-300 tabular-nums">{formatEuro(actualTotal)}</p>
+                </div>
+                <div className="col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                  <div>
+                    <p className="text-xs text-slate-400">{variance > 0 ? 'Dépassement' : 'Budget restant'}</p>
+                    <p className={'text-base font-bold tabular-nums '+(variance > 0 ? 'text-rose-300' : 'text-emerald-300')}>{formatEuro(Math.abs(variance))}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Du prévu</p>
+                    <p className={'text-xl font-bold tabular-nums '+(actualPercent > 100 ? 'text-rose-300' : 'text-indigo-200')}>{plannedTotal > 0 ? actualPercent + ' %' : '—'}</p>
+                  </div>
+                  </div><span className="text-[10px] text-slate-400">{Math.round(actualVariable / plannedVariable * 100)} %</span>
+                </div>}
+              </div>
             </CardContent>
           </Card>
 
@@ -784,16 +806,18 @@ export default function DepensesPage() {
                     <p className="text-[8px] uppercase tracking-wide text-slate-600">Réel</p>
                     <p className="text-xs font-semibold text-slate-100">{formatEuro(actualFixed)}</p>
                   </div>
-                  <span className="w-9 text-right text-[10px] font-medium text-slate-500">
-                    {plannedFixed > 0 ? Math.round((actualFixed / plannedFixed) * 100) + ' %' : '—'}
+                  <span className={'max-w-[85px] text-right text-[10px] font-semibold ' + (actualFixed > plannedFixed ? 'text-rose-300' : 'text-emerald-300')}>
+                    {plannedFixed > 0 ? (actualFixed > plannedFixed ? '+' + formatEuro(actualFixed - plannedFixed) : formatEuro(plannedFixed - actualFixed) + ' reste') : 'Sans prévu'}
                   </span>
                 </div>
-                <div className={plannedFixed > 0 ? "mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800" : "hidden"}>
+                {plannedFixed > 0 && <div className="mt-2 flex items-center gap-2">
+                  <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-800">
                   <div
                     className={actualFixed > plannedFixed && plannedFixed > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-purple-400'}
                     style={{ width: Math.min(100, plannedFixed > 0 ? (actualFixed / plannedFixed) * 100 : (actualFixed > 0 ? 100 : 0)) + '%' }}
                   />
-                </div>
+                  </div><span className="text-[10px] text-slate-400">{Math.round(actualFixed / plannedFixed * 100)} %</span>
+                </div>}
               </div>
 
               <div className="rounded-xl border border-slate-800 bg-slate-950/25 px-3 py-2.5">
@@ -810,11 +834,12 @@ export default function DepensesPage() {
                     <p className="text-[8px] uppercase tracking-wide text-slate-600">Réel</p>
                     <p className="text-xs font-semibold text-slate-100">{formatEuro(actualVariable)}</p>
                   </div>
-                  <span className="w-9 text-right text-[10px] font-medium text-slate-500">
-                    {plannedVariable > 0 ? Math.round((actualVariable / plannedVariable) * 100) + ' %' : '—'}
+                  <span className={'max-w-[85px] text-right text-[10px] font-semibold ' + (actualVariable > plannedVariable ? 'text-rose-300' : 'text-emerald-300')}>
+                    {plannedVariable > 0 ? (actualVariable > plannedVariable ? '+' + formatEuro(actualVariable - plannedVariable) : formatEuro(plannedVariable - actualVariable) + ' reste') : 'Sans prévu'}
                   </span>
                 </div>
-                <div className={plannedVariable > 0 ? "mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800" : "hidden"}>
+                {plannedVariable > 0 && <div className="mt-2 flex items-center gap-2">
+                  <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-800">
                   <div
                     className={actualVariable > plannedVariable && plannedVariable > 0 ? 'h-full rounded-full bg-rose-400' : 'h-full rounded-full bg-orange-400'}
                     style={{ width: Math.min(100, plannedVariable > 0 ? (actualVariable / plannedVariable) * 100 : (actualVariable > 0 ? 100 : 0)) + '%' }}
@@ -1022,7 +1047,7 @@ export default function DepensesPage() {
             </CardHeader>
             <CardContent className="min-w-0 p-3 pt-0">
               {browsedCategory && (
-                <div className="mb-3 grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-3">
+                <div className="mb-3 grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
                   <Metric
                     label="Prévu"
                     value={formatEuro(browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))}
@@ -1512,18 +1537,18 @@ function Metric({ label, value, hint, onClick }: { label: string; value: string;
       <button
         type="button"
         onClick={onClick}
-        className="group rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-800/55 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        className="group min-w-0 rounded-lg bg-slate-950/30 px-2 py-2 text-left transition hover:bg-slate-800/55 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
         aria-label={hint ? `${label} — ${hint}` : label}
       >
         <div className="flex items-center gap-1.5">
           <p className="text-[10px] text-slate-600 group-hover:text-slate-500">{label}</p>
           {hint && <span className="text-[9px] font-medium text-indigo-400 opacity-70 group-hover:opacity-100">{hint}</span>}
         </div>
-        <p className="mt-1 text-sm font-semibold text-slate-200 group-hover:text-indigo-200">{value}</p>
+        <p className="mt-1 break-words text-xs font-semibold text-slate-200 group-hover:text-indigo-200 sm:text-sm">{value}</p>
       </button>
     )
   }
-  return <div className="px-2 py-1.5"><p className="text-[10px] text-slate-600">{label}</p><p className="mt-1 text-sm font-semibold text-slate-200">{value}</p></div>
+  return <div className="min-w-0 rounded-lg bg-slate-950/30 px-2 py-2"><p className="text-[10px] text-slate-400">{label}</p><p className="mt-1 break-words text-xs font-semibold text-slate-200 sm:text-sm">{value}</p></div>
 }
 
 function StatusBadge({ status }: { status: 'planned' | 'validated' }) {
