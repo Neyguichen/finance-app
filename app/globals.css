@@ -479,3 +479,20 @@ body {
     font-variant-numeric: tabular-nums;
   }
 }
+
+@media (max-width: 767px) {
+  .expense-category-actions > button {
+    min-width: 0;
+    width: 100%;
+    padding-left: .25rem;
+    padding-right: .25rem;
+    font-size: .75rem;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .expense-upcoming-list > .expense-upcoming-item {
+    border: 1px solid rgba(148, 163, 184, .28);
+    border-radius: .75rem;
+    background: #172a40;
+  }
+}
