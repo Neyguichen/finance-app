@@ -15,7 +15,6 @@ export default function RepartitionRevenus({ revenus }: Props) {
   const rows = useMemo(() => revenus.filter(item => item.recu && Number(item.montant_reel ?? item.montant) > 0).map(item => ({ id:item.id, name:item.nom, value:Number(item.montant_reel ?? item.montant) })).sort((a,b) => b.value-a.value), [revenus])
   const total = rows.reduce((sum,row) => sum + row.value, 0)
   const [selected, setSelected] = useState<string | null>(null)
-  const selectedRow = rows.find(row => row.id === selected)
 
   return <Card className="income-distribution nf-card-hover h-full">
     <CardHeader className="pb-2"><CardTitle className="text-base text-slate-100">Répartition des revenus reçus</CardTitle></CardHeader>
@@ -37,7 +36,6 @@ export default function RepartitionRevenus({ revenus }: Props) {
               <span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor:palette[index%palette.length]}}/><span className="min-w-0 flex-1 truncate text-xs">{row.name}</span><span className="text-[11px] text-slate-400">{formatEuro(row.value)} <span className="text-slate-600">({pct}%)</span></span>
             </button>
           })}
-          {selectedRow && <div aria-live="polite" className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5"><p className="min-w-0 text-xs font-medium text-slate-200">{selectedRow.name}</p><p className="text-sm font-semibold text-emerald-300">{formatEuro(selectedRow.value)} <span className="text-xs font-normal text-slate-400">({total > 0 ? Math.round(selectedRow.value / total * 100) : 0} %)</span></p></div>}
         </div>
       </div>}
     </CardContent>
