@@ -885,7 +885,7 @@ export default function DepensesPage() {
                 const percent=planned>0?Math.round(actual/planned*100):(actual>0?100:0)
                 const children=subCats(cat.id)
                 return (
-                  <div key={cat.id} className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/25 max-md:border-slate-600/40 max-md:bg-slate-800/50">
+                  <div key={cat.id} className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/25 nf-mobile-record max-md:p-0">
                     <button type="button" onClick={() => selectBudgetBrowse(cat.id)} className={'w-full px-3 py-2.5 text-left transition hover:bg-slate-800/35 '+(browseCategoryId===cat.id&&!browseSubcategoryId?'bg-slate-800/45':'')}>
                       <div className="flex items-center gap-2">
                         <span className="text-base">{cat.icone||'📂'}</span>
@@ -952,7 +952,7 @@ export default function DepensesPage() {
               ) : (
                 <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70 max-md:divide-y-0 max-md:space-y-3 max-md:border-0 max-md:bg-transparent">
                   {browsedEntries.map((entry:any)=>(
-                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 max-md:rounded-xl max-md:border max-md:border-slate-600/40 max-md:bg-slate-800/60 sm:flex-nowrap sm:gap-3">
+                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 nf-mobile-record sm:flex-nowrap sm:gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
                       <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] max-md:text-xs text-slate-400">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
                       <div className="ml-auto min-w-0 text-right">
