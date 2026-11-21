@@ -47,7 +47,7 @@ export default function PlannedIncomeValidationPanel({ incomes, readOnly=false, 
   const total=pending.reduce((sum,item)=>sum+Number(item.montant),0)
 
   return (
-    <section className="rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.025]">
+    <section className="nf-mobile-pending-section rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.025]">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-800/70 px-4 py-3">
         <TrendingUp className="h-4 w-4 text-emerald-300" />
         <div className="min-w-0 flex-1">
@@ -56,17 +56,17 @@ export default function PlannedIncomeValidationPanel({ incomes, readOnly=false, 
         </div>
         {pending.length > 0 && <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300">{formatEuro(total)} en attente</span>}
       </div>
-      <div className="divide-y divide-slate-800/60 max-md:divide-y-0 max-md:space-y-3">
+      <div className="divide-y divide-slate-800/60 max-md:divide-y-0 nf-mobile-pending-list">
         {pending.map(item => {
           const date=dates[item.id] || defaultDate(item)
           const amountText=amounts[item.id] ?? String(item.montant)
           const amount=Number(amountText.replace(',', '.'))
           const validAmount=amountText.trim()!=='' && Number.isFinite(amount) && amount>=0
           return (
-            <div key={item.id} className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_130px_150px_auto] md:items-end">
+            <div key={item.id} className="nf-mobile-pending-item grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_130px_150px_auto] md:items-end">
               <div>
                 <p className="text-sm font-semibold text-slate-200">{item.nom}</p>
-                <p className="mt-0.5 text-[10px] text-slate-500">{item.date_prevue ? 'Prévu le '+new Date(item.date_prevue+'T12:00:00').toLocaleDateString('fr-FR') : 'Date prévue non renseignée'}</p>
+                <p className="mt-0.5 text-[10px] max-md:text-xs max-md:text-slate-300">{item.date_prevue ? 'Prévu le '+new Date(item.date_prevue+'T12:00:00').toLocaleDateString('fr-FR') : 'Date prévue non renseignée'}</p>
               </div>
               <label className="text-[10px] text-slate-500">Montant
                 <input type="text" inputMode="decimal" aria-label={`Montant réel de ${item.nom}`} value={amountText} disabled={readOnly||busy} onChange={e=>setAmounts(prev=>({...prev,[item.id]:e.target.value}))} className="mt-1 h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs font-semibold text-slate-200 outline-none focus:border-emerald-500 disabled:opacity-60" />
