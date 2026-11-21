@@ -128,6 +128,10 @@ export default function RevenusRecurrentsPage() {
   const updateTemplate = async (updates:any) => {
     if (!selected || isAdminViewing) return
     await updateRecurrent.mutateAsync({ id:selected.id, ...updates })
+    if (updates.actif !== undefined) {
+      // After archiving/restoring, return to the current list on mobile.
+      setSelectedId(null)
+    }
 
     const propagatedUpdates: Record<string, unknown> = {}
     if (updates.nom !== undefined) propagatedUpdates.nom = updates.nom
