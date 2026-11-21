@@ -50,6 +50,7 @@ import PlannedExpenseValidationPanel from '@/components/pages/depenses/PlannedEx
 
 type ActualFilter = 'all' | 'planned' | 'validated'
 type CategorySort = 'az' | 'planned' | 'actual' | 'remaining'
+type MobileExpensesView = 'stats' | 'upcoming' | 'history'
 
 export default function DepensesPage() {
   const { moisId, month, setMonth, espace, isAdminViewing } = useApp()
@@ -62,6 +63,7 @@ export default function DepensesPage() {
   const [suspensionFrom, setSuspensionFrom] = useState('')
   const [suspensionUntil, setSuspensionUntil] = useState('')
   const [actualFilter, setActualFilter] = useState<ActualFilter>('all')
+  const [mobileView, setMobileView] = useState<MobileExpensesView>('stats')
   const [actualSort, setActualSort] = useState<'payment' | 'validation'>('payment')
   const [browseCategoryId, setBrowseCategoryId] = useState<string | null>(null)
   const [browseSubcategoryId, setBrowseSubcategoryId] = useState<string | null>(null)
@@ -104,6 +106,8 @@ export default function DepensesPage() {
       setActualFilter(requestedActualFilter)
     }
     if (savedSort === 'payment' || savedSort === 'validation') setActualSort(savedSort)
+    const savedMobileView = window.sessionStorage.getItem('depenses_mobile_view')
+    if (savedMobileView === 'stats' || savedMobileView === 'upcoming' || savedMobileView === 'history') setMobileView(savedMobileView)
     if (savedCategorySort === 'az' || savedCategorySort === 'planned' || savedCategorySort === 'actual' || savedCategorySort === 'remaining') setCategorySort(savedCategorySort)
   }, [])
 
@@ -516,8 +520,12 @@ export default function DepensesPage() {
 
   const selectBudgetBrowse = (categoryId: string, subcategoryId: string | null = null) => {
     setBrowseCategoryId(categoryId)
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setMobileView('history')
+      window.sessionStorage.setItem('depenses_mobile_view', 'history')
+    }
     setBrowseSubcategoryId(subcategoryId)
-    if (typeof window !== 'undefined' && window.innerWidth < 1280) {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth < 1280) {
       window.setTimeout(() => document.getElementById('expense-right-panel')?.scrollIntoView({ behavior:'smooth', block:'start' }), 0)
     }
   }
@@ -707,11 +715,48 @@ export default function DepensesPage() {
     <div>
       <MonthSelector currentMonth={month} onChange={setMonth} />
 
-      <div className="mx-auto w-full max-w-7xl space-y-3 p-3 pb-28 sm:p-4">
+      <div className="expense-mobile-page mx-auto w-full max-w-7xl space-y-3 p-3 pb-28 sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <h1 className="text-2xl font-bold tracking-tight text-slate-100">Dépenses</h1>
         </div>
 
+        <nav aria-label="Vues des dépenses" className="expense-mobile-tabs md:hidden">
+          {([
+            ['stats', 'Statistiques'],
+            ['upcoming', 'À venir'],
+            ['history', 'Historique'],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-current={mobileView === key ? 'page' : undefined}
+              onClick={() => {
+                setMobileView(key)
+                window.sessionStorage.setItem('depenses_mobile_view', key)
+              }}
+              className={'expense-mobile-tab ' + (mobileView === key ? 'expense-mobile-tab-active' : '')}
+            >
+              {label}
+              {key === 'upcoming' && pendingActualEntries.length > 0 && (
+                <span className="expense-mobile-tab-count">{pendingActualEntries.length}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <div className="expense-mobile-shortcuts md:hidden">
+          <button type="button" onClick={() => setTxOpen(true)} disabled={isAdminViewing || !moisId}>
+            <Plus className="h-4 w-4" /> Dépense
+          </button>
+          <button type="button" onClick={() => setFixedOpen(true)} disabled={isAdminViewing || !moisId}>
+            <CalendarClock className="h-4 w-4" /> Charge fixe
+          </button>
+          <button type="button" onClick={() => setManagementView('budgets')} disabled={isAdminViewing}>
+            <Settings2 className="h-4 w-4" /> Budgets
+          </button>
+        </div>
+
+        <section aria-label="Statistiques des dépenses" className={mobileView === 'stats' ? 'block' : 'hidden md:block'}>
         <div className="grid items-stretch gap-3 xl:grid-cols-2">
           <Card className="h-full border-slate-800 bg-slate-900">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-200">Prévu vs réel</CardTitle></CardHeader>
@@ -790,6 +835,41 @@ export default function DepensesPage() {
           </Card>
         </div>
 
+        <div className="md:hidden">
+          <div className="mb-2 mt-4 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-100">Budgets par catégorie</h2>
+            <span className="text-xs text-slate-400">Toucher pour voir les opérations</span>
+          </div>
+          <div className="space-y-2">
+            {sortedParentCategories.map((cat: any) => {
+              const planned = budget(cat.id)
+              const actual = spent(cat.id)
+              const remain = planned - actual
+              const percent = planned > 0 ? Math.min(100, Math.round(actual / planned * 100)) : (actual > 0 ? 100 : 0)
+              return (
+                <button key={cat.id} type="button" onClick={() => selectBudgetBrowse(cat.id)}
+                  className="expense-mobile-category w-full rounded-xl px-3 py-3 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base" aria-hidden="true">{cat.icone || '📂'}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-100">{cat.nom}</span>
+                    <span className={'text-xs font-semibold ' + (remain < 0 ? 'text-rose-300' : 'text-emerald-300')}>{formatEuro(remain)} restant</span>
+                    <ChevronDown className="h-4 w-4 -rotate-90 text-slate-400" />
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-700">
+                      <div className={'h-full rounded-full ' + (remain < 0 ? 'bg-rose-400' : 'bg-indigo-400')} style={{width: percent + '%'}} />
+                    </div>
+                    <span className="text-xs text-slate-300">{formatEuro(actual)} / {formatEuro(planned)}</span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        </section>
+
+        <section aria-label="Dépenses à venir" className={mobileView === 'upcoming' ? 'block' : 'hidden md:block'}>
+          <div className="mb-3 hidden md:mb-0" />
         <PlannedExpenseValidationPanel
           entries={[...pendingActualEntries, ...ignoredActualEntries].map((entry:any) => ({
             id: entry.id,
@@ -847,9 +927,23 @@ export default function DepensesPage() {
             else await restoreTransaction.mutateAsync(entry.sourceData.id)
           }}
         />
+        <div className="mt-3 md:hidden">
+          <p className="text-xs text-slate-400">Les dépenses attendues apparaissent ici. Tu peux valider, modifier le montant ou ignorer une occurrence.</p>
+        </div>
+        </section>
 
+        <section aria-label="Historique des dépenses" className={mobileView === 'history' ? 'block' : 'hidden md:block'}>
+        <div className="mb-3 md:hidden">
+          <label htmlFor="mobile-expense-category" className="mb-1 block text-xs font-medium text-slate-300">Filtrer les opérations par catégorie</label>
+          <select id="mobile-expense-category" className="expense-mobile-select w-full rounded-lg px-3 py-2.5 text-sm"
+            value={browseCategoryId || ''}
+            onChange={event => { setBrowseCategoryId(event.target.value || null); setBrowseSubcategoryId(null) }}>
+            <option value="">Toutes les catégories</option>
+            {sortedParentCategories.map((cat: any) => <option key={cat.id} value={cat.id}>{cat.nom}</option>)}
+          </select>
+        </div>
         <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.45fr)]">
-          <Card className="min-w-0 max-w-full border-slate-800 bg-slate-900">
+          <Card className="hidden min-w-0 max-w-full border-slate-800 bg-slate-900 md:block">
             <CardHeader className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 pb-2">
               <div className="min-w-0 flex-1">
                 <CardTitle className="text-sm text-slate-200">Catégories & budgets</CardTitle>
@@ -950,9 +1044,9 @@ export default function DepensesPage() {
               {browsedEntries.length===0 ? (
                 <EmptyStateV2 icon={ReceiptText} title={browsedCategory?'Aucune dépense validée':'Aucune dépense réelle'} description={browsedCategory?'Aucune dépense validée pour cette sélection ce mois.':'Les dépenses validées apparaîtront ici.'}/>
               ) : (
-                <div className="divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70">
+                <div className="expense-mobile-entries divide-y divide-slate-800/70 overflow-hidden rounded-xl border border-slate-800/70">
                   {browsedEntries.map((entry:any)=>(
-                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 sm:flex-nowrap sm:gap-3">
+                    <div key={entry.id} role={!isAdminViewing?'button':undefined} tabIndex={!isAdminViewing?0:undefined} onClick={()=>{if(isAdminViewing)return;if(entry.source==='fixed')editFixedTarget(entry.sourceData);else setEditTx(entry.sourceData)}} className="expense-mobile-entry flex min-w-0 cursor-pointer flex-wrap items-center gap-2 px-3 py-3 transition hover:bg-slate-800/30 sm:flex-nowrap sm:gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/60 text-lg">{entry.icon}</span>
                       <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{entry.title}</p><p className="truncate text-[11px] text-slate-500">{entry.subcategory?entry.subcategory+' · ':''}{entry.info}</p></div>
                       <div className="ml-auto min-w-0 text-right">
@@ -978,6 +1072,7 @@ export default function DepensesPage() {
             </CardContent>
           </Card>
         </div>
+        </section>
 
         <Dialog open={!!validationEntry} onOpenChange={open => { if (!open) { setValidationEntry(null); setValidationDate('') } }}>
           <DialogContent className="max-w-sm border-slate-700 bg-slate-900">
