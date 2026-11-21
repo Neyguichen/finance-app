@@ -70,8 +70,8 @@ export default function PlannedSavingsValidationPanel({
   }
 
   return (
-    <Card className="nf-card-hover border-amber-400/15 bg-amber-500/[0.025]">
-      <CardHeader className="pb-2">
+    <Card className="savings-upcoming-panel nf-card-hover border-amber-400/15 bg-amber-500/[0.025]">
+      <CardHeader className="savings-upcoming-header pb-2">
         <CardTitle className="flex flex-wrap items-center gap-2 text-base text-slate-100">
           <PiggyBank className="h-4 w-4 text-amber-300" />
           Versements prévus à valider
@@ -85,13 +85,13 @@ export default function PlannedSavingsValidationPanel({
           Ces montants sont déjà déduits de la projection du compte, mais ils n’augmentent pas l’épargne réelle tant qu’ils ne sont pas validés.
         </p>
       </CardHeader>
-      <CardContent className="space-y-2 p-3 pt-1">
+      <CardContent className="savings-upcoming-list space-y-2 p-3 pt-1">
         {pending.map(item => {
           const draft = drafts[item.id] || { amount: String(Number(item.montant)), date: defaultDate(month, item.date_prevue) }
           const amount = Number(draft.amount)
           const validAmount = Number.isFinite(amount) && amount > 0
           return (
-            <div key={item.id} className="grid gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-3 lg:grid-cols-[minmax(0,1fr)_120px_145px_auto] lg:items-end">
+            <div key={item.id} className="savings-upcoming-row grid gap-2 rounded-xl border border-slate-800/70 bg-slate-950/35 p-3 lg:grid-cols-[minmax(0,1fr)_120px_145px_auto] lg:items-end">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-200">
                   {item.enveloppe_dest_id ? envelopeNames.get(item.enveloppe_dest_id) || 'Enveloppe' : 'Enveloppe indisponible'}
@@ -102,7 +102,7 @@ export default function PlannedSavingsValidationPanel({
                 </p>
               </div>
 
-              <label className="text-[10px] text-slate-500">
+              <label className="savings-upcoming-field min-w-0 text-[10px] text-slate-500">
                 Montant
                 <div className="relative mt-1">
                   <input
@@ -118,7 +118,7 @@ export default function PlannedSavingsValidationPanel({
                 </div>
               </label>
 
-              <label className="text-[10px] text-slate-500">
+              <label className="savings-upcoming-field min-w-0 text-[10px] text-slate-500">
                 Date réelle
                 <input
                   type="date"
@@ -130,7 +130,7 @@ export default function PlannedSavingsValidationPanel({
               </label>
 
               {!readOnly && (
-                <div className="flex flex-wrap gap-2">
+                <div className="savings-upcoming-actions flex flex-wrap gap-2">
                   <button
                     type="button"
                     disabled={busy || !validAmount || !draft.date}
