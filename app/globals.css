@@ -454,3 +454,28 @@ body {
     display: none;
   }
 }
+
+@media (max-width: 767px) {
+  .expense-mobile-budget-metrics {
+    width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .expense-mobile-budget-metrics .expense-budget-metric {
+    min-width: 0;
+    padding: .65rem .35rem;
+  }
+  .expense-mobile-budget-metrics .expense-budget-metric p:first-child {
+    font-size: .6875rem;
+    color: #aebdd1;
+  }
+  .expense-mobile-budget-metrics .expense-budget-metric p:last-child {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    overflow-wrap: normal;
+    word-break: normal;
+    letter-spacing: -.025em;
+    font-size: clamp(.625rem, 2.75vw, .875rem);
+    font-variant-numeric: tabular-nums;
+  }
+}
