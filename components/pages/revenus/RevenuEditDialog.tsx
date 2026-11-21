@@ -91,19 +91,19 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
   return (
     <>
       <Dialog open={!!editTarget && !scopeOpen} onOpenChange={open => { if (!open) onClose() }}>
-        <DialogContent className="max-h-[82vh] max-w-lg overflow-y-auto">
+        <DialogContent className="income-edit-dialog max-h-[88dvh] max-w-lg overflow-x-hidden overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Modifier le revenu</DialogTitle>
-            <DialogDescription>Ajustez les informations de cette entrée sans modifier son historique.</DialogDescription>
+            <DialogDescription>Modifiez le montant, les dates et la validation de ce revenu.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2.5">
+          <div className="income-edit-fields space-y-2.5">
             <FormSection title="Identification" icon={<Coins className="h-4 w-4" />} className="p-3">
-              <div className="grid gap-3 sm:grid-cols-[1.35fr_.85fr]">
-                <FormField label="Nom">
+              <div className="grid min-w-0 grid-cols-[minmax(0,1.35fr)_minmax(0,.85fr)] gap-2 sm:gap-3">
+                <FormField label="Nom" className="min-w-0">
                   <Input placeholder="Nom du revenu" value={editNom} onChange={event => setEditNom(event.target.value)} />
                 </FormField>
-                <FormField label="Type">
+                <FormField label="Type" className="min-w-0">
                   <SegmentedControl
                     value={editType}
                     onChange={setEditType}
@@ -117,11 +117,11 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
             </FormSection>
 
             <FormSection title="Prévision" icon={<CalendarDays className="h-4 w-4" />} className="p-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <FormField label="Montant prévu">
+              <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-3">
+                <FormField label="Montant prévu" className="min-w-0">
                   <CalculatorInput value={editMontant} onChange={setEditMontant} placeholder="0,00 €" />
                 </FormField>
-                <FormField label="Date prévue" hint="Facultatif">
+                <FormField label="Date prévue" className="min-w-0">
                   <Input type="date" value={editDatePrevue} onChange={event => setEditDatePrevue(event.target.value)} />
                 </FormField>
               </div>
@@ -147,18 +147,18 @@ export default function RevenuEditDialog({ editTarget, onClose, onSave, doubleDa
               </label>
 
               {editRecu && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <FormField label="Montant réel">
+                <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-3">
+                  <FormField label="Montant réel" className="min-w-0">
                     <CalculatorInput value={Number(editMontantReel ?? editMontant)} onChange={setEditMontantReel} placeholder="Montant reçu" />
                   </FormField>
-                  <FormField label="Date réelle" hint={doubleDate ? 'Validation bancaire' : undefined}>
+                  <FormField label="Date réelle" className="min-w-0" hint={doubleDate ? 'Validation bancaire' : undefined}>
                     <Input type="date" value={editDateReelle} onChange={event => setEditDateReelle(event.target.value)} />
                   </FormField>
                 </div>
               )}
             </FormSection>
           </div>
-          <FormActions>
+          <FormActions className="income-edit-actions">
             <Button variant="ghost" onClick={onClose}>Annuler</Button>
             <Button disabled={!editNom.trim() || editMontant <= 0} onClick={handleSaveClick}>Enregistrer</Button>
           </FormActions>
