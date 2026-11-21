@@ -1013,3 +1013,94 @@ body {
     max-width: 100%;
   }
 }
+
+/* Dette / créance : views and detail cards follow the other finance pages. */
+@media (max-width: 767px) {
+  .debts-mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: .25rem;
+    padding: .25rem;
+    border: 1px solid rgba(148,163,184,.2);
+    border-radius: .8rem;
+    background: #0d1a2b;
+  }
+  .debts-mobile-tab {
+    min-height: 2.75rem;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    padding: .5rem .2rem;
+    border-radius: .6rem;
+    color: #aab9cf;
+    font-size: .8rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .debts-mobile-tab-active {
+    background: #233852;
+    color: #f8fafc;
+    box-shadow: 0 1px 5px rgba(0,0,0,.2);
+  }
+  .debts-mobile-count {
+    display: inline-flex;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(251,191,36,.15);
+    color: #fcd34d;
+    font-size: .65rem;
+  }
+  .debts-mobile-page .debts-summary-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: .5rem;
+  }
+  .debts-mobile-page .debts-summary-grid > :first-child {
+    grid-column: 1 / -1;
+    background: #172a40;
+  }
+  .debts-mobile-page .debts-summary-grid > * {
+    min-width: 0;
+    border-color: rgba(148,163,184,.25);
+    background: #14263b;
+  }
+  .debts-mobile-page .debts-summary-grid > * p {
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+  .debts-mobile-page .debts-mobile-entry {
+    min-width: 0;
+    border-color: rgba(148,163,184,.28);
+    background: #172a40;
+    overflow-wrap: anywhere;
+  }
+  .debts-mobile-page .debts-mobile-empty {
+    padding: 1rem;
+    border: 1px solid rgba(148,163,184,.2);
+    border-radius: .75rem;
+    background: #14263b;
+    color: #b2c1d4;
+    font-size: .875rem;
+  }
+  .debts-mobile-page .nf-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .debts-mobile-page .nf-card input {
+    min-width: 0;
+  }
+  .debts-mobile-page .nf-card .grid {
+    min-width: 0;
+  }
+  .debts-mobile-page .nf-card .grid > * {
+    min-width: 0;
+  }
+  .debts-mobile-page .nf-card .grid input[type="date"] {
+    font-size: .75rem;
+    padding-inline: .4rem;
+  }
+}
