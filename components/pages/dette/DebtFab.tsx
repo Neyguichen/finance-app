@@ -12,8 +12,8 @@ export default function DebtFab({onDebt,onClaim,onRepayment}:Props) {
   useEffect(() => setMounted(true), [])
   if (!mounted) return null
   const actions = [
-    {name:'Nouvelle dette',icon:Wallet,onClick:onDebt},
-    {name:'On me doit',icon:HandCoins,onClick:onClaim},
+    {name:'Ajouter une dette',icon:Wallet,onClick:onDebt},
+    {name:'Ajouter une créance',icon:HandCoins,onClick:onClaim},
     {name:'Nouveau remboursement',icon:ArrowDownToLine,onClick:onRepayment},
   ] as const
   return createPortal(<>
