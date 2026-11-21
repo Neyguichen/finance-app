@@ -17,7 +17,7 @@ export default function RepartitionRevenus({ revenus }: Props) {
   const [selected, setSelected] = useState<string | null>(null)
   const selectedRow = rows.find(row => row.id === selected)
 
-  return <Card className="nf-card-hover h-full">
+  return <Card className="income-distribution nf-card-hover h-full">
     <CardHeader className="pb-2"><CardTitle className="text-base text-slate-100">Répartition des revenus reçus</CardTitle></CardHeader>
     <CardContent className="p-3 pt-1">
       {rows.length === 0 ? <div className="flex min-h-60 items-center justify-center text-sm text-slate-600">Aucun revenu reçu ce mois.</div> :
