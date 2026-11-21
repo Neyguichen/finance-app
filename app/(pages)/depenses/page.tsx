@@ -189,6 +189,10 @@ export default function DepensesPage() {
 
   const parentCategories = effectiveCategories.filter((c: any) => c.actif !== false && !c.parent_id)
   const archivedParentCategories = effectiveCategories.filter((c: any) => c.actif === false && !c.parent_id)
+  // Archived subcategories must remain accessible even if their parent is still active.
+  const archivedCategoryGroups = effectiveCategories.filter((c: any) => !c.parent_id && (
+    c.actif === false || effectiveCategories.some((sub: any) => sub.parent_id === c.id && sub.actif === false)
+  ))
   const subCats = (id: string, includeArchived = false) => subcategoriesEnabled ? effectiveCategories
     .filter((c: any) => c.parent_id === id && (includeArchived || c.actif !== false))
     .sort((a: any, b: any) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity:'base' })) : []
@@ -1364,11 +1368,11 @@ export default function DepensesPage() {
                 </div>
               </div>
               {categoryActionError && <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{categoryActionError}</p>}
-              {(showArchivedCategories ? archivedParentCategories : parentCategories).length === 0 ? (
+              {(showArchivedCategories ? archivedCategoryGroups : parentCategories).length === 0 ? (
                 <EmptyStateV2 icon={Tags} title={showArchivedCategories ? 'Aucune catégorie archivée' : 'Aucune catégorie'} description={showArchivedCategories ? 'Les catégories archivées apparaîtront ici.' : 'Crée une catégorie pour organiser tes budgets variables.'} />
               ) : (
                 <div className="space-y-2">
-                  {(showArchivedCategories ? archivedParentCategories : parentCategories).map((cat: any) => {
+                  {(showArchivedCategories ? archivedCategoryGroups : parentCategories).map((cat: any) => {
                     const children = subCats(cat.id, showArchivedCategories).filter((sub: any) => showArchivedCategories ? sub.actif === false : sub.actif !== false)
                     const planned = budget(cat.id)
                     const actual = spent(cat.id)
@@ -1377,12 +1381,12 @@ export default function DepensesPage() {
                         <div className="flex min-w-0 items-center gap-2 px-3 py-2.5">
                           <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id) } }} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                             <span className="text-xl">{cat.icone || '📂'}</span>
-                            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{cat.nom}</p><p className="text-[10px] text-slate-500">{formatEuro(planned)} prévu · {formatEuro(actual)} réel</p></div>
+                            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{cat.nom}</p><p className="text-[10px] text-slate-500">{showArchivedCategories && cat.actif !== false ? 'Catégorie active · sous-catégories archivées' : formatEuro(planned) + ' prévu · ' + formatEuro(actual) + ' réel'}</p></div>
                           </button>
                           {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>}
                           {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => {setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
                           {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="ghost" className="hidden md:inline-flex" onClick={() => openCategoryDialog(cat.id)}><Plus className="mr-1 h-3.5 w-3.5" />Sous-cat.</Button>}
-                          {!isAdminViewing && (
+                          {!isAdminViewing && (!showArchivedCategories || cat.actif === false) && (
                             showArchivedCategories
                               ? <div className="ml-auto flex shrink-0 items-center gap-1">
                                  <button type="button" className="rounded-lg p-2 text-emerald-300 hover:bg-emerald-500/10" aria-label={'Désarchiver ' + cat.nom} onClick={() => void setCategoryActive(cat.id, true)}><RotateCcw className="h-4 w-4" /></button>
