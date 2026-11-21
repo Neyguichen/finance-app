@@ -104,7 +104,8 @@ export default function EnveloppeDetailPanel({
     .slice(0, 6)
 
   return (
-    <Card className="nf-card-hover h-full">
+    <div className="savings-envelope-detail space-y-3">
+    <Card className="nf-card-hover">
       <CardHeader className="pb-2">
         <div className="flex items-start gap-2">
           <button type="button" onClick={onEdit} className={"min-w-0 flex-1 text-left " + (onEdit ? "cursor-pointer" : "cursor-default")}>
@@ -145,13 +146,23 @@ export default function EnveloppeDetailPanel({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <button onClick={onSave} className="btn btn-primary btn-sm">Épargner</button>
-          <button onClick={onWithdraw} className="btn btn-primary btn-sm">Reprendre</button>
-          <button onClick={onTransfer} className="btn btn-primary btn-sm">Transférer</button>
-        </div>
 
-        <div className="rounded-xl border border-slate-800/70 bg-slate-950/25">
+      </CardContent>
+    </Card>
+
+    <Card className="hidden md:block">
+      <CardContent className="p-3">
+        <div className="grid grid-cols-3 gap-2">
+          <button type="button" onClick={onSave} className="btn btn-primary btn-sm">Épargner</button>
+          <button type="button" onClick={onWithdraw} className="btn btn-primary btn-sm">Reprendre</button>
+          <button type="button" onClick={onTransfer} className="btn btn-primary btn-sm">Transférer</button>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card className="savings-envelope-recurring nf-card-hover">
+      <CardContent className="p-0">
+        <div className="rounded-xl">
           <div className="flex items-center gap-2 border-b border-slate-800/70 px-3 py-2.5">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-300"><Repeat2 className="h-3.5 w-3.5" /></span>
             <div className="min-w-0 flex-1">
@@ -168,9 +179,9 @@ export default function EnveloppeDetailPanel({
                 const frequency = Number(rec.frequence_mois || 1)
                 const frequencyLabel = frequency === 1 ? 'Tous les mois' : frequency === 12 ? 'Tous les ans' : 'Tous les ' + frequency + ' mois'
                 return (
-                  <div key={rec.id} className="flex flex-wrap items-center gap-3 p-3 transition hover:bg-slate-800/30">
+                  <div key={rec.id} className="savings-recurring-row flex min-w-0 flex-wrap items-center gap-3 p-3 transition hover:bg-slate-800/30">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-300"><PiggyBank className="h-4 w-4" /></span>
-                    <div className="min-w-0 flex-1">
+                    <div className="savings-recurring-info min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-200">{formatEuro(Number(rec.montant))}</p>
                       <p className="mt-0.5 text-[10px] text-slate-500">{frequencyLabel} · depuis {(() => {
                         const firstOccurrence = relevant
@@ -182,12 +193,12 @@ export default function EnveloppeDetailPanel({
                       })()}</p>
                       {rec.note && <p className="mt-1 truncate text-[10px] text-slate-600">{rec.note}</p>}
                     </div>
-                    <span className={"rounded-full px-2 py-0.5 text-[9px] font-medium " + (rec.actif === false ? "bg-slate-800 text-slate-500" : "bg-emerald-500/10 text-emerald-300")}>{rec.actif === false ? 'Suspendue' : 'Active'}</span>
+                    <span className={"savings-recurring-status shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium " + (rec.actif === false ? "bg-slate-800 text-slate-400" : "bg-emerald-500/10 text-emerald-300")}>{rec.actif === false ? 'Suspendue' : 'Active'}</span>
                     {onEditRecurring && (
                       <button
                         type="button"
                         onClick={() => onEditRecurring(rec)}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-700 px-3 text-xs font-medium text-slate-300 transition hover:bg-slate-800/50"
+                        className="savings-recurring-edit inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-3 text-xs font-medium text-slate-300 transition hover:bg-slate-800/50"
                       >
                         <Pencil className="h-3.5 w-3.5" />Modifier
                       </button>
@@ -196,7 +207,7 @@ export default function EnveloppeDetailPanel({
                       type="button"
                       disabled={!onUpdateRecurring}
                       onClick={() => onUpdateRecurring?.({ id:rec.id, actif:rec.actif === false })}
-                      className={"h-8 rounded-lg px-3 text-xs font-medium transition disabled:opacity-60 " + (rec.actif === false ? "border border-slate-700 text-slate-300 hover:bg-slate-800/50" : "text-amber-300 hover:bg-amber-500/10")}
+                      className={"savings-recurring-toggle h-9 rounded-lg px-3 text-xs font-medium transition disabled:opacity-60 " + (rec.actif === false ? "border border-slate-700 text-slate-300 hover:bg-slate-800/50" : "text-amber-300 hover:bg-amber-500/10")}
                     >
                       {rec.actif === false ? 'Réactiver' : 'Suspendre'}
                     </button>
@@ -207,7 +218,11 @@ export default function EnveloppeDetailPanel({
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-800/70 bg-slate-950/25 p-3">
+      </CardContent>
+    </Card>
+
+    <Card className="savings-envelope-chart nf-card-hover">
+      <CardContent className="min-w-0 p-3">
           <p className="mb-2 text-xs font-semibold text-slate-300">Évolution du solde</p>
           {chartData.length >= 2 ? (
             <ResponsiveContainer width="100%" height={160}>
@@ -222,9 +237,13 @@ export default function EnveloppeDetailPanel({
           ) : <div className="flex h-32 items-center justify-center text-xs text-slate-600">Pas encore assez d’historique.</div>}
         </div>
 
-        <div className="rounded-xl border border-slate-800/70 bg-slate-950/25">
-          <div className="border-b border-slate-800/70 px-3 py-2">
-            <span className="text-xs font-semibold text-slate-300">Mouvements du mois</span>
+      </CardContent>
+    </Card>
+
+    <Card className="savings-envelope-current nf-card-hover">
+      <CardContent className="p-0">
+          <div className="border-b border-slate-800/70 px-3 py-3">
+            <span className="text-sm font-semibold text-slate-200">Mouvements du mois</span>
           </div>
           {currentRelevant.length === 0 ? (
             <p className="p-3 text-xs text-slate-600">Aucun mouvement pour cette enveloppe ce mois.</p>
@@ -272,9 +291,13 @@ export default function EnveloppeDetailPanel({
           })}
         </div>
 
-        <div className="rounded-xl border border-slate-800/70 bg-slate-950/25">
-          <div className="flex items-center gap-2 border-b border-slate-800/70 px-3 py-2">
-            <span className="mr-auto text-xs font-semibold text-slate-300">Historique récent</span>
+      </CardContent>
+    </Card>
+
+    <Card className="savings-envelope-history nf-card-hover">
+      <CardContent className="p-0">
+          <div className="flex items-center gap-2 border-b border-slate-800/70 px-3 py-3">
+            <span className="mr-auto text-sm font-semibold text-slate-200">Historique récent</span>
             <label className="relative">
               <select
                 value={historyFilter}
@@ -329,9 +352,9 @@ export default function EnveloppeDetailPanel({
               </div>
             )
           })}
-        </div>
       </CardContent>
     </Card>
+    </div>
   )
 }
 
