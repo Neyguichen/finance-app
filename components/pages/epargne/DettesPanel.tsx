@@ -222,6 +222,58 @@ export default function DettesPanel() {
       </div>
       </section>
 
+      <section aria-label="Échéances à venir" className={mobileDetail ? 'hidden' : mobileView === 'upcoming' ? 'space-y-2 md:hidden' : 'hidden'}>
+        <div className="debts-mobile-entry rounded-xl border p-3">
+          <h3 className="text-sm font-semibold text-slate-100">Échéances à venir</h3>
+          <p className="mt-1 text-xs leading-relaxed text-slate-400">Les montants sont indicatifs, calculés à partir des données de chaque engagement : aucune opération n'est programmée automatiquement ici.</p>
+        </div>
+        {upcoming.length === 0 ? <p className="debts-mobile-empty">Aucune dette ou créance en cours.</p> : upcoming.map(dette => {
+          const monthly = dette.mode === 'credit' ? Number(dette.mensualite || 0) + Number(dette.assurance_mensuelle || 0) : 0
+          return <button type="button" key={dette.id} onClick={() => openDebtDetail(dette.id)} className="debts-mobile-entry flex w-full min-w-0 items-center gap-2 rounded-xl border p-3 text-left">
+            <CalendarClock className="h-5 w-5 shrink-0 text-indigo-300" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-100">{dette.titre}</p>
+              <p className="mt-1 text-xs text-slate-400">{dette.date_echeance ? 'Fin prévue : '+formatDate(dette.date_echeance) : 'Pas de date de fin renseignée'}</p>
+              {monthly > 0 && <p className="mt-1 text-xs text-slate-300">Mensualité : {formatEuro(monthly)}</p>}
+            </div>
+            <span className="shrink-0 text-xs font-semibold text-amber-300">{formatEuro(getReste(dette))} restant</span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
+          </button>
+        })}
+      </section>
+
+      <section aria-label="Historique des remboursements" className={mobileDetail ? 'hidden' : mobileView === 'history' ? 'space-y-2 md:hidden' : 'hidden'}>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-slate-100">Remboursements enregistrés</h3>
+          <select value={historySort} aria-label="Trier les remboursements" className="min-w-0 max-w-[135px] rounded-lg border border-slate-700 bg-slate-900 px-2 py-2 text-xs text-slate-200"
+            onChange={event => {const next = event.target.value as typeof historySort;setHistorySort(next);localStorage.setItem('dettes_history_sort',next)}}>
+            <option value="recent">Plus récents</option><option value="oldest">Plus anciens</option><option value="amount">Montant</option>
+          </select>
+        </div>
+        {recorded.length === 0 ? <p className="debts-mobile-empty">Aucun remboursement enregistré.</p> : recorded.map(item => (
+          <button type="button" key={item.id} onClick={() => openDebtDetail(item.dette_id)}
+            className="debts-mobile-entry flex w-full min-w-0 items-center gap-2 rounded-xl border p-3 text-left">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-100">{[...active,...archived].find(d => d.id === item.dette_id)?.titre || 'Engagement'}</p>
+              <p className="mt-1 text-xs text-slate-400">{formatDate(item.date)}</p>
+            </div>
+            <strong className="shrink-0 text-sm font-semibold text-emerald-300">{formatEuro(Number(item.montant))}</strong>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
+          </button>
+        ))}
+        {archived.length > 0 && <details className="debts-mobile-entry rounded-xl border p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-200">Engagements archivés ({archived.length})</summary>
+          <div className="mt-3 space-y-2">
+            {archived.map(dette => <button type="button" key={dette.id} onClick={() => openDebtDetail(dette.id)}
+              className="flex w-full min-w-0 items-center gap-2 rounded-lg bg-slate-950/30 p-3 text-left">
+              <span className="min-w-0 flex-1 truncate text-sm text-slate-200">{dette.titre}</span>
+              <span className="shrink-0 text-xs text-slate-300">{formatEuro(getReste(dette))}</span>
+              <ChevronRight className="h-4 w-4 text-slate-500" />
+            </button>)}
+          </div>
+        </details>}
+      </section>
+
       {selected && (
         <div className="hidden md:block"><DetteDetail
           dette={selected}
