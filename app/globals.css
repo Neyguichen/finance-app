@@ -943,13 +943,13 @@ body {
     padding: .75rem;
     border-color: rgba(148, 163, 184, .22);
   }
-  .savings-mobile-page .savings-metric-total {
-    grid-column: 1 / -1;
-    min-height: 5rem;
-  }
-  .savings-mobile-page .savings-metric-in,
-  .savings-mobile-page .savings-metric-out {
+  .savings-mobile-page .savings-metric-total,
+  .savings-mobile-page .savings-metric-in {
     min-height: 5.25rem;
+  }
+  .savings-mobile-page .savings-metric-out {
+    grid-column: 1 / -1;
+    min-height: 4.5rem;
   }
   .savings-mobile-page .savings-metric p {
     min-width: 0;
@@ -958,7 +958,7 @@ body {
     overflow-wrap: anywhere;
   }
   .savings-mobile-page .savings-metric-total p {
-    font-size: clamp(1.25rem, 5.6vw, 1.6rem);
+    font-size: clamp(.9375rem, 4.15vw, 1.3rem);
   }
   .savings-envelope-detail > .nf-card {
     border-color: rgba(148, 163, 184, .26);
