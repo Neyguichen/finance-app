@@ -1007,18 +1007,16 @@ export default function DepensesPage() {
                 <p className="mt-0.5 text-[10px] text-slate-500">{browsedCategory ? 'Détail du budget et des dépenses validées.' : 'Mouvements validés du mois.'}</p>
               </div>
               <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-                {!browsedCategory && <>
-                  <label className="relative">
+                <label className="relative">
                     <select value={actualSort} onChange={event=>setActualSort(event.target.value as 'payment'|'validation')} className="h-9 appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-xs text-slate-300 outline-none">
                       <option value="payment">Date de transaction</option><option value="validation">Date de validation</option>
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500"/>
                   </label>
-                  {!isAdminViewing && <>
+                  {!browsedCategory && !isAdminViewing && <>
                     <Button size="sm" variant="outline" className="hidden h-8 md:inline-flex" onClick={()=>setManagementView('fixed')}><CalendarClock className="mr-1 h-3.5 w-3.5"/>Charges fixes</Button>
                     <Button size="sm" className="hidden h-8 md:inline-flex" onClick={()=>setTxOpen(true)}><Plus className="mr-1 h-3.5 w-3.5"/>Dépense</Button>
                   </>}
-                </>}
                 {browsedCategory && <Button size="icon" variant="ghost" className="h-8 w-8" onClick={()=>{setBrowseCategoryId(null);setBrowseSubcategoryId(null)}} aria-label="Fermer le détail"><X className="h-4 w-4"/></Button>}
               </div>
             </CardHeader>
@@ -1124,7 +1122,7 @@ export default function DepensesPage() {
                     <p className="p-4 text-sm text-slate-500">Aucune charge dans cette liste.</p>
                   ) : (showArchivedFixed ? archivedFixedRecurrents : activeFixedRecurrents).map((recurring: any) => {
                     return (
-                      <button key={recurring.id} type="button" onClick={() => setSelectedFixedRecurringId(recurring.id)} className={'flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-slate-800/40 ' + (selectedFixedRecurringId === recurring.id ? 'bg-slate-800/50' : '')}>
+                      <button key={recurring.id} type="button" onClick={() => { setSelectedFixedRecurringId(recurring.id); document.querySelector('.expense-management-modal')?.scrollTo(0, 0) }} className={'flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-slate-800/40 ' + (selectedFixedRecurringId === recurring.id ? 'bg-slate-800/50' : '')}>
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-300"><CalendarClock className="h-4 w-4" /></span>
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{recurring.nom}</p><p className="text-[10px] text-slate-500">{fixedFrequencyLabel(recurring)}</p></div>
                         <strong className="text-sm text-purple-300">{formatEuro(Number(recurring.montant))}</strong>
