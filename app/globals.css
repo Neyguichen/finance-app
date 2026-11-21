@@ -698,7 +698,7 @@ body {
   .income-edit-dialog .income-edit-fields label {
     min-width: 0;
   }
-  .income-edit-dialog .income-edit-fields input {
+  .income-edit-dialog .income-edit-fields input:not([type="checkbox"]) {
     width: 100%;
     min-width: 0;
     font-size: .8125rem;
@@ -741,4 +741,11 @@ body {
 .income-distribution .recharts-sector:focus-visible {
   outline: 2px solid #a5b4fc;
   outline-offset: 2px;
+}
+
+/* Keep the received checkbox independent of full-width text-input styling. */
+@media (max-width: 767px) {
+  .income-edit-dialog .income-received-toggle { min-width: 0; width: 100%; }
+  .income-edit-dialog .income-received-toggle input[type="checkbox"] { flex: 0 0 1.25rem; width: 1.25rem; height: 1.25rem; min-width: 1.25rem; padding: 0; }
+  .income-edit-dialog .income-received-toggle span { min-width: 0; flex: 1 1 auto; }
 }
