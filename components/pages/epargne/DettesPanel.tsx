@@ -163,7 +163,7 @@ export default function DettesPanel() {
             <label className="block text-xs text-slate-300">Dette ou créance concernée
               <select className="mt-1 h-11 w-full min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100" value={repDebtId} onChange={event => setRepDebtId(event.target.value)}>
                 <option value="">Choisir un engagement</option>
-                {dettes.filter(debt => !debt.archived).map(debt => <option key={debt.id} value={debt.id}>{debt.type === 'je_dois' ? 'Je dois' : 'On me doit'} · {debt.titre}</option>)}
+                {dettes.filter(debt => !debt.archived).map(debt => <option key={debt.id} value={debt.id}>{debt.type === 'je_dois' ? 'Dette' : 'Créance'} · {debt.titre}</option>)}
               </select>
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -193,7 +193,7 @@ export default function DettesPanel() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="grid grid-cols-2 rounded-xl border border-slate-800/80 bg-slate-950/35 p-1">
           <button type="button" onClick={() => { setTab('je_dois'); setSelectedId(null) }} className={'rounded-lg px-4 py-2 text-sm font-medium transition ' + (tab === 'je_dois' ? 'bg-rose-500/15 text-rose-300' : 'text-slate-500 hover:text-slate-300')}>Dettes</button>
-          <button type="button" onClick={() => { setTab('jai_prete'); setSelectedId(null) }} className={'rounded-lg px-4 py-2 text-sm font-medium transition ' + (tab === 'jai_prete' ? 'bg-emerald-500/15 text-emerald-300' : 'text-slate-500 hover:text-slate-300')}>On me doit</button>
+          <button type="button" onClick={() => { setTab('jai_prete'); setSelectedId(null) }} className={'rounded-lg px-4 py-2 text-sm font-medium transition ' + (tab === 'jai_prete' ? 'bg-emerald-500/15 text-emerald-300' : 'text-slate-500 hover:text-slate-300')}>Créances</button>
         </div>
         {!isAdminViewing && <Button size="sm" className="ml-auto hidden md:inline-flex" onClick={() => openNewDebt(tab)}><Plus className="mr-1 h-4 w-4" />Ajouter</Button>}
       </div>
