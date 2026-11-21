@@ -1320,3 +1320,39 @@ body {
     min-width: 0;
   }
 }
+
+/* Desktop dashboard: retain the historical reading order while mobile uses tabs. */
+@media (min-width: 768px) {
+  .dashboard-desktop-flow {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: .75rem;
+  }
+  .dashboard-desktop-flow > section {
+    display: contents !important;
+  }
+  .dashboard-desktop-flow > section,
+  .dashboard-desktop-flow > section > * {
+    margin-top: 0 !important;
+  }
+  .dashboard-desktop-situation,
+  .dashboard-desktop-budgets,
+  .dashboard-desktop-alerts,
+  .dashboard-desktop-trends {
+    grid-column: 1 / -1;
+  }
+  .dashboard-desktop-situation { order: 1; }
+  .dashboard-desktop-plan { order: 2; grid-column: 1 / -1; }
+  .dashboard-desktop-distribution { order: 3; grid-column: 1 / -1; }
+  .dashboard-desktop-budgets { order: 4; }
+  .dashboard-desktop-alerts { order: 5; }
+  .dashboard-desktop-trends { order: 6; }
+}
+@media (min-width: 1280px) {
+  .dashboard-desktop-plan {
+    grid-column: span 7 / span 7;
+  }
+  .dashboard-desktop-distribution {
+    grid-column: span 5 / span 5;
+  }
+}
