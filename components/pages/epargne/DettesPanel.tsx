@@ -152,6 +152,43 @@ export default function DettesPanel() {
   return (
     <section className="debts-mobile-page min-w-0 max-w-full space-y-3">
       <DetteForm open={openAdd} onOpenChange={setOpenAdd} tab={createTab} onSubmit={handleAdd} />
+      {!isAdminViewing && <DebtFab onDebt={() => openNewDebt('je_dois')} onClaim={() => openNewDebt('jai_prete')} onRepayment={() => showRepayment()} />}
+      <Dialog open={openRepayment} onOpenChange={open => {if (!repSaving) setOpenRepayment(open)}}>
+        <DialogContent className="debt-form-dialog max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ajouter un remboursement</DialogTitle>
+            <DialogDescription>Associer un paiement à une dette ou à une créance existante.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="block text-xs text-slate-300">Dette ou créance concernée
+              <select className="mt-1 h-11 w-full min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100" value={repDebtId} onChange={event => setRepDebtId(event.target.value)}>
+                <option value="">Choisir un engagement</option>
+                {dettes.filter(debt => !debt.archived).map(debt => <option key={debt.id} value={debt.id}>{debt.type === 'je_dois' ? 'Je dois' : 'On me doit'} · {debt.titre}</option>)}
+              </select>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="min-w-0 text-xs text-slate-300">Montant
+                <Input className="mt-1 min-w-0" type="number" inputMode="decimal" min="0.01" step="0.01" value={repAmount} onChange={event => setRepAmount(event.target.value)} placeholder="0,00" />
+              </label>
+              <label className="min-w-0 text-xs text-slate-300">Date
+                <Input className="mt-1 min-w-0" type="date" value={repDate} onChange={event => setRepDate(event.target.value)} />
+              </label>
+            </div>
+            <div className="rounded-xl border border-slate-700/50 bg-slate-950/30 p-3">
+              <label className="flex items-center gap-2 text-sm text-slate-200">
+                <input type="checkbox" className="checkbox checkbox-sm shrink-0" checked={repImpactsBudget} onChange={event => setRepImpactsBudget(event.target.checked)} />
+                Inclure dans le solde du compte
+              </label>
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-400">Coche cette case si le paiement est réellement entré ou sorti du compte suivi dans ce budget. Sinon, il réduit la dette sans affecter le solde bancaire calculé.</p>
+            </div>
+            {repError && <p role="alert" className="rounded-lg bg-rose-500/10 p-2 text-xs text-rose-300">{repError}</p>}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button variant="ghost" className="min-w-0 flex-1" disabled={repSaving} onClick={() => setOpenRepayment(false)}>Annuler</Button>
+            <Button className="min-w-0 flex-1" disabled={!repDebtId || !(Number(repAmount)>0) || !repDate || repSaving} onClick={() => void recordRepayment()}>{repSaving ? 'Enregistrement…' : 'Enregistrer'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="grid grid-cols-2 rounded-xl border border-slate-800/80 bg-slate-950/35 p-1">
