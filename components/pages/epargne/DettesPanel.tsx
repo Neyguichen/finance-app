@@ -225,7 +225,7 @@ export default function DettesPanel() {
       <section aria-label="Échéances à venir" className={mobileDetail ? 'hidden' : mobileView === 'upcoming' ? 'space-y-2 md:hidden' : 'hidden'}>
         <div className="debts-mobile-entry rounded-xl border p-3">
           <h3 className="text-sm font-semibold text-slate-100">Échéances à venir</h3>
-          <p className="mt-1 text-xs leading-relaxed text-slate-400">Les montants sont indicatifs, calculés à partir des données de chaque engagement : aucune opération n'est programmée automatiquement ici.</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-400">Les montants sont indicatifs, calculés à partir des données de chaque engagement : aucune opération n’est programmée automatiquement ici.</p>
         </div>
         {upcoming.length === 0 ? <p className="debts-mobile-empty">Aucune dette ou créance en cours.</p> : upcoming.map(dette => {
           const monthly = dette.mode === 'credit' ? Number(dette.mensualite || 0) + Number(dette.assurance_mensuelle || 0) : 0
