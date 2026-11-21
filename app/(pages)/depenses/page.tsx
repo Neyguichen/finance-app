@@ -1306,7 +1306,7 @@ export default function DepensesPage() {
                           )}
                           {!isAdminViewing && !showArchivedCategories && <button type="button" className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700/50 md:hidden" aria-label={'Options pour ' + cat.nom} aria-expanded={categoryActionMenu === cat.id} onClick={() => setCategoryActionMenu(old => old === cat.id ? null : cat.id)}><MoreHorizontal className="h-5 w-5" /></button>}
                         </div>
-                        {categoryActionMenu === cat.id && !showArchivedCategories && !isAdminViewing && <div className="expense-category-actions grid grid-cols-3 gap-1.5 border-t border-slate-700/50 bg-slate-800/35 px-2 py-2 md:hidden">
+                        {categoryActionMenu === cat.id && !showArchivedCategories && !isAdminViewing && <div className="expense-category-actions grid grid-cols-2 gap-1.5 border-t border-slate-700/50 bg-slate-800/35 px-2 py-2 md:hidden">
                           <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMoveCategoryId(cat.id);setMoveParentId('');setMoveError('')}}>Déplacer</Button>
                           <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);setMergeSourceId(cat.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>
                           <Button size="sm" variant="outline" onClick={() => {setCategoryActionMenu(null);openCategoryDialog(cat.id)}}><Plus className="mr-1 h-3.5 w-3.5" />Sous-catégorie</Button>
