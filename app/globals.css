@@ -402,3 +402,55 @@ body {
     background: rgba(251,113,133,.08);
   }
 }
+
+/* Mobile follow-up refinements for expenses, without changing other pages. */
+@media (max-width: 767px) {
+  .expense-mobile-page .expense-entry-description {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: block;
+    padding: .5rem .125rem 0;
+    border-top: 1px solid rgba(148,163,184,.16);
+    overflow-wrap: anywhere;
+  }
+  .expense-mobile-entry:has(.expense-entry-description) .expense-entry-dates {
+    grid-row: 3;
+    margin-top: 0;
+  }
+  .expense-mobile-entry .expense-entry-dates {
+    font-size: .6875rem;
+  }
+  .expense-recurring-section {
+    border-color: rgba(148,163,184,.28);
+    background: #182a40;
+    padding: .875rem;
+  }
+  .expense-recurring-section + .expense-recurring-section {
+    margin-top: .75rem;
+  }
+  .expense-recurring-section input {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .expense-edit-dialog {
+    overflow-x: hidden;
+    max-width: calc(100vw - 1rem);
+    padding: 1rem;
+  }
+  .expense-edit-dialog .grid > div,
+  .expense-edit-dialog .grid > label,
+  .expense-edit-dialog input {
+    min-width: 0;
+  }
+  .expense-edit-dialog input[type="date"] {
+    padding-left: .45rem;
+    padding-right: .35rem;
+    font-size: .75rem;
+  }
+  .expense-edit-more summary {
+    list-style: none;
+  }
+  .expense-edit-more summary::-webkit-details-marker {
+    display: none;
+  }
+}
