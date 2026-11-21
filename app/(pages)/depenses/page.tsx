@@ -783,8 +783,7 @@ export default function DepensesPage() {
                     <p className="text-xs text-slate-400">Du prévu</p>
                     <p className={'text-xl font-bold tabular-nums '+(actualPercent > 100 ? 'text-rose-300' : 'text-indigo-200')}>{plannedTotal > 0 ? actualPercent + ' %' : '—'}</p>
                   </div>
-                  </div><span className="text-[10px] text-slate-400">{Math.round(actualVariable / plannedVariable * 100)} %</span>
-                </div>}
+                </div>
               </div>
             </CardContent>
           </Card>
