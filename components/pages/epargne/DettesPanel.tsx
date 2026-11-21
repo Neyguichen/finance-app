@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, CalendarClock, ChevronRight, Handshake, Plus, WalletCards } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import DebtFab from '@/components/pages/dette/DebtFab'
 import { Card, CardContent } from '@/components/ui/card'
 import DetteForm from '@/components/pages/dette/DetteForm'
 import DetteDetail from '@/components/pages/dette/DetteDetail'
@@ -23,6 +26,14 @@ export default function DettesPanel() {
 
   const [tab, setTab] = useState<'je_dois' | 'jai_prete'>('je_dois')
   const [openAdd, setOpenAdd] = useState(false)
+  const [createTab, setCreateTab] = useState<'je_dois' | 'jai_prete'>('je_dois')
+  const [openRepayment, setOpenRepayment] = useState(false)
+  const [repDebtId, setRepDebtId] = useState('')
+  const [repAmount, setRepAmount] = useState('')
+  const [repDate, setRepDate] = useState(() => new Date().toLocaleDateString('en-CA'))
+  const [repImpactsBudget, setRepImpactsBudget] = useState(false)
+  const [repSaving, setRepSaving] = useState(false)
+  const [repError, setRepError] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mobileView, setMobileView] = useState<'stats' | 'upcoming' | 'history'>('stats')
   const [historySort, setHistorySort] = useState<'recent' | 'oldest' | 'amount'>('recent')
@@ -92,6 +103,31 @@ export default function DettesPanel() {
     sessionStorage.setItem('dettes_mobile_view',view)
   }
 
+  const openNewDebt = (type: 'je_dois' | 'jai_prete') => {
+    setCreateTab(type)
+    setOpenAdd(true)
+  }
+  const showRepayment = (debtId?: string) => {
+    setRepDebtId(debtId || active.find(debt => !debt.archived)?.id || '')
+    setRepAmount('')
+    setRepDate(new Date().toLocaleDateString('en-CA'))
+    setRepImpactsBudget(false)
+    setRepError('')
+    setOpenRepayment(true)
+  }
+  const recordRepayment = async () => {
+    if (!repDebtId || !(Number(repAmount)>0) || !repDate || repSaving) return
+    setRepSaving(true)
+    setRepError('')
+    try {
+      await addRemboursement.mutateAsync({dette_id: repDebtId, montant:Number(repAmount), date:repDate, impacte_budget:repImpactsBudget})
+      setOpenRepayment(false)
+      setSelectedId(repDebtId)
+    } catch (error) {
+      setRepError(error instanceof Error ? error.message : 'Impossible de créer ce remboursement.')
+    } finally { setRepSaving(false) }
+  }
+
   const handleAdd = async (data: {
     titre: string
     description: string | null
@@ -106,7 +142,7 @@ export default function DettesPanel() {
     duree_mois?: number | null
   }) => {
     if (!espace || isAdminViewing) return
-    const created = await create.mutateAsync({ espace_id: espace.id, type: tab, ...data })
+    const created = await create.mutateAsync({ espace_id: espace.id, type: createTab, ...data })
     setOpenAdd(false)
     if (created?.id) openDebtDetail(created.id)
   }
@@ -115,14 +151,14 @@ export default function DettesPanel() {
 
   return (
     <section className="debts-mobile-page min-w-0 max-w-full space-y-3">
-      <DetteForm open={openAdd} onOpenChange={setOpenAdd} tab={tab} onSubmit={handleAdd} />
+      <DetteForm open={openAdd} onOpenChange={setOpenAdd} tab={createTab} onSubmit={handleAdd} />
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="grid grid-cols-2 rounded-xl border border-slate-800/80 bg-slate-950/35 p-1">
           <button type="button" onClick={() => { setTab('je_dois'); setSelectedId(null) }} className={'rounded-lg px-4 py-2 text-sm font-medium transition ' + (tab === 'je_dois' ? 'bg-rose-500/15 text-rose-300' : 'text-slate-500 hover:text-slate-300')}>Dettes</button>
           <button type="button" onClick={() => { setTab('jai_prete'); setSelectedId(null) }} className={'rounded-lg px-4 py-2 text-sm font-medium transition ' + (tab === 'jai_prete' ? 'bg-emerald-500/15 text-emerald-300' : 'text-slate-500 hover:text-slate-300')}>On me doit</button>
         </div>
-        {!isAdminViewing && <Button size="sm" className="ml-auto" onClick={() => setOpenAdd(true)}><Plus className="mr-1 h-4 w-4" />Ajouter</Button>}
+        {!isAdminViewing && <Button size="sm" className="ml-auto hidden md:inline-flex" onClick={() => openNewDebt(tab)}><Plus className="mr-1 h-4 w-4" />Ajouter</Button>}
       </div>
 
       <nav aria-label="Vues des dettes" className="debts-mobile-tabs md:hidden">
@@ -183,7 +219,7 @@ export default function DettesPanel() {
           </Card>
         </div>
 
-        <Card className="nf-card-hover min-w-0 max-w-full">
+        <Card className="nf-card-hover hidden min-w-0 max-w-full md:block">
           <CardContent className="min-w-0 p-0">
             <div className="border-b border-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-200">{isDebt ? 'Mes dettes' : 'Mes créances'}</div>
             {active.length === 0 ? (
