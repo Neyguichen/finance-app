@@ -1046,7 +1046,7 @@ export default function DepensesPage() {
             </CardHeader>
             <CardContent className="min-w-0 p-3 pt-0">
               {browsedCategory && (
-                <div className="mb-3 grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+                <div className="expense-mobile-budget-metrics mb-3 grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
                   <Metric
                     label="Prévu"
                     value={formatEuro(browsedSubcategory?budget(browsedSubcategory.id):budget(browsedCategory.id))}
@@ -1551,7 +1551,7 @@ function Metric({ label, value, hint, onClick }: { label: string; value: string;
       <button
         type="button"
         onClick={onClick}
-        className="group min-w-0 rounded-lg bg-slate-950/30 px-2 py-2 text-left transition hover:bg-slate-800/55 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        className="group expense-budget-metric min-w-0 rounded-lg bg-slate-950/30 px-2 py-2 text-left transition hover:bg-slate-800/55 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
         aria-label={hint ? `${label} — ${hint}` : label}
       >
         <div className="flex items-center gap-1.5">
@@ -1562,7 +1562,7 @@ function Metric({ label, value, hint, onClick }: { label: string; value: string;
       </button>
     )
   }
-  return <div className="min-w-0 rounded-lg bg-slate-950/30 px-2 py-2"><p className="text-[10px] text-slate-400">{label}</p><p className="mt-1 break-words text-xs font-semibold text-slate-200 sm:text-sm">{value}</p></div>
+  return <div className="expense-budget-metric min-w-0 rounded-lg bg-slate-950/30 px-2 py-2"><p className="text-[10px] text-slate-400">{label}</p><p className="mt-1 break-words text-xs font-semibold text-slate-200 sm:text-sm">{value}</p></div>
 }
 
 function StatusBadge({ status }: { status: 'planned' | 'validated' }) {
