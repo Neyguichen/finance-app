@@ -170,3 +170,118 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Mobile Expenses prototype: light separation, without stacking heavy card borders. */
+@media (max-width: 767px) {
+  .expense-mobile-page .nf-card {
+    background: #111f33;
+    border-color: rgba(148, 163, 184, .23);
+    box-shadow: 0 6px 18px -14px rgba(0, 0, 0, .7);
+  }
+
+  .expense-mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .25rem;
+    padding: .25rem;
+    border: 1px solid rgba(148, 163, 184, .2);
+    border-radius: .8rem;
+    background: #0d1a2b;
+  }
+
+  .expense-mobile-tab {
+    min-height: 2.75rem;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    padding: .5rem .25rem;
+    border-radius: .6rem;
+    color: #aab9cf;
+    font-size: .8rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .expense-mobile-tab-active {
+    background: #233852;
+    color: #f8fafc;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .2);
+  }
+
+  .expense-mobile-tab-count {
+    display: inline-flex;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    justify-content: center;
+    align-items: center;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, .13);
+    color: #fcd34d;
+    font-size: .65rem;
+  }
+
+  .expense-mobile-shortcuts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+  }
+
+  .expense-mobile-shortcuts button {
+    display: flex;
+    min-height: 2.6rem;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    padding: .5rem;
+    border: 1px solid rgba(148, 163, 184, .22);
+    border-radius: .65rem;
+    background: #14263b;
+    color: #cbd5e1;
+    font-size: .75rem;
+    font-weight: 500;
+  }
+
+  .expense-mobile-shortcuts button:disabled {
+    opacity: .45;
+  }
+
+  .expense-mobile-category {
+    border: 1px solid rgba(148, 163, 184, .22);
+    background: #14263b;
+  }
+
+  .expense-mobile-category:active,
+  .expense-mobile-shortcuts button:not(:disabled):active {
+    background: #203750;
+  }
+
+  .expense-mobile-select {
+    color: #f8fafc;
+    background: #14263b;
+    border: 1px solid rgba(148, 163, 184, .3);
+  }
+
+  .expense-mobile-entries {
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    background: transparent;
+  }
+
+  .expense-mobile-entry {
+    border: 1px solid transparent;
+    border-bottom-color: rgba(148, 163, 184, .16);
+    border-radius: .45rem;
+    background: #16263b;
+  }
+
+  .expense-mobile-entry + .expense-mobile-entry {
+    border-top-width: 1px;
+  }
+
+  
+}
