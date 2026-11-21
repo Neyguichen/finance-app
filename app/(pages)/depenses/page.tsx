@@ -745,14 +745,11 @@ export default function DepensesPage() {
         </nav>
 
         <div className="expense-mobile-shortcuts md:hidden">
-          <button type="button" onClick={() => setTxOpen(true)} disabled={isAdminViewing || !moisId}>
-            <Plus className="h-4 w-4" /> Dépense
-          </button>
-          <button type="button" onClick={() => setFixedOpen(true)} disabled={isAdminViewing || !moisId}>
-            <CalendarClock className="h-4 w-4" /> Charge fixe
-          </button>
           <button type="button" onClick={() => setManagementView('budgets')} disabled={isAdminViewing}>
-            <Settings2 className="h-4 w-4" /> Budgets
+            <Settings2 className="h-4 w-4" /> Gérer les budgets
+          </button>
+          <button type="button" onClick={() => setManagementView('fixed')} disabled={isAdminViewing}>
+            <CalendarClock className="h-4 w-4" /> Charges fixes
           </button>
         </div>
 
@@ -869,7 +866,6 @@ export default function DepensesPage() {
         </section>
 
         <section aria-label="Dépenses à venir" className={mobileView === 'upcoming' ? 'block' : 'hidden md:block'}>
-          <div className="mb-3 hidden md:mb-0" />
         <PlannedExpenseValidationPanel
           entries={[...pendingActualEntries, ...ignoredActualEntries].map((entry:any) => ({
             id: entry.id,
