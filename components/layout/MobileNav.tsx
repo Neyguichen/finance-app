@@ -17,8 +17,8 @@ export default function MobileNav() {
   const pathname = usePathname()
 
   useEffect(() => {
-    // On route transitions, release any input focus carried over to Expenses.
-    if (pathname === '/depenses' && window.innerWidth < 768) {
+    // Do not carry focus on an input to a different mobile page.
+    if (window.innerWidth < 768) {
       const active = document.activeElement
       if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) active.blur()
     }
@@ -35,7 +35,7 @@ export default function MobileNav() {
               href={href}
               aria-current={active ? 'page' : undefined}
               onClick={() => {
-                if (href !== '/depenses' || window.innerWidth >= 768) return
+                if (window.innerWidth >= 768) return
                 const focused = document.activeElement
                 if (focused instanceof HTMLElement) focused.blur()
               }}
