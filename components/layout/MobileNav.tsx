@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ArrowUpCircle, LayoutDashboard, PiggyBank, ReceiptText } from 'lucide-react'
@@ -15,6 +16,14 @@ const links = [
 export default function MobileNav() {
   const pathname = usePathname()
 
+  useEffect(() => {
+    // On route transitions, release any input focus carried over to Expenses.
+    if (pathname === '/depenses' && window.innerWidth < 768) {
+      const active = document.activeElement
+      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) active.blur()
+    }
+  }, [pathname])
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-800/80 bg-[#08111f] pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto grid h-16 max-w-xl grid-cols-4 px-1">
@@ -25,6 +34,11 @@ export default function MobileNav() {
               key={href}
               href={href}
               aria-current={active ? 'page' : undefined}
+              onClick={() => {
+                if (href !== '/depenses' || window.innerWidth >= 768) return
+                const focused = document.activeElement
+                if (focused instanceof HTMLElement) focused.blur()
+              }}
               className={cn(
                 'group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition',
                 active ? 'text-indigo-300' : 'text-slate-600 hover:text-slate-300'
