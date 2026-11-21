@@ -1095,19 +1095,19 @@ export default function DepensesPage() {
         </Dialog>
 
         <Dialog open={managementView === 'fixed'} onOpenChange={open => { if (!open) { setManagementView(null); setSelectedFixedRecurringId(null) } }}>
-          <DialogContent className="max-w-4xl border-slate-700 bg-slate-900">
+          <DialogContent className="expense-management-modal max-w-4xl border-slate-700 bg-slate-900">
             <DialogHeader>
               <DialogTitle>Charges fixes récurrentes</DialogTitle>
               <p className="text-xs text-slate-500">Gère les modèles récurrents et leurs occurrences.</p>
             </DialogHeader>
-            <div className="grid max-h-[72vh] gap-4 overflow-y-auto pr-1 md:grid-cols-[1fr_1.05fr]">
-              <section>
+            <div className="grid min-w-0 gap-4 md:max-h-[72vh] md:overflow-y-auto md:pr-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+              <section className={selectedFixedRecurring ? "hidden min-w-0 md:block" : "min-w-0"}>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-slate-200">{showArchivedFixed ? 'Charges archivées' : 'Charges actives'}</p>
                     <p className="text-[11px] text-slate-500">{showArchivedFixed ? archivedFixedRecurrents.length : activeFixedRecurrents.length} charge(s)</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {!isAdminViewing && !showArchivedFixed && (
                       <Button size="sm" onClick={() => { setManagementView(null); setFixedOpen(true) }}>
                         <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
@@ -1135,14 +1135,15 @@ export default function DepensesPage() {
 
               </section>
 
-              <section className="rounded-xl border border-slate-800 bg-slate-950/25 p-4">
+              <section className={(selectedFixedRecurring ? "min-w-0" : "hidden min-w-0 md:block") + " rounded-xl border border-slate-800 bg-slate-950/25 p-3 sm:p-4"}>
+                {selectedFixedRecurring && <button type="button" onClick={() => setSelectedFixedRecurringId(null)} className="mb-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-indigo-300 md:hidden"><ChevronDown className="h-4 w-4 rotate-90" />Retour aux charges fixes</button>}
                 {!selectedFixedRecurring ? (
                   <div className="flex min-h-48 items-center justify-center text-center text-sm text-slate-500">Sélectionne une charge fixe pour gérer sa récurrence.</div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div><h3 className="font-semibold text-slate-100">{selectedFixedRecurring.nom}</h3><p className="mt-1 text-xs text-slate-500">{fixedFrequencyLabel(selectedFixedRecurring)} · depuis {selectedFixedRecurring.mois_debut ? formatDate(selectedFixedRecurring.mois_debut) : 'date non renseignée'}</p></div>
-                      <div className="flex items-center gap-2"><span className={'rounded-full px-2 py-0.5 text-[9px] font-medium ' + (selectedFixedRecurring.actif === false ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500/10 text-emerald-300')}>{selectedFixedRecurring.actif === false ? 'Archivée' : 'Active'}</span><strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong></div>
+                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0"><h3 className="break-words font-semibold text-slate-100">{selectedFixedRecurring.nom}</h3><p className="mt-1 text-xs text-slate-500">{fixedFrequencyLabel(selectedFixedRecurring)} · depuis {selectedFixedRecurring.mois_debut ? formatDate(selectedFixedRecurring.mois_debut) : 'date non renseignée'}</p></div>
+                      <div className="flex flex-wrap items-center gap-2"><span className={'rounded-full px-2 py-0.5 text-[9px] font-medium ' + (selectedFixedRecurring.actif === false ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500/10 text-emerald-300')}>{selectedFixedRecurring.actif === false ? 'Archivée' : 'Active'}</span><strong className="text-purple-300">{formatEuro(Number(selectedFixedRecurring.montant))}</strong></div>
                     </div>
 
                     {!isAdminViewing && selectedFixedRecurring.actif === false && (
@@ -1182,7 +1183,7 @@ export default function DepensesPage() {
                             <CalendarDays className="h-4 w-4 text-slate-600" />
                           </div>
                           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                            <input type="month" value={occurrenceMonth} onChange={event => setOccurrenceMonth(event.target.value)} className="input input-bordered input-sm flex-1" />
+                            <input type="month" value={occurrenceMonth} onChange={event => setOccurrenceMonth(event.target.value)} className="input input-bordered input-sm min-w-0 w-full flex-1" />
                             {!isAdminViewing && (
                               <Button size="sm" onClick={addSelectedFixedOccurrence} disabled={addOccurrence.isPending || selectedOccurrences.some((item: any) => String(item.mois?.mois || '').slice(0, 7) === occurrenceMonth)}>
                                 <Plus className="mr-1 h-3.5 w-3.5" />Ajouter
@@ -1241,12 +1242,12 @@ export default function DepensesPage() {
         </Dialog>
 
         <Dialog open={managementView === 'budgets'} onOpenChange={open => { if (!open) setManagementView(null) }}>
-          <DialogContent className="max-w-4xl border-slate-700 bg-slate-900">
+          <DialogContent className="expense-management-modal max-w-4xl border-slate-700 bg-slate-900">
             <DialogHeader><DialogTitle>Catégories & budgets</DialogTitle></DialogHeader>
-            <div className="max-h-[72vh] space-y-3 overflow-y-auto pr-1">
+            <div className="min-w-0 space-y-3 md:max-h-[72vh] md:overflow-y-auto md:pr-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-slate-500">Clique sur une catégorie ou sous-catégorie pour voir son budget et les dépenses du mois.</p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowArchivedCategories(value => !value)}>
                     {showArchivedCategories ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Archive className="mr-1 h-3.5 w-3.5" />}
                     {showArchivedCategories ? 'Voir les actives' : 'Voir les archivées'}
@@ -1264,8 +1265,8 @@ export default function DepensesPage() {
                     const actual = spent(cat.id)
                     return (
                       <div key={cat.id} className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/20">
-                        <div className="flex items-center gap-2 p-3">
-                          <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id) } }} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 p-3">
+                          <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id) } }} className="flex min-w-0 basis-full flex-1 items-center gap-3 text-left sm:basis-auto">
                             <span className="text-xl">{cat.icone || '📂'}</span>
                             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-200">{cat.nom}</p><p className="text-[10px] text-slate-500">{formatEuro(planned)} prévu · {formatEuro(actual)} réel</p></div>
                           </button>
@@ -1280,10 +1281,10 @@ export default function DepensesPage() {
                         </div>
                         {children.length > 0 && <div className="border-t border-slate-800/70 px-3 py-2">
                           {children.map((sub: any) => (
-                            <div key={sub.id} className="flex items-center gap-2 py-1.5 pl-8">
-                              <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id, sub.id) } }} className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                            <div key={sub.id} className="flex min-w-0 flex-wrap items-center gap-2 py-2 pl-2 sm:pl-8">
+                              <button type="button" onClick={() => { if (!showArchivedCategories) { setManagementView(null); openBudgetModal(cat.id, sub.id) } }} className="flex min-w-0 basis-full flex-1 flex-wrap items-center justify-between gap-2 text-left sm:basis-auto">
                                 <span className="truncate text-xs text-slate-300">{sub.icone || '•'} {sub.nom}</span>
-                                <span className="text-[10px] text-slate-500">{formatEuro(budget(sub.id))} · {formatEuro(spent(sub.id, true))}</span>
+                                <span className="text-[10px] text-slate-400">{formatEuro(budget(sub.id))} · {formatEuro(spent(sub.id, true))}</span>
                               </button>
                               {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMoveCategoryId(sub.id);setMoveParentId(cat.id);setMoveError('')}}>Déplacer</Button>}
                               {!isAdminViewing && !showArchivedCategories && <Button size="sm" variant="outline" onClick={() => {setMergeSourceId(sub.id);setMergeDestinationId('');setMergePreview(null);setMergeError('')}}>Fusionner</Button>}
@@ -1305,16 +1306,16 @@ export default function DepensesPage() {
         </Dialog>
 
         <Dialog open={!!budgetModalCategory} onOpenChange={open => { if (!open) { setBudgetModalId(null); setBudgetModalSubcategoryId(null); setBudgetNameDraft(''); setBudgetIconDraft('📂') } }}>
-          <DialogContent className="max-w-3xl border-slate-700 bg-slate-900">
+          <DialogContent className="expense-management-modal max-w-3xl border-slate-700 bg-slate-900">
             {budgetModalCategory && (
               <>
                 <DialogHeader>
                   <DialogTitle>{budgetModalSubcategory ? 'Modifier la sous-catégorie' : 'Modifier la catégorie'}</DialogTitle>
                 </DialogHeader>
 
-                <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+                <div className="min-w-0 space-y-4 md:max-h-[70vh] md:overflow-y-auto md:pr-1">
                   <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/25 p-4">
-                    <div className="flex items-end gap-3">
+                    <div className="flex min-w-0 items-end gap-3">
                       <div className="shrink-0">
                         <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-slate-600">Icône</label>
                         <EmojiPicker compact value={budgetIconDraft} onChange={setBudgetIconDraft} />
@@ -1325,8 +1326,8 @@ export default function DepensesPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 lg:grid-cols-[1.15fr_.85fr]">
-                      <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.05] p-3">
+                    <div className="grid min-w-0 gap-3 lg:grid-cols-[1.15fr_.85fr]">
+                      <div className="min-w-0 rounded-xl border border-indigo-500/20 bg-indigo-500/[0.05] p-3">
                         <label className="text-[10px] font-medium uppercase tracking-wide text-indigo-300/70">Budget prévu</label>
                         <div className="mt-2 flex items-center gap-2">
                           <input
